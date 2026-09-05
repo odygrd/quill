@@ -68,7 +68,7 @@ public:
         [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto&&... elems)
         {
           ((Codec<std::decay_t<decltype(elems)>>::encode(
-             buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, std::move(elems))),
+             buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, std::forward<decltype(elems)>(elems))),
            ...);
         },
         std::move(arg));

@@ -64,9 +64,9 @@ public:
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
       Codec<UT1>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                         std::move(arg.first));
+                         std::get<0>(std::forward<Arg>(arg)));
       Codec<UT2>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                         std::move(arg.second));
+                         std::get<1>(std::forward<Arg>(arg)));
     }
     else
     {
