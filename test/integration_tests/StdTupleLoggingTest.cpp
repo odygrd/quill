@@ -7,6 +7,7 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include "quill/std/Array.h"
 #include "quill/std/Tuple.h"
 
 #include <array>
@@ -181,6 +182,13 @@ TEST_CASE("std_tuple_logging")
     std::tuple<TupleReferenceValue> owned{TupleReferenceValue{43}};
     LOG_INFO(logger, "owned_tuple {}", std::move(owned));
     CHECK_EQ(std::get<0>(owned).value, -1);
+
+    char fixed_width[4] = {'Q', 'U', 'I', 'L'};
+    char const terminated[] = "text";
+    int numbers[2] = {10, 20};
+    LOG_INFO(logger, "array_tuple {}", std::tie(fixed_width, terminated, numbers));
+    auto array_refs = std::tie(fixed_width);
+    LOG_INFO(logger, "array_tuple_lvalue {}", array_refs);
   }
 
   logger->flush_log();
@@ -229,6 +237,8 @@ TEST_CASE("std_tuple_logging")
 
   CHECK(testing::file_contains(file_contents, "reference_tuple (42)"));
   CHECK(testing::file_contains(file_contents, "owned_tuple (43)"));
+  CHECK(testing::file_contains(file_contents, "array_tuple (\"QUIL\", \"text\", [10, 20])"));
+  CHECK(testing::file_contains(file_contents, "array_tuple_lvalue (\"QUIL\")"));
 
   testing::remove_file(filename);
 }
