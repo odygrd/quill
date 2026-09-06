@@ -632,6 +632,13 @@ private:
     // outlive the backend thread and be reused after a later Backend::start().
     // Refresh unconditionally so existing frontend queues are visible again.
     _update_active_thread_contexts_cache(true);
+    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    {
+      if (thread_context->_backend_mdc_state)
+      {
+        thread_context->_backend_mdc_state->set_format_pattern(_options.mdc_format_pattern);
+      }
+    }
 
     // Cache this thread's id only after initialization has succeeded. ManualBackendWorker::init()
     // calls this function on the caller thread and can propagate validation errors.

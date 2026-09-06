@@ -64,6 +64,13 @@ TEST_CASE("mdc_logging")
 
   LOG_INFO(logger_a, "main still there");
 
+  Backend::stop();
+  backend_options.mdc_format_pattern = " [{}: {}, ]";
+  Backend::start(backend_options);
+  LOG_INFO(logger_a, "main after restart");
+  logger_a->set_mdc("user", "bob");
+  LOG_INFO(logger_b, "main updated after restart");
+
   logger_a->clear_mdc();
   LOG_INFO(logger_b, "main cleared");
 
@@ -73,7 +80,7 @@ TEST_CASE("mdc_logging")
   Backend::stop();
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 9);
+  REQUIRE_EQ(file_contents.size(), 11);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, "[logger_a] main before replace <request_id = 10 | user = alice>"));
@@ -87,6 +94,9 @@ TEST_CASE("mdc_logging")
   REQUIRE(quill::testing::file_contains(file_contents, "[logger_b] worker cleared"));
   REQUIRE(
     quill::testing::file_contains(file_contents, "[logger_a] main still there <request_id = 11>"));
+  REQUIRE(quill::testing::file_contains(file_contents, "[logger_a] main after restart [request_id: 11]"));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, "[logger_b] main updated after restart [request_id: 11, user: bob]"));
   REQUIRE(quill::testing::file_contains(file_contents, "[logger_b] main cleared"));
 
   testing::remove_file(filename);
