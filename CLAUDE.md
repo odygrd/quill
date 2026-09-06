@@ -110,6 +110,11 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
 ## Documentation
 
 - The Sphinx docs live under `docs/`.
+- Keep each changelog entry to one or two brief sentences describing a real usage scenario and the observable fix
+  or benefit for library users. Name the relevant public class, function, or option and the conditions that trigger
+  the issue; scope descriptions of hangs, errors, or missing output to that case. Keep internal implementation details
+  in code comments or commit descriptions.
+- Do not add changelog entries for documentation-only changes.
 - Any standalone runnable sample in a `.rst` file (anything with `main()`, a class definition, or that the reader could
   copy-paste and compile as-is) MUST live in its own compilable `.cpp` file under `docs/snippets/`, added to
   `docs/snippets/CMakeLists.txt`, and referenced from the `.rst` via `.. literalinclude:: snippets/<file>.cpp`. Never
@@ -145,6 +150,10 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
 - The repo is C++17 only.
 - Follow existing codebase patterns.
 - Prefer readable, maintainable, low-overhead code.
+- Use blank lines to separate logical steps or changes of context in code and tests, such as setup, actions,
+  assertions, and cleanup. Keep related statements together; avoid dense walls of text or a blank line after every statement.
+- Keep assignments out of `if` and `while` conditions: compute the value first, then test it.
+  Keep state-changing steps separate from compound conditions so their order is easy to follow.
 - Use descriptive names.
 - Prefer const-correctness, `constexpr`, and RAII where appropriate.
 - Use `auto` when it improves readability, not by default everywhere.

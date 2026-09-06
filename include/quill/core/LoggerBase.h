@@ -191,7 +191,7 @@ public:
   /***/
   QUILL_NODISCARD static bool is_current_thread_backend_thread() noexcept
   {
-    return _is_backend_thread;
+    return _backend_thread_flag();
   }
 
 protected:
@@ -201,11 +201,17 @@ protected:
   /***/
   static void set_current_thread_is_backend_thread(bool value) noexcept
   {
-    _is_backend_thread = value;
+    _backend_thread_flag() = value;
+  }
+
+  // The exported accessor keeps its thread-local state shared with DLL consumers.
+  QUILL_EXPORT static bool& _backend_thread_flag() noexcept
+  {
+    static QUILL_THREAD_LOCAL bool is_backend_thread{false};
+    return is_backend_thread;
   }
 
   static inline QUILL_THREAD_LOCAL ThreadContext* _thread_context = nullptr; /* Set and accessed by the frontend */
-  static inline QUILL_THREAD_LOCAL bool _is_backend_thread{false}; /* Set and read by the current thread */
 
   // -- frontend access BEGIN --
   std::string _logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
