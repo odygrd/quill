@@ -105,6 +105,7 @@
 
 ## v13.1.0
 
+- `%(process_id)` now contains the process ID when records are processed by `ManualBackendWorker`.
 - With a dropping queue, `Logger::flush_log()` now reports outstanding drops through
   `BackendOptions::error_notifier` even when the thread that dropped the messages has exited.
 - `Backend::stop()` now processes records logged by `FileEventNotifier::before_close` or
