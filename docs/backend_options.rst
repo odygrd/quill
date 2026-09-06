@@ -41,7 +41,7 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
    If a logger has immediate flush enabled, backend-thread log calls still enqueue the record, but the implicit flush is silently skipped so generic logging code reused on the backend remains safe.
 
    With ``wait_for_queues_to_empty_before_exit`` enabled, shutdown also drains diagnostics generated
-   by the final flush and flushes the sinks again. Errors during this additional pass go directly
+   by the final flush and logger-removal close callbacks, and flushes the sinks again. Errors during this additional pass go directly
    to stderr instead of ``error_notifier``, so further failures cannot create a callback retry loop.
 
 Character Sanitization

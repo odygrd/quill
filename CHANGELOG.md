@@ -105,6 +105,9 @@
 
 ## v13.1.0
 
+- `Backend::stop()` now processes records logged by `FileEventNotifier::before_close` or
+  `FileEventNotifier::after_close` while destroying removed loggers' sinks. This applies when
+  `BackendOptions::wait_for_queues_to_empty_before_exit` is enabled.
 - On Windows, `Frontend::create_or_get_sink<FileSink>()` now reuses an existing sink for equivalent casing or
   `\\?\` spellings of the same path. In `'w'` mode, this prevents a second sink from reopening and truncating
   that file.

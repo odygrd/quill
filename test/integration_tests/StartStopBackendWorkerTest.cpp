@@ -7,7 +7,9 @@
 #include "quill/sinks/FileSink.h"
 
 #include <cstdio>
+#include <future>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace quill;
@@ -68,4 +70,63 @@ TEST_CASE("start_stop_backend_worker")
 
     testing::remove_file(filename);
   }
+
+  std::string const diagnostic_file = "start_stop_close_callback.log";
+  std::string const victim_file = "start_stop_close_callback_victim.log";
+  testing::remove_file(diagnostic_file);
+  testing::remove_file(victim_file);
+  auto* diagnostic = Frontend::create_or_get_logger(
+    "start_stop_close_callback", Frontend::create_or_get_sink<FileSink>(diagnostic_file),
+    PatternFormatterOptions{"%(message)"});
+
+  FileEventNotifier notifier;
+  notifier.before_close = [diagnostic](fs::path const&, FileEventNotifierHandle)
+  { LOG_INFO(diagnostic, "victim closed"); };
+
+  auto* victim = Frontend::create_or_get_logger("start_stop_close_callback_victim",
+    Frontend::create_or_get_sink<FileSink>(victim_file, FileSinkConfig{}, notifier));
+
+  std::promise<void> poll_finished;
+  std::promise<void> release_poll;
+  auto ready = poll_finished.get_future();
+  auto gate = release_poll.get_future();
+  bool first_poll{true};
+
+  BackendOptions options;
+  options.backend_worker_on_poll_end = [&]()
+  {
+    if (first_poll)
+    {
+      first_poll = false;
+      poll_finished.set_value();
+      gate.wait();
+    }
+  };
+
+  Backend::start(options);
+  ready.wait();
+  Frontend::remove_logger(victim);
+
+  // Schedule removal after ordinary poll cleanup, so shutdown must close the sink.
+  std::thread release_thread([&]()
+  {
+    while (Backend::is_running())
+    {
+      std::this_thread::yield();
+    }
+
+    release_poll.set_value();
+  });
+
+  Backend::stop();
+  release_thread.join();
+
+  REQUIRE(testing::file_contents(diagnostic_file) == std::vector<std::string>{"victim closed"});
+
+  Frontend::remove_logger(diagnostic);
+  Backend::start();
+  Backend::stop();
+
+  testing::remove_file(diagnostic_file);
+  testing::remove_file(victim_file);
 }

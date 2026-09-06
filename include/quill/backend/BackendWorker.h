@@ -679,13 +679,16 @@ private:
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
         _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final, true);
-        if (_draining_shutdown_diagnostics || !_options.wait_for_queues_to_empty_before_exit ||
+        bool const removed_loggers = _cleanup_invalidated_loggers(true);
+
+        if ((_draining_shutdown_diagnostics && !removed_loggers) ||
+            !_options.wait_for_queues_to_empty_before_exit ||
             _check_frontend_queues_and_cached_transit_events_empty())
         {
           break;
         }
 
-        // Drain final-flush diagnostics once. Further errors go to stderr to avoid a retry loop.
+        // Include close-callback diagnostics. Further errors go to stderr to avoid a retry loop.
         _draining_shutdown_diagnostics = true;
         continue;
       }
@@ -711,7 +714,6 @@ private:
     _rdtsc_clock.store(nullptr, std::memory_order_release);
 
     _cleanup_invalidated_thread_contexts();
-    _cleanup_invalidated_loggers(true);
 
     _draining_shutdown_diagnostics = false;
     _clear_backend_thread_flag();
@@ -2013,11 +2015,11 @@ private:
   /**
    * Cleans up any invalidated loggers
    */
-  QUILL_ATTRIBUTE_HOT void _cleanup_invalidated_loggers(bool sinks_already_flushed = false)
+  QUILL_ATTRIBUTE_HOT bool _cleanup_invalidated_loggers(bool sinks_already_flushed = false)
   {
     if (!_logger_manager.has_invalidated_loggers())
     {
-      return;
+      return false;
     }
 
     {
@@ -2049,7 +2051,8 @@ private:
       }
     }
 
-    if (!_removed_loggers.empty())
+    bool const removed_loggers = !_removed_loggers.empty();
+    if (removed_loggers)
     {
       // if loggers were removed also check for sinks to remove
       // cleanup_unused_sinks is expensive and should be only called when it is needed
@@ -2068,6 +2071,8 @@ private:
 
       _removed_loggers.clear();
     }
+
+    return removed_loggers;
   }
 
   /**
