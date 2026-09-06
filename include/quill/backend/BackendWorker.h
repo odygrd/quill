@@ -1504,15 +1504,17 @@ private:
   /**
    * Check for dropped or blocked events
    * @param error_notifier error notifier
+   * @param retiring_context check only this context before retirement, or all contexts when null
    */
-  QUILL_ATTRIBUTE_HOT void _check_failure_counter(std::function<void(std::string const&)> const& error_notifier)
+  QUILL_ATTRIBUTE_HOT void _check_failure_counter(
+    std::function<void(std::string const&)> const& error_notifier, ThreadContext* retiring_context = nullptr)
   {
     if (!error_notifier)
     {
       return;
     }
 
-    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    auto const notify_failures = [this, &error_notifier](ThreadContext* thread_context)
     {
       size_t const failed_events_cnt = thread_context->get_and_reset_failure_counter();
 
@@ -1556,6 +1558,18 @@ private:
                                timestamp, failed_events_cnt, thread_context->thread_id()));
           }
         }
+      }
+    };
+
+    if (retiring_context)
+    {
+      notify_failures(retiring_context);
+    }
+    else
+    {
+      for (ThreadContext* thread_context : _active_thread_contexts_cache)
+      {
+        notify_failures(thread_context);
       }
     }
   }
@@ -2000,6 +2014,7 @@ private:
       // if we found anything then remove it - Here if we have more than one to remove we will
       // try to acquire the lock multiple times, but it should be fine as it is unlikely to have
       // that many to remove
+      _check_failure_counter(_options.error_notifier, *found_invalid_and_empty_thread_context);
       _thread_context_manager.remove_shared_invalidated_thread_context(*found_invalid_and_empty_thread_context);
 
       // We also need to remove it from _thread_context_cache, that is used only by the backend

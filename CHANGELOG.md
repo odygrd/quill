@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- With a dropping queue, `Logger::flush_log()` now reports outstanding drops through
+  `BackendOptions::error_notifier` even when the thread that dropped the messages has exited.
 - `Backend::stop()` now processes records logged by `FileEventNotifier::before_close` or
   `FileEventNotifier::after_close` while destroying removed loggers' sinks. This applies when
   `BackendOptions::wait_for_queues_to_empty_before_exit` is enabled.

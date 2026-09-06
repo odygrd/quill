@@ -6,6 +6,8 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <atomic>
+#include <future>
 #include <string>
 #include <thread>
 #include <vector>
@@ -138,4 +140,72 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   REQUIRE_LE(dropped_messages_num, number_of_messages);
 
   testing::remove_file(filename);
+
+  std::string const retired_filename = "bounded_dropping_retired_thread.log";
+  std::string retired_notification;
+  auto* retired_logger = CustomFrontend::create_or_get_logger("bounded_dropping_retired_thread",
+    CustomFrontend::create_or_get_sink<FileSink>(retired_filename));
+
+  std::promise<void> poll_started;
+  std::promise<void> release_poll;
+  auto ready = poll_started.get_future();
+  auto gate = release_poll.get_future();
+  std::atomic<uint32_t> flusher_id{0};
+  bool first_poll{true};
+
+  BackendOptions retired_options;
+  retired_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
+  retired_options.error_notifier = [&](std::string const& message) { retired_notification += message; };
+  retired_options.backend_worker_on_poll_begin = [&]()
+  {
+    if (!first_poll)
+    {
+      return;
+    }
+    first_poll = false;
+    poll_started.set_value();
+    gate.wait();
+
+    // Observe the flush's publication on the consumer thread to select the retirement schedule.
+    bool queued{false};
+    std::string const thread_id = std::to_string(flusher_id.load());
+    while (!queued)
+    {
+      detail::ThreadContextManager::instance().for_each_thread_context([&](auto* context)
+      {
+        if (context->thread_id() == thread_id)
+        {
+          queued = !context->template get_spsc_queue<CustomFrontendOptions::queue_type>().empty();
+        }
+      });
+      std::this_thread::yield();
+    }
+  };
+
+  Backend::start(retired_options);
+  ready.wait();
+
+  std::thread producer([&]() { LOG_INFO(retired_logger, "{}", std::string(2048, 'x')); });
+  producer.join();
+
+  std::promise<void> flusher_ready;
+  auto flush_ready = flusher_ready.get_future();
+  std::thread flusher([&]()
+  {
+    CustomFrontend::preallocate();
+    flusher_id.store(detail::get_thread_id());
+    flusher_ready.set_value();
+    retired_logger->flush_log();
+  });
+
+  flush_ready.wait();
+  release_poll.set_value();
+  flusher.join();
+
+  CustomFrontend::remove_logger(retired_logger);
+  Backend::stop();
+
+  REQUIRE_NE(retired_notification.find("Dropped 1 events from thread"), std::string::npos);
+
+  testing::remove_file(retired_filename);
 }
