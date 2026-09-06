@@ -255,6 +255,39 @@ TEST_CASE("open_unicode_filename")
 }
 
 /***/
+TEST_CASE("open_extended_length_filename")
+{
+#if defined(_WIN32)
+  auto const absolute_root = fs::absolute("file_sink_extended_path_test").native();
+  fs::path const root{absolute_root.compare(0, 2, L"\\\\") == 0
+                       ? L"\\\\?\\UNC\\" + absolute_root.substr(2)
+                       : L"\\\\?\\" + absolute_root};
+  std::vector<fs::path> directories{root};
+  while (directories.back().native().size() <= MAX_PATH)
+  {
+    directories.push_back(directories.back() / std::wstring(40, L'x'));
+  }
+
+  fs::create_directories(directories.back());
+  fs::path const filename = directories.back() / "extended.log";
+
+  {
+    FileSink sink{filename};
+    REQUIRE_EQ(sink.get_filename().native().compare(0, 4, L"\\\\?\\"), 0);
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "long path\n");
+    sink.flush_sink();
+  }
+
+  REQUIRE(testing::file_contents(filename) == std::vector<std::string>{"long path"});
+
+  REQUIRE(fs::remove(filename));
+  for (auto it = directories.rbegin(); it != directories.rend(); ++it)
+  {
+    REQUIRE(fs::remove(*it));
+  }
+#endif
+}
+
 TEST_CASE("dev_null_special_path")
 {
   FileSinkTestHarness file_sink{"/dev/null"};

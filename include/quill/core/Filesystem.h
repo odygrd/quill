@@ -153,6 +153,16 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
     return absolute_path.lexically_normal() / filename.filename();
   }
 
+#if defined(_WIN32)
+  // canonical() may remove the extended prefix even when native I/O still requires it.
+  if ((filename.native().compare(0, 4, L"\\\\?\\") == 0) &&
+      (canonical_path.native().compare(0, 4, L"\\\\?\\") != 0))
+  {
+    return fs::path{canonical_path.native().compare(0, 2, L"\\\\") == 0
+                     ? L"\\\\?\\UNC\\" + canonical_path.native().substr(2)
+                     : L"\\\\?\\" + canonical_path.native()} / filename.filename();
+  }
+#endif
   return canonical_path / filename.filename();
 }
 } // namespace detail

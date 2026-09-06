@@ -105,6 +105,7 @@
 
 ## v13.1.0
 
+- Fixed `FileSink` failing to open long Windows paths supplied with a `\\?\` prefix.
 - On Windows, timestamp suffixes enabled by `FileSinkConfig::set_filename_append_option()` now preserve
   Unicode `fs::path` names outside the active code page. `RotatingFileSink` also preserves these names during
   rotation and backup discovery.
