@@ -46,6 +46,11 @@
 
 QUILL_BEGIN_NAMESPACE
 
+namespace detail
+{
+class SinkManager;
+}
+
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
   #pragma warning(push)
   #pragma warning(disable : 4996)
@@ -356,6 +361,83 @@ protected:
 class FileSink : public FileSinkBase
 {
 private:
+  friend class detail::SinkManager;
+
+  static std::string _file_sink_id(std::string const& normalized_name)
+  {
+    fs::path path{normalized_name};
+    if (path.is_absolute())
+    {
+      HANDLE const directory = ::CreateFileW(
+        path.parent_path().c_str(), FILE_READ_ATTRIBUTES,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+        FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+      if (directory == INVALID_HANDLE_VALUE)
+      {
+        QUILL_THROW(QuillError{"Cannot inspect file sink directory. GetLastError: " +
+                               std::to_string(::GetLastError())});
+      }
+
+      // FileCaseSensitiveInfo (23) has a single ULONG flag; older SDKs omit the declarations.
+      DWORD flags{0};
+      bool const queried = ::GetFileInformationByHandleEx(
+        directory, static_cast<FILE_INFO_BY_HANDLE_CLASS>(23), &flags, sizeof(flags)) != 0;
+      DWORD const error = queried ? ERROR_SUCCESS : ::GetLastError();
+      ::CloseHandle(directory);
+      if (!queried && error != ERROR_INVALID_PARAMETER && error != ERROR_NOT_SUPPORTED &&
+          error != ERROR_INVALID_FUNCTION)
+      {
+        QUILL_THROW(QuillError{"Cannot query file sink directory case sensitivity. GetLastError: " +
+                               std::to_string(error)});
+      }
+
+      if ((flags & 1u) == 0)
+      {
+        std::wstring const name = path.filename().native();
+        int const count = ::LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_UPPERCASE, name.c_str(),
+                                          static_cast<int>(name.size()), nullptr, 0, nullptr, nullptr, 0);
+        if (count == 0)
+        {
+          QUILL_THROW(QuillError{"Cannot normalize file sink name. GetLastError: " +
+                                 std::to_string(::GetLastError())});
+        }
+
+        std::wstring folded(static_cast<size_t>(count), L'\0');
+        int const mapped_count = ::LCMapStringEx(
+          LOCALE_NAME_INVARIANT, LCMAP_UPPERCASE, name.c_str(), static_cast<int>(name.size()),
+          folded.data(), count, nullptr, nullptr, 0);
+        if (mapped_count == 0)
+        {
+          QUILL_THROW(QuillError{"Cannot normalize file sink name. GetLastError: " +
+                                 std::to_string(::GetLastError())});
+        }
+
+        path = path.parent_path() / folded;
+      }
+
+      // Ordinary and extended paths share a registry key; the actual I/O path is unchanged.
+      // Keep the prefix for trailing dots/spaces, whose filename meaning depends on it.
+      std::wstring const native = path.native();
+      if ((native.back() != L'.') && (native.back() != L' '))
+      {
+        if (native.compare(0, 8, L"\\\\?\\UNC\\") == 0)
+        {
+          path = L"\\\\" + native.substr(8);
+        }
+        else if ((native.compare(0, 4, L"\\\\?\\") == 0) && (native.size() > 6) &&
+                 (native[5] == L':') && (native[6] == L'\\'))
+        {
+          path = native.substr(4);
+        }
+      }
+
+      auto const utf8 = path.u8string();
+      return std::string{reinterpret_cast<char const*>(utf8.data()), utf8.size()};
+    }
+
+    return normalized_name;
+  }
+
   struct OpenedHandleGuard
   {
     ~OpenedHandleGuard()
