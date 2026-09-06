@@ -30,12 +30,19 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
    A few trailing log statements may still drain successfully, but you should not rely on that behavior.
    Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the frontend queues may never become empty.
 
+   Disabling this option skips draining pending records. Queued and cached records remain available
+   for a later ``Backend::start()``; they are lost if the process exits without draining them.
+
 .. note::
 
    ``error_notifier``, backend poll hooks, sink periodic tasks, and custom sink ``write_log()`` implementations all run on the backend thread.
    An exception from one sink is reported through ``error_notifier`` without preventing later sinks from receiving the same event.
    Avoid long-blocking work in these paths. Calling ``logger->flush_log()``, ``Backend::stop()``, or ``Frontend::remove_logger_blocking()`` from these paths throws ``QuillError`` because the backend cannot wait on itself.
    If a logger has immediate flush enabled, backend-thread log calls still enqueue the record, but the implicit flush is silently skipped so generic logging code reused on the backend remains safe.
+
+   With ``wait_for_queues_to_empty_before_exit`` enabled, shutdown also drains diagnostics generated
+   by the final flush and flushes the sinks again. Errors during this additional pass go directly
+   to stderr instead of ``error_notifier``, so further failures cannot create a callback retry loop.
 
 Character Sanitization
 -----------------------

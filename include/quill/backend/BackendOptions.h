@@ -201,9 +201,9 @@ struct BackendOptions
    * in a loop from another thread, can prevent the backend from exiting because the queues may
    * never become empty.
    *
-   * When this option is disabled, the backend flushes the sinks and exits without reading the
-   * queues again. Log messages still in the queues, as well as messages that were already read
-   * from the queues but not yet processed, are discarded.
+   * When this option is disabled, the backend flushes the sinks and exits without draining the
+   * remaining queued and cached records. They remain pending and can be processed after a later
+   * Backend::start(); they are lost if the process exits first.
    */
   bool wait_for_queues_to_empty_before_exit = true;
 
@@ -244,6 +244,9 @@ struct BackendOptions
    * backend thread throws QuillError because the backend cannot wait on itself. If the logger has
    * immediate flush enabled, the implicit flush is silently skipped for backend-thread log calls so
    * generic logging code reused on the backend remains safe.
+   * During shutdown, diagnostics logged by the final flush are drained when
+   * wait_for_queues_to_empty_before_exit is enabled. Errors during that additional drain and flush
+   * are reported directly to stderr instead of this callback, preventing recursive diagnostics.
    */
   std::function<void(std::string const&)> error_notifier{detail::backend_options_default_error_notifier};
 
@@ -343,6 +346,7 @@ struct BackendOptions
    * When no MDC is set, %(mdc) expands to an empty string.
    *
    * Invalid patterns are rejected with QuillError during backend initialization.
+   * Restarting the backend applies the supplied pattern to existing MDC fields as well.
    */
   std::string mdc_format_pattern = " [{}: {}, ]";
 

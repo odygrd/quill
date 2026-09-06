@@ -34,6 +34,10 @@ QUILL_BEGIN_EXPORT
  * Call close() before Backend::stop() when deterministic logger removal and file closure
  * are required. The destructor performs best-effort asynchronous cleanup and does not block.
  *
+ * When multiple writers share a file, use the configuration or sink overloads and set
+ * should_write_header=false for all but one writer. Append-mode file-size checks cannot detect
+ * a header that another writer has queued but not yet flushed.
+ *
  * @tparam TCsvSchema A user-defined struct specifying the CSV schema at compile-time.
  * @tparam TFrontendOptions Custom frontend options if they are used application-wide. If no custom frontend options are used, then use quill::FrontendOptions.
  *

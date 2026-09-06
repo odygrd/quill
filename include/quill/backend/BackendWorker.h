@@ -473,7 +473,17 @@ private:
     _last_error_notification = error_message;
     _next_error_notification_time = now + std::chrono::seconds{5};
 
-    QUILL_TRY { error_notifier(error_message); }
+    QUILL_TRY
+    {
+      if (_draining_shutdown_diagnostics)
+      {
+        detail::backend_options_default_error_notifier(error_message);
+      }
+      else
+      {
+        error_notifier(error_message);
+      }
+    }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
@@ -605,6 +615,7 @@ private:
   QUILL_ATTRIBUTE_COLD void _init(BackendOptions const& options)
   {
     _options = options;
+    _draining_shutdown_diagnostics = false;
     _last_error_notification.clear();
     _next_error_notification_time = std::chrono::steady_clock::now();
     _is_rdtsc_clock_config_valid.store(_options.sleep_duration <= _options.rdtsc_resync_interval,
@@ -668,7 +679,15 @@ private:
         // we are done, all queues are now empty
         _check_failure_counter(_options.error_notifier);
         _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final, true);
-        break;
+        if (_draining_shutdown_diagnostics || !_options.wait_for_queues_to_empty_before_exit ||
+            _check_frontend_queues_and_cached_transit_events_empty())
+        {
+          break;
+        }
+
+        // Drain final-flush diagnostics once. Further errors go to stderr to avoid a retry loop.
+        _draining_shutdown_diagnostics = true;
+        continue;
       }
 
       uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
@@ -694,6 +713,7 @@ private:
     _cleanup_invalidated_thread_contexts();
     _cleanup_invalidated_loggers(true);
 
+    _draining_shutdown_diagnostics = false;
     _clear_backend_thread_flag();
   }
 
@@ -2455,6 +2475,7 @@ private:
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
   std::string _last_error_notification;
+  bool _draining_shutdown_diagnostics{false};
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
   std::chrono::steady_clock::time_point _last_sink_flush_time;
   std::chrono::steady_clock::time_point _next_error_notification_time{

@@ -210,7 +210,7 @@ No. By default, ``Backend::stop()`` waits for the frontend queues to empty, whic
 This behavior is controlled by ``BackendOptions::wait_for_queues_to_empty_before_exit``:
 
 - When it is enabled, a few trailing log statements may still drain successfully, but you should not rely on that behavior. Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the queues may never become empty.
-- When it is disabled, the backend may exit earlier, but log messages can be lost during shutdown.
+- When it is disabled, pending records remain queued and can be processed after a later ``Backend::start()``. They are lost if the process exits without draining them.
 
 If you call ``Backend::stop()`` explicitly, prefer to stop or join your logging threads first.
 

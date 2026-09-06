@@ -13,6 +13,11 @@ Call :cpp:func:`CsvWriter::close` before stopping the backend worker if you need
 logger removal and file closure. The destructor performs best-effort asynchronous cleanup and
 does not block.
 
+When multiple writers share the same file, use the configuration or sink constructor overload
+and pass ``should_write_header=false`` for every writer except the one responsible for the header.
+Append mode checks the file size, which cannot detect another writer's queued or buffered header.
+Alternatively, share one ``CsvWriter`` and finish all row submissions before calling ``close()``.
+
 CSV Writing To File
 -------------------
 
