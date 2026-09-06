@@ -156,7 +156,8 @@ public:
   /**
    * Continuously polls the backend worker until all queues are empty.
    *
-   * This function keeps polling until all frontend queues and cached transit events are processed.
+   * This function keeps polling until all frontend queues and cached transit events are processed,
+   * followed by one poll of the backend's idle work.
    */
   void poll()
   {
@@ -164,6 +165,8 @@ public:
     {
       poll_one();
     }
+
+    _poll_idle();
   }
 
   /**
@@ -181,8 +184,26 @@ public:
 
       if ((now - start) > timeout)
       {
-        break;
+        // Out of budget with records still pending, the next call resumes the drain
+        return;
       }
+    }
+
+    _poll_idle();
+  }
+
+private:
+  /**
+   * The backend only runs its idle work on a poll that finds no cached transit events: flushing
+   * the sinks and running their periodic tasks, reporting dropped messages, resyncing the rdtsc
+   * clock, and reclaiming removed loggers and retired thread contexts. Returning as soon as the
+   * queues drain never reaches that path, so poll once more with everything already drained.
+   */
+  void _poll_idle()
+  {
+    if (_started)
+    {
+      poll_one();
     }
   }
 
