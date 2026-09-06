@@ -244,7 +244,7 @@ struct BackendOptions
    * backend thread throws QuillError because the backend cannot wait on itself. If the logger has
    * immediate flush enabled, the implicit flush is silently skipped for backend-thread log calls so
    * generic logging code reused on the backend remains safe.
-   * During shutdown, diagnostics logged by the final flush are drained when
+   * During shutdown, diagnostics logged by the final flush and logger-removal close callbacks are drained when
    * wait_for_queues_to_empty_before_exit is enabled. Errors during that additional drain and flush
    * are reported directly to stderr instead of this callback, preventing recursive diagnostics.
    */
