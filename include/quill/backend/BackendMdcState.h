@@ -23,6 +23,12 @@ class BackendMdcState
 public:
   explicit BackendMdcState(std::string const& pattern) : _format_parts(pattern) {}
 
+  void set_format_pattern(std::string const& pattern)
+  {
+    _format_parts = FormatParts{pattern};
+    rebuild_formatted_mdc();
+  }
+
   void set(std::string_view key, std::string_view value)
   {
     _fields[std::string{key}] = std::string{value};

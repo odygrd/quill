@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- After `Backend::stop()` followed by `Backend::start(new_options)`, existing threads now format their MDC
+  fields using the new `BackendOptions::mdc_format_pattern`.
 - On Windows, text written by `FileEventNotifier::after_open` now goes to the end of the file in append mode.
   `FileEventNotifier::before_close` now runs after pending `FileSink` writes have been flushed.
 - `FileSink` now releases its Windows file handle even when a buffered write fails during destruction.
