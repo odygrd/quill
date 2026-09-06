@@ -4252,4 +4252,55 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
 #endif
 }
 
+TEST_CASE("rotating_file_sink_unicode_paths")
+{
+#if defined(_WIN32)
+  fs::path const directory = L"rotating_file_sink_\u65e5\u672c";
+  auto const start_time = std::chrono::system_clock::time_point{std::chrono::seconds{1583376945}};
+  using Naming = RotatingFileSinkConfig::RotationNamingScheme;
+
+  for (Naming const naming : {Naming::Index, Naming::Date, Naming::DateAndTime})
+  {
+    fs::path const filename = directory / L"\u65e5\u672c.log";
+    fs::path const backup = directory / (naming == Naming::Index ? L"\u65e5\u672c.1.log"
+      : naming == Naming::Date ? L"\u65e5\u672c.20200305.log" : L"\u65e5\u672c.20200305_025545.log");
+
+    RotatingFileSinkConfig config;
+    config.set_timezone(Timezone::GmtTime);
+    config.set_rotation_naming_scheme(naming);
+    config.set_rotation_max_file_size(512);
+    config.set_max_backup_files(1);
+
+    auto write_record = [](RotatingFileSink& sink, char value)
+    {
+      sink.write_log(nullptr, 1583376945000000000ull, {}, {}, {}, {}, LogLevel::Info,
+                     "INFO", "I", nullptr, {}, std::string(399, value) + '\n');
+    };
+
+    {
+      RotatingFileSink sink{filename, config, {}, start_time};
+      write_record(sink, 'A');
+      write_record(sink, 'B');
+    }
+
+    REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(399, 'A')});
+
+    {
+      // Append-mode recovery must recognize the Unicode backup and enforce retention.
+      RotatingFileSink sink{filename, config, {}, start_time};
+      write_record(sink, 'C');
+    }
+
+    REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(399, 'B')});
+    REQUIRE(testing::file_contents(filename) == std::vector<std::string>{std::string(399, 'C')});
+
+    REQUIRE(fs::remove(filename));
+    REQUIRE(fs::remove(backup));
+    REQUIRE(fs::is_empty(directory));
+  }
+
+  REQUIRE(fs::remove(directory));
+#endif
+}
+
 TEST_SUITE_END();
