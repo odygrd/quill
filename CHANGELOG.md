@@ -105,6 +105,9 @@
 
 ## v13.1.0
 
+- On Windows, `Frontend::create_or_get_sink<FileSink>()` now reuses an existing sink for equivalent casing or
+  `\\?\` spellings of the same path. In `'w'` mode, this prevents a second sink from reopening and truncating
+  that file.
 - Fixed `FileSink` failing to open long Windows paths supplied with a `\\?\` prefix.
 - On Windows, timestamp suffixes enabled by `FileSinkConfig::set_filename_append_option()` now preserve
   Unicode `fs::path` names outside the active code page. `RotatingFileSink` also preserves these names during

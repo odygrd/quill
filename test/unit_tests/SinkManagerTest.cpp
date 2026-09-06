@@ -112,6 +112,106 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
   REQUIRE_FALSE(ec);
 }
 
+TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
+{
+#if defined(_WIN32)
+  fs::path const directory{"sink_manager_case_alias_test"};
+  fs::create_directories(directory);
+
+  for (FilenameAppendOption const append_option :
+       {FilenameAppendOption::None, FilenameAppendOption::StartDate})
+  {
+    FileSinkConfig config;
+    config.set_open_mode('w');
+    config.set_filename_append_option(append_option);
+
+    fs::path actual_filename;
+    fs::path distinct_case_filename;
+    uint32_t expected_cleanup_count{1};
+    {
+      auto file_sink = std::static_pointer_cast<FileSink>(
+        SinkManager::instance().create_or_get_sink<FileSink>((directory / "case_alias.log").string(), config));
+      actual_filename = file_sink->get_filename();
+      file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
+      file_sink->flush_sink();
+
+      auto case_name = actual_filename.filename().native();
+      case_name[0] = L'C';
+      bool const aliases = fs::exists(actual_filename.parent_path() / case_name);
+      std::string const case_path = (directory / "Case_alias.log").string();
+      auto case_sink = SinkManager::instance().create_or_get_sink<FileSink>(case_path, config);
+
+      REQUIRE_EQ(case_sink == file_sink, aliases);
+      REQUIRE_EQ(SinkManager::instance().get_sink(case_path), case_sink);
+      REQUIRE_EQ(fs::file_size(actual_filename), 10u);
+
+      if (!aliases)
+      {
+        distinct_case_filename = std::static_pointer_cast<FileSink>(case_sink)->get_filename();
+        ++expected_cleanup_count;
+      }
+    }
+
+    REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), expected_cleanup_count);
+
+    REQUIRE(fs::remove(actual_filename));
+    if (!distinct_case_filename.empty())
+    {
+      REQUIRE(fs::remove(distinct_case_filename));
+    }
+  }
+
+  REQUIRE(fs::remove(directory));
+#endif
+}
+
+TEST_CASE("file_sink_windows_extended_path_aliases_return_same_sink")
+{
+#if defined(_WIN32)
+  fs::path const directory = fs::absolute("sink_manager_extended_alias_test");
+  fs::create_directories(directory);
+  fs::path const ordinary_path = directory / "prefix_alias.log";
+  std::wstring const ordinary_name = ordinary_path.native();
+  fs::path const extended_path{ordinary_name.compare(0, 2, L"\\\\") == 0
+                                ? L"\\\\?\\UNC\\" + ordinary_name.substr(2)
+                                : L"\\\\?\\" + ordinary_name};
+
+  for (bool const extended_first : {false, true})
+  {
+    for (FilenameAppendOption const append_option :
+         {FilenameAppendOption::None, FilenameAppendOption::StartDate})
+    {
+      FileSinkConfig config;
+      config.set_open_mode('w');
+      config.set_filename_append_option(append_option);
+      fs::path actual_filename;
+
+      {
+        auto file_sink = std::static_pointer_cast<FileSink>(
+          SinkManager::instance().create_or_get_sink<FileSink>(
+            (extended_first ? extended_path : ordinary_path).string(), config));
+        actual_filename = file_sink->get_filename();
+        file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
+        file_sink->flush_sink();
+
+        auto alias_sink = SinkManager::instance().create_or_get_sink<FileSink>(
+          (extended_first ? ordinary_path : extended_path).string(), config);
+
+        REQUIRE_EQ(alias_sink, file_sink);
+        REQUIRE_EQ(SinkManager::instance().get_sink(ordinary_path.string()), file_sink);
+        REQUIRE_EQ(SinkManager::instance().get_sink(extended_path.string()), file_sink);
+        REQUIRE_EQ(fs::file_size(actual_filename), 10u);
+      }
+
+      REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+      REQUIRE(fs::remove(actual_filename));
+    }
+  }
+
+  REQUIRE(fs::remove(directory));
+#endif
+}
+
 TEST_CASE("recreating_expired_sink_with_same_name_keeps_single_registry_entry")
 {
   std::string const file_name = "sink_manager_recreate_same_name.log";
