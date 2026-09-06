@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Logging from an executable's `BackendOptions::error_notifier` no longer blocks with
+  `Logger::set_immediate_flush()` enabled when Quill's backend runs in a Windows DLL.
 - With shutdown draining enabled, `Backend::stop()` now processes records logged by
   `BackendOptions::error_notifier` when `Sink::flush_sink()` fails at shutdown. Further error notifications
   while processing those records go directly to stderr.
