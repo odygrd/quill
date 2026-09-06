@@ -63,7 +63,10 @@ TEST_CASE("manual_backend_worker")
     }(),
     FileEventNotifier{});
 
-  Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
+  PatternFormatterOptions pattern;
+  pattern.format_pattern += " pid=%(process_id)";
+
+  Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink), pattern);
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {
@@ -80,7 +83,8 @@ TEST_CASE("manual_backend_worker")
   for (size_t i = 0; i < number_of_messages; ++i)
   {
     REQUIRE(quill::testing::file_contains(
-      file_contents, logger_name + " manual backend message " + std::to_string(i)));
+      file_contents, logger_name + " manual backend message " + std::to_string(i) +
+        " pid=" + std::to_string(detail::get_process_id())));
   }
 
   testing::remove_file(filename);

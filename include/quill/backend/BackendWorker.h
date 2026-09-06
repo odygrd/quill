@@ -615,6 +615,7 @@ private:
   QUILL_ATTRIBUTE_COLD void _init(BackendOptions const& options)
   {
     _options = options;
+    _process_id = std::to_string(get_process_id());
     _draining_shutdown_diagnostics = false;
     _last_error_notification.clear();
     _next_error_notification_time = std::chrono::steady_clock::now();
