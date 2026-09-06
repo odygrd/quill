@@ -313,12 +313,13 @@ protected:
                                                               Timezone time_zone,
                                                               std::chrono::system_clock::time_point timestamp)
   {
-    auto const [stem, ext] = extract_stem_and_extension(filename);
-
     uint64_t const timestamp_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
 
-    return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
+    fs::path result = filename.parent_path() / filename.stem();
+    result += format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern);
+    result += filename.extension();
+    return result;
   }
 
 private:

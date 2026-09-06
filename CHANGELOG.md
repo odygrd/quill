@@ -105,6 +105,9 @@
 
 ## v13.1.0
 
+- On Windows, timestamp suffixes enabled by `FileSinkConfig::set_filename_append_option()` now preserve
+  Unicode `fs::path` names outside the active code page. `RotatingFileSink` also preserves these names during
+  rotation and backup discovery.
 - Logging from an executable's `BackendOptions::error_notifier` no longer blocks with
   `Logger::set_immediate_flush()` enabled when Quill's backend runs in a Windows DLL.
 - With shutdown draining enabled, `Backend::stop()` now processes records logged by

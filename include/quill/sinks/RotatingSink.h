@@ -800,9 +800,15 @@ private:
   QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
                                                ParsedRotatedFileInfo& parsed_file_info) const
   {
-    std::string const base_extension = base_filename.extension().string();
-    std::string const base_stem = base_filename.stem().string();
-    std::string const candidate_name = candidate_filename.filename().string();
+    auto const utf8_string = [](fs::path const& path)
+    {
+      auto const text = path.u8string();
+      return std::string{reinterpret_cast<char const*>(text.data()), text.size()};
+    };
+
+    std::string const base_extension = utf8_string(base_filename.extension());
+    std::string const base_stem = utf8_string(base_filename.stem());
+    std::string const candidate_name = utf8_string(candidate_filename.filename());
     std::string_view candidate_stem{candidate_name};
 
     if (!base_extension.empty())
@@ -995,9 +1001,7 @@ private:
       return filename;
     }
 
-    // Get base file and extension
-    auto const [stem, ext] = base_type::extract_stem_and_extension(filename);
-    return fs::path{stem + "." + std::to_string(index) + ext};
+    return _append_string_to_filename(filename, std::to_string(index));
   }
 
   /***/
@@ -1008,9 +1012,11 @@ private:
       return filename;
     }
 
-    // Get base file and extension
-    auto const [stem, ext] = base_type::extract_stem_and_extension(filename);
-    return fs::path{stem + "." + text + ext};
+    fs::path result = filename.parent_path() / filename.stem();
+    result += ".";
+    result += text;
+    result += filename.extension();
+    return result;
   }
 
   /***/

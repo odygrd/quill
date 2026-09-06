@@ -154,6 +154,14 @@ TEST_CASE("append_date_to_filename")
                   .string()
                   .data(),
                 expected_fname.string().data());
+
+#if defined(_WIN32)
+  fs::path const unicode_fname = L"\u65e5\u672c logs/\u65e5\u672c.log";
+  fs::path const unicode_expected = L"\u65e5\u672c logs/\u65e5\u672c_20200305.log";
+
+  REQUIRE(FileSinkMock::append_datetime_to_filename(
+            unicode_fname, cfg.append_filename_format_pattern(), Timezone::GmtTime, ts) == unicode_expected);
+#endif
 }
 
 /***/
