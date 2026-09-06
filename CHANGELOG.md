@@ -105,6 +105,9 @@
 
 ## v13.1.0
 
+- With shutdown draining enabled, `Backend::stop()` now processes records logged by
+  `BackendOptions::error_notifier` when `Sink::flush_sink()` fails at shutdown. Further error notifications
+  while processing those records go directly to stderr.
 - After `Backend::stop()` followed by `Backend::start(new_options)`, existing threads now format their MDC
   fields using the new `BackendOptions::mdc_format_pattern`.
 - On Windows, text written by `FileEventNotifier::after_open` now goes to the end of the file in append mode.
