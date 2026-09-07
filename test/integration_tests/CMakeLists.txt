@@ -56,6 +56,7 @@ endfunction()
 include(Doctest)
 
 quill_add_test(TEST_ArithmeticTypesLogging ArithmeticTypesLoggingTest.cpp)
+quill_add_test(TEST_BackendContextAllocationFailure BackendContextAllocationFailureTest.cpp)
 quill_add_test(TEST_BackendExceptionNotifier BackendExceptionNotifierTest.cpp)
 quill_add_test(TEST_BackendImmediateFlushFromBackendThread BackendImmediateFlushFromBackendThreadTest.cpp)
 quill_add_test(TEST_ErrorNotifierThrows ErrorNotifierThrowsTest.cpp)
