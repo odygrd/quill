@@ -424,7 +424,8 @@ TEST_CASE("deleted_file_retries_failed_reopen")
   FileEventNotifier notifier;
   notifier.before_open = [&open_attempts](fs::path const&)
   {
-    if (++open_attempts == 2)
+    ++open_attempts;
+    if (open_attempts == 2)
     {
       QUILL_THROW(QuillError{"temporary reopen failure"});
     }
@@ -446,7 +447,101 @@ TEST_CASE("deleted_file_retries_failed_reopen")
 
     sink.flush_sink();
     CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
-    CHECK_EQ(open_attempts, 3);
+    CHECK_EQ(open_attempts, 3u);
+    write_record(sink, "recovered\n");
+    sink.flush_sink();
+  }
+
+  auto const contents = testing::file_contents(filename);
+  REQUIRE_EQ(contents.size(), 1);
+  CHECK_EQ(contents[0], "recovered");
+  testing::remove_file(filename);
+#endif
+}
+
+TEST_CASE("deleted_file_retries_failed_before_close")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "deleted_file_retries_failed_before_close.log";
+  uint32_t open_attempts{0};
+  uint32_t close_attempts{0};
+  FileEventNotifier notifier;
+  notifier.before_open = [&open_attempts](fs::path const&) { ++open_attempts; };
+  notifier.before_close = [&close_attempts](fs::path const&, FileEventNotifierHandle)
+  {
+    ++close_attempts;
+    if (close_attempts == 1)
+    {
+      QUILL_THROW(QuillError{"temporary before_close failure"});
+    }
+  };
+
+  auto write_record = [](FileSink& sink, std::string_view message)
+  {
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+  };
+
+  {
+    FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
+    write_record(sink, "before deletion\n");
+    sink.flush_sink();
+    REQUIRE(fs::remove(filename));
+    write_record(sink, "deleted file\n");
+    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+
+    sink.flush_sink();
+    CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+    CHECK_EQ(open_attempts, 2u);
+    write_record(sink, "recovered\n");
+    sink.flush_sink();
+  }
+
+  auto const contents = testing::file_contents(filename);
+  REQUIRE_EQ(contents.size(), 1);
+  CHECK_EQ(contents[0], "recovered");
+  testing::remove_file(filename);
+#endif
+}
+
+TEST_CASE("deleted_file_retries_failed_after_close")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  fs::path const filename = "deleted_file_retries_failed_after_close.log";
+  uint32_t open_attempts{0};
+  uint32_t close_attempts{0};
+  FileEventNotifier notifier;
+  notifier.before_open = [&open_attempts](fs::path const&) { ++open_attempts; };
+  notifier.after_close = [&close_attempts](fs::path const&)
+  {
+    ++close_attempts;
+    if (close_attempts == 1)
+    {
+      QUILL_THROW(QuillError{"temporary after_close failure"});
+    }
+  };
+
+  auto write_record = [](FileSink& sink, std::string_view message)
+  {
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+  };
+
+  {
+    FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
+    write_record(sink, "before deletion\n");
+    sink.flush_sink();
+    REQUIRE(fs::remove(filename));
+    write_record(sink, "deleted file\n");
+    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+
+    sink.flush_sink();
+    CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+    CHECK_EQ(open_attempts, 2u);
     write_record(sink, "recovered\n");
     sink.flush_sink();
   }

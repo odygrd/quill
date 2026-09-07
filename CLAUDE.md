@@ -115,6 +115,8 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
   the issue; scope descriptions of hangs, errors, or missing output to that case. Keep internal implementation details
   in code comments or commit descriptions.
 - Do not add changelog entries for documentation-only changes.
+- Match the surrounding changelog formatting: no blank lines between bullet entries, and indent wrapped
+  continuation lines by two spaces.
 - Any standalone runnable sample in a `.rst` file (anything with `main()`, a class definition, or that the reader could
   copy-paste and compile as-is) MUST live in its own compilable `.cpp` file under `docs/snippets/`, added to
   `docs/snippets/CMakeLists.txt`, and referenced from the `.rst` via `.. literalinclude:: snippets/<file>.cpp`. Never
@@ -130,6 +132,9 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
 - Each new feature or fix should have a corresponding test, either a unit test or a regression/integration test.
 - Sometimes consider extending an existing test with one more assertion or log statement instead of adding a new one.
 - Unit test files may contain multiple `TEST_CASE`s when the scenarios are closely related.
+- Do not use `SUBCASE` in unit tests. Use separate, independently named `TEST_CASE`s with their own setup and
+  cleanup so each scenario is readable and runnable on its own. Prefer a little setup duplication to shared
+  scenario-selection flags.
 - Each integration test file should contain exactly one `TEST_CASE`.
 - Integration/regression test files should be self-contained. Do not add shared helper headers for them; keep any
   test-only setup local to the `.cpp` file even if that means a small amount of duplication.

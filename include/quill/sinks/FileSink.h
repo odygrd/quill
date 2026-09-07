@@ -506,8 +506,9 @@ public:
     }
     if (file_removed)
     {
-      close_file();
+      // Keep recovery pending even when a close callback throws after closing the handle.
       _write_occurred = true;
+      close_file();
       _reopen_file();
     }
   }
@@ -837,8 +838,9 @@ public:
     bool const file_exists = fs::exists(_filename, ec);
     if (!ec && !file_exists)
     {
-      close_file();
+      // Keep recovery pending even when a close callback throws after closing the handle.
       _write_occurred = true;
+      close_file();
       _reopen_file();
     }
   }
