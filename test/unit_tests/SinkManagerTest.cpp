@@ -71,8 +71,14 @@ TEST_CASE("subscribe_get_active_different_sinks")
 TEST_CASE("file_sink_equivalent_paths_return_same_sink")
 {
   fs::path const base_dir = fs::path{"sink_manager_test_dir"};
-  fs::path const canonical_path = base_dir / "equivalent.log";
-  fs::path const equivalent_path = fs::path{"."} / base_dir / ".." / base_dir / "equivalent.log";
+#if defined(__APPLE__)
+  fs::path const leaf_name{u8"équivalent.log"};
+#else
+  fs::path const leaf_name{"equivalent.log"};
+#endif
+  fs::path const canonical_path = base_dir / leaf_name;
+  fs::path const equivalent_path = fs::path{"."} / base_dir / ".." / base_dir / leaf_name;
+  fs::path const symlink_path = base_dir / "linked.log";
 
   std::error_code ec;
   fs::create_directories(base_dir, ec);
@@ -101,6 +107,39 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
 
     // These two paths resolve to the same file, so SinkManager should return the same sink.
     REQUIRE_EQ(file_sink_a.get(), file_sink_b.get());
+
+    auto file_sink = std::static_pointer_cast<FileSink>(file_sink_a);
+    file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
+    file_sink->flush_sink();
+    FileSinkConfig overwrite_config;
+    overwrite_config.set_open_mode('w');
+
+#if !defined(_WIN32)
+    fs::create_symlink(leaf_name, symlink_path, ec);
+    if (!ec)
+    {
+      REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config), file_sink);
+      REQUIRE_EQ(SinkManager::instance().get_sink(symlink_path.string()), file_sink);
+      REQUIRE(fs::remove(symlink_path));
+    }
+#endif
+
+#if defined(__APPLE__)
+    for (auto const* alias_name : {u8"Équivalent.log", u8"e\u0301quivalent.log"})
+    {
+      fs::path const alias_path = base_dir / alias_name;
+      if (fs::exists(alias_path))
+      {
+        REQUIRE(fs::equivalent(canonical_path, alias_path));
+        REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(alias_path.string(), overwrite_config), file_sink);
+        REQUIRE_EQ(SinkManager::instance().get_sink(alias_path.string()), file_sink);
+#if !defined(QUILL_NO_EXCEPTIONS)
+        REQUIRE_THROWS_AS(SinkManager::instance().create_sink<FileSink>(alias_path.string(), overwrite_config), QuillError);
+#endif
+      }
+    }
+#endif
+    REQUIRE_EQ(fs::file_size(canonical_path), 10u);
     REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 0);
   }
 

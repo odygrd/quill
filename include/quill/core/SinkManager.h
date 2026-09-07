@@ -203,13 +203,27 @@ private:
 #if defined(_WIN32)
       return &TFileSink::_file_sink_id;
 #else
-      return nullptr;
+      return &_canonical_file_sink_id;
 #endif
     }
     else
     {
       return nullptr;
     }
+  }
+
+  static std::string _canonical_file_sink_id(std::string const& normalized_name)
+  {
+    // Resolve existing file aliases for lookup without changing the configured I/O path.
+    fs::path const path{normalized_name};
+    if (!path.is_absolute())
+    {
+      return normalized_name;
+    }
+
+    std::error_code ec;
+    fs::path const canonical_path = fs::canonical(path, ec);
+    return ec ? normalized_name : canonical_path.string();
   }
 
   template <typename TSink>
