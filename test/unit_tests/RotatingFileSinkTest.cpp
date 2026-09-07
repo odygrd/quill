@@ -951,6 +951,53 @@ TEST_CASE("rotating_file_sink_index_open_mode_append")
   testing::remove_file(filename_6);
 }
 
+/***/
+TEST_CASE("rotating_file_sink_append_recovers_case_alias")
+{
+  fs::path const directory = "rotating_file_sink_append_recovers_case_alias";
+  fs::path const filename = directory / "app.log";
+  fs::path const alias_filename = directory / "App.log";
+  fs::path const backup_1 = directory / "app.1.log";
+  fs::path const backup_2 = directory / "app.2.log";
+
+  RotatingFileSinkConfig config;
+  config.set_open_mode('a');
+  config.set_rotation_max_file_size(512);
+  config.set_max_backup_files(5);
+  config.set_overwrite_rolled_files(false);
+
+  auto write_record = [](RotatingFileSink& sink, char value)
+  {
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {},
+                   std::string(399, value) + '\n');
+  };
+
+  {
+    RotatingFileSink sink{filename, config};
+    write_record(sink, 'A');
+    write_record(sink, 'B');
+  }
+
+  // This scenario requires the actual filesystem to treat these spellings as aliases.
+  if (!fs::exists(alias_filename))
+  {
+    fs::remove_all(directory);
+    return;
+  }
+  REQUIRE(fs::equivalent(filename, alias_filename));
+  REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'A')});
+
+  {
+    RotatingFileSink sink{alias_filename, config};
+    write_record(sink, 'C');
+  }
+
+  REQUIRE(testing::file_contents(filename) == std::vector<std::string>{std::string(399, 'C')});
+  REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'B')});
+  REQUIRE(testing::file_contents(backup_2) == std::vector<std::string>{std::string(399, 'A')});
+  fs::remove_all(directory);
+}
+
 /** Tests for scheme date **/
 
 /***/
@@ -3228,6 +3275,14 @@ TEST_CASE("rotating_file_sink_cleanup_preserves_unrelated_prefix_files")
   testing::create_file(unrelated_alt_suffix_filename,
                        "must also survive alternate suffix startup cleanup\n");
 
+#if !defined(_WIN32)
+  fs::path const unrelated_link_target = dir / "other.9.log";
+  fs::path const owned_link = dir / "app.9.log";
+  testing::create_file(unrelated_link_target, "keep the target of an owned backup symlink\n");
+  std::error_code link_error;
+  fs::create_symlink(unrelated_link_target.filename(), owned_link, link_error);
+#endif
+
   REQUIRE(fs::exists(rotated_filename));
   REQUIRE(fs::exists(unrelated_filename));
   REQUIRE(fs::exists(unrelated_numeric_prefix_filename));
@@ -3251,6 +3306,9 @@ TEST_CASE("rotating_file_sink_cleanup_preserves_unrelated_prefix_files")
   }
 
   REQUIRE_FALSE(fs::exists(rotated_filename));
+#if !defined(_WIN32)
+  REQUIRE(fs::exists(unrelated_link_target));
+#endif
   REQUIRE(fs::exists(unrelated_filename));
   REQUIRE(fs::exists(unrelated_numeric_prefix_filename));
   REQUIRE(fs::exists(unrelated_alt_suffix_filename));
@@ -4254,16 +4312,15 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
 
 TEST_CASE("rotating_file_sink_unicode_paths")
 {
-#if defined(_WIN32)
-  fs::path const directory = L"rotating_file_sink_\u65e5\u672c";
+  fs::path const directory{u"rotating_file_sink_\u65e5\u672c"};
   auto const start_time = std::chrono::system_clock::time_point{std::chrono::seconds{1583376945}};
   using Naming = RotatingFileSinkConfig::RotationNamingScheme;
 
   for (Naming const naming : {Naming::Index, Naming::Date, Naming::DateAndTime})
   {
-    fs::path const filename = directory / L"\u65e5\u672c.log";
-    fs::path const backup = directory / (naming == Naming::Index ? L"\u65e5\u672c.1.log"
-      : naming == Naming::Date ? L"\u65e5\u672c.20200305.log" : L"\u65e5\u672c.20200305_025545.log");
+    fs::path const filename = directory / fs::path{u"\u65e5\u672c_\u00e9.log"};
+    fs::path const backup = directory / fs::path{naming == Naming::Index ? u"\u65e5\u672c_\u00e9.1.log"
+      : naming == Naming::Date ? u"\u65e5\u672c_\u00e9.20200305.log" : u"\u65e5\u672c_\u00e9.20200305_025545.log"};
 
     RotatingFileSinkConfig config;
     config.set_timezone(Timezone::GmtTime);
@@ -4285,22 +4342,40 @@ TEST_CASE("rotating_file_sink_unicode_paths")
 
     REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(399, 'A')});
 
+    fs::path reopened_filename = filename;
+#if defined(__APPLE__)
+    fs::path const alias = directory / fs::path{u"\u65e5\u672c_e\u0301.log"};
+    REQUIRE(fs::equivalent(filename, alias));
+    reopened_filename = alias;
+#endif
+#if !defined(_WIN32)
+    fs::path const unrelated_symlink = directory / "unrelated.1.log";
+    std::error_code symlink_error;
+    fs::create_symlink(backup.filename(), unrelated_symlink, symlink_error);
+#endif
+
     {
       // Append-mode recovery must recognize the Unicode backup and enforce retention.
-      RotatingFileSink sink{filename, config, {}, start_time};
+      RotatingFileSink sink{reopened_filename, config, {}, start_time};
       write_record(sink, 'C');
     }
 
     REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(399, 'B')});
     REQUIRE(testing::file_contents(filename) == std::vector<std::string>{std::string(399, 'C')});
 
+#if !defined(_WIN32)
+    if (!symlink_error)
+    {
+      REQUIRE(fs::is_symlink(unrelated_symlink));
+      REQUIRE(fs::remove(unrelated_symlink));
+    }
+#endif
     REQUIRE(fs::remove(filename));
     REQUIRE(fs::remove(backup));
     REQUIRE(fs::is_empty(directory));
   }
 
   REQUIRE(fs::remove(directory));
-#endif
 }
 
 TEST_SUITE_END();
