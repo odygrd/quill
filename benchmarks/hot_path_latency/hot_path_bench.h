@@ -34,7 +34,9 @@
 // warn and continue instead of terminating the benchmark
 inline void try_set_cpu_affinity(std::vector<uint16_t> const& cpus)
 {
-#if defined(QUILL_NO_EXCEPTIONS)
+#if defined(__APPLE__) && defined(__aarch64__)
+  (void)cpus;
+#elif defined(QUILL_NO_EXCEPTIONS)
   quill::detail::set_cpu_affinity(cpus);
 #else
   try
@@ -219,6 +221,11 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
 #endif
     return;
   }
+
+#if defined(__APPLE__) && defined(__aarch64__) && !defined(PERF_ENABLED)
+  std::cout << "CPU affinity is unavailable on Apple Silicon; thread placement is controlled by the OS"
+            << std::endl;
+#endif
 
   // main thread affinity
   try_set_cpu_affinity({0});
