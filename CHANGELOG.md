@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Loggers using `ClockSourceType::System` no longer stall behind the timestamp-ordering grace check
+  after a backward wall-clock correction.
 - `RotatingFileSink` now recognizes existing backup filename aliases during startup, preserving
   append-mode backups when the base filename spelling changes on a case- or normalization-insensitive
   filesystem.

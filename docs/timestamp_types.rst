@@ -16,6 +16,7 @@ For example, the caller thread might block (if a blocking queue is used) or take
 
 To mitigate this, there is a configurable :cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` option.
 This option delays the reading of timestamps by the backend for a few microseconds (default 5μs), providing additional time for the frontend to push messages and reducing the chance of out-of-order timestamps within that grace window.
+A queue head that stays ahead of the wall-clock cutoff becomes eligible once one grace period of steady time has elapsed since its first backend observation. Backward clock corrections therefore do not require waiting for wall time to catch up.
 The backend assumes timestamps produced within a single frontend queue are normally non-decreasing.
 If a wall clock or user-provided clock moves backwards, :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` can be enabled to correct regular log and metric output.
 Backtrace records preserve their original capture timestamps and may still appear out of timestamp order when flushed later.

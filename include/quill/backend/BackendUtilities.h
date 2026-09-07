@@ -13,6 +13,7 @@
 #include <cstring>
 #include <string>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -53,6 +54,36 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+/**
+ * Bounds a future queue head's wait even when the wall clock moves backwards.
+ * steady_now is called only for timestamps ahead of the cutoff. Taking a callable keeps
+ * ordinary records free of an extra clock read and lets tests supply a controlled clock.
+ * @return {defer_timestamp, next_deadline}, with a zero deadline when the record can proceed.
+ */
+template <typename TSteadyNow>
+QUILL_NODISCARD inline std::pair<bool, uint64_t> should_defer_timestamp(
+  uint64_t timestamp, uint64_t cutoff, uint64_t grace_period_ns, uint64_t deadline, TSteadyNow steady_now)
+{
+  if (timestamp <= cutoff)
+  {
+    // This record is already eligible. Clear any deadline from an earlier check.
+    return {false, 0};
+  }
+
+  // Start the grace window on the first deferred check, then keep the same deadline.
+  // Steady time bounds the wait even if wall time moves backwards again.
+  uint64_t const now = steady_now();
+  uint64_t const next_deadline = (deadline == 0) ? (now + grace_period_ns) : deadline;
+  if (now < next_deadline)
+  {
+    // Keep this record queued and preserve its deadline for the next check.
+    return {true, next_deadline};
+  }
+
+  // The grace window expired. Process this record and let the next queue head start a new window.
+  return {false, 0};
+}
+
 // These helpers are used during backend worker setup and run on the backend worker thread.
 // They are not part of the normal multi-threaded frontend logging hot path.
 /***/

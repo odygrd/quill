@@ -173,4 +173,56 @@ TEST_CASE("set_thread_name_validates_length")
 #endif
 }
 
+TEST_CASE("timestamp_ordering_grace_period_survives_wall_clock_corrections")
+{
+  uint64_t steady_time{100};
+  size_t clock_reads{0};
+  auto steady_now = [&]()
+  {
+    ++clock_reads;
+    return steady_time;
+  };
+
+  // Ordinary eligible records need no extra clock read.
+  auto const [defer_eligible, eligible_deadline] = should_defer_timestamp(90, 100, 5, 0, steady_now);
+  CHECK_FALSE(defer_eligible);
+  CHECK_EQ(eligible_deadline, 0u);
+  CHECK_EQ(clock_reads, 0u);
+
+  auto const [defer_future, first_deadline] =
+    should_defer_timestamp(110, 100, 5, eligible_deadline, steady_now);
+  CHECK(defer_future);
+  CHECK_EQ(first_deadline, 105u);
+
+  // Moving wall time backwards must not extend the original grace deadline.
+  steady_time = 104;
+  auto const [defer_after_rollback, deadline_after_rollback] =
+    should_defer_timestamp(110, 40, 5, first_deadline, steady_now);
+  CHECK(defer_after_rollback);
+  CHECK_EQ(deadline_after_rollback, first_deadline);
+
+  steady_time = 105;
+  auto const [defer_after_expiry, deadline_after_expiry] =
+    should_defer_timestamp(110, 41, 5, deadline_after_rollback, steady_now);
+  CHECK_FALSE(defer_after_expiry);
+  CHECK_EQ(deadline_after_expiry, 0u);
+
+  // The next head gets its own grace window; a wall-clock catch-up can release it early.
+  auto const [defer_next_head, next_deadline] =
+    should_defer_timestamp(120, 41, 5, deadline_after_expiry, steady_now);
+  CHECK(defer_next_head);
+  CHECK_EQ(next_deadline, 110u);
+
+  auto const [defer_after_catch_up, deadline_after_catch_up] =
+    should_defer_timestamp(120, 120, 5, next_deadline, steady_now);
+  CHECK_FALSE(defer_after_catch_up);
+  CHECK_EQ(deadline_after_catch_up, 0u);
+  CHECK_EQ(clock_reads, 4u);
+
+  auto const [defer_new_head, new_deadline] =
+    should_defer_timestamp(121, 120, 5, deadline_after_catch_up, steady_now);
+  CHECK(defer_new_head);
+  CHECK_EQ(new_deadline, 110u);
+}
+
 TEST_SUITE_END();
