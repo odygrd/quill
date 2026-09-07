@@ -114,7 +114,7 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
   or benefit for library users. Name the relevant public class, function, or option and the conditions that trigger
   the issue; scope descriptions of hangs, errors, or missing output to that case. Keep internal implementation details
   in code comments or commit descriptions.
-- Do not add changelog entries for documentation-only changes.
+- Do not add changelog entries for documentation-only or benchmark-only changes.
 - Match the surrounding changelog formatting: no blank lines between bullet entries, and indent wrapped
   continuation lines by two spaces.
 - Any standalone runnable sample in a `.rst` file (anything with `main()`, a class definition, or that the reader could
