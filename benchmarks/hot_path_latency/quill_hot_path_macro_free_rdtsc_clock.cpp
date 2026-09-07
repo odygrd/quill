@@ -51,6 +51,9 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
       "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)", "%H:%M:%S.%Qns",
       quill::Timezone::LocalTime, false});
 
+  // Measure enabled logging regardless of the application environment.
+  logger->set_log_level(quill::LogLevel::Info);
+
   /** LOGGING THREAD FUNCTIONS - on_start, on_exit, log_func must be implemented **/
   /** those run on a several thread(s). It can be one or multiple threads based on THREAD_LIST_COUNT config */
   auto on_start = [logger]()
