@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Fixed `FileSink` recovery after a deleted-file close callback throws, allowing later flushes to reopen
+  the log.
 - `%(process_id)` now contains the process ID when records are processed by `ManualBackendWorker`.
 - With a dropping queue, `Logger::flush_log()` now reports outstanding drops through
   `BackendOptions::error_notifier` even when the thread that dropped the messages has exited.
