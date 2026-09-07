@@ -132,7 +132,9 @@ struct BackendOptions
    * period, reducing the chance of processing events out of timestamp order.
    *
    * Messages that fail the above check remain in the lock-free queue. They are checked again in the
-   * next iteration. The timestamp check is performed with microsecond precision.
+   * next iteration. The timestamp check is performed with microsecond precision. If a queue head
+   * stays ahead of the cutoff (for example after a backward wall-clock correction), the check
+   * stops deferring it once one grace period of steady time has elapsed since its first observation.
    *
    * Example scenario:
    * 1. Frontend thread takes a timestamp at the very start of logging, then becomes delayed

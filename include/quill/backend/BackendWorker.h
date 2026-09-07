@@ -646,6 +646,7 @@ private:
     _update_active_thread_contexts_cache(true);
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
+      thread_context->_timestamp_ordering_grace_deadline = 0;
       if (thread_context->_backend_mdc_state)
       {
         thread_context->_backend_mdc_state->set_format_pattern(_options.mdc_format_pattern);
@@ -940,13 +941,20 @@ private:
                    "has different magnitude than current time");
 #endif
 
-      // Ensure the message timestamp is not greater than ts_now.
-      if (QUILL_UNLIKELY(transit_event->timestamp > ts_now))
+      uint64_t const grace_period_ns =
+        static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count()) * 1'000u;
+
+      // Pass the clock function without calling it: the helper reads steady time only when
+      // the timestamp is ahead of the cutoff, avoiding an extra clock read for ordinary records.
+      auto const [defer_timestamp, next_deadline] = should_defer_timestamp(
+        transit_event->timestamp, ts_now, grace_period_ns,
+        thread_context->_timestamp_ordering_grace_deadline, detail::get_steady_time_ns);
+
+      thread_context->_timestamp_ordering_grace_deadline = next_deadline;
+
+      if (QUILL_UNLIKELY(defer_timestamp))
       {
-        // If the message timestamp is ahead of the grace-period cutoff, temporarily halt
-        // processing this queue. This keeps newer events in the queue until other frontend
-        // threads have had the configured grace window to publish older timestamped events.
-        // We return at this point without adding the current event to the buffer.
+        // Leave this record queued until the grace window expires.
         return false;
       }
     }
