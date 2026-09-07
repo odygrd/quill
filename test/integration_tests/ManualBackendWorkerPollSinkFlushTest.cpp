@@ -77,8 +77,12 @@ TEST_CASE("manual_backend_worker_poll_flushes_sinks")
 
   // The same holds when polling with a timeout and the queues are already drained
   size_t const flushes_before_timeout_poll = sink_ptr->flushes.load(std::memory_order_relaxed);
+  size_t const periodic_tasks_before_timeout_poll =
+    sink_ptr->periodic_tasks.load(std::memory_order_relaxed);
   manual_backend_worker->poll(std::chrono::microseconds{50});
   REQUIRE_GT(sink_ptr->flushes.load(std::memory_order_relaxed), flushes_before_timeout_poll);
+  REQUIRE_GT(sink_ptr->periodic_tasks.load(std::memory_order_relaxed),
+               periodic_tasks_before_timeout_poll);
 
   Frontend::remove_logger(logger);
   manual_backend_worker->poll();
