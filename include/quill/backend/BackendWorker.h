@@ -1941,8 +1941,11 @@ private:
   QUILL_ATTRIBUTE_HOT void _update_active_thread_contexts_cache(bool force = false)
   {
     // Check if _thread_contexts has changed. This can happen only when a new thread context is added by any Logger
-    if (QUILL_UNLIKELY(force || _thread_context_manager.new_thread_context_flag()))
+    if (QUILL_UNLIKELY(force || _thread_context_cache_refresh_pending ||
+                       _thread_context_manager.new_thread_context_flag()))
     {
+      // An allocation failure must leave discovery pending for the next poll.
+      _thread_context_cache_refresh_pending = true;
       _active_thread_contexts_cache.clear();
       _thread_context_manager.for_each_thread_context(
         [this](ThreadContext* thread_context)
@@ -1958,6 +1961,7 @@ private:
           // so instead we just add them and expect them to be cleaned in the next iteration
           _active_thread_contexts_cache.push_back(thread_context);
         });
+      _thread_context_cache_refresh_pending = false;
     }
   }
 
@@ -2496,7 +2500,6 @@ private:
   std::string _named_args_format_template; /** to avoid allocation each time **/
   std::string _process_id;                 /** Id of the current running process **/
   std::string _last_error_notification;
-  bool _draining_shutdown_diagnostics{false};
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
   std::chrono::steady_clock::time_point _last_sink_flush_time;
   std::chrono::steady_clock::time_point _next_error_notification_time{
@@ -2505,6 +2508,8 @@ private:
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
   std::atomic<bool> _has_worker_thread_exited{true}; /** Set to true when the backend thread completes its exit sequence */
   std::atomic<bool> _is_rdtsc_clock_config_valid{true}; /** Cached for concurrent clock conversions. */
+  bool _thread_context_cache_refresh_pending{false};
+  bool _draining_shutdown_diagnostics{false};
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
     nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/

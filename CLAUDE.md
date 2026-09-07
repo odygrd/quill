@@ -165,6 +165,10 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
 - Prefer brace initialization for variables and objects instead of `=` or `()` where it is valid and readable.
 - Always use braces for control flow.
 - Place member variables at the end of the class definition.
+- Group members by access pattern first: keep frequently accessed members used together adjacent so they can share
+  cache lines, while preserving intentional separation between threads. Within each group, prefer decreasing size,
+  account for alignment, and place small flags together to reduce padding. Preserve initialization and destruction
+  dependencies; verify the compiler's layout before claiming size or cache-line improvements.
 - Keep comments concise and useful; follow the existing Doxygen style in headers.
 
 ## Performance Mindset

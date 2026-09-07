@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- `Backend` now retries thread discovery after a caught allocation failure, allowing a newly registered
+  thread's pending logs to be processed.
 - Fixed `FileSink` recovery after a deleted-file close callback throws, allowing later flushes to reopen
   the log.
 - `%(process_id)` now contains the process ID when records are processed by `ManualBackendWorker`.
