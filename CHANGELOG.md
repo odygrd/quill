@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- On POSIX, `Frontend::create_or_get_sink<FileSink>()` now resolves existing file aliases, preventing
+  duplicate sinks from truncating or reordering output to the same log file.
 - `Backend` now retries thread discovery after a caught allocation failure, allowing a newly registered
   thread's pending logs to be processed.
 - Fixed `FileSink` recovery after a deleted-file close callback throws, allowing later flushes to reopen

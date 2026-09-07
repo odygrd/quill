@@ -16,7 +16,8 @@ Upon creation, a sink object is registered and owned by a central manager object
 For files, one sink is created per normalized file path, and the file is opened once. If a
 compatible sink type is requested for an already opened file, the existing Sink object is returned
 and any additional constructor arguments are ignored. In RTTI-enabled builds, requesting the same
-name with an incompatible type throws ``QuillError``.
+name with an incompatible type throws ``QuillError``. Existing file aliases on POSIX are resolved for
+lookup, while the configured path is retained for file I/O.
 
 When creating a logger, one or more sinks for that logger can be specified. Sinks can only be registered during the logger creation.
 
