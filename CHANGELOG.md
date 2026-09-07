@@ -105,6 +105,9 @@
 
 ## v13.1.0
 
+- `RotatingFileSink` now recognizes existing backup filename aliases during startup, preserving
+  append-mode backups when the base filename spelling changes on a case- or normalization-insensitive
+  filesystem.
 - On POSIX, `Frontend::create_or_get_sink<FileSink>()` now resolves existing file aliases, preventing
   duplicate sinks from truncating or reordering output to the same log file.
 - `Backend` now retries thread discovery after a caught allocation failure, allowing a newly registered

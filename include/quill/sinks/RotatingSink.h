@@ -808,7 +808,62 @@ private:
 
     std::string const base_extension = utf8_string(base_filename.extension());
     std::string const base_stem = utf8_string(base_filename.stem());
-    std::string const candidate_name = utf8_string(candidate_filename.filename());
+    std::string candidate_name = utf8_string(candidate_filename.filename());
+
+    // Match "<stem>.<suffix><extension>", e.g. "app.1.log". The index/date is parsed below.
+    // Require a non-empty suffix before indexing the separator or comparing the extension.
+    bool const has_room_for_suffix =
+      candidate_name.size() > base_stem.size() + base_extension.size() + 1u;
+    bool exact_name_match{false};
+    if (has_room_for_suffix)
+    {
+      bool const stem_matches = candidate_name.compare(0, base_stem.size(), base_stem) == 0;
+      bool const separator_matches = candidate_name[base_stem.size()] == '.';
+      bool const extension_matches = base_extension.empty() ||
+        (candidate_name.compare(candidate_name.size() - base_extension.size(),
+                                base_extension.size(), base_extension) == 0);
+
+      exact_name_match = stem_matches && separator_matches && extension_matches;
+    }
+
+    if (!exact_name_match)
+    {
+      // Let the filesystem resolve case/normalization aliases. Do not mistake an unrelated
+      // symlink to a backup for another backup, or collapse distinct hard-link names.
+      std::error_code ec;
+      fs::file_status const status = fs::symlink_status(candidate_filename, ec);
+      if (ec || (status.type() != fs::file_type::regular))
+      {
+        return false;
+      }
+      fs::path const canonical_candidate = fs::canonical(candidate_filename, ec);
+      if (ec)
+      {
+        return false;
+      }
+
+      fs::path::string_type const candidate_stem_and_suffix = base_extension.empty()
+        ? candidate_filename.filename().native() : candidate_filename.stem().native();
+      for (size_t separator = candidate_stem_and_suffix.find('.'); separator != fs::path::string_type::npos;
+           separator = candidate_stem_and_suffix.find('.', separator + 1u))
+      {
+        fs::path const alias = base_filename.parent_path() /
+          (base_filename.stem().native() + candidate_stem_and_suffix.substr(separator) +
+           base_filename.extension().native());
+        fs::file_status const alias_status = fs::symlink_status(alias, ec);
+        if (ec || (alias_status.type() != fs::file_type::regular))
+        {
+          continue;
+        }
+        fs::path const canonical_alias = fs::canonical(alias, ec);
+        if (!ec && (canonical_alias == canonical_candidate))
+        {
+          candidate_name = utf8_string(alias.filename());
+          break;
+        }
+      }
+    }
+
     std::string_view candidate_stem{candidate_name};
 
     if (!base_extension.empty())
