@@ -644,6 +644,12 @@ protected:
       _file_event_notifier.after_open(filename, opened_handle_guard.handle);
     }
 
+    // A subclass may reopen a different path. Commit it only after the open and callbacks succeed.
+    if (filename != _filename)
+    {
+      _filename = detail::normalize_file_sink_path(filename, false);
+    }
+
     _append_mode = !mode.empty() && mode[0] == 'a';
     _native_file_handle = opened_handle_guard.release();
   }
@@ -1000,6 +1006,12 @@ protected:
     if (_file_event_notifier.after_open)
     {
       _file_event_notifier.after_open(filename, opened_file_guard.file);
+    }
+
+    // A subclass may reopen a different path. Commit it only after the open and callbacks succeed.
+    if (filename != _filename)
+    {
+      _filename = detail::normalize_file_sink_path(filename, false);
     }
 
     _file = opened_file_guard.release();

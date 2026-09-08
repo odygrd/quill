@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Fixed `FileSink::open_file()` retaining the old filename when a subclass reopens a different path,
+  which could redirect later logs back to the original file.
 - `FileSink` now accepts custom filename timestamp formats that expand to an empty string, such as
   `%p` in locales without AM/PM markers.
 - Loggers using `ClockSourceType::System` no longer stall behind the timestamp-ordering grace check
