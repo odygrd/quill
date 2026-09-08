@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- `StreamSink` retries writes interrupted by a signal, preserving the remaining log message when
+  writing to a pipe or another stream.
 - `FileSink` now accepts custom filename timestamp formats that expand to an empty string, such as
   `%p` in locales without AM/PM markers.
 - Loggers using `ClockSourceType::System` no longer stall behind the timestamp-ordering grace check

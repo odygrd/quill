@@ -242,6 +242,11 @@ public:
         {
           int const saved_errno = errno;
           std::clearerr(stream); // Reset error state
+          if (saved_errno == EINTR)
+          {
+            bytes_written += written;
+            continue;
+          }
           QUILL_THROW(QuillError{std::string{"fwrite failed errno: "} + std::to_string(saved_errno) +
                                  " error: " + std::strerror(saved_errno)});
         }
