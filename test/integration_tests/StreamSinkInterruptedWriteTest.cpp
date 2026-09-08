@@ -18,9 +18,9 @@
 
 namespace
 {
-volatile sig_atomic_t signals_received{0};
+volatile sig_atomic_t signal_received{0};
 
-void interrupt_stream_write(int) { ++signals_received; }
+void interrupt_stream_write(int) { signal_received = 1; }
 
 struct InterruptedWriteFrontendOptions : quill::FrontendOptions
 {
@@ -122,7 +122,7 @@ TEST_CASE("stream_sink_preserves_log_when_pipe_write_is_interrupted")
   sigaction(SIGUSR1, &previous_action, nullptr);
 
   REQUIRE_EQ(bytes_read, 0);
-  REQUIRE_GT(signals_received, 0);
+  REQUIRE_EQ(signal_received, 1);
   INFO(last_error);
   REQUIRE_EQ(error_count, 0);
   REQUIRE(received == payload + "\nafter interruption\n");
