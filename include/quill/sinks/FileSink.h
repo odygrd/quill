@@ -288,13 +288,15 @@ protected:
     static constexpr size_t buffer_size{128};
     static constexpr size_t max_buffer_size{64 * 1024};
     std::vector<char> buffer(buffer_size);
+    // A prefix distinguishes an empty expansion from an insufficient buffer.
+    std::string const format_with_prefix{"x" + append_format_pattern};
 
     while (true)
     {
-      size_t const len = std::strftime(buffer.data(), buffer.size(), append_format_pattern.data(), &now_tm);
+      size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
       if (len != 0)
       {
-        return std::string{buffer.data(), len};
+        return std::string{buffer.data() + 1, len - 1};
       }
 
       if (buffer.size() >= max_buffer_size)
@@ -885,13 +887,15 @@ protected:
     static constexpr size_t buffer_size{128};
     static constexpr size_t max_buffer_size{64 * 1024};
     std::vector<char> buffer(buffer_size);
+    // A prefix distinguishes an empty expansion from an insufficient buffer.
+    std::string const format_with_prefix{"x" + append_format_pattern};
 
     while (true)
     {
-      size_t const len = std::strftime(buffer.data(), buffer.size(), append_format_pattern.data(), &now_tm);
+      size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
       if (len != 0)
       {
-        return std::string{buffer.data(), len};
+        return std::string{buffer.data() + 1, len - 1};
       }
 
       if (buffer.size() >= max_buffer_size)

@@ -6,6 +6,8 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/sinks/FileSink.h"
 
+#include <clocale>
+
 #if !defined(_WIN32)
   #include <unistd.h>
 #endif
@@ -198,6 +200,40 @@ TEST_CASE("append_custom_timestamp_to_file")
   }
 
   testing::remove_file(expected_filename);
+}
+
+/***/
+TEST_CASE("append_custom_timestamp_with_empty_locale_expansion")
+{
+  struct ScopedLcTime
+  {
+    std::string previous{std::setlocale(LC_TIME, nullptr)};
+    ~ScopedLcTime() { std::setlocale(LC_TIME, previous.c_str()); }
+  } scoped_lc_time;
+
+  if (std::setlocale(LC_TIME, "fr_FR.UTF-8") == nullptr)
+  {
+    return;
+  }
+
+  std::tm time_info{};
+  char am_pm[32];
+  if (std::strftime(am_pm, sizeof(am_pm), "%p", &time_info) != 0)
+  {
+    return;
+  }
+
+  fs::path const filename{"append_custom_timestamp_with_empty_locale_expansion.log"};
+  FileSinkConfig config;
+  config.set_timezone(Timezone::GmtTime);
+  config.set_filename_append_option(FilenameAppendOption::StartCustomTimestampFormat, "%p");
+
+  {
+    FileSink file_sink{filename, config};
+    REQUIRE(fs::exists(filename));
+  }
+
+  testing::remove_file(filename);
 }
 
 /***/
