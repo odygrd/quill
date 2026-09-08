@@ -589,6 +589,52 @@ TEST_CASE("deleted_file_retries_failed_after_close")
 #endif
 }
 
+TEST_CASE("reopen_different_filename_keeps_flushes_on_new_path")
+{
+  fs::path const original_filename{"reopen_different_filename.log"};
+  fs::path const new_filename{"reopen_different_filename_destination.log"};
+  fs::path const normalized_new_filename = normalize_file_sink_path(new_filename);
+  testing::remove_file(original_filename);
+  testing::remove_file(new_filename);
+
+  fs::path last_closed_filename;
+  FileEventNotifier notifier;
+  notifier.after_close = [&last_closed_filename](fs::path const& filename)
+  { last_closed_filename = filename; };
+  FileSinkConfig config;
+  config.set_open_mode('w');
+
+  auto write_record = [](FileSink& sink, std::string_view message)
+  {
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, message);
+  };
+
+  {
+    FileSinkTestHarness sink{original_filename, config, notifier};
+    write_record(sink, "before move\n");
+    sink.close_file_for_test();
+    fs::rename(sink.get_filename(), new_filename);
+
+    // A subclass can reopen a relative destination after moving its original file.
+    sink.open_file_for_test(new_filename, "a");
+    CHECK_EQ(sink.get_filename(), normalized_new_filename);
+
+    write_record(sink, "after move 1\n");
+    sink.flush_sink();
+    write_record(sink, "after move 2\n");
+    sink.flush_sink();
+  }
+
+  // Flushing must not mistake the old path for a deleted file and reopen it.
+  CHECK_FALSE(fs::exists(original_filename));
+  std::vector<std::string> const expected_lines{"before move", "after move 1", "after move 2"};
+  CHECK(testing::file_contents(new_filename) == expected_lines);
+  CHECK_EQ(last_closed_filename, normalized_new_filename);
+
+  testing::remove_file(original_filename);
+  testing::remove_file(new_filename);
+}
+
 TEST_CASE("after_open_throw_does_not_leak_file_descriptor_during_construction")
 {
 #if defined(__linux__)
@@ -638,7 +684,9 @@ TEST_CASE("after_open_throw_leaves_sink_closed")
 TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
 {
   fs::path const filename = "after_open_throw_during_reopen_leaves_sink_closed.log";
+  fs::path const new_filename = "after_open_throw_during_reopen_new_filename.log";
   testing::remove_file(filename);
+  testing::remove_file(new_filename);
 
   uint32_t after_open_count{0};
   FileEventNotifier file_event_notifier;
@@ -652,6 +700,7 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
   };
 
   FileSinkTestHarness file_sink{filename, FileSinkConfig{}, file_event_notifier, false};
+  fs::path const original_filename = file_sink.get_filename();
   file_sink.open_file_for_test(file_sink.get_filename(), "a");
   REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
@@ -659,9 +708,10 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS_AS(file_sink.open_file_for_test(file_sink.get_filename(), "a"), QuillError);
+  REQUIRE_THROWS_AS(file_sink.open_file_for_test(new_filename, "a"), QuillError);
 #endif
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+  CHECK_EQ(file_sink.get_filename(), original_filename);
 
   // fsync_file() must tolerate the closed handle state left behind by a failed reopen.
   // Previously this dereferenced a null FILE* / invalid HANDLE and crashed.
@@ -670,6 +720,7 @@ TEST_CASE("after_open_throw_during_reopen_leaves_sink_closed")
   REQUIRE_EQ(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
   testing::remove_file(filename);
+  testing::remove_file(new_filename);
 }
 
 /***/
