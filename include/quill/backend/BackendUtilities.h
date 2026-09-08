@@ -55,14 +55,16 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 /**
- * Bounds a future queue head's wait even when the wall clock moves backwards.
- * steady_now is called only for timestamps ahead of the cutoff. Taking a callable keeps
- * ordinary records free of an extra clock read and lets tests supply a controlled clock.
+ * A record is normally ready when timestamp <= cutoff (wall time minus the grace period).
+ * Otherwise, its first deferred check starts a steady-clock deadline one grace period ahead.
+ * Either check can release it, so a backward clock change does not require waiting for wall
+ * time to catch up. The deadline is kept across polls and cleared when the head advances.
  * @return {defer_timestamp, next_deadline}, with a zero deadline when the record can proceed.
  */
 template <typename TSteadyNow>
 QUILL_NODISCARD inline std::pair<bool, uint64_t> should_defer_timestamp(
-  uint64_t timestamp, uint64_t cutoff, uint64_t grace_period_ns, uint64_t deadline, TSteadyNow steady_now)
+  uint64_t timestamp, uint64_t cutoff, uint64_t grace_period_ns, uint64_t deadline,
+  uint64_t steady_cutoff, TSteadyNow steady_now)
 {
   if (timestamp <= cutoff)
   {
@@ -70,9 +72,9 @@ QUILL_NODISCARD inline std::pair<bool, uint64_t> should_defer_timestamp(
     return {false, 0};
   }
 
-  // Start the grace window on the first deferred check, then keep the same deadline.
-  // Steady time bounds the wait even if wall time moves backwards again.
-  uint64_t const now = steady_now();
+  // Only a new deadline reads the current steady time. Rechecks use the scan's shared cutoff
+  // so a pause between queues cannot release a newer head while an older one stays deferred.
+  uint64_t const now = (deadline == 0) ? steady_now() : steady_cutoff;
   uint64_t const next_deadline = (deadline == 0) ? (now + grace_period_ns) : deadline;
   if (now < next_deadline)
   {

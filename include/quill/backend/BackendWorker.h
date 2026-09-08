@@ -727,8 +727,12 @@ private:
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
   {
     uint64_t ts_now = (std::numeric_limits<uint64_t>::max)();
+    uint64_t steady_ts_now{0};
     if (_options.log_timestamp_ordering_grace_period.count())
     {
+      // Reuse both clock samples for every queue. Sample steady time first so a pause between
+      // these reads cannot make deadline checks use a later instant than the wall-clock cutoff.
+      steady_ts_now = detail::get_steady_time_ns();
       uint64_t const system_time_ns = detail::get_system_time_ns();
       uint64_t const grace_period_ns = static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
@@ -746,12 +750,12 @@ private:
       if (thread_context->has_unbounded_queue_type())
       {
         total_cached_transit_events_count += _read_and_decode_frontend_queue(
-          thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now);
+          thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now, steady_ts_now);
       }
       else if (thread_context->has_bounded_queue_type())
       {
         total_cached_transit_events_count += _read_and_decode_frontend_queue(
-          thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now);
+          thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now, steady_ts_now);
       }
     }
 
@@ -763,11 +767,13 @@ private:
    * @param frontend_queue queue
    * @param thread_context thread context
    * @param ts_now timestamp now
+   * @param steady_ts_now steady-clock cutoff shared by this scan
    * @return size of the transit_event_buffer
    */
   template <typename TFrontendQueue>
   QUILL_ATTRIBUTE_HOT size_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
-                                                             ThreadContext* thread_context, uint64_t ts_now)
+                                                              ThreadContext* thread_context,
+                                                              uint64_t ts_now, uint64_t steady_ts_now)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.
@@ -799,7 +805,7 @@ private:
 
       std::byte const* const read_begin = read_pos;
 
-      if (!_populate_transit_event_from_frontend_queue(read_pos, thread_context, ts_now))
+      if (!_populate_transit_event_from_frontend_queue(read_pos, thread_context, ts_now, steady_ts_now))
       {
         // If _get_transit_event_from_queue returns false, stop reading
         break;
@@ -829,7 +835,7 @@ private:
   /***/
   QUILL_ATTRIBUTE_HOT bool _populate_transit_event_from_frontend_queue(std::byte*& read_pos,
                                                                        ThreadContext* thread_context,
-                                                                       uint64_t ts_now)
+                                                                       uint64_t ts_now, uint64_t steady_ts_now)
   {
     QUILL_ASSERT(thread_context->_transit_event_buffer,
                  "transit_event_buffer is nullptr in "
@@ -944,11 +950,11 @@ private:
       uint64_t const grace_period_ns =
         static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count()) * 1'000u;
 
-      // Pass the clock function without calling it: the helper reads steady time only when
-      // the timestamp is ahead of the cutoff, avoiding an extra clock read for ordinary records.
+      // A new deadline starts at the actual observation time. Existing deadlines are checked
+      // against the scan's shared cutoff, even if the backend is descheduled between queues.
       auto const [defer_timestamp, next_deadline] = should_defer_timestamp(
         transit_event->timestamp, ts_now, grace_period_ns,
-        thread_context->_timestamp_ordering_grace_deadline, detail::get_steady_time_ns);
+        thread_context->_timestamp_ordering_grace_deadline, steady_ts_now, detail::get_steady_time_ns);
 
       thread_context->_timestamp_ordering_grace_deadline = next_deadline;
 
