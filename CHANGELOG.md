@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- `FileSink` now accepts custom filename timestamp formats that expand to an empty string, such as
+  `%p` in locales without AM/PM markers.
 - Loggers using `ClockSourceType::System` no longer stall behind the timestamp-ordering grace check
   after a backward wall-clock correction.
 - `RotatingFileSink` now recognizes existing backup filename aliases during startup, preserving
