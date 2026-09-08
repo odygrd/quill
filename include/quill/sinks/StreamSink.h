@@ -96,17 +96,32 @@ public:
    * @brief Constructor for StreamSink
    * @param stream The stream type (stdout, stderr, or file)
    * @param override_pattern_formatter_options override the logger pattern formatter
-   * @param file File pointer for file-based stream
+   * @param file Already-open FILE* owned by the caller; this sink does not open or close it
    * @param file_event_notifier Notifies on file events
+   * @param stream_is_unbuffered Opt-in EINTR retries for a caller-owned, unbuffered stream.
+   *        Leave false for buffered streams. This flag does not change the buffering mode.
+   *
+   * @note For this opt-in path, open the FILE* yourself with fopen() or POSIX fdopen(), then
+   *       successfully call `setvbuf(file, nullptr, _IONBF, 0)` before any I/O and before
+   *       constructing the sink. Pass that FILE* as `file` and true as `stream_is_unbuffered`.
+   *       Keep buffering disabled and the FILE* alive until all backend use has finished.
+   *       See docs/snippets/quill_docs_example_unbuffered_stream.cpp for a complete example.
+   *
+   * @note This option applies to direct StreamSink construction. FileSink and ConsoleSink
+   *       leave it false; configuring a FileSink stream in FileEventNotifier::after_open
+   *       does not enable it. Buffered short writes still report errors; this option does
+   *       not recover data discarded by an interrupted stdio buffer flush.
    * @throws QuillError if an invalid parameter is provided
    */
   explicit StreamSink(fs::path stream, FILE* file = nullptr,
                       std::optional<PatternFormatterOptions> const& override_pattern_formatter_options = std::nullopt,
-                      FileEventNotifier file_event_notifier = FileEventNotifier{})
+                      FileEventNotifier file_event_notifier = FileEventNotifier{},
+                      bool stream_is_unbuffered = false)
     : Sink(override_pattern_formatter_options),
       _filename(std::move(stream)),
       _file(file),
-      _file_event_notifier(std::move(file_event_notifier))
+      _file_event_notifier(std::move(file_event_notifier)),
+      _stream_is_unbuffered(stream_is_unbuffered)
   {
     // reserve stdout and stderr as filenames
     if (_filename == std::string{"stdout"})
@@ -192,6 +207,27 @@ public:
    */
   QUILL_ATTRIBUTE_HOT static void safe_fwrite(void const* ptr, size_t size, size_t count, FILE* stream)
   {
+    _safe_fwrite(ptr, size, count, stream, false);
+  }
+
+  /**
+   * @brief Writes data to an unbuffered stream, retrying interrupted writes.
+   * @param ptr Pointer to the data to be written
+   * @param size Size of each element to be written
+   * @param count Number of elements to write
+   * @param stream Stream configured with `_IONBF` before any I/O, with buffering still disabled
+   * @note The caller opens and owns the FILE*. Configure it immediately after fopen() or
+   *       POSIX fdopen(); see the StreamSink constructor documentation for the setup sequence.
+   */
+  QUILL_ATTRIBUTE_HOT static void safe_fwrite_unbuffered(void const* ptr, size_t size, size_t count, FILE* stream)
+  {
+    _safe_fwrite(ptr, size, count, stream, true);
+  }
+
+protected:
+  QUILL_ATTRIBUTE_HOT static void _safe_fwrite(void const* ptr, size_t size, size_t count,
+                                               FILE* stream, bool stream_is_unbuffered)
+  {
     size_t const total_bytes = size * count;
     size_t bytes_written = 0;
 
@@ -242,7 +278,8 @@ public:
         {
           int const saved_errno = errno;
           std::clearerr(stream); // Reset error state
-          if (saved_errno == EINTR)
+          // Buffered fwrite can count bytes that were discarded by a failed flush.
+          if (saved_errno == EINTR && stream_is_unbuffered)
           {
             bytes_written += written;
             continue;
@@ -266,7 +303,6 @@ public:
     }
   }
 
-protected:
   QUILL_NODISCARD virtual size_t estimate_write_size(
     MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
     std::string_view /* thread_id */, std::string_view /* thread_name */,
@@ -290,7 +326,7 @@ protected:
    */
   QUILL_ATTRIBUTE_HOT void _write_statement(std::string_view statement)
   {
-    safe_fwrite(statement.data(), sizeof(char), statement.size(), _file);
+    _safe_fwrite(statement.data(), sizeof(char), statement.size(), _file, _stream_is_unbuffered);
     _file_size += statement.size();
     _write_occurred = true;
   }
@@ -327,6 +363,7 @@ protected:
   FileEventNotifier _file_event_notifier;
   bool _is_null{false};
   bool _write_occurred{false};
+  bool const _stream_is_unbuffered{false};
 };
 
 QUILL_END_EXPORT

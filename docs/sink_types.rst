@@ -91,6 +91,46 @@ The :cpp:class:`StreamSink` is a base sink class used to write log messages to C
 ``stdout``, ``stderr``, or files opened with ``fopen``.
 It is typically used as a foundation for higher-level sinks like :cpp:class:`ConsoleSink`.
 
+To wrap an application-owned stream with ``StreamSink``, open it with ``fopen()`` or,
+on POSIX, ``fdopen()`` and pass the resulting ``FILE*`` to the sink constructor.
+``StreamSink`` does not open the supplied filename or close the stream. The application
+must keep the ``FILE*`` alive until the backend has finished using it.
+
+The ``stream_is_unbuffered`` constructor flag is an opt-in for the specific case of an
+application-owned, unbuffered stream, such as a pipe writer. It enables retries when a write
+is interrupted by a signal. Leave it ``false`` for buffered streams; the flag itself does
+not change the stream's buffering mode.
+
+To opt in, call ``setvbuf(stream, nullptr, _IONBF, 0)`` immediately after opening the stream,
+before any reads, writes, or logging. Check that it succeeds, then pass the configured
+``FILE*`` and ``stream_is_unbuffered=true`` when creating the ``StreamSink``. Keep buffering
+disabled for the sink's lifetime.
+
+This complete example uses a regular file so it can run on all supported platforms. The
+same setup sequence applies to a POSIX pipe stream opened with ``fdopen()``:
+
+.. literalinclude:: snippets/quill_docs_example_unbuffered_stream.cpp
+   :language: cpp
+   :linenos:
+
+.. note::
+
+   This opt-in is for direct ``StreamSink`` construction. ``FileSink`` and ``ConsoleSink``
+   do not expose it. On POSIX, ``FileSink`` passes its internally opened ``FILE*`` to
+   ``FileEventNotifier::after_open``, but changing buffering in that callback does not
+   enable the retry flag.
+
+   ``FileSink`` uses a 64 KiB buffer by default. ``FileSinkConfig::set_write_buffer_size(0)``
+   selects default buffering; it does not make the stream unbuffered.
+
+Buffered short writes retain the existing error reporting. This feature does not provide
+lossless recovery for buffered streams: some C libraries discard pending buffered data on
+a write error, and retrying ``fwrite()`` cannot reliably recover the discarded bytes.
+
+Direct callers of the static write helper can use ``StreamSink::safe_fwrite_unbuffered()``
+after the same checked ``_IONBF`` setup. ``StreamSink::safe_fwrite()`` retains the default
+short-write error handling.
+
 AndroidSink
 ~~~~~~~~~~~
 

@@ -64,7 +64,7 @@ TEST_CASE("stream_sink_preserves_log_when_pipe_write_is_interrupted")
   };
 
   auto sink = TestFrontend::create_or_get_sink<StreamSink>(
-    "stream_sink_interrupted_pipe", "stream_sink_interrupted_pipe", stream, std::nullopt, notifier);
+    "stream_sink_interrupted_pipe", "stream_sink_interrupted_pipe", stream, std::nullopt, notifier, true);
   auto* logger = TestFrontend::create_or_get_logger("stream_sink_interrupted_pipe_logger", sink,
                                                     PatternFormatterOptions{"%(message)"});
   std::string const payload(1024 * 1024, 'x');

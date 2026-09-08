@@ -842,7 +842,7 @@ TEST_CASE("stream_sink_reports_persistent_write_errors")
   bool error_reported{false};
   try
   {
-    StreamSink::safe_fwrite("test", 1, 4, stream);
+    StreamSink::safe_fwrite_unbuffered("test", 1, 4, stream);
   }
   catch (QuillError const&)
   {
