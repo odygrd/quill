@@ -28,3 +28,17 @@ cc_library(
     hdrs = glob(["include/quill/bundled/fmt/*.h"]),
     includes = ["include"],
 )
+
+cc_library(
+    name = "quill_module",
+    features = ["cpp_modules"],
+    module_interfaces = ["src/quill.cppm"],
+    copts = select({
+        "@rules_cc//cc/compiler:gcc": ["-Wno-gnu-zero-variadic-macro-arguments"],
+        "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
+        "//conditions:default": [],
+    }),
+    # Prevent users without --experimental_cpp_modules support from accidentally building this
+    tags = ["manual"],
+    deps = [":quill"],
+)

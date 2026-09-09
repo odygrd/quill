@@ -398,7 +398,7 @@ if (QUILL_BUILD_MODULE)
             PUBLIC
             FILE_SET CXX_MODULES
             BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
-            FILES src/quill.cc)
+            FILES src/quill.cppm)
 
     target_link_libraries(quill_module PUBLIC ${TARGET_NAME})
     target_compile_features(quill_module PUBLIC cxx_std_20)

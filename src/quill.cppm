@@ -16,6 +16,7 @@ module;
 #include <bitset>
 #include <cctype>
 #include <cerrno>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <codecvt>
@@ -101,6 +102,14 @@ module;
 #endif
 #if QUILL_HAS_INCLUDE(<winapifamily.h>)
   #include <winapifamily.h>
+#endif
+#if defined(__unix__) || defined(__APPLE__) || defined(__linux__)
+  #include <fcntl.h>
+  #include <sys/file.h>
+  #include <sys/mman.h>
+  #if QUILL_HAS_INCLUDE(<sys/syscall.h>)
+    #include <sys/syscall.h>
+  #endif
 #endif
 
 export module quill;

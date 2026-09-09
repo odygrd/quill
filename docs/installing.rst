@@ -125,6 +125,38 @@ Include ``quill/bundled/fmt/format.h`` and use ``fmtquill::format`` or specializ
 ``fmtquill::formatter``. These header-only dependencies use Quill's bundled, patched fmt in the
 ``fmtquill`` namespace; its version follows the Quill release.
 
+Using the C++20 Module
+----------------------
+
+Quill provides an experimental C++20 named module interface (``quill.cppm``).
+
+With CMake, enable ``QUILL_BUILD_MODULE=ON`` and link against ``quill::quill_module``:
+
+.. code:: cmake
+
+   target_link_libraries(my_project PRIVATE quill::quill_module)
+
+With Bazel, add ``@quill//:quill_module`` to the target's ``deps`` and build with
+``--experimental_cpp_modules``:
+
+.. code:: python
+
+   cc_binary(
+       name = "my_project",
+       srcs = ["main.cpp"],
+       features = ["cpp_modules"],
+       deps = ["@quill//:quill_module"],
+   )
+
+In your source files, import Quill directly:
+
+.. code:: cpp
+
+   import quill;
+
+Note that you will still need ``quill/LogMacros.h`` for the logging macros, since macros are not
+exported from modules.
+
 Next Steps
 ----------
 

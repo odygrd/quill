@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Renamed the C++20 module interface source to `quill.cppm` and added the `quill_module` target
+  for Bazel consumers building with `--experimental_cpp_modules`.
 - CMake, Meson, and Bazel consumers can use a separate `fmtquill` dependency for the bundled
   formatter without inheriting Quill's logging compile options, definitions, or link dependencies.
 - Fixed `FileSink::open_file()` retaining the old filename when a subclass reopens a different path,

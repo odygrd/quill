@@ -13,3 +13,4 @@
 /docs/Doxyfile.rtd
 /docs/build/
 /docs/_build*/
+/bazel-*/
