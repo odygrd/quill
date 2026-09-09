@@ -156,6 +156,10 @@ whole build and pass ``--experimental_cpp_modules`` (for Clang, use
        deps = ["@quill//:quill_module"],
    )
 
+The selected Clang toolchain must also provide a matching ``clang-scan-deps`` beside the
+compiler executable. On Ubuntu 24.04, install ``clang-18`` and ``clang-tools-18``, and set
+``CC=/usr/lib/llvm-18/bin/clang`` and ``CXX=/usr/lib/llvm-18/bin/clang++``.
+
 The module target is excluded from wildcard builds. Older Bazel versions can still use
 ``@quill//:quill`` and ``@quill//:fmtquill`` without enabling modules.
 

@@ -20,11 +20,19 @@ jobs:
         bazel: [8.7.0, 9.2.0]
     env:
       USE_BAZEL_VERSION: ${{ matrix.bazel }}
-      CC: clang
-      CXX: clang++
+      # rules_cc looks for clang-scan-deps beside the selected compiler.
+      CC: /usr/lib/llvm-18/bin/clang
+      CXX: /usr/lib/llvm-18/bin/clang++
     steps:
       - uses: actions/checkout@v5
       - uses: bazel-contrib/setup-bazel@0.19.0
+      - name: Install Clang module tools
+        if: matrix.bazel == '9.2.0'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 clang-tools-18
+          "$CC" --version
+          "${CC%/*}/clang-scan-deps" --version
       - name: Load all targets without enabling modules
         run: bazel query //... --lockfile_mode=off
       - name: Test the C++17 header targets
