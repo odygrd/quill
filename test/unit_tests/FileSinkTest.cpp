@@ -883,4 +883,26 @@ TEST_CASE("use_symlink_directory")
 #endif
 }
 
+TEST_CASE("stream_sink_reports_persistent_write_errors")
+{
+#if defined(__linux__) && !defined(QUILL_NO_EXCEPTIONS)
+  FILE* stream = std::fopen("/dev/full", "w");
+  REQUIRE_NE(stream, nullptr);
+  REQUIRE_EQ(std::setvbuf(stream, nullptr, _IONBF, 0), 0);
+
+  bool error_reported{false};
+  try
+  {
+    StreamSink::safe_fwrite_unbuffered("test", 1, 4, stream);
+  }
+  catch (QuillError const&)
+  {
+    error_reported = true;
+  }
+
+  std::fclose(stream);
+  REQUIRE(error_reported);
+#endif
+}
+
 TEST_SUITE_END();

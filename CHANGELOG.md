@@ -109,6 +109,8 @@
   which could redirect later logs back to the original file.
 - `FileSink` now accepts custom filename timestamp formats that expand to an empty string, such as
   `%p` in locales without AM/PM markers.
+- `StreamSink` can retry signal-interrupted writes to streams configured with `_IONBF` by passing
+  `stream_is_unbuffered=true` to its constructor; short writes on buffered streams still report errors.
 - Loggers using `ClockSourceType::System` no longer stall behind the timestamp-ordering grace check
   after a backward wall-clock correction.
 - `RotatingFileSink` now recognizes existing backup filename aliases during startup, preserving
