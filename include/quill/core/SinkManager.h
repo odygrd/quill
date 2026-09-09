@@ -54,7 +54,7 @@ public:
   SinkManager& operator=(SinkManager const&) = delete;
 
   /***/
-  QUILL_EXPORT static SinkManager& instance() noexcept
+  QUILL_EXPORT static inline SinkManager& instance() noexcept
   {
     static SinkManager instance;
     return instance;

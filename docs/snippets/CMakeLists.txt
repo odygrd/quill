@@ -32,5 +32,19 @@ foreach (example_target ${EXAMPLE_TARGETS})
     target_link_libraries(${example_target} quill)
 endforeach ()
 
+if (TARGET quill_module)
+    add_executable(quill_docs_module quill_docs_module.cpp)
+    set_common_compile_options(quill_docs_module)
+    target_link_libraries(quill_docs_module PRIVATE quill::quill_module)
+    set_target_properties(quill_docs_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    list(APPEND EXAMPLE_TARGETS quill_docs_module)
+
+    if (QUILL_BUILD_TESTS)
+        add_test(NAME quill_module_smoke COMMAND quill_docs_module)
+        set_tests_properties(quill_module_smoke PROPERTIES
+                PASS_REGULAR_EXPRESSION "Logging through the Quill module: 42")
+    endif ()
+endif ()
+
 install(TARGETS ${EXAMPLE_TARGETS}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

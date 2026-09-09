@@ -225,7 +225,7 @@ class ThreadContextManager
 {
 public:
   /***/
-  QUILL_EXPORT static ThreadContextManager& instance() noexcept
+  QUILL_EXPORT static inline ThreadContextManager& instance() noexcept
   {
     static ThreadContextManager instance;
     return instance;

@@ -200,7 +200,7 @@ public:
   SignalHandlerContext& operator=(SignalHandlerContext const&) = delete;
 
   /***/
-  QUILL_EXPORT static SignalHandlerContext& instance() noexcept
+  QUILL_EXPORT static inline SignalHandlerContext& instance() noexcept
   {
     static SignalHandlerContext instance;
     return instance;

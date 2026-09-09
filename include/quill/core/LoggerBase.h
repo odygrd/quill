@@ -205,7 +205,7 @@ protected:
   }
 
   // The exported accessor keeps its thread-local state shared with DLL consumers.
-  QUILL_EXPORT static bool& _backend_thread_flag() noexcept
+  QUILL_EXPORT static inline bool& _backend_thread_flag() noexcept
   {
     static QUILL_THREAD_LOCAL bool is_backend_thread{false};
     return is_backend_thread;

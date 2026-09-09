@@ -27,7 +27,7 @@ public:
   MetricManager& operator=(MetricManager const&) = delete;
 
   /***/
-  QUILL_EXPORT static MetricManager& instance() noexcept
+  QUILL_EXPORT static inline MetricManager& instance() noexcept
   {
     static MetricManager instance;
     return instance;

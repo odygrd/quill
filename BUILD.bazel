@@ -1,4 +1,5 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load(":quill_module.bzl", "quill_module")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -29,15 +30,19 @@ cc_library(
     includes = ["include"],
 )
 
-cc_library(
+quill_module(
     name = "quill_module",
-    features = ["cpp_modules"],
-    module_interfaces = ["src/quill.cppm"],
     copts = select({
         "@rules_cc//cc/compiler:gcc": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "//conditions:default": [],
     }),
+    # rules_cc 0.2.22 uses the same module metadata path for PIC and non-PIC outputs.
+    features = [
+        "cpp_modules",
+        "prefer_pic_for_opt_binaries",
+    ],
+    module_interfaces = ["src/quill.cc"],
     # Prevent users without --experimental_cpp_modules support from accidentally building this
     tags = ["manual"],
     deps = [":quill"],
