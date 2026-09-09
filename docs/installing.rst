@@ -97,6 +97,34 @@ CMakeLists.txt
    add_executable(my_project main.cpp)
    target_link_libraries(my_project PRIVATE quill::quill)
 
+Using the Bundled Formatter
+---------------------------
+
+Targets that only need formatting can use the bundled formatter without inheriting
+Quill's logging compile options, definitions, or link dependencies.
+
+With CMake, ``quill::fmtquill`` is available after ``find_package(quill REQUIRED)``
+or ``add_subdirectory(quill)``:
+
+.. code:: cmake
+
+   find_package(quill REQUIRED)
+   target_link_libraries(my_project PRIVATE quill::fmtquill)
+
+With Meson, use the installed ``fmtquill`` pkg-config dependency or fall back to the
+Quill subproject:
+
+.. code:: meson
+
+   fmtquill_dep = dependency('fmtquill', fallback : ['quill', 'fmtquill_dep'])
+   executable('my_project', 'main.cpp', dependencies : [fmtquill_dep])
+
+With Bazel, add ``@quill//:fmtquill`` to the target's ``deps``.
+
+Include ``quill/bundled/fmt/format.h`` and use ``fmtquill::format`` or specialize
+``fmtquill::formatter``. These header-only dependencies use Quill's bundled, patched fmt in the
+``fmtquill`` namespace; its version follows the Quill release.
+
 Next Steps
 ----------
 

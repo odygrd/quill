@@ -371,6 +371,13 @@ target_include_directories(${TARGET_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>)
 
+# Expose the bundled formatter independently of Quill's logging dependencies and options.
+add_library(fmtquill INTERFACE)
+add_library(quill::fmtquill ALIAS fmtquill)
+target_include_directories(fmtquill INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>)
+
 # Compiler options
 target_compile_options(${TARGET_NAME} INTERFACE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>)
@@ -462,7 +469,7 @@ if (QUILL_MASTER_PROJECT OR QUILL_ENABLE_INSTALL)
     install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/quill DESTINATION ${QUILL_INC_DIR})
 
     # Install the library
-    install(TARGETS ${TARGET_NAME} EXPORT ${targets_export_name}
+    install(TARGETS ${TARGET_NAME} fmtquill EXPORT ${targets_export_name}
             LIBRARY DESTINATION ${QUILL_LIB_DIR}
             ARCHIVE DESTINATION ${QUILL_LIB_DIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
