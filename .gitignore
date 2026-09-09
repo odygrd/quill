@@ -14,3 +14,4 @@
 /docs/build/
 /docs/_build*/
 /bazel-*
+/MODULE.bazel.lock
