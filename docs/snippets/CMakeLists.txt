@@ -40,8 +40,8 @@ if (TARGET quill_module)
     list(APPEND EXAMPLE_TARGETS quill_docs_module)
 
     if (QUILL_BUILD_TESTS)
-        add_test(NAME quill_module_smoke COMMAND quill_docs_module)
-        set_tests_properties(quill_module_smoke PROPERTIES
+        add_test(NAME quill_module_logging_test COMMAND quill_docs_module)
+        set_tests_properties(quill_module_logging_test PROPERTIES
                 PASS_REGULAR_EXPRESSION "Logging through the Quill module: 42")
     endif ()
 endif ()

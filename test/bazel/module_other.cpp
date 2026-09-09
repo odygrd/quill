@@ -10,7 +10,7 @@ import quill;
 
 bool log_from_another_module_translation_unit()
 {
-  quill::Logger* logger = quill::Frontend::get_logger("bazel_module_smoke_logger");
+  quill::Logger* logger = quill::Frontend::get_logger("bazel_module_logging_test_logger");
   if (!logger)
   {
     std::fprintf(stderr, "Module importers did not share the logger registry\n");

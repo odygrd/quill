@@ -1,24 +1,24 @@
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 cc_test(
-    name = "header_smoke",
+    name = "header_logging_test",
     size = "small",
-    srcs = ["logging_smoke.cpp"],
+    srcs = ["logging_test.cpp"],
     deps = ["//:quill"],
 )
 
 cc_test(
-    name = "fmtquill_smoke",
+    name = "fmtquill_test",
     size = "small",
-    srcs = ["fmtquill_smoke.cpp"],
+    srcs = ["fmtquill_test.cpp"],
     deps = ["//:fmtquill"],
 )
 
 cc_test(
-    name = "module_smoke",
+    name = "module_logging_test",
     size = "small",
     srcs = [
-        "logging_smoke.cpp",
+        "logging_test.cpp",
         "module_other.cpp",
     ],
     features = [

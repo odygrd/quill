@@ -29,7 +29,7 @@ jobs:
         run: bazel query //... --lockfile_mode=off
       - name: Test the C++17 header targets
         run: >-
-          bazel test //test/bazel:header_smoke //test/bazel:fmtquill_smoke
+          bazel test //test/bazel:header_logging_test //test/bazel:fmtquill_test
           --cxxopt=-std=c++17 --lockfile_mode=off --test_output=errors
       - name: Check that modules require an explicit opt-in
         run: |
@@ -46,7 +46,7 @@ jobs:
       - name: Test optimized C++20 module imports
         if: matrix.bazel == '9.2.0'
         run: >-
-          bazel test //test/bazel:module_smoke --compilation_mode=opt
+          bazel test //test/bazel:module_logging_test --compilation_mode=opt
           --cxxopt=-std=c++20 --experimental_cpp_modules
           --lockfile_mode=off --test_output=errors
 
@@ -71,4 +71,4 @@ jobs:
           cmake --build build --target quill_docs_module
           quill_example_console_logging_module --parallel 2
       - name: Test logging and automatic shutdown
-        run: ctest --test-dir build -R '^quill_module_(exit_)?smoke$' --output-on-failure
+        run: ctest --test-dir build -R '^quill_module_(logging|shutdown)_test$' --output-on-failure

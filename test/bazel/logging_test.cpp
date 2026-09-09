@@ -39,9 +39,9 @@ bool log_from_another_module_translation_unit();
 int main()
 {
 #if defined(QUILL_TEST_MODULE)
-  std::string const prefix{"bazel_module_smoke"};
+  std::string const prefix{"bazel_module_logging_test"};
 #else
-  std::string const prefix{"bazel_header_smoke"};
+  std::string const prefix{"bazel_header_logging_test"};
 #endif
 
   std::string const filename{prefix + ".log"};
@@ -70,7 +70,7 @@ int main()
     quill::PatternFormatterOptions{"%(message)"});
   logger->set_log_level(quill::LogLevel::Info);
 
-  LOG_INFO(logger, "Bazel logging smoke: {}", 42);
+  LOG_INFO(logger, "Bazel logging test: {}", 42);
   LOG_INFO(logger, "Basic values: {} {:.2f} {} {}", -7, 3.5, true, "text");
   LOG_DEBUG(logger, "Filtered debug message");
   quill::info(logger, "Macro-free logging: {}", 44);
@@ -117,7 +117,7 @@ int main()
     std::string const output{std::istreambuf_iterator<char>{log_file}, std::istreambuf_iterator<char>{}};
 
     for (char const* expected :
-         {"Bazel logging smoke: 42", "Basic values: -7 3.50 true text", "Macro-free logging: 44",
+         {"Bazel logging test: 42", "Basic values: -7 3.50 true text", "Macro-free logging: 44",
           "Vector: [1, 2, 3]", "Array: [4, 5]", "Map: {\"key\": 7}", "Optional: optional(9)",
           "Variant: variant(11)", "Duration: 12ms", "Buffered context: 1",
           "Error flushes backtrace", "Logging from another thread: 45"})

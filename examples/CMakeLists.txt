@@ -89,8 +89,8 @@ if (TARGET quill_module)
     list(APPEND EXAMPLE_TARGETS quill_example_console_logging_module)
 
     if (QUILL_BUILD_TESTS)
-        add_test(NAME quill_module_exit_smoke COMMAND quill_example_console_logging_module)
-        set_tests_properties(quill_module_exit_smoke PROPERTIES
+        add_test(NAME quill_module_shutdown_test COMMAND quill_example_console_logging_module)
+        set_tests_properties(quill_module_shutdown_test PROPERTIES
                 PASS_REGULAR_EXPRESSION "StringRef logging via module import")
     endif ()
 endif ()
