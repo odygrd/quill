@@ -120,6 +120,15 @@ export module quill;
 #define FMTQUILL_BEGIN_EXPORT export {
 #define FMTQUILL_END_EXPORT }
 
+// libstdc++ C forwarding headers may be re-entered after the global module fragment.
+// Their declarations are guarded; suppress Clang's include-only diagnostic here.
+#if defined(__clang__) && defined(__GLIBCXX__)
+  #if __has_warning("-Winclude-angled-in-module-purview")
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
+  #endif
+#endif
+
 #include "quill/bundled/fmt/ostream.h"
 #include "quill/bundled/fmt/ranges.h"
 
@@ -166,3 +175,9 @@ export module quill;
 #include "quill/std/Variant.h"
 #include "quill/std/Vector.h"
 #include "quill/std/WideString.h"
+
+#if defined(__clang__) && defined(__GLIBCXX__)
+  #if __has_warning("-Winclude-angled-in-module-purview")
+    #pragma clang diagnostic pop
+  #endif
+#endif

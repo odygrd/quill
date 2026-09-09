@@ -55,7 +55,7 @@ jobs:
         if: matrix.bazel == '9.2.0'
         run: >-
           bazel test //test/bazel:module_logging_test --compilation_mode=opt
-          --cxxopt=-std=c++20 --experimental_cpp_modules
+          --cxxopt=-std=c++20 --cxxopt=-Werror --experimental_cpp_modules
           --lockfile_mode=off --test_output=errors
 
   cmake-module:
