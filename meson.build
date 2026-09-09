@@ -15,6 +15,9 @@ quill_dep = declare_dependency(include_directories : inc_dirs,
 
 meson.override_dependency('quill', quill_dep)
 
+fmtquill_dep = declare_dependency(include_directories : inc_dirs)
+meson.override_dependency('fmtquill', fmtquill_dep)
+
 install_subdir('include/quill', install_dir : get_option('includedir'), install_tag : 'devel')
 
 pkg_mod = import('pkgconfig')
@@ -24,4 +27,11 @@ pkg_mod.generate(
     description : 'Asynchronous Low Latency C++ Logging Library',
     subdirs : 'quill',
     libraries_private : [threads_dep]
+)
+
+pkg_mod.generate(
+    name : 'fmtquill',
+    filebase : 'fmtquill',
+    description : 'Quill bundled header-only formatter',
+    subdirs : '.'
 )

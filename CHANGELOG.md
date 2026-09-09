@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- CMake, Meson, and Bazel consumers can use a separate `fmtquill` dependency for the bundled
+  formatter without inheriting Quill's logging compile options, definitions, or link dependencies.
 - Fixed `FileSink::open_file()` retaining the old filename when a subclass reopens a different path,
   which could redirect later logs back to the original file.
 - `FileSink` now accepts custom filename timestamp formats that expand to an empty string, such as

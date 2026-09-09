@@ -22,3 +22,9 @@ cc_library(
         "//conditions:default": ["-lpthread"],
     }),
 )
+
+cc_library(
+    name = "fmtquill",
+    hdrs = glob(["include/quill/bundled/fmt/*.h"]),
+    includes = ["include"],
+)
