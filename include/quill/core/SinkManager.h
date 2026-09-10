@@ -100,13 +100,15 @@ public:
     }
 
     // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
-    LockGuard const lock{_spinlock};
-
-    std::shared_ptr<Sink> sink = _find_sink(sink_name);
-
-    if (!sink && !normalized_sink_name.empty() && normalized_sink_name != sink_name)
+    std::shared_ptr<Sink> sink;
     {
-      sink = _find_sink(normalized_sink_name);
+      LockGuard const lock{_spinlock};
+      sink = _find_sink(sink_name);
+
+      if (!sink && !normalized_sink_name.empty() && normalized_sink_name != sink_name)
+      {
+        sink = _find_sink(normalized_sink_name);
+      }
     }
 
     if (QUILL_UNLIKELY(!sink))
@@ -247,6 +249,7 @@ private:
   {
     while (true)
     {
+      QUILL_TRY
       {
         LockGuard const lock{_spinlock};
 
@@ -271,6 +274,13 @@ private:
           return nullptr;
         }
       }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        // Release the lock before an uncaught rethrow can invoke terminate().
+        throw;
+      }
+#endif
 
       detail::sleep_for_ns(100);
     }
@@ -309,17 +319,16 @@ private:
   void _publish_created_sink(std::string const& sink_id, std::string const& sink_name,
                              std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
-    LockGuard const lock{_spinlock};
-
     QUILL_TRY
     {
+      LockGuard const lock{_spinlock};
       _insert_sink(sink_id, sink_name, sink, file_sink_id);
       _erase_pending_sink(sink_id);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      _erase_pending_sink(sink_id);
+      _remove_pending_sink(sink_id);
       throw;
     }
 #endif
