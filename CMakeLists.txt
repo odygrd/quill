@@ -403,6 +403,13 @@ if (QUILL_BUILD_MODULE)
     target_link_libraries(quill_module PUBLIC ${TARGET_NAME})
     target_compile_features(quill_module PUBLIC cxx_std_20)
     set_target_properties(quill_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
+
+    if (QUILL_NO_EXCEPTIONS)
+        # The module and its importers must agree on exception and RTTI support.
+        target_compile_options(quill_module PUBLIC
+                $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-fno-exceptions;-fno-rtti>
+                $<$<CXX_COMPILER_ID:MSVC>:/GR-;/EHs-c-;/D_HAS_EXCEPTIONS=0>)
+    endif ()
 endif ()
 
 if (QUILL_BUILD_EXAMPLES)

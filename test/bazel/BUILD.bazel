@@ -1,0 +1,31 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+cc_test(
+    name = "header_logging_test",
+    size = "small",
+    srcs = ["logging_test.cpp"],
+    deps = ["//:quill"],
+)
+
+cc_test(
+    name = "fmtquill_test",
+    size = "small",
+    srcs = ["fmtquill_test.cpp"],
+    deps = ["//:fmtquill"],
+)
+
+cc_test(
+    name = "module_logging_test",
+    size = "small",
+    srcs = [
+        "logging_test.cpp",
+        "module_other.cpp",
+    ],
+    features = [
+        "cpp_modules",
+        "prefer_pic_for_opt_binaries",
+    ],
+    local_defines = ["QUILL_TEST_MODULE"],
+    tags = ["manual"],
+    deps = ["//:quill_module"],
+)

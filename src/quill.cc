@@ -16,6 +16,7 @@ module;
 #include <bitset>
 #include <cctype>
 #include <cerrno>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <codecvt>
@@ -102,6 +103,14 @@ module;
 #if QUILL_HAS_INCLUDE(<winapifamily.h>)
   #include <winapifamily.h>
 #endif
+#if defined(__unix__) || defined(__APPLE__) || defined(__linux__)
+  #include <fcntl.h>
+  #include <sys/file.h>
+  #include <sys/mman.h>
+  #if QUILL_HAS_INCLUDE(<sys/syscall.h>)
+    #include <sys/syscall.h>
+  #endif
+#endif
 
 export module quill;
 
@@ -110,6 +119,15 @@ export module quill;
 #define FMTQUILL_EXPORT export
 #define FMTQUILL_BEGIN_EXPORT export {
 #define FMTQUILL_END_EXPORT }
+
+// libstdc++ C forwarding headers may be re-entered after the global module fragment.
+// Their declarations are guarded; suppress Clang's include-only diagnostic here.
+#if defined(__clang__) && defined(__GLIBCXX__)
+  #if __has_warning("-Winclude-angled-in-module-purview")
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Winclude-angled-in-module-purview"
+  #endif
+#endif
 
 #include "quill/bundled/fmt/ostream.h"
 #include "quill/bundled/fmt/ranges.h"
@@ -157,3 +175,9 @@ export module quill;
 #include "quill/std/Variant.h"
 #include "quill/std/Vector.h"
 #include "quill/std/WideString.h"
+
+#if defined(__clang__) && defined(__GLIBCXX__)
+  #if __has_warning("-Winclude-angled-in-module-purview")
+    #pragma clang diagnostic pop
+  #endif
+#endif

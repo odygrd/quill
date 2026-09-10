@@ -43,7 +43,8 @@ public:
   LoggerManager& operator=(LoggerManager const&) = delete;
 
   /***/
-  QUILL_EXPORT static LoggerManager& instance() noexcept
+  // Named modules do not give in-class definitions implicit inline linkage.
+  QUILL_EXPORT static inline LoggerManager& instance() noexcept
   {
     static LoggerManager instance;
     return instance;

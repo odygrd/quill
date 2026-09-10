@@ -125,6 +125,53 @@ Include ``quill/bundled/fmt/format.h`` and use ``fmtquill::format`` or specializ
 ``fmtquill::formatter``. These header-only dependencies use Quill's bundled, patched fmt in the
 ``fmtquill`` namespace; its version follows the Quill release.
 
+Using the C++20 Module
+----------------------
+
+Quill provides an experimental C++20 named module interface (``src/quill.cc``).
+It is opt-in; normal header-only use continues to require only C++17.
+
+With CMake 3.28 or newer and a compiler and generator supporting C++20 modules, set
+``CMAKE_CXX_STANDARD=20`` and ``QUILL_BUILD_MODULE=ON`` when adding Quill through
+``add_subdirectory`` or ``FetchContent``. Link against ``quill::quill_module``:
+
+.. code:: cmake
+
+   target_link_libraries(my_project PRIVATE quill::quill_module)
+
+The module target is currently available from the source build, not from an installed
+``find_package(quill)`` package.
+
+With Bazel 9 or newer, the declared ``rules_cc`` 0.2.22 dependency, and a toolchain supporting
+C++20 modules, add ``@quill//:quill_module`` to the target's ``deps``. Enable C++20 for the
+whole build and pass ``--experimental_cpp_modules`` (for Clang, use
+``--cxxopt=-std=c++20 --experimental_cpp_modules``):
+
+.. code:: python
+
+   cc_binary(
+       name = "my_project",
+       srcs = ["main.cpp"],
+       features = ["cpp_modules", "prefer_pic_for_opt_binaries"],
+       deps = ["@quill//:quill_module"],
+   )
+
+The selected Clang toolchain must also provide a matching ``clang-scan-deps`` beside the
+compiler executable. On Ubuntu 24.04, install ``clang-18`` and ``clang-tools-18``, and set
+``CC=/usr/lib/llvm-18/bin/clang`` and ``CXX=/usr/lib/llvm-18/bin/clang++``.
+
+The module target is excluded from wildcard builds. Older Bazel versions can still use
+``@quill//:quill`` and ``@quill//:fmtquill`` without enabling modules.
+
+``prefer_pic_for_opt_binaries`` keeps module producers and consumers in PIC mode, avoiding
+conflicting module metadata outputs in optimized builds with ``rules_cc`` 0.2.22.
+
+Import Quill and define ``QUILL_USE_MODULE`` before including ``quill/LogMacros.h``.
+Modules do not export macros, so this definition is required for the logging macros:
+
+.. literalinclude:: snippets/quill_docs_module.cpp
+   :language: cpp
+
 Next Steps
 ----------
 

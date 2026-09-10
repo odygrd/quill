@@ -1,0 +1,82 @@
+name: Bazel and C++20 modules
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bazel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        bazel: [8.7.0, 9.2.0]
+    env:
+      USE_BAZEL_VERSION: ${{ matrix.bazel }}
+      # rules_cc looks for clang-scan-deps beside the selected compiler.
+      CC: /usr/lib/llvm-18/bin/clang
+      CXX: /usr/lib/llvm-18/bin/clang++
+    steps:
+      - uses: actions/checkout@v5
+      - uses: bazel-contrib/setup-bazel@0.19.0
+      - name: Install Clang module tools
+        if: matrix.bazel == '9.2.0'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 clang-tools-18
+          "$CC" --version
+          "${CC%/*}/clang-scan-deps" --version
+      - name: Load all targets without enabling modules
+        run: bazel query //... --lockfile_mode=off
+      - name: Test the C++17 header targets
+        run: >-
+          bazel test //test/bazel:header_logging_test //test/bazel:fmtquill_test
+          --cxxopt=-std=c++17 --lockfile_mode=off --test_output=errors
+      - name: Check that modules require an explicit opt-in
+        run: |
+          if bazel build //:quill_module --lockfile_mode=off > module-disabled.log 2>&1; then
+            cat module-disabled.log
+            exit 1
+          fi
+          cat module-disabled.log
+          if [[ "$USE_BAZEL_VERSION" == 9.* ]]; then
+            grep -q 'requires --experimental_cpp_modules' module-disabled.log
+          else
+            grep -q 'requires Bazel 9 or newer' module-disabled.log
+          fi
+      - name: Test optimized C++20 module imports
+        if: matrix.bazel == '9.2.0'
+        run: >-
+          bazel test //test/bazel:module_logging_test --compilation_mode=opt
+          --cxxopt=-std=c++20 --cxxopt=-Werror --experimental_cpp_modules
+          --lockfile_mode=off --test_output=errors
+
+  cmake-module:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        no_exceptions: ['OFF', 'ON']
+    steps:
+      - uses: actions/checkout@v5
+      - name: Configure the module examples
+        run: >-
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          -DCMAKE_CXX_STANDARD=20 -DQUILL_BUILD_MODULE=ON
+          -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON
+          -DQUILL_NO_EXCEPTIONS=${{ matrix.no_exceptions }}
+      - name: Build the module examples
+        run: >-
+          cmake --build build --target quill_docs_module
+          quill_example_console_logging_module --parallel 2
+      - name: Test logging and automatic shutdown
+        run: ctest --test-dir build -R '^quill_module_(logging|shutdown)_test$' --output-on-failure

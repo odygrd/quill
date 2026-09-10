@@ -42,7 +42,7 @@ public:
   class RdtscTicks
   {
   public:
-    QUILL_NODISCARD QUILL_EXPORT static RdtscTicks& instance()
+    QUILL_NODISCARD QUILL_EXPORT static inline RdtscTicks& instance()
     {
       static RdtscTicks inst;
       return inst;
