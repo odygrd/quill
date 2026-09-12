@@ -275,6 +275,7 @@ set(HEADER_FILES
         include/quill/sinks/SystemdSink.h
 
         include/quill/std/Array.h
+        include/quill/std/Atomic.h
         include/quill/std/Bitset.h
         include/quill/std/Chrono.h
         include/quill/std/Complex.h
