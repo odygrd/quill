@@ -132,6 +132,7 @@ _ACTIVE_LOG_LEVEL_SELECT = {
     ]
     for level in _LOG_LEVELS
 }
+
 _ACTIVE_LOG_LEVEL_SELECT["//conditions:default"] = []
 
 # ==============================================================================
