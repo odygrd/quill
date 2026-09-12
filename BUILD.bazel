@@ -1,9 +1,142 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_flag")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load(":quill_module.bzl", "quill_module")
 
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])  # MIT
+
+# ==============================================================================
+# Configuration Flags
+# ==============================================================================
+
+bool_flag(
+    name = "no_exceptions",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_no_exceptions",
+    flag_values = {":no_exceptions": "true"},
+)
+
+bool_flag(
+    name = "no_thread_name_support",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_no_thread_name_support",
+    flag_values = {":no_thread_name_support": "true"},
+)
+
+bool_flag(
+    name = "use_sequential_thread_id",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_use_sequential_thread_id",
+    flag_values = {":use_sequential_thread_id": "true"},
+)
+
+bool_flag(
+    name = "enable_assertions",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_enable_assertions",
+    flag_values = {":enable_assertions": "true"},
+)
+
+bool_flag(
+    name = "disable_non_prefixed_macros",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_disable_non_prefixed_macros",
+    flag_values = {":disable_non_prefixed_macros": "true"},
+)
+
+bool_flag(
+    name = "disable_function_name",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_disable_function_name",
+    flag_values = {":disable_function_name": "true"},
+)
+
+bool_flag(
+    name = "detailed_function_name",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_detailed_function_name",
+    flag_values = {":detailed_function_name": "true"},
+)
+
+bool_flag(
+    name = "disable_file_info",
+    build_setting_default = False,
+)
+
+config_setting(
+    name = "config_disable_file_info",
+    flag_values = {":disable_file_info": "true"},
+)
+
+bool_flag(
+    name = "enable_immediate_flush",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "config_disable_immediate_flush",
+    flag_values = {":enable_immediate_flush": "false"},
+)
+
+_LOG_LEVELS = [
+    "TRACE_L3",
+    "TRACE_L2",
+    "TRACE_L1",
+    "DEBUG",
+    "INFO",
+    "NOTICE",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+]
+
+string_flag(
+    name = "active_log_level",
+    build_setting_default = "",
+    values = [""] + _LOG_LEVELS,
+)
+
+[
+    config_setting(
+        name = "config_active_log_level_" + level.lower(),
+        flag_values = {":active_log_level": level},
+    )
+    for level in _LOG_LEVELS
+]
+
+_ACTIVE_LOG_LEVEL_SELECT = {
+    ":config_active_log_level_" + level.lower(): [
+        "QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_" + level,
+    ]
+    for level in _LOG_LEVELS
+}
+_ACTIVE_LOG_LEVEL_SELECT["//conditions:default"] = []
+
+# ==============================================================================
+# Targets
+# ==============================================================================
 
 cc_library(
     name = "quill",
@@ -13,6 +146,34 @@ cc_library(
         "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "//conditions:default": [],
     }),
+    defines = select({
+        ":config_no_exceptions": ["QUILL_NO_EXCEPTIONS"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_no_thread_name_support": ["QUILL_NO_THREAD_NAME_SUPPORT"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_use_sequential_thread_id": ["QUILL_USE_SEQUENTIAL_THREAD_ID"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_enable_assertions": ["QUILL_ENABLE_ASSERTIONS"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_disable_non_prefixed_macros": ["QUILL_DISABLE_NON_PREFIXED_MACROS"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_disable_function_name": ["QUILL_DISABLE_FUNCTION_NAME"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_detailed_function_name": ["QUILL_DETAILED_FUNCTION_NAME"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_disable_file_info": ["QUILL_DISABLE_FILE_INFO"],
+        "//conditions:default": [],
+    }) + select({
+        ":config_disable_immediate_flush": ["QUILL_ENABLE_IMMEDIATE_FLUSH=0"],
+        "//conditions:default": [],
+    }) + select(_ACTIVE_LOG_LEVEL_SELECT),
     includes = ["include"],
     linkopts = select({
         "@platforms//os:windows": [],
