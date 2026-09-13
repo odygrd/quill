@@ -5,7 +5,6 @@
 
 import quill;
 
-#define QUILL_USE_MODULE
 #include "quill/LogMacros.h"
 
 bool log_from_another_module_translation_unit()
