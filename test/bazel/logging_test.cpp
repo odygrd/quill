@@ -16,7 +16,6 @@
 
 #if defined(QUILL_TEST_MODULE)
 import quill;
-  #define QUILL_USE_MODULE
 bool log_from_another_module_translation_unit();
 #else
   #include "quill/Backend.h"

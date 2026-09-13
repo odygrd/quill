@@ -5,6 +5,7 @@
 
 import quill;
 
+// Check compatibility with the explicit definition used by existing module consumers.
 #define QUILL_USE_MODULE
 #include "quill/LogMacros.h"
 

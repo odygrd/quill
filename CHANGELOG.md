@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- CMake and Bazel module targets now define `QUILL_USE_MODULE` automatically for consumers, while
+  retaining compatibility with an explicit `#define QUILL_USE_MODULE` in source code.
 - Uncaught exceptions from `Frontend` logger creation and sink lookup or creation no longer leave
   manager locks held, allowing crash handlers to look up loggers and flush pending logs.
 - Added direct logging of arithmetic `std::atomic<T>` values via `quill/std/Atomic.h`, capturing each

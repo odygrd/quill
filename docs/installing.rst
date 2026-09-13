@@ -166,11 +166,24 @@ The module target is excluded from wildcard builds. Older Bazel versions can sti
 ``prefer_pic_for_opt_binaries`` keeps module producers and consumers in PIC mode, avoiding
 conflicting module metadata outputs in optimized builds with ``rules_cc`` 0.2.22.
 
-Import Quill and define ``QUILL_USE_MODULE`` before including ``quill/LogMacros.h``.
-Modules do not export macros, so this definition is required for the logging macros:
+The CMake and Bazel module targets define ``QUILL_USE_MODULE`` automatically for consumers.
+Modules do not export macros, so include ``quill/LogMacros.h`` after importing Quill when using
+logging macros. The guarded definition in this example also supports custom module builds:
 
 .. literalinclude:: snippets/quill_docs_module.cpp
    :language: cpp
+
+Mixing Module Imports and Headers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use Quill's module or its declaration headers consistently throughout an application, including
+the libraries that use Quill. Mixing the two approaches is unsupported and can create distinct
+Quill types and separate logger registries and backend state.
+
+The module target depends on the header target for build requirements. This dependency is
+expected and does not itself create separate Quill state. The macro headers ``quill/LogMacros.h``
+and ``quill/HelperMacros.h`` can be included after importing Quill when ``QUILL_USE_MODULE`` is
+defined.
 
 Next Steps
 ----------
