@@ -172,15 +172,15 @@ Modules do not export macros, so include ``quill/LogMacros.h`` when using loggin
    :language: cpp
 
 Warning on Mixing Module and Headers
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The transitive link closure of any Quill consumer should never include both the `quill` module
-and header-based targets. The `quill` module attaches all Quill symbols to its module purview,
+The transitive link closure of any Quill consumer should never include both the ``quill`` module
+and header-based targets. The ``quill`` module attaches all Quill symbols to its module purview,
 which is distinct from the unnamed global module purview that the header-based target attaches
 its symbols to. This means that the two sets of symbols are completely distinct, and all runtime
 singletons (ie. logger registries, worker threads) will be duplicated. An application should
 either use the headers, or completely convert over to the module. Note that this does not apply
-to `quill/LogMacros.h`, which does not export any symbols.
+to ``quill/LogMacros.h``, which does not export any symbols.
 
 Next Steps
 ----------
