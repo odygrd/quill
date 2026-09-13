@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- CMake and Bazel module targets now define `QUILL_USE_MODULE` automatically for consumers, while
+  retaining compatibility with an explicit `#define QUILL_USE_MODULE` in source code.
 - Uncaught exceptions from `Frontend` logger creation and sink lookup or creation no longer leave
   manager locks held, allowing crash handlers to look up loggers and flush pending logs.
 - Added the experimental `quill_module` target for Bazel 9+ consumers using C++20 and
