@@ -31,6 +31,7 @@ module;
 #include <ctime>
 #include <deque>
 #include <exception>
+#include <filesystem>
 #include <forward_list>
 #include <fstream>
 #include <functional>
@@ -66,11 +67,6 @@ module;
   #include <expected>
 #endif
 
-#if QUILL_HAS_INCLUDE(<filesystem>)
-  #include <filesystem>
-#elif QUILL_HAS_INCLUDE(<experimental/filesystem>)
-  #include <experimental/filesystem>
-#endif
 #include <climits>
 #include <version>
 
