@@ -5,7 +5,6 @@
 
 import quill;
 
-#define QUILL_USE_MODULE
 #include "quill/LogMacros.h"
 
 int main()

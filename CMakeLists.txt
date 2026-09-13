@@ -402,6 +402,7 @@ if (QUILL_BUILD_MODULE)
 
     target_link_libraries(quill_module PUBLIC ${TARGET_NAME})
     target_compile_features(quill_module PUBLIC cxx_std_20)
+    target_compile_definitions(quill_module INTERFACE QUILL_USE_MODULE)
     set_target_properties(quill_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
     if (QUILL_NO_EXCEPTIONS)

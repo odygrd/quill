@@ -37,6 +37,7 @@ quill_module(
         "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "//conditions:default": [],
     }),
+    defines = ["QUILL_USE_MODULE"],
     # rules_cc 0.2.22 uses the same module metadata path for PIC and non-PIC outputs.
     features = [
         "cpp_modules",

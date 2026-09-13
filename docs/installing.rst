@@ -166,11 +166,17 @@ The module target is excluded from wildcard builds. Older Bazel versions can sti
 ``prefer_pic_for_opt_binaries`` keeps module producers and consumers in PIC mode, avoiding
 conflicting module metadata outputs in optimized builds with ``rules_cc`` 0.2.22.
 
-Import Quill and define ``QUILL_USE_MODULE`` before including ``quill/LogMacros.h``.
-Modules do not export macros, so this definition is required for the logging macros:
+Modules do not export macros, so include ``quill/LogMacros.h`` when using logging macros:
 
 .. literalinclude:: snippets/quill_docs_module.cpp
    :language: cpp
+
+In hybrid projects containing both module-based and header-based translation units, do not link
+header-only translation units against the module target. The module target configures the logging
+macros to use declarations from the imported module; including ``quill/LogMacros.h`` without
+importing ``quill`` in a target that links against the module target will fail to find Quill's
+metadata types. Keep header-only translation units in separate targets that link against the
+standard header target (``quill::quill`` or ``@quill//:quill``).
 
 Next Steps
 ----------
