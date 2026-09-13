@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Added direct logging of arithmetic `std::atomic<T>` values via `quill/std/Atomic.h`, capturing each
+  value on the calling thread.
 - Added the experimental `quill_module` target for Bazel 9+ consumers using C++20 and
   `--experimental_cpp_modules`, while preserving ordinary header-only builds on older Bazel versions.
 - Fixed C++20 module imports using separate logger state across translation units, which could

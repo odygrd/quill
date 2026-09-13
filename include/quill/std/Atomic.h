@@ -17,6 +17,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 QUILL_BEGIN_NAMESPACE
 
@@ -25,10 +26,11 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<std::atomic<T>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::atomic<T> const& arg) noexcept
+  static_assert(std::is_arithmetic_v<T>, "Atomic logging supports arithmetic types only");
+
+  static size_t compute_encoded_size(detail::SizeCacheVector&, std::atomic<T> const&) noexcept
   {
-    return Codec<T>::compute_encoded_size(conditional_arg_size_cache, arg.load(std::memory_order_relaxed));
+    return sizeof(T);
   }
 
   static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
