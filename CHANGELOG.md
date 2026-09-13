@@ -105,6 +105,8 @@
 
 ## v13.1.0
 
+- Uncaught exceptions from `Frontend` logger creation and sink lookup or creation no longer leave
+  manager locks held, allowing crash handlers to look up loggers and flush pending logs.
 - Added the experimental `quill_module` target for Bazel 9+ consumers using C++20 and
   `--experimental_cpp_modules`, while preserving ordinary header-only builds on older Bazel versions.
 - Fixed C++20 module imports using separate logger state across translation units, which could
