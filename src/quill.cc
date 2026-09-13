@@ -157,6 +157,7 @@ export module quill;
 #include "quill/sinks/Sink.h"
 #include "quill/sinks/StreamSink.h"
 #include "quill/std/Array.h"
+#include "quill/std/Atomic.h"
 #include "quill/std/Bitset.h"
 #include "quill/std/Chrono.h"
 #include "quill/std/Complex.h"
