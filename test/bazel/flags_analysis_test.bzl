@@ -14,6 +14,19 @@ def _flags_default_test_impl(ctx):
 
 flags_default_test = analysistest.make(
     _flags_default_test_impl,
+    # Reset flags supplied on the command line or through .bazelrc.
+    config_settings = {
+        str(Label("//:no_exceptions")): False,
+        str(Label("//:no_thread_name_support")): False,
+        str(Label("//:use_sequential_thread_id")): False,
+        str(Label("//:enable_assertions")): False,
+        str(Label("//:disable_non_prefixed_macros")): False,
+        str(Label("//:disable_function_name")): False,
+        str(Label("//:detailed_function_name")): False,
+        str(Label("//:disable_file_info")): False,
+        str(Label("//:enable_immediate_flush")): True,
+        str(Label("//:active_log_level")): "",
+    },
 )
 
 def _flags_configured_test_impl(ctx):
