@@ -171,12 +171,16 @@ Modules do not export macros, so include ``quill/LogMacros.h`` when using loggin
 .. literalinclude:: snippets/quill_docs_module.cpp
    :language: cpp
 
-In hybrid projects containing both module-based and header-based translation units, do not link
-header-only translation units against the module target. The module target configures the logging
-macros to use declarations from the imported module; including ``quill/LogMacros.h`` without
-importing ``quill`` in a target that links against the module target will fail to find Quill's
-metadata types. Keep header-only translation units in separate targets that link against the
-standard header target (``quill::quill`` or ``@quill//:quill``).
+Warning on Mixing Module and Headers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The transitive link closure of any Quill consumer should never include both the `quill` module
+and header-based targets. The `quill` module attaches all Quill symbols to its module purview,
+which is distinct from the unnamed global module purview that the header-based target attaches
+its symbols to. This means that the two sets of symbols are completely distinct, and all runtime
+singletons (ie. logger registries, worker threads) will be duplicated. An application should
+either use the headers, or completely convert over to the module. Note that this does not apply
+to `quill/LogMacros.h`, which does not export any symbols.
 
 Next Steps
 ----------
