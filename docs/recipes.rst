@@ -299,6 +299,21 @@ Outputs:
 
     Two vectors and a vector of vectors [v1: ["One", "Two", "Three"], v2: ["Four", "Five", "Six"], vv: [["One", "Two", "Three"], ["Four", "Five", "Six"]]]
 
+Logging Atomic Values
+---------------------
+Include ``quill/std/Atomic.h`` to log ``std::atomic<T>`` values where ``T`` is an arithmetic type,
+including ``bool``, integer types, and floating-point types. Each atomic argument is captured with a
+relaxed load on the calling thread and formatted as its underlying value.
+
+.. code:: cpp
+
+    #include "quill/std/Atomic.h"
+
+    std::atomic<unsigned> counter{42};
+    LOG_INFO(logger, "Count {}", counter);
+
+Arrays of atomics are currently unsupported.
+
 Logging Nested STL Library Types
 --------------------------------
 Logging nested STL types is supported. Include all relevant files from ``quill/std/``.
