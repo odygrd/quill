@@ -10,12 +10,14 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
-#include <cstdint>
-#include <functional>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+  #include <functional>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

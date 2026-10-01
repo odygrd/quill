@@ -6,11 +6,13 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <string_view>
-#include <type_traits>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <memory>
+  #include <string>
+  #include <string_view>
+  #include <type_traits>
+  #include <vector>
+#endif
 
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"

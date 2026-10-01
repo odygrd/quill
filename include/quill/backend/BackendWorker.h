@@ -44,27 +44,29 @@
 
 #include "quill/bundled/fmt/base.h"
 
-#include <algorithm>
-#include <atomic>
-#include <chrono>
-#include <condition_variable>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <ctime>
-#include <exception>
-#include <functional>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <mutex>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <thread>
-#include <unordered_map>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <algorithm>
+  #include <atomic>
+  #include <chrono>
+  #include <condition_variable>
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstring>
+  #include <ctime>
+  #include <exception>
+  #include <functional>
+  #include <iterator>
+  #include <limits>
+  #include <memory>
+  #include <mutex>
+  #include <optional>
+  #include <string>
+  #include <string_view>
+  #include <thread>
+  #include <unordered_map>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

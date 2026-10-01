@@ -12,8 +12,10 @@
 #include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 
-#include <cstddef>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -8,13 +8,17 @@
 
 #include "quill/core/Attributes.h"
 
-#include <cstddef>
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+#endif
 
 #if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
 
-  #include <cstdio>
-  #include <cstdlib>
+  #ifndef QUILL_MODULE
+    #include <cstdio>
+    #include <cstdlib>
+  #endif
 
 #endif
 

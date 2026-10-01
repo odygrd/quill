@@ -14,17 +14,19 @@
 #include "quill/core/TimeUtilities.h"
 #include "quill/sinks/StreamSink.h"
 
-#include <cerrno>
-#include <chrono>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <ctime>
-#include <memory>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cerrno>
+  #include <chrono>
+  #include <cstdint>
+  #include <cstdio>
+  #include <cstring>
+  #include <ctime>
+  #include <memory>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+  #include <vector>
+#endif
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)

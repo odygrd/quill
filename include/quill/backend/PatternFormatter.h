@@ -15,16 +15,18 @@
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
 
-#include <array>
-#include <bitset>
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include <string_view>
-#include <tuple>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <bitset>
+  #include <chrono>
+  #include <cstddef>
+  #include <cstdint>
+  #include <string>
+  #include <string_view>
+  #include <tuple>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -14,12 +14,14 @@
 #include "quill/sinks/Sink.h"
 #include "quill/sinks/StreamSink.h"
 
-#include <atomic>
-#include <cstdio>
-#include <cstring>
-#include <memory>
-#include <string>
-#include <utility>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstdio>
+  #include <cstring>
+  #include <memory>
+  #include <string>
+  #include <utility>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

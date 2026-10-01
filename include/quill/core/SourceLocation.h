@@ -7,7 +7,9 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+#endif
 
 #if !defined(QUILL_BUILTIN_FUNCTION_NAME)
   #if defined(QUILL_DISABLE_FUNCTION_NAME)

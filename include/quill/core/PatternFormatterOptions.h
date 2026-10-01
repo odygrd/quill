@@ -9,7 +9,9 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 
-#include <string>
+#ifndef QUILL_MODULE
+  #include <string>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

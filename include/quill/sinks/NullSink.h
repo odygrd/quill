@@ -10,11 +10,13 @@
 #include "quill/core/LogLevel.h"
 #include "quill/sinks/Sink.h"
 
-#include <cstdint>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -18,11 +18,13 @@
 
   #include "quill/core/Attributes.h"
 
-  #include <cstddef>
-  #include <cstring>
-  #include <limits>
-  #include <memory>
-  #include <string>
+  #ifndef QUILL_MODULE
+    #include <cstddef>
+    #include <cstring>
+    #include <limits>
+    #include <memory>
+    #include <string>
+  #endif
   #include <windows.h>
 
 QUILL_BEGIN_NAMESPACE

@@ -12,13 +12,15 @@
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
 
-#include <array>
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include <string_view>
-#include <utility>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <chrono>
+  #include <cstddef>
+  #include <cstdint>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

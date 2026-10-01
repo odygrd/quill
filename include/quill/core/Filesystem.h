@@ -51,7 +51,9 @@
 
 #if QUILL_HAS_EXPERIMENTAL_FILESYSTEM
   #include <experimental/filesystem>
-  #include <system_error>
+  #ifndef QUILL_MODULE
+    #include <system_error>
+  #endif
 
 QUILL_BEGIN_NAMESPACE
 
@@ -64,8 +66,10 @@ QUILL_END_EXPORT
 QUILL_END_NAMESPACE
 
 #elif QUILL_HAS_FILESYSTEM
-  #include <filesystem>
-  #include <system_error>
+  #ifndef QUILL_MODULE
+    #include <filesystem>
+    #include <system_error>
+  #endif
 
 QUILL_BEGIN_NAMESPACE
 

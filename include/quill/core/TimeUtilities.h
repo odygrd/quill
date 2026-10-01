@@ -9,10 +9,12 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
-#include <cerrno>
-#include <cstring>
-#include <ctime>
-#include <string>
+#ifndef QUILL_MODULE
+  #include <cerrno>
+  #include <cstring>
+  #include <ctime>
+  #include <string>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

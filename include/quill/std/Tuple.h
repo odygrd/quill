@@ -14,11 +14,13 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/ranges.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <tuple>
-#include <type_traits>
-#include <utility>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+  #include <tuple>
+  #include <type_traits>
+  #include <utility>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

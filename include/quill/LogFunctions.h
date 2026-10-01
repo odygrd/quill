@@ -12,9 +12,11 @@
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/SourceLocation.h"
 
-#include <string>
-#include <string_view>
-#include <utility>
+#ifndef QUILL_MODULE
+  #include <string>
+  #include <string_view>
+  #include <utility>
+#endif
 
 #if !defined(QUILL_ENABLE_IMMEDIATE_FLUSH)
   // Keep the macro-free API consistent with the macro API: immediate flush support is enabled

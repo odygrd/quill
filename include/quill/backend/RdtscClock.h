@@ -11,14 +11,16 @@
 #include "quill/core/Common.h"
 #include "quill/core/Rdtsc.h"
 
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <cstdint>
-#include <cstdio>
-#include <limits>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <algorithm>
+  #include <array>
+  #include <atomic>
+  #include <chrono>
+  #include <cstdint>
+  #include <cstdio>
+  #include <limits>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

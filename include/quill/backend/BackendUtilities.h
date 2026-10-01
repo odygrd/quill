@@ -9,12 +9,14 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <system_error>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+  #include <cstring>
+  #include <string>
+  #include <system_error>
+  #include <utility>
+  #include <vector>
+#endif
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)

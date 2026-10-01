@@ -7,7 +7,9 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+#endif
 
 /**
  * This header exists so that code reachable from the lightweight

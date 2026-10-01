@@ -15,17 +15,19 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/StreamSink.h"
 
-#include <algorithm>
-#include <chrono>
-#include <cstdint>
-#include <ctime>
-#include <deque>
-#include <limits>
-#include <string>
-#include <string_view>
-#include <system_error>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <algorithm>
+  #include <chrono>
+  #include <cstdint>
+  #include <ctime>
+  #include <deque>
+  #include <limits>
+  #include <string>
+  #include <string_view>
+  #include <system_error>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

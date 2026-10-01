@@ -12,12 +12,14 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <string_view>
-#include <type_traits>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstring>
+  #include <string>
+  #include <string_view>
+  #include <type_traits>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -12,9 +12,11 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Spinlock.h"
 
-#include <atomic>
-#include <cstdint>
-#include <mutex>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstdint>
+  #include <mutex>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -19,12 +19,14 @@
 #include "quill/core/ThreadContextManager.h"
 #include "quill/sinks/Sink.h"
 
-#include <atomic>
-#include <cstddef>
-#include <initializer_list>
-#include <memory>
-#include <string>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstddef>
+  #include <initializer_list>
+  #include <memory>
+  #include <string>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

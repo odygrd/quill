@@ -65,15 +65,26 @@ jobs:
       fail-fast: false
       matrix:
         no_exceptions: ['OFF', 'ON']
+        # import_std: ['OFF', 'ON']
+        import_std: ['OFF']
     steps:
       - uses: actions/checkout@v5
+      - name: Install standard library module tools
+        if: matrix.import_std == 'ON'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-19 clang-tools-19 libc++-19-dev libc++abi-19-dev
+          python3 -m pip install 'cmake>=4.5'
       - name: Configure the module examples
         run: >-
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-          -DCMAKE_CXX_STANDARD=20 -DQUILL_BUILD_MODULE=ON
+          -DCMAKE_CXX_STANDARD=${{ matrix.import_std == 'ON' && '23' || '20' }}
+          -DQUILL_BUILD_MODULE=ON -DQUILL_IMPORT_STD=${{ matrix.import_std }}
           -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON
           -DQUILL_NO_EXCEPTIONS=${{ matrix.no_exceptions }}
+          ${{ matrix.import_std == 'ON' && '-DCMAKE_CXX_COMPILER=/usr/lib/llvm-19/bin/clang++' || '' }}
+          -DCMAKE_CXX_FLAGS="${{ matrix.import_std == 'ON' && '-stdlib=libc++' || '' }} ${{ matrix.no_exceptions == 'ON' && '-fno-exceptions -fno-rtti' || '' }}"
       - name: Build the module examples
         run: >-
           cmake --build build --target quill_docs_module
