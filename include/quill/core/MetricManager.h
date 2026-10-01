@@ -14,12 +14,16 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <string_view>
+#include <unordered_map>
 #include <vector>
 
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+class BackendWorker;
+
 class MetricManager
 {
 public:
@@ -103,6 +107,50 @@ public:
   }
 
 private:
+  friend class BackendWorker;
+
+  /** Backend-only; sorts scratch labels and retains metadata across backend restarts. */
+  QUILL_NODISCARD MetricMetadata const* create_or_get_dynamic_metric(std::string_view metric_name,
+                                                                     std::vector<MetricLabel>& labels,
+                                                                     size_t label_count)
+  {
+    auto const labels_end = labels.begin() + label_count;
+
+    std::sort(labels.begin(), labels_end,
+              [](MetricLabel const& lhs, MetricLabel const& rhs)
+              { return lhs.key < rhs.key || (lhs.key == rhs.key && lhs.value < rhs.value); });
+
+    // Reuse the lookup buffer; length prefixes keep names/labels unambiguous.
+    _dynamic_metric_key.assign("dynamic:");
+
+    auto append_key = [this](std::string_view part)
+    {
+      _dynamic_metric_key.append(std::to_string(part.size()));
+      _dynamic_metric_key.push_back(':');
+      _dynamic_metric_key.append(part);
+    };
+
+    append_key(metric_name);
+
+    for (auto it = labels.begin(); it != labels_end; ++it)
+    {
+      append_key(it->key);
+      append_key(it->value);
+    }
+
+    auto const existing = _dynamic_metrics.find(_dynamic_metric_key);
+
+    if (existing != _dynamic_metrics.end())
+    {
+      return existing->second.get();
+    }
+
+    auto metadata = std::make_unique<MetricMetadata>(_dynamic_metric_key, std::string{metric_name},
+                                                     std::vector<MetricLabel>{labels.begin(), labels_end});
+
+    return _dynamic_metrics.emplace(_dynamic_metric_key, std::move(metadata)).first->second.get();
+  }
+
   MetricManager() = default;
   ~MetricManager() = default;
 
@@ -150,6 +198,8 @@ private:
 
 private:
   std::vector<std::unique_ptr<MetricMetadata>> _metrics;
+  std::unordered_map<std::string, std::unique_ptr<MetricMetadata>> _dynamic_metrics;
+  std::string _dynamic_metric_key;
   mutable Spinlock _spinlock;
 };
 } // namespace detail

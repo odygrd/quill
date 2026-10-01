@@ -49,4 +49,8 @@ int main()
 
   // Publish samples from the hot path.
   logger->publish_metric(requests_total, 1.0);
+
+  // Optional convenience outside latency-sensitive hot paths: copies names and labels.
+  // This custom sink receives samples directly; family registration is specific to PrometheusSink.
+  DYNAMIC_METRIC(logger, "requests_total", {{"method", "GET"}, {"status", "200"}}, 1.0);
 }

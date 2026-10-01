@@ -47,8 +47,9 @@ so you can safely cache it in globals, class members, or anywhere else the hot p
 One MetricMetadata per Label Combination
 ----------------------------------------
 
-Labels on ``MetricMetadata`` are fixed at registration time. Each distinct combination of label
-values is a separate time series and needs its own ``MetricMetadata`` pointer. This is intentional:
+For the pointer-based API, labels on ``MetricMetadata`` are fixed at registration time. Each
+distinct combination of label values is a separate time series and needs its own ``MetricMetadata``
+pointer. This is intentional:
 the hot path stays a pointer plus a ``double``, with no per-sample label lookup or string work.
 
 If you have a known, bounded set of label values, register one ``MetricMetadata`` per combination
@@ -77,9 +78,7 @@ Avoid creating ``MetricMetadata`` on the hot path. ``MetricMetadata`` objects li
 manager for the entire program duration and are not freed; creating them per-request would leak
 memory and serialize on the manager's lock.
 
-If your label values are not known up front (for example, a label that takes user-provided
-strings), drive the registration of new series from a setup or admin path rather than from the
-request path.
+For less latency-sensitive code, the optional dynamic publishing API below accepts runtime labels.
 
 Publishing Samples
 ------------------
@@ -104,6 +103,27 @@ Use ``METRIC(...)`` if you want a macro that mirrors the ``LOG_*`` APIs, or call
 The publish call only queues the sample. The sink receives it on the backend worker thread,
 together with the metric metadata, timestamp, thread information, process id, logger name, and
 the sample value.
+
+Dynamic Labels
+--------------
+
+``Logger::publish_dynamic_metric(name, labels, value)`` or ``DYNAMIC_METRIC(...)`` provides optional
+runtime flexibility. It copies names and labels on every call; prefer ``publish_metric(pointer, value)``
+with cached metadata for latency-sensitive hot paths.
+
+.. code-block:: cpp
+
+   DYNAMIC_METRIC(metrics_logger, "requests_total",
+                  {{"method", method}, {"status", status}}, 1.0);
+
+Both APIs deliver samples to ``Sink::write_metric()``. Custom sinks need no Prometheus registration.
+For ``PrometheusSink``, register the type first using the existing pointer-based registration, or
+``register_*_family()`` if there is no initial metadata pointer. Both publishing APIs then share
+series with matching names and labels. Unregistering a series removes all its aliases and stops
+samples until its pointer is registered again.
+
+The caller's strings can be changed or destroyed after the call. The backend retains metadata for
+each distinct name and label combination for the program's lifetime, so keep that number bounded.
 
 Writing a Metric Sink
 ---------------------

@@ -86,7 +86,6 @@ TEST_CASE("metric_sink")
   BackendOptions backend_options;
   backend_options.error_notifier = [&error_notifications](std::string const&)
   { error_notifications.fetch_add(1, std::memory_order_relaxed); };
-  Backend::start(backend_options);
 
   auto throwing_sink = Frontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
   auto metric_sink = Frontend::create_or_get_sink<MetricCapturingSink>(sink_name);
@@ -99,6 +98,32 @@ TEST_CASE("metric_sink")
   LOG_INFO(logger, "sink fan-out remains isolated");
   METRIC(logger, metric_metadata, 12.5);
   logger->publish_metric(metric_metadata, 3.25);
+
+  // Change and destroy the caller's strings before the backend can read them.
+  {
+    std::string name{"metric_sink_test_dynamic"};
+    std::vector<MetricLabel> labels{{"status", "200"}, {"method", std::string(64, 'x')}};
+    REQUIRE(logger->publish_dynamic_metric(name, labels, 1.0));
+    name.assign("changed");
+    labels[0].value = "500";
+    DYNAMIC_METRIC(logger, "metric_sink_test_dynamic", labels, 2.0);
+    std::swap(labels[0], labels[1]);
+    labels[1].value = "200";
+    QUILL_DYNAMIC_METRIC(logger, "metric_sink_test_dynamic",
+                         {{"method", labels[0].value}, {"status", labels[1].value}}, 3.0);
+
+    // Smaller records reuse storage without including stale labels from earlier samples.
+    DYNAMIC_METRIC(logger, "metric_sink_test_dynamic", {}, 4.0);
+    DYNAMIC_METRIC(logger, "metric_sink_test_dynamic", {{"method", labels[0].value}}, 5.0);
+    DYNAMIC_METRIC(logger, "metric_sink_test_dynamic", labels, 6.0);
+
+    // Length-prefixed identities distinguish separators and embedded nulls.
+    DYNAMIC_METRIC(logger, "metric_sink_test_identity", {{"a", "b:c"}, {"d", "e"}}, 7.0);
+    DYNAMIC_METRIC(logger, "metric_sink_test_identity", {{"a:b", "c"}, {"d", "e"}}, 8.0);
+    DYNAMIC_METRIC(logger, "metric_sink_test_identity", {{"a", std::string{"b\0c", 3}}, {"d", "e"}}, 9.0);
+  }
+
+  Backend::start(backend_options);
   logger->flush_log();
 
   Backend::stop();
@@ -113,7 +138,7 @@ TEST_CASE("metric_sink")
 #endif
 
   std::lock_guard<std::mutex> const lock{sink_ptr->mutex};
-  REQUIRE_EQ(sink_ptr->metrics.size(), 2);
+  REQUIRE_EQ(sink_ptr->metrics.size(), 11);
 
   REQUIRE_EQ(sink_ptr->metrics[0].metric_metadata, metric_metadata);
   REQUIRE_EQ(sink_ptr->metrics[0].metric_metadata->metric_key(), metric_key);
@@ -135,4 +160,32 @@ TEST_CASE("metric_sink")
   REQUIRE_FALSE(sink_ptr->metrics[1].process_id.empty());
   REQUIRE_GT(sink_ptr->metrics[1].timestamp, 0);
   REQUIRE_EQ(sink_ptr->metrics[1].value, doctest::Approx{3.25});
+
+  auto const* dynamic_metric = sink_ptr->metrics[2].metric_metadata;
+  REQUIRE_EQ(dynamic_metric->metric_name(), "metric_sink_test_dynamic");
+  REQUIRE_EQ(dynamic_metric->labels().size(), 2);
+  REQUIRE_EQ(dynamic_metric->labels()[0].key, "method");
+  REQUIRE_EQ(dynamic_metric->labels()[0].value, std::string(64, 'x'));
+  REQUIRE_EQ(dynamic_metric->labels()[1].value, "200");
+  REQUIRE_EQ(sink_ptr->metrics[2].value, doctest::Approx{1.0});
+  REQUIRE_NE(sink_ptr->metrics[3].metric_metadata, dynamic_metric);
+  REQUIRE_EQ(sink_ptr->metrics[3].metric_metadata->labels()[1].value, "500");
+  REQUIRE_EQ(sink_ptr->metrics[3].value, doctest::Approx{2.0});
+  REQUIRE_EQ(sink_ptr->metrics[4].metric_metadata, dynamic_metric);
+  REQUIRE_EQ(sink_ptr->metrics[4].value, doctest::Approx{3.0});
+
+  REQUIRE(sink_ptr->metrics[5].metric_metadata->labels().empty());
+  REQUIRE_EQ(sink_ptr->metrics[5].value, doctest::Approx{4.0});
+  REQUIRE_EQ(sink_ptr->metrics[6].metric_metadata->labels().size(), 1);
+  REQUIRE_EQ(sink_ptr->metrics[6].metric_metadata->labels()[0].key, "method");
+  REQUIRE_EQ(sink_ptr->metrics[6].value, doctest::Approx{5.0});
+  REQUIRE_EQ(sink_ptr->metrics[7].metric_metadata, dynamic_metric);
+  REQUIRE_EQ(sink_ptr->metrics[7].value, doctest::Approx{6.0});
+
+  auto const* separator_metric = sink_ptr->metrics[8].metric_metadata;
+  REQUIRE_EQ(separator_metric->labels()[0].value, "b:c");
+  REQUIRE_NE(sink_ptr->metrics[9].metric_metadata, separator_metric);
+  REQUIRE_NE(sink_ptr->metrics[9].metric_metadata->metric_key(), separator_metric->metric_key());
+  REQUIRE_NE(sink_ptr->metrics[10].metric_metadata, separator_metric);
+  REQUIRE_EQ(sink_ptr->metrics[10].metric_metadata->labels()[0].value, std::string("b\0c", 3));
 }

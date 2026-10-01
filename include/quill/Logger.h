@@ -25,6 +25,7 @@
 #include <cstring>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -252,6 +253,75 @@ public:
       total_size, static_cast<size_t>(write_buffer - write_begin), metric_metadata->source_location());
 
     queue.finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+    return true;
+  }
+
+  /**
+   * Publishes a sample with runtime labels, copying the name and labels into the queue.
+   * The backend resolves a stable MetricMetadata for each distinct name/label combination.
+   * Unlike publish_metric(), this copies strings on every call. Metadata is retained for the
+   * program's lifetime. Metrics do not trigger immediate flushing.
+   *
+   * @note This function is thread-safe. Input strings may be changed or destroyed after it returns.
+   * @return true if queued, false if dropped by the configured queue policy
+   */
+  bool publish_dynamic_metric(std::string_view metric_name, std::vector<MetricLabel> const& labels, double value)
+  {
+    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
+                 "Attempting to log with an invalidated logger");
+
+    if (QUILL_UNLIKELY(metric_name.empty()))
+    {
+      QUILL_THROW(QuillError{"Metric name must not be empty"});
+    }
+
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::DynamicMetric};
+
+    uint64_t const timestamp =
+      (_clock_source == ClockSourceType::Tsc) ? detail::rdtsc() : _get_non_tsc_timestamp();
+
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
+    {
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    detail::ThreadContext* const thread_context = _thread_context;
+    auto& size_cache = thread_context->get_conditional_arg_size_cache();
+
+    size_t const label_count = labels.size();
+    size_t total_size = s_header_size;
+    total_size += detail::compute_encoded_size_and_cache_string_lengths(size_cache, metric_name, label_count);
+
+    for (MetricLabel const& label : labels)
+    {
+      total_size +=
+        detail::compute_encoded_size_and_cache_string_lengths(size_cache, label.key, label.value);
+    }
+
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    std::byte* write_buffer = _reserve_queue_space(queue, total_size, &macro_metadata, thread_context);
+
+    if (QUILL_UNLIKELY(write_buffer == nullptr))
+    {
+      return false;
+    }
+
+    uint64_t value_bits;
+    std::memcpy(&value_bits, &value, sizeof(value_bits));
+
+    write_buffer = _encode_header(write_buffer, timestamp, reinterpret_cast<uintptr_t>(&macro_metadata),
+                                  reinterpret_cast<uintptr_t>(this), value_bits);
+
+    detail::encode(write_buffer, size_cache, metric_name, label_count);
+
+    for (MetricLabel const& label : labels)
+    {
+      detail::encode(write_buffer, size_cache, label.key, label.value);
+    }
+
+    queue.finish_and_commit_write(total_size);
     return true;
   }
 
@@ -778,7 +848,7 @@ private:
             (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
             (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
             (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
-            (event == MacroMetadata::Event::Metric))
+            (event == MacroMetadata::Event::Metric) || (event == MacroMetadata::Event::DynamicMetric))
         {
           thread_context->increment_failure_counter();
         }
@@ -786,8 +856,9 @@ private:
         {
           if (QUILL_UNLIKELY(total_size > queue.capacity()))
           {
-            QUILL_THROW(QuillError{"Control event size exceeds the configured bounded queue capacity: " +
-                                   std::to_string(total_size) + " > " + std::to_string(queue.capacity())});
+            QUILL_THROW(
+              QuillError{"Control event size exceeds the configured bounded queue capacity: " +
+                         std::to_string(total_size) + " > " + std::to_string(queue.capacity())});
           }
         }
       }
@@ -934,8 +1005,7 @@ private:
       return;
     }
 
-    uint32_t message_count =
-      _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed) + 1;
+    uint32_t message_count = _messages_since_last_flush.fetch_add(1, std::memory_order_relaxed) + 1;
     while (message_count >= threshold)
     {
       // Only the thread that successfully resets the counter is allowed to flush.

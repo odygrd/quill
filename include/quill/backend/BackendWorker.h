@@ -33,6 +33,7 @@
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/MathUtilities.h"
 #include "quill/core/Metric.h"
+#include "quill/core/MetricManager.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/core/ThreadContextManager.h"
@@ -390,6 +391,7 @@ public:
     _active_sinks_cache = {};
     _named_args_format_template = {};
     _format_args_store = DynamicFormatArgStore{};
+    _dynamic_metric_labels = {};
   }
 
   /**
@@ -456,8 +458,7 @@ private:
     return std::string{ts};
   }
 
-  void _notify_error(std::function<void(std::string const&)> const& error_notifier,
-                     std::string const& error_message)
+  void _notify_error(std::function<void(std::string const&)> const& error_notifier, std::string const& error_message)
   {
     if (!static_cast<bool>(error_notifier))
     {
@@ -683,8 +684,7 @@ private:
         _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Final, true);
         bool const removed_loggers = _cleanup_invalidated_loggers(true);
 
-        if ((_draining_shutdown_diagnostics && !removed_loggers) ||
-            !_options.wait_for_queues_to_empty_before_exit ||
+        if ((_draining_shutdown_diagnostics && !removed_loggers) || !_options.wait_for_queues_to_empty_before_exit ||
             _check_frontend_queues_and_cached_transit_events_empty())
         {
           break;
@@ -772,8 +772,8 @@ private:
    */
   template <typename TFrontendQueue>
   QUILL_ATTRIBUTE_HOT size_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
-                                                              ThreadContext* thread_context,
-                                                              uint64_t ts_now, uint64_t steady_ts_now)
+                                                             ThreadContext* thread_context,
+                                                             uint64_t ts_now, uint64_t steady_ts_now)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.
@@ -965,6 +965,51 @@ private:
       }
     }
 
+    if (transit_event->macro_metadata->event() == MacroMetadata::Event::DynamicMetric)
+    {
+      std::string_view const metric_name = Codec<std::string_view>::decode_arg(read_pos);
+      size_t const label_count = Codec<size_t>::decode_arg(read_pos);
+      size_t remaining_labels = label_count;
+
+      QUILL_TRY
+      {
+        // Keep unused slots too, so smaller records do not discard their string capacity.
+        if (_dynamic_metric_labels.size() < label_count)
+        {
+          _dynamic_metric_labels.resize(label_count);
+        }
+
+        while (remaining_labels != 0)
+        {
+          MetricLabel& label = _dynamic_metric_labels[label_count - remaining_labels];
+          std::string_view const key = Codec<std::string>::decode_arg(read_pos);
+          std::string_view const value = Codec<std::string>::decode_arg(read_pos);
+          --remaining_labels;
+
+          label.key.assign(key);
+          label.value.assign(value);
+        }
+
+        transit_event->macro_metadata = MetricManager::instance().create_or_get_dynamic_metric(
+          metric_name, _dynamic_metric_labels, label_count);
+      }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH(std::exception const& e)
+      {
+        // String views consume the remaining fields without allocating if a copy failed.
+        while (remaining_labels != 0)
+        {
+          (void)Codec<std::string>::decode_arg(read_pos);
+          (void)Codec<std::string>::decode_arg(read_pos);
+          --remaining_labels;
+        }
+
+        _notify_error(_options.error_notifier, e.what());
+        return true;
+      }
+#endif
+    }
+
     bool const is_mdc_event = (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcSet) ||
       (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcErase) ||
       (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcClear);
@@ -1135,9 +1180,8 @@ private:
   {
     // Get the lowest timestamp
     uint64_t min_ts{(std::numeric_limits<uint64_t>::max)()};
-    ThreadContext* thread_context{_active_thread_contexts_cache.size() == 1
-                                    ? _active_thread_contexts_cache.front()
-                                    : nullptr};
+    ThreadContext* thread_context{
+      _active_thread_contexts_cache.size() == 1 ? _active_thread_contexts_cache.front() : nullptr};
 
     if (!thread_context)
     {
@@ -1404,8 +1448,8 @@ private:
   /**
    * Forwards a decoded metric sample to each sink associated with the logger.
    */
-  QUILL_ATTRIBUTE_HOT void _write_metric_sample(TransitEvent const& transit_event, std::string_view thread_id,
-                                                 std::string_view thread_name)
+  QUILL_ATTRIBUTE_HOT void _write_metric_sample(TransitEvent const& transit_event,
+                                                std::string_view thread_id, std::string_view thread_name)
   {
     QUILL_ASSERT(
       transit_event.macro_metadata,
@@ -1439,11 +1483,11 @@ private:
    * Formats and writes the log statement to each sink
    */
   QUILL_ATTRIBUTE_HOT void _write_log_statement(TransitEvent const& transit_event,
-                                                 std::string_view const& thread_id,
-                                                 std::string_view const& thread_name,
-                                                 std::string_view const& log_level_description,
-                                                 std::string_view const& log_level_short_code,
-                                                 std::string_view const& log_message)
+                                                std::string_view const& thread_id,
+                                                std::string_view const& thread_name,
+                                                std::string_view const& log_level_description,
+                                                std::string_view const& log_level_short_code,
+                                                std::string_view const& log_message)
   {
     std::string_view default_log_statement;
     LogLevel const log_level = transit_event.log_level();
@@ -1521,8 +1565,8 @@ private:
    * @param error_notifier error notifier
    * @param retiring_context check only this context before retirement, or all contexts when null
    */
-  QUILL_ATTRIBUTE_HOT void _check_failure_counter(
-    std::function<void(std::string const&)> const& error_notifier, ThreadContext* retiring_context = nullptr)
+  QUILL_ATTRIBUTE_HOT void _check_failure_counter(std::function<void(std::string const&)> const& error_notifier,
+                                                  ThreadContext* retiring_context = nullptr)
   {
     if (!error_notifier)
     {
@@ -1729,8 +1773,7 @@ private:
     return std::string_view::npos;
   }
 
-  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax,
-                                                               size_t& dynamic_arg_count)
+  QUILL_NODISCARD static std::string _normalize_named_arg_syntax(std::string_view arg_syntax, size_t& dynamic_arg_count)
   {
     std::string normalized;
     normalized.reserve(arg_syntax.size());
@@ -1774,7 +1817,7 @@ private:
    * @return start position of read
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* _read_unbounded_frontend_queue(UnboundedSPSCQueue& frontend_queue,
-                                                                                 ThreadContext* thread_context)
+                                                                                ThreadContext* thread_context)
   {
     auto const read_result = frontend_queue.prepare_read();
 
@@ -2074,7 +2117,10 @@ private:
           {
             QUILL_TRY { sink->flush_sink(SinkFlushReason::Explicit); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-            QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
+            QUILL_CATCH(std::exception const& e)
+            {
+              _notify_error(_options.error_notifier, e.what());
+            }
             QUILL_CATCH_ALL()
             {
               _notify_error(_options.error_notifier, std::string{"Caught unhandled exception."});
@@ -2504,6 +2550,7 @@ private:
   std::thread _worker_thread;
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
+  std::vector<MetricLabel> _dynamic_metric_labels; /** Runtime metric label scratch storage */
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
@@ -2516,8 +2563,7 @@ private:
   std::string _last_error_notification;
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
   std::chrono::steady_clock::time_point _last_sink_flush_time;
-  std::chrono::steady_clock::time_point _next_error_notification_time{
-    std::chrono::steady_clock::now()};
+  std::chrono::steady_clock::time_point _next_error_notification_time{std::chrono::steady_clock::now()};
   std::atomic<uint32_t> _worker_thread_id{0};  /** cached backend worker thread id */
   std::atomic<bool> _is_worker_running{false}; /** The spawned backend thread status */
   std::atomic<bool> _has_worker_thread_exited{true}; /** Set to true when the backend thread completes its exit sequence */

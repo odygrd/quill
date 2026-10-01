@@ -110,7 +110,7 @@
  * For example to only log warnings and above you can use:
  *   add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
  * or
- *   target_compile_definitions(${TARGET} PRIVATE  -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+ *   target_compile_definitions(${TARGET} PRIVATE -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
  **/
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3 0
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L2 1
@@ -1064,8 +1064,16 @@
     logger->publish_metric((metric_metadata), value);                                              \
   } while (0)
 
+/** Publishes a metric with runtime names and labels; variadic arguments allow inline label lists. */
+#define QUILL_DYNAMIC_METRIC(logger, ...)                                                          \
+  do                                                                                               \
+  {                                                                                                \
+    (logger)->publish_dynamic_metric(__VA_ARGS__);                                                 \
+  } while (0)
+
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
   #define METRIC(logger, metric_metadata, value) QUILL_METRIC(logger, metric_metadata, value)
+  #define DYNAMIC_METRIC(logger, ...) QUILL_DYNAMIC_METRIC(logger, __VA_ARGS__)
   #define TAGS(...) QUILL_TAGS(__VA_ARGS__)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2(logger, fmt, ...) QUILL_LOG_TRACE_L2(logger, fmt, ##__VA_ARGS__)
