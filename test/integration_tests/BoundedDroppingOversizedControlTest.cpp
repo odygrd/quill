@@ -30,6 +30,7 @@ TEST_CASE("bounded_dropping_oversized_control")
   std::string const oversized(8192, 'x');
   CHECK_THROWS_AS(logger->set_mdc("request", oversized), quill::QuillError);
   CHECK_THROWS_AS(logger->erase_mdc(oversized), quill::QuillError);
+  CHECK_FALSE(logger->publish_dynamic_metric("oversized_metric", {{"label", oversized}}, 1.0));
 
   static constexpr quill::MacroMetadata metadata{
     "", "", "message", nullptr, quill::LogLevel::Info, quill::MacroMetadata::Event::Log};

@@ -75,5 +75,7 @@ int main()
     // or the as function
     metrics_logger->publish_metric(request_latency_metric, 3.0);
     metrics_logger->publish_metric(requests_total_metric, 1.0);
+    // Reuse the same registration with labels supplied at runtime.
+    metrics_logger->publish_dynamic_metric("requests_total", {{"method", "POST"}, {"status", "500"}}, 1.0);
   }
 }

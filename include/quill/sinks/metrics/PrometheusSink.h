@@ -23,6 +23,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -245,8 +246,9 @@ public:
   {
     _register_metric<counter_family_t>(
       metric_metadata, prometheus::MetricType::Counter, std::move(help), std::move(constant_labels),
-      [](counter_family_t* family, Labels const& metric_labels, FamilyKey const& family_key)
-      { return RegisteredCounter{family_key, &family->Add(metric_labels)}; });
+      [](counter_family_t* family, Labels const& metric_labels, FamilyKey const& family_key) {
+        return RegisteredCounter{family_key, &family->Add(metric_labels)};
+      });
   }
 
   void register_gauge(MetricMetadata const* metric_metadata, std::string help,
@@ -254,8 +256,9 @@ public:
   {
     _register_metric<gauge_family_t>(
       metric_metadata, prometheus::MetricType::Gauge, std::move(help), std::move(constant_labels),
-      [update_mode](gauge_family_t* family, Labels const& metric_labels, FamilyKey const& family_key)
-      { return RegisteredGauge{family_key, &family->Add(metric_labels), update_mode}; });
+      [update_mode](gauge_family_t* family, Labels const& metric_labels, FamilyKey const& family_key) {
+        return RegisteredGauge{family_key, &family->Add(metric_labels), update_mode};
+      });
   }
 
   void register_histogram(MetricMetadata const* metric_metadata, std::string help,
@@ -264,8 +267,9 @@ public:
     _register_metric<histogram_family_t>(
       metric_metadata, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
       [buckets = std::move(bucket_boundaries)](
-        histogram_family_t* family, Labels const& metric_labels, FamilyKey const& family_key) mutable
-      { return RegisteredHistogram{family_key, &family->Add(metric_labels, std::move(buckets))}; });
+        histogram_family_t* family, Labels const& metric_labels, FamilyKey const& family_key) {
+        return RegisteredHistogram{family_key, &family->Add(metric_labels, buckets)};
+      });
   }
 
   void register_summary(MetricMetadata const* metric_metadata, std::string help, SummaryQuantiles quantiles,
@@ -281,7 +285,53 @@ public:
       });
   }
 
-  /** Removes the series and, when it is the last one, its sink-owned registry family. */
+  /** Registers a family whose label combinations can be published through either metric API. */
+  void register_counter_family(std::string const& metric_name, std::string help, Labels constant_labels = {})
+  {
+    _register_metric_family<counter_family_t>(
+      metric_name, prometheus::MetricType::Counter, std::move(help), std::move(constant_labels),
+      [](counter_family_t* family, Labels const& labels, FamilyKey const& key) {
+        return RegisteredCounter{key, &family->Add(labels)};
+      });
+  }
+
+  /** Registers a gauge family, applying update_mode to every runtime label combination. */
+  void register_gauge_family(std::string const& metric_name, std::string help,
+                             GaugeUpdateMode update_mode = GaugeUpdateMode::Set, Labels constant_labels = {})
+  {
+    _register_metric_family<gauge_family_t>(
+      metric_name, prometheus::MetricType::Gauge, std::move(help), std::move(constant_labels),
+      [update_mode](gauge_family_t* family, Labels const& labels, FamilyKey const& key) {
+        return RegisteredGauge{key, &family->Add(labels), update_mode};
+      });
+  }
+
+  /** Registers a histogram family, reusing the bucket boundaries for every runtime series. */
+  void register_histogram_family(std::string const& metric_name, std::string help,
+                                 HistogramBuckets bucket_boundaries, Labels constant_labels = {})
+  {
+    _register_metric_family<histogram_family_t>(
+      metric_name, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
+      [buckets = std::move(bucket_boundaries)](histogram_family_t* family, Labels const& labels,
+                                               FamilyKey const& key) {
+        return RegisteredHistogram{key, &family->Add(labels, buckets)};
+      });
+  }
+
+  /** Registers a summary family, reusing its quantile and age settings for every runtime series. */
+  void register_summary_family(std::string const& metric_name, std::string help, SummaryQuantiles quantiles,
+                               std::chrono::milliseconds max_age = std::chrono::seconds{60},
+                               int age_buckets = 5, Labels constant_labels = {})
+  {
+    _register_metric_family<summary_family_t>(
+      metric_name, prometheus::MetricType::Summary, std::move(help), std::move(constant_labels),
+      [quantiles = _to_prometheus_quantiles(quantiles), max_age, age_buckets](
+        summary_family_t* family, Labels const& labels, FamilyKey const& key) {
+        return RegisteredSummary{key, &family->Add(labels, quantiles, max_age, age_buckets)};
+      });
+  }
+
+  /** Removes a series and all pointer aliases; samples are ignored until it is registered again. */
   bool unregister_metric(MetricMetadata const* metric_metadata)
   {
     MetricMetadata const& validated_metric = _validate_metric_metadata(metric_metadata);
@@ -304,7 +354,7 @@ public:
     QUILL_ASSERT(metric_it != _metrics.end(),
                  "PrometheusSink _metric_keys is out of sync with _metrics");
 
-    _erase_metric(metric_key_it, metric_it);
+    _erase_metric(metric_it);
     return true;
   }
 
@@ -330,13 +380,33 @@ public:
     auto metric_it = _metrics.find(metric_metadata);
     if (metric_it == _metrics.end())
     {
-      // Metric registrations can race with queued backend events. Late samples for an
-      // unregistered metric are ignored.
-      return;
+      FamilyHandle* family = _find_family(metric_metadata->metric_name());
+      if (!family)
+      {
+        return;
+      }
+
+      Labels const labels = _make_metric_labels(*metric_metadata);
+      auto& series = _metric_series[metric_metadata->metric_name()];
+      auto series_it = series.find(labels);
+      if (series_it != series.end() && !series_it->second)
+      {
+        return;
+      }
+
+      _ensure_metric_not_registered(metric_metadata->metric_key());
+      if (series_it == series.end())
+      {
+        series_it = series.emplace(labels, family->create_series(labels)).first;
+        ++family->metric_count;
+      }
+
+      metric_it = _metrics.emplace(metric_metadata, &series_it->second).first;
+      _metric_keys.emplace(metric_metadata->metric_key(), metric_metadata);
     }
 
     std::visit([value](auto& registered_metric) { _apply_sample(registered_metric, value); },
-               metric_it->second);
+               **metric_it->second);
   }
 
   void flush_sink() noexcept override {}
@@ -489,12 +559,16 @@ private:
 
   using metric_variant_t =
     std::variant<RegisteredCounter, RegisteredGauge, RegisteredHistogram, RegisteredSummary>;
+  using metric_series_t = std::optional<metric_variant_t>;
 
   struct FamilyHandle
   {
     std::string help;
+    // Configured once per family; called only for new label combinations.
+    std::function<metric_variant_t(Labels const&)> create_series;
     size_t metric_count{0};
     family_variant_t family;
+    bool keep_empty{false};
   };
 
 private:
@@ -506,39 +580,48 @@ private:
       return false;
     }
 
-    auto metric_key_it = _metric_keys.find(metric_metadata->metric_key());
-    QUILL_ASSERT(metric_key_it != _metric_keys.end(),
-                 "PrometheusSink _metrics is out of sync with _metric_keys");
-
-    _erase_metric(metric_key_it, metric_it);
+    _erase_metric(metric_it);
     return true;
   }
 
-  void _erase_metric(std::unordered_map<std::string, MetricMetadata const*>::iterator metric_key_it,
-                     std::unordered_map<MetricMetadata const*, metric_variant_t>::iterator metric_it)
+  void _erase_metric(std::unordered_map<MetricMetadata const*, metric_series_t*>::iterator metric_it)
   {
-    FamilyKey const family_key = std::visit(
-      [](auto const& registered_metric) { return registered_metric.family_key; }, metric_it->second);
+    auto* series = metric_it->second;
+    FamilyKey const family_key =
+      std::visit([](auto const& registered_metric) { return registered_metric.family_key; }, **series);
 
     auto family_it = _families.find(family_key);
     QUILL_ASSERT(family_it != _families.end(), "PrometheusSink family handle is missing");
 
     std::visit([&family_handle = family_it->second](auto const& registered_metric)
-               { _remove_metric_from_family(family_handle, registered_metric); }, metric_it->second);
+               { _remove_metric_from_family(family_handle, registered_metric); },
+               **series);
+    series->reset();
+
+    // Both publishing APIs may have cached pointers to the same Prometheus series.
+    for (auto it = _metrics.begin(); it != _metrics.end();)
+    {
+      if (it->second == series)
+      {
+        _metric_keys.erase(it->first->metric_key());
+        it = _metrics.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
 
     if (family_it->second.metric_count > 0)
     {
       --family_it->second.metric_count;
     }
 
-    if (family_it->second.metric_count == 0)
+    if (family_it->second.metric_count == 0 && !family_it->second.keep_empty)
     {
       std::visit([this](auto* family) { _registry.Remove(*family); }, family_it->second.family);
       _families.erase(family_it);
     }
-
-    _metric_keys.erase(metric_key_it);
-    _metrics.erase(metric_it);
   }
 
   friend bool operator<(FamilyKey const& lhs, FamilyKey const& rhs) noexcept
@@ -571,6 +654,47 @@ private:
   }
 
   template <typename TFamily, typename TAdder>
+  void _register_metric_family(std::string const& metric_name, prometheus::MetricType metric_type,
+                               std::string help, Labels constant_labels, TAdder adder)
+  {
+    _validate_prometheus_metadata(metric_type, metric_name, constant_labels, {});
+    detail::LockGuard const lock{_spinlock};
+
+    FamilyKey const key{metric_type, metric_name, std::move(constant_labels)};
+    FamilyHandle& handle = _get_or_create_family<TFamily>(key, std::move(help));
+    _configure_family<TFamily>(handle, key, std::move(adder));
+    handle.keep_empty = true;
+  }
+
+  template <typename TFamily, typename TAdder>
+  void _configure_family(FamilyHandle& handle, FamilyKey const& key, TAdder adder)
+  {
+    if (handle.create_series)
+    {
+      return;
+    }
+
+    auto* family = std::get<TFamily*>(handle.family);
+    handle.create_series = [family, key, adder = std::move(adder)](Labels const& labels)
+    {
+      _validate_prometheus_metadata(key.type, key.metric_name, key.constant_labels, labels);
+      return adder(family, labels, key);
+    };
+  }
+
+  FamilyHandle* _find_family(std::string const& metric_name)
+  {
+    for (auto& entry : _families)
+    {
+      if (entry.second.create_series && entry.first.metric_name == metric_name)
+      {
+        return &entry.second;
+      }
+    }
+    return nullptr;
+  }
+
+  template <typename TFamily, typename TAdder>
   void _register_metric(MetricMetadata const* metric_metadata, prometheus::MetricType metric_type,
                         std::string help, Labels constant_labels, TAdder adder)
   {
@@ -582,27 +706,19 @@ private:
     _ensure_metric_not_registered(validated_metric.metric_key());
 
     FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
-
-    // A brand-new family cannot alias an existing time series, so only validate against an
-    // already-registered family. Performing this check before _get_or_create_family() avoids
-    // leaving an empty, freshly-created family behind when the alias check fails.
-    if (auto const existing_family_it = _families.find(family_key); existing_family_it != _families.end())
+    FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
+    auto const insert_result = _metric_series[validated_metric.metric_name()].try_emplace(metric_labels);
+    auto& series = insert_result.first->second;
+    if (!series)
     {
-      auto* existing_family = std::get<TFamily*>(existing_family_it->second.family);
-      if (existing_family->Has(metric_labels))
-      {
-        QUILL_THROW(QuillError{"PrometheusSink metric \"" + validated_metric.metric_key() +
-                               "\" aliases an existing time series"});
-      }
+      auto* family = std::get<TFamily*>(family_handle.family);
+      series = adder(family, metric_labels, family_key);
+      ++family_handle.metric_count;
     }
 
-    FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
-
-    auto* family = std::get<TFamily*>(family_handle.family);
-
-    _metrics.emplace(metric_metadata, adder(family, metric_labels, family_key));
+    _configure_family<TFamily>(family_handle, family_key, std::move(adder));
+    _metrics.emplace(metric_metadata, &series);
     _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
-    ++family_handle.metric_count;
   }
 
   static Labels _make_metric_labels(MetricMetadata const& metric_metadata)
@@ -783,7 +899,9 @@ private:
   std::string _exposer_scrape_endpoint;
   mutable detail::Spinlock _spinlock;
   std::map<FamilyKey, FamilyHandle> _families;
-  std::unordered_map<MetricMetadata const*, metric_variant_t> _metrics;
+  // Keep removed series as empty entries even after their registry family is released.
+  std::map<std::string, std::map<Labels, metric_series_t>> _metric_series;
+  std::unordered_map<MetricMetadata const*, metric_series_t*> _metrics;
   std::unordered_map<std::string, MetricMetadata const*> _metric_keys;
 };
 

@@ -105,6 +105,10 @@
 
 ## v13.1.0
 
+- Added `Logger::publish_dynamic_metric()` and `DYNAMIC_METRIC()` for runtime labels, sharing
+  `PrometheusSink` series with pointer publishing; existing registrations configure both APIs.
+- Added `PrometheusSink::register_*_family()` to configure a metric family without creating a series.
+  Use `register_*_family()` when there is no initial metadata pointer to register.
 - CMake and Bazel module targets now define `QUILL_USE_MODULE` automatically for consumers, while
   retaining compatibility with an explicit `#define QUILL_USE_MODULE` in source code.
 - Uncaught exceptions from `Frontend` logger creation and sink lookup or creation no longer leave
