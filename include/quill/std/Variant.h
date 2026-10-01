@@ -15,16 +15,18 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/std.h"
 
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <new>
-#include <optional>
-#include <type_traits>
-#include <utility>
-#include <variant>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstdlib>
+  #include <cstring>
+  #include <new>
+  #include <optional>
+  #include <type_traits>
+  #include <utility>
+  #include <variant>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

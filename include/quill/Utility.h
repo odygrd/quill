@@ -6,11 +6,13 @@
 
 #pragma once
 
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include <string_view>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstddef>
+  #include <cstdint>
+  #include <string>
+  #include <string_view>
+#endif
 
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"

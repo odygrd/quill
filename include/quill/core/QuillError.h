@@ -9,12 +9,16 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
 
-#include <exception>
-#include <string>
+#ifndef QUILL_MODULE
+  #include <exception>
+  #include <string>
+#endif
 
 #if defined(QUILL_NO_EXCEPTIONS)
-  #include <cstdio>
-  #include <cstdlib>
+  #ifndef QUILL_MODULE
+    #include <cstdio>
+    #include <cstdlib>
+  #endif
 
   #define QUILL_REQUIRE(expression, error)                                                         \
     do                                                                                             \

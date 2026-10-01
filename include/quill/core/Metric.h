@@ -9,8 +9,10 @@
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
 
-#include <string>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <string>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

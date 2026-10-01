@@ -12,17 +12,19 @@
 #include "quill/core/QuillError.h"
 #include "quill/sinks/Sink.h"
 
-#include <cerrno>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <functional>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <system_error>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <cerrno>
+  #include <cstdint>
+  #include <cstdio>
+  #include <cstring>
+  #include <functional>
+  #include <optional>
+  #include <string>
+  #include <string_view>
+  #include <system_error>
+  #include <utility>
+  #include <vector>
+#endif
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)

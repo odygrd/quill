@@ -13,9 +13,11 @@
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
 
-#include <memory>
-#include <string>
-#include <utility>
+#ifndef QUILL_MODULE
+  #include <memory>
+  #include <string>
+  #include <utility>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -13,10 +13,12 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/ThreadContextManager.h"
 
-#include <atomic>
-#include <memory>
-#include <string>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <memory>
+  #include <string>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

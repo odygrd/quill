@@ -7,8 +7,10 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include <atomic>
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstdint>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

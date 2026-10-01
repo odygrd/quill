@@ -15,15 +15,19 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/std.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <string>
-#include <string_view>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+  #include <string>
+  #include <string_view>
+#endif
 #if defined(_WIN32)
   #include "quill/std/WideString.h"
 
-  #include <cstring>
-  #include <utility>
+  #ifndef QUILL_MODULE
+    #include <cstring>
+    #include <utility>
+  #endif
 #endif
 
 QUILL_BEGIN_NAMESPACE

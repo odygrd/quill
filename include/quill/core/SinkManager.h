@@ -12,12 +12,14 @@
 #include "quill/core/Spinlock.h"
 #include "quill/core/ThreadPrimitives.h"
 
-#include <algorithm>
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <type_traits>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <algorithm>
+  #include <cstdint>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

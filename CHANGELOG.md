@@ -109,6 +109,8 @@
   `PrometheusSink` series with pointer publishing; existing registrations configure both APIs.
 - Added `PrometheusSink::register_*_family()` to configure a metric family without creating a series.
   Use `register_*_family()` when there is no initial metadata pointer to register.
+- Added the opt-in `QUILL_IMPORT_STD` option for named module builds on toolchains supporting
+  `import std`; standard library headers remain the default.
 - CMake and Bazel module targets now define `QUILL_USE_MODULE` automatically for consumers, while
   retaining compatibility with an explicit `#define QUILL_USE_MODULE` in source code.
 - Uncaught exceptions from `Frontend` logger creation and sink lookup or creation no longer leave

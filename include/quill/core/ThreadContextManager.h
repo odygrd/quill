@@ -13,15 +13,17 @@
 #include "quill/core/Spinlock.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 
-#include <atomic>
-#include <cstdint>
-#include <cstdlib>
-#include <memory>
-#include <new>
-#include <string>
-#include <string_view>
-#include <type_traits>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstdint>
+  #include <cstdlib>
+  #include <memory>
+  #include <new>
+  #include <string>
+  #include <string_view>
+  #include <type_traits>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

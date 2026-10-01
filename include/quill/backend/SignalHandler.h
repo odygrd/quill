@@ -16,14 +16,16 @@
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/QuillError.h"
 
-#include <atomic>
-#include <csignal>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <mutex>
-#include <string>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <csignal>
+  #include <cstdint>
+  #include <cstdlib>
+  #include <cstring>
+  #include <mutex>
+  #include <string>
+  #include <vector>
+#endif
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)

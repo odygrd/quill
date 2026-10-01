@@ -8,8 +8,10 @@
 
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendWorker.h"
-#include <chrono>
-#include <limits>
+#ifndef QUILL_MODULE
+  #include <chrono>
+  #include <limits>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

@@ -13,11 +13,13 @@
 #include "quill/core/MetricManager.h"
 #include "quill/core/QuillError.h"
 
-#include <atomic>
-#include <csignal>
-#include <cstdint>
-#include <cstdlib>
-#include <mutex>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <csignal>
+  #include <cstdint>
+  #include <cstdlib>
+  #include <mutex>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

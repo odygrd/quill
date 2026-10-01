@@ -20,8 +20,10 @@
 #elif defined(__ANDROID__)
 // No lock support on Android (no /tmp)
 #else
-  #include <cerrno>
-  #include <cstring>
+  #ifndef QUILL_MODULE
+    #include <cerrno>
+    #include <cstring>
+  #endif
   #include <fcntl.h>
   #include <sys/file.h>
   #include <unistd.h>
@@ -31,7 +33,9 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/ThreadPrimitives.h"
 
-#include <string>
+#ifndef QUILL_MODULE
+  #include <string>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

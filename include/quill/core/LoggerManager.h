@@ -14,15 +14,17 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 
-#include <algorithm>
-#include <atomic>
-#include <cstdlib>
-#include <initializer_list>
-#include <memory>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <algorithm>
+  #include <atomic>
+  #include <cstdlib>
+  #include <initializer_list>
+  #include <memory>
+  #include <optional>
+  #include <string>
+  #include <string_view>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

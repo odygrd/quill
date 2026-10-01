@@ -14,10 +14,12 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/std.h"
 
-#include <atomic>
-#include <cstddef>
-#include <cstdint>
-#include <type_traits>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cstddef>
+  #include <cstdint>
+  #include <type_traits>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

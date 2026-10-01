@@ -12,15 +12,17 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/TimeUtilities.h"
 
-#include <array>
-#include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <ctime>
-#include <map>
-#include <string>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <chrono>
+  #include <cstdint>
+  #include <cstdlib>
+  #include <ctime>
+  #include <map>
+  #include <string>
+  #include <utility>
+  #include <vector>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

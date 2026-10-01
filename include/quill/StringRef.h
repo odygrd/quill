@@ -6,10 +6,12 @@
 
 #pragma once
 
-#include <cstddef>
-#include <cstring>
-#include <string>
-#include <string_view>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstring>
+  #include <string>
+  #include <string_view>
+#endif
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"

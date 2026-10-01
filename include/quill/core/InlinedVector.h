@@ -6,10 +6,12 @@
 
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <type_traits>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstring>
+  #include <type_traits>
+#endif
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"

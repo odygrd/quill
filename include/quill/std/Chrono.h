@@ -13,9 +13,11 @@
 #include "quill/bundled/fmt/chrono.h"
 #include "quill/bundled/fmt/format.h"
 
-#include <chrono>
-#include <ctime>
-#include <type_traits>
+#ifndef QUILL_MODULE
+  #include <chrono>
+  #include <ctime>
+  #include <type_traits>
+#endif
 
 // Enable codecs for the C++20 calendar chrono types that bundled fmt formats
 // natively: std::chrono::year, month, day, weekday and year_month_day.

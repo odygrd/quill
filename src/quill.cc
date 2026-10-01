@@ -10,61 +10,77 @@ module;
 
 // Put implementation-provided declarations into the global module fragment
 // to prevent them from being attached to the Quill module.
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <bitset>
-#include <cctype>
-#include <cerrno>
-#include <charconv>
-#include <chrono>
-#include <cmath>
-#include <codecvt>
-#include <complex>
-#include <condition_variable>
-#include <csignal>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <deque>
-#include <exception>
-#include <filesystem>
-#include <forward_list>
-#include <fstream>
-#include <functional>
-#include <initializer_list>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <list>
-#include <locale>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <new>
-#include <optional>
-#include <ostream>
-#include <set>
-#include <source_location>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <system_error>
-#include <thread>
-#include <tuple>
-#include <type_traits>
-#include <typeinfo>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-#include <variant>
-#include <vector>
+#ifndef QUILL_IMPORT_STD
+  #include <algorithm>
+  #include <array>
+  #include <atomic>
+  #include <bitset>
+  #include <cctype>
+  #include <cerrno>
+  #include <charconv>
+  #include <chrono>
+  #include <cmath>
+  #include <codecvt>
+  #include <complex>
+  #include <condition_variable>
+  #include <csignal>
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstdio>
+  #include <cstdlib>
+  #include <cstring>
+  #include <ctime>
+  #include <cwchar>
+  #include <deque>
+  #include <exception>
+  #include <filesystem>
+  #include <forward_list>
+  #include <fstream>
+  #include <functional>
+  #include <initializer_list>
+  #include <iostream>
+  #include <iterator>
+  #include <limits>
+  #include <list>
+  #include <locale>
+  #include <map>
+  #include <memory>
+  #include <mutex>
+  #include <new>
+  #include <optional>
+  #include <ostream>
+  #include <set>
+  #include <source_location>
+  #include <stdexcept>
+  #include <string>
+  #include <string_view>
+  #include <system_error>
+  #include <thread>
+  #include <tuple>
+  #include <type_traits>
+  #include <typeinfo>
+  #include <unordered_map>
+  #include <unordered_set>
+  #include <utility>
+  #include <variant>
+  #include <vector>
 
-#if QUILL_HAS_INCLUDE(<expected>)
-  #include <expected>
+  #if QUILL_HAS_INCLUDE(<expected>)
+    #include <expected>
+  #endif
+#else
+  // import std does not provide C macros or global C declarations.
+  #include <ctype.h>
+  #include <math.h>
+  #include <signal.h>
+  #include <stddef.h>
+  #include <stdint.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <time.h>
+  #include <wchar.h>
+  #include <cerrno>
 #endif
 
 #include <climits>
@@ -101,6 +117,11 @@ module;
 #endif
 #if defined(__unix__) || defined(__APPLE__) || defined(__linux__)
   #include <fcntl.h>
+  #ifdef QUILL_IMPORT_STD
+    #include <pthread.h>
+    #include <sched.h>
+    #include <unistd.h>
+  #endif
   #include <sys/file.h>
   #include <sys/mman.h>
   #if QUILL_HAS_INCLUDE(<sys/syscall.h>)
@@ -110,6 +131,12 @@ module;
 
 export module quill;
 
+#ifdef QUILL_IMPORT_STD
+import std;
+  #define FMTQUILL_IMPORT_STD
+#endif
+
+// Quill headers skip standard includes in module builds; both paths above supply them.
 #define QUILL_MODULE
 #define FMTQUILL_MODULE
 #define FMTQUILL_EXPORT export

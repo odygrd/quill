@@ -6,10 +6,12 @@
 
 #pragma once
 
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#ifndef QUILL_MODULE
+  #include <chrono>
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstring>
+#endif
 
 #include "quill/backend/RdtscClock.h"
 #include "quill/core/Attributes.h"

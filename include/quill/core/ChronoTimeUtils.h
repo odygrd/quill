@@ -7,7 +7,9 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <cstdint>
+#endif
 
 /**
  * This header exists so that code reachable from the lightweight
@@ -29,7 +31,9 @@
   #if defined(_MSVC_STL_VERSION)
     #include <xtimec.h>
   #else
-    #include <chrono>
+    #ifndef QUILL_MODULE
+      #include <chrono>
+    #endif
   #endif
 #else
   #include <time.h>

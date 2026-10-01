@@ -14,9 +14,11 @@
 #include "quill/bundled/fmt/format.h"
 #include "quill/bundled/fmt/std.h"
 
-#include <complex>
-#include <cstddef>
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <complex>
+  #include <cstddef>
+  #include <cstdint>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

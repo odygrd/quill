@@ -10,14 +10,16 @@
 #include "quill/core/LogLevel.h"
 #include "quill/sinks/StreamSink.h"
 
-#include <array>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <cstdint>
+  #include <cstdio>
+  #include <cstring>
+  #include <string>
+  #include <string_view>
+  #include <utility>
+  #include <vector>
+#endif
 
 #if defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
@@ -32,7 +34,9 @@
   #include <io.h>
   #include <windows.h>
 #else
-  #include <cstdlib>
+  #ifndef QUILL_MODULE
+    #include <cstdlib>
+  #endif
   #include <unistd.h>
 #endif
 

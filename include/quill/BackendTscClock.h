@@ -10,8 +10,10 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/Rdtsc.h"
 
-#include <chrono>
-#include <cstdint>
+#ifndef QUILL_MODULE
+  #include <chrono>
+  #include <cstdint>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 

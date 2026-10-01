@@ -142,6 +142,8 @@ With CMake 3.28 or newer and a compiler and generator supporting C++20 modules, 
 The module target is currently available from the source build, not from an installed
 ``find_package(quill)`` package.
 
+With CMake 4.5+, set ``QUILL_IMPORT_STD=ON`` to enable experimental ``import std`` support (OFF by default).
+
 With Bazel 9 or newer, the declared ``rules_cc`` 0.2.22 dependency, and a toolchain supporting
 C++20 modules, add ``@quill//:quill_module`` to the target's ``deps``. Enable C++20 for the
 whole build and pass ``--experimental_cpp_modules`` (for Clang, use

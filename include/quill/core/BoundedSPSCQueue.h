@@ -5,12 +5,14 @@
 #include "quill/core/MathUtilities.h"
 #include "quill/core/QuillError.h"
 
-#include <atomic>
-#include <cerrno>
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <string>
+#ifndef QUILL_MODULE
+  #include <atomic>
+  #include <cerrno>
+  #include <cstddef>
+  #include <cstdint>
+  #include <cstring>
+  #include <string>
+#endif
 
 #if defined(_WIN32)
   #include <malloc.h>

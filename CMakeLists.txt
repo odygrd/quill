@@ -25,6 +25,8 @@ option(QUILL_BUILD_EXAMPLES "Enable this option to build and install the example
 
 option(QUILL_BUILD_MODULE "Enable this option to build the experimental C++20 named module target." OFF)
 
+option(QUILL_IMPORT_STD "Use import std in the experimental named module instead of standard C++ headers." OFF)
+
 option(QUILL_BUILD_EXAMPLE_PROMETHEUS "Build the prometheus-cpp metric publishing example. Requires prometheus-cpp to be installed and findable via CMAKE_PREFIX_PATH." OFF)
 
 option(QUILL_BUILD_TESTS "Enable this option to build the test suite." OFF)
@@ -138,6 +140,7 @@ message(STATUS "QUILL_DISABLE_FILE_INFO: " ${QUILL_DISABLE_FILE_INFO})
 message(STATUS "QUILL_ENABLE_ASSERTIONS: " ${QUILL_ENABLE_ASSERTIONS})
 message(STATUS "QUILL_ENABLE_INSTALL: " ${QUILL_ENABLE_INSTALL})
 message(STATUS "QUILL_BUILD_MODULE: " ${QUILL_BUILD_MODULE})
+message(STATUS "QUILL_IMPORT_STD: " ${QUILL_IMPORT_STD})
 
 #---------------------------------------------------------------------------------------
 # Verbose make file option
@@ -405,6 +408,14 @@ if (QUILL_BUILD_MODULE)
     target_compile_features(quill_module PUBLIC cxx_std_20)
     target_compile_definitions(quill_module INTERFACE QUILL_USE_MODULE=)
     set_target_properties(quill_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
+
+    if (QUILL_IMPORT_STD)
+        if (CMAKE_VERSION VERSION_LESS 4.5)
+            message(FATAL_ERROR "QUILL_IMPORT_STD requires CMake 4.5 or newer.")
+        endif ()
+
+        target_compile_definitions(quill_module PRIVATE QUILL_IMPORT_STD)
+    endif ()
 
     if (QUILL_NO_EXCEPTIONS)
         # The module and its importers must agree on exception and RTTI support.

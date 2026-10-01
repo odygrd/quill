@@ -9,16 +9,20 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/LogLevel.h"
 
-#include <array>
-#include <chrono>
-#include <cstdint>
-#include <cstdio>
-#include <functional>
-#include <string>
-#include <vector>
+#ifndef QUILL_MODULE
+  #include <array>
+  #include <chrono>
+  #include <cstdint>
+  #include <cstdio>
+  #include <functional>
+  #include <string>
+  #include <vector>
+#endif
 
 #if defined(__MINGW32__)
-  #include <iostream>
+  #ifndef QUILL_MODULE
+    #include <iostream>
+  #endif
 #endif
 
 QUILL_BEGIN_NAMESPACE

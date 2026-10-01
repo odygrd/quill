@@ -10,9 +10,11 @@
 #include "quill/core/Common.h"
 #include "quill/core/LogLevel.h"
 
-#include <cstddef>
-#include <cstdint>
-#include <string_view>
+#ifndef QUILL_MODULE
+  #include <cstddef>
+  #include <cstdint>
+  #include <string_view>
+#endif
 
 QUILL_BEGIN_NAMESPACE
 
