@@ -158,6 +158,12 @@ whole build and pass ``--experimental_cpp_modules`` (for Clang, use
        deps = ["@quill//:quill_module"],
    )
 
+To enable experimental ``import std`` support with Bazel, configure the ``--@quill//:std_module``
+flag to point to your toolchain's standard library module target (for example, in ``.bazelrc`` via
+``build --@quill//:std_module=@std_module``). When configured, Quill automatically defines
+``QUILL_IMPORT_STD`` and adds the target as a dependency. If omitted, ``@quill//:std_module``
+defaults to an empty target, falling back to standard library headers.
+
 The selected Clang toolchain must also provide a matching ``clang-scan-deps`` beside the
 compiler executable. On Ubuntu 24.04, install ``clang-18`` and ``clang-tools-18``, and set
 ``CC=/usr/lib/llvm-18/bin/clang`` and ``CXX=/usr/lib/llvm-18/bin/clang++``.
