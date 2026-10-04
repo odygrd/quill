@@ -10,6 +10,16 @@ licenses(["notice"])  # MIT
 # Configuration Flags
 # ==============================================================================
 
+label_flag(
+    name = "std_module",
+    build_setting_default = ":empty_std_module",
+)
+
+config_setting(
+    name = "config_std_module_empty",
+    flag_values = {":std_module": ":empty_std_module"},
+)
+
 bool_flag(
     name = "no_exceptions",
     build_setting_default = False,
@@ -192,6 +202,10 @@ cc_library(
     includes = ["include"],
 )
 
+cc_library(
+    name = "empty_std_module",
+)
+
 quill_module(
     name = "quill_module",
     copts = select({
@@ -199,7 +213,10 @@ quill_module(
         "@rules_cc//cc/compiler:clang": ["-Wno-gnu-zero-variadic-macro-arguments"],
         "//conditions:default": [],
     }),
-    defines = ["QUILL_USE_MODULE="],
+    defines = ["QUILL_USE_MODULE="] + select({
+        ":config_std_module_empty": [],
+        "//conditions:default": ["QUILL_IMPORT_STD"],
+    }),
     # rules_cc 0.2.22 uses the same module metadata path for PIC and non-PIC outputs.
     features = [
         "cpp_modules",
@@ -208,5 +225,8 @@ quill_module(
     module_interfaces = ["src/quill.cc"],
     # Prevent users without --experimental_cpp_modules support from accidentally building this
     tags = ["manual"],
-    deps = [":quill"],
+    deps = [":quill"] + select({
+        ":config_std_module_empty": [],
+        "//conditions:default": [":std_module"],
+    }),
 )
