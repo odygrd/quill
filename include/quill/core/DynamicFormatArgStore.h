@@ -122,8 +122,13 @@ public:
     using char_type = typename fmtquill::format_context::char_type;
     using bare_type = std::remove_cv_t<std::remove_reference_t<T>>;
     constexpr auto mapped_type = fmtquill::detail::mapped_type_constant<bare_type, char_type>::value;
-    using stored_type =
-      std::conditional_t<std::is_convertible_v<bare_type, std::string>, std::string, bare_type>;
+    // A type with its own formatter is stored as itself even when it also converts to std::string,
+    // otherwise the conversion would replace the user formatter (or throw, e.g. nlohmann::json).
+    // A type without a formatter is still formatted through its conversion to std::string
+    constexpr bool has_user_formatter = (mapped_type == fmtquill::detail::type::custom_type) &&
+      fmtquill::is_formattable<bare_type, char_type>::value;
+    constexpr bool store_as_std_string = !has_user_formatter && std::is_convertible_v<bare_type, std::string>;
+    using stored_type = std::conditional_t<store_as_std_string, std::string, bare_type>;
 
     if constexpr (!(std::is_same_v<bare_type, std::string_view> || std::is_same_v<bare_type, fmtquill::string_view> ||
                     (mapped_type != fmtquill::detail::type::cstring_type &&

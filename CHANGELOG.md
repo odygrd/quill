@@ -190,6 +190,9 @@
 - `Logger::set_mdc()` and `Logger::erase_mdc()` now reject requests larger than a `QueueType::BoundedDropping`
   queue rather than retrying indefinitely. Application threads still retry when the request fits but the queue
   is temporarily full.
+- Fixed `DeferredFormatCodec` types that also convert implicitly to `std::string`, such as `nlohmann::json`,
+  bypassing their formatter on the backend; the conversion was logged instead, or a throwing conversion produced
+  "[Quill deferred decode failed]" (aborting in `QUILL_NO_EXCEPTIONS` builds).
 
 ## v13.0.0
 
