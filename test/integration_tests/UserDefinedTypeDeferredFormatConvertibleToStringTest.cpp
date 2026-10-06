@@ -96,6 +96,31 @@ struct quill::Codec<DeferredDocument> : quill::DeferredFormatCodec<DeferredDocum
 };
 
 /***/
+struct DeferredNonConstFormatted
+{
+  operator std::string() const { return "converted"; }
+};
+
+/***/
+template <>
+struct fmtquill::formatter<DeferredNonConstFormatted>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  // A formatter that takes a non-const reference must also be used
+  auto format(::DeferredNonConstFormatted&, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "formatted");
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<DeferredNonConstFormatted> : quill::DeferredFormatCodec<DeferredNonConstFormatted>
+{
+};
+
+/***/
 TEST_CASE("user_defined_type_deferred_format_convertible_to_string")
 {
   static constexpr char const* filename =
@@ -119,6 +144,7 @@ TEST_CASE("user_defined_type_deferred_format_convertible_to_string")
   LOG_INFO(logger, "Price: {}", DeferredPrice{1234});
   LOG_INFO(logger, "Price in cents: {:c}", DeferredPrice{1234});
   LOG_INFO(logger, "Doc: {}", DeferredDocument{7});
+  LOG_INFO(logger, "Fallback: {}", DeferredNonConstFormatted{});
 
   logger->flush_log();
   Frontend::remove_logger(logger);
@@ -128,10 +154,11 @@ TEST_CASE("user_defined_type_deferred_format_convertible_to_string")
 
   // The user formatter must be used, not the implicit conversion to std::string
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 4);
   REQUIRE(quill::testing::file_contains(file_contents, "Price: $12.34"));
   REQUIRE(quill::testing::file_contains(file_contents, "Price in cents: 1234c"));
   REQUIRE(quill::testing::file_contains(file_contents, "Doc: Document(7)"));
+  REQUIRE(quill::testing::file_contains(file_contents, "Fallback: formatted"));
 
   testing::remove_file(filename);
 }

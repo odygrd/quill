@@ -61,7 +61,7 @@ class DynamicArgList
 
 public:
   template <typename T, typename Arg>
-  T const& push(Arg&& arg)
+  T& push(Arg&& arg)
   {
     auto new_node = std::unique_ptr<TypedNode<T>>(new TypedNode<T>(static_cast<Arg&&>(arg)));
     T& value = new_node->value;

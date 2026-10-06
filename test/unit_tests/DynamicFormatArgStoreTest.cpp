@@ -64,6 +64,12 @@ struct NoFormatterConvertibleToString
   // Without a formatter the value is still formatted through the conversion
   operator std::string() const { return "converted"; }
 };
+
+struct NonConstFormatterConvertibleToString
+{
+  // The formatter below takes a non-const reference, the stored value must still be formatted with it
+  operator std::string() const { return "converted"; }
+};
 } // namespace
 
 template <>
@@ -88,6 +94,17 @@ struct fmtquill::formatter<ThrowingConversionToString>
   }
 };
 
+template <>
+struct fmtquill::formatter<NonConstFormatterConvertibleToString>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(NonConstFormatterConvertibleToString&, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "formatted");
+  }
+};
+
 /***/
 TEST_CASE("dynamic_format_arg_store_custom_type_convertible_to_string_uses_formatter")
 {
@@ -95,14 +112,15 @@ TEST_CASE("dynamic_format_arg_store_custom_type_convertible_to_string_uses_forma
 
   store.push_back(PriceConvertibleToString{1234});
   store.push_back(ThrowingConversionToString{7});
+  store.push_back(NonConstFormatterConvertibleToString{});
 
   // strings are still copied into the store
   store.push_back(std::string{"plain"});
 
   std::string const result = fmtquill::vformat(
-    "{} {} {}", fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
+    "{} {} {} {}", fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
 
-  REQUIRE_EQ(result, std::string{"$12.34 value=7 plain"});
+  REQUIRE_EQ(result, std::string{"$12.34 value=7 formatted plain"});
 }
 
 /***/
