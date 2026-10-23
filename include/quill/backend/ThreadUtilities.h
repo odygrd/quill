@@ -189,11 +189,13 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
   return ws2s(wide_name);
 #else
   // Apple, linux
-  char thread_name[16] = {'\0'};
+  // Linux limits thread names to 15 characters, but macOS keeps up to 63 bytes, so size the
+  // buffer for the longest name instead of truncating it
+  char thread_name[64] = {'\0'};
   #if defined(__OpenBSD__) || defined(__FreeBSD__)
-  pthread_get_name_np(pthread_self(), &thread_name[0], 16);
+  pthread_get_name_np(pthread_self(), &thread_name[0], sizeof(thread_name));
   #else
-  auto res = pthread_getname_np(pthread_self(), &thread_name[0], 16);
+  auto res = pthread_getname_np(pthread_self(), &thread_name[0], sizeof(thread_name));
   if (res != 0)
   {
     // This runs on each thread's first log statement, and glibc reads the name from procfs;
