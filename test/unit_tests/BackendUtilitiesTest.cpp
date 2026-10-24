@@ -3,6 +3,7 @@
 #include "quill/backend/BackendUtilities.h"
 #include "quill/backend/BackendWorker.h"
 #include "quill/backend/BackendWorkerLock.h"
+#include "quill/backend/ThreadUtilities.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
@@ -168,6 +169,19 @@ TEST_CASE("set_thread_name_validates_length")
   set_thread_name("quill-thread-name-too-long");
   REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
   REQUIRE_EQ(std::string{current_name}, "quill-thread-na");
+#else
+  return;
+#endif
+}
+
+TEST_CASE("get_thread_name_returns_names_longer_than_15_characters")
+{
+#if defined(__APPLE__) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
+  // Unlike Linux, macOS keeps thread names of up to 63 bytes
+  std::string const long_thread_name{"quill-thread-name-longer-than-15"};
+  set_thread_name(long_thread_name.data());
+
+  REQUIRE_EQ(get_thread_name(), long_thread_name);
 #else
   return;
 #endif

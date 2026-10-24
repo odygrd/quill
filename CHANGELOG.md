@@ -1,3 +1,4 @@
+- [Unreleased](#unreleased)
 - [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
@@ -102,6 +103,11 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
+
+## Unreleased
+
+- On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
+  only their first 15 characters.
 
 ## v13.1.0
 
