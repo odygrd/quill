@@ -107,7 +107,7 @@
 ## Unreleased
 
 - Fixed MSVC named module builds with `QUILL_IMPORT_STD=ON` failing with standard library
-  redefinition errors. ([#1012](https://github.com/odygrd/quill/issues/1012))
+  redefinition errors or internal compiler errors. ([#1012](https://github.com/odygrd/quill/issues/1012))
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 - Reduced overhead for System/User clocks.
