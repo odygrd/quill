@@ -92,8 +92,6 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          # MSVC 14.51 crashes when exporting Quill with import std.
-          toolset: '14.44'
       - name: Install CMake with standard library module support
         uses: jwlawson/actions-setup-cmake@v2
         with:
@@ -117,6 +115,34 @@ jobs:
             $buildOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 10 | ForEach-Object {
               $message = "$_" -replace '%', '%25' -replace '\r', '%0D' -replace '\n', '%0A'
               Write-Output "::error::$message"
+            }
+            if ('${{ matrix.import_std }}' -eq 'ON') {
+              $moduleLines = Get-Content src/quill.cc
+              $headerLines = @(for ($i = 0; $i -lt $moduleLines.Count; ++$i) {
+                if ($moduleLines[$i] -match '^#include "quill/') { $i }
+              })
+              function Test-ModulePrefix([int] $count) {
+                $lineCount = if ($count -eq 0) { $headerLines[0] } else { $headerLines[$count - 1] + 1 }
+                $moduleLines | Select-Object -First $lineCount | Set-Content src/quill.cc -Encoding utf8NoBOM
+                $prefixOutput = cmake --build build-module --target quill_module --parallel 1 2>&1
+                $prefixExitCode = $LASTEXITCODE
+                $lastHeader = if ($count -eq 0) { 'global fragment and import only' } else { $moduleLines[$headerLines[$count - 1]] }
+                Write-Host "::warning::Module prefix $count, last header $lastHeader, exit $prefixExitCode"
+                $prefixOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 3 | ForEach-Object {
+                  $message = "$_" -replace '%', '%25' -replace '\r', '%0D' -replace '\n', '%0A'
+                  Write-Host "::warning::$message"
+                }
+                return ($prefixExitCode -eq 0)
+              }
+              if (Test-ModulePrefix 0) {
+                $low = 0
+                $high = $headerLines.Count
+                while ($high - $low -gt 1) {
+                  $middle = [int][Math]::Floor(($low + $high) / 2)
+                  if (Test-ModulePrefix $middle) { $low = $middle } else { $high = $middle }
+                }
+                Write-Host "::warning::First failing module prefix $high, header $($moduleLines[$headerLines[$high - 1]])"
+              }
             }
             exit $buildExitCode
           }
