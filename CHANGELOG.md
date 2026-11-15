@@ -106,6 +106,7 @@
 
 ## Unreleased
 
+- Updated bundled `libfmt` to `v12.2.1`
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 - Reduced overhead for System/User clocks.
