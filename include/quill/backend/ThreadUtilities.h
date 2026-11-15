@@ -37,14 +37,17 @@
   #include <pthread.h>
   #include <unistd.h>
 #elif defined(__FreeBSD__)
+  #include <pthread.h>
   #include <pthread_np.h>
   #include <sys/thr.h>
   #include <unistd.h>
 #elif defined(__DragonFly__)
+  #include <pthread.h>
   #include <pthread_np.h>
   #include <sys/lwp.h>
   #include <unistd.h>
 #elif defined(__OpenBSD__)
+  #include <pthread.h>
   #include <pthread_np.h>
   #include <unistd.h>
 #else

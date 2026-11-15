@@ -107,6 +107,7 @@
 ## Unreleased
 
 - Reduced overhead for System/User clocks.
+- Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
 
