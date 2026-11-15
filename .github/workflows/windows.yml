@@ -128,10 +128,6 @@ jobs:
                 $prefixExitCode = $LASTEXITCODE
                 $lastHeader = if ($count -eq 0) { 'global fragment and import only' } else { $moduleLines[$headerLines[$count - 1]] }
                 Write-Host "::warning::Module prefix $count, last header $lastHeader, exit $prefixExitCode"
-                $prefixOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 3 | ForEach-Object {
-                  $message = "$_" -replace '%', '%25' -replace '\r', '%0D' -replace '\n', '%0A'
-                  Write-Host "::warning::$message"
-                }
                 return ($prefixExitCode -eq 0)
               }
               if (Test-ModulePrefix 0) {
@@ -141,8 +137,24 @@ jobs:
                   $middle = [int][Math]::Floor(($low + $high) / 2)
                   if (Test-ModulePrefix $middle) { $low = $middle } else { $high = $middle }
                 }
-                Write-Host "::warning::First failing module prefix $high, header $($moduleLines[$headerLines[$high - 1]])"
+                Write-Host "::error::First failing module prefix $high, header $($moduleLines[$headerLines[$high - 1]])"
               }
+              $fullModule = $moduleLines -join "`r`n"
+              $fullModule.Replace('import std;', 'export import std;') | Set-Content src/quill.cc -Encoding utf8NoBOM
+              $variantOutput = cmake --build build-module --target quill_module --parallel 1 2>&1
+              $variantExitCode = $LASTEXITCODE
+              $variantError = ($variantOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 1)
+              Write-Host "::error::Module variant re-export std, exit $variantExitCode, first error $variantError"
+              $clockPath = 'include/quill/core/ChronoTimeUtils.h'
+              $clockSource = Get-Content -Raw $clockPath
+              $clockSource.Replace('#if defined(_MSVC_STL_VERSION)', '#if defined(_MSVC_STL_VERSION) && !defined(QUILL_IMPORT_STD)') | Set-Content $clockPath -Encoding utf8NoBOM
+              ($fullModule -replace '(?m)^    #include <xtimec.h>\r?$', '') | Set-Content src/quill.cc -Encoding utf8NoBOM
+              $variantOutput = cmake --build build-module --target quill_module --parallel 1 2>&1
+              $variantExitCode = $LASTEXITCODE
+              $variantError = ($variantOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 1)
+              Write-Host "::error::Module variant portable clocks without xtimec, exit $variantExitCode, first error $variantError"
+              $clockSource | Set-Content $clockPath -Encoding utf8NoBOM
+              $fullModule | Set-Content src/quill.cc -Encoding utf8NoBOM
             }
             exit $buildExitCode
           }
