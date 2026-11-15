@@ -358,12 +358,8 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
 endif ()
 
 # Link dependencies
+# Let the toolchain select the C runtime; mixing MinGW's MSVCRT and UCRT is unsafe.
 target_link_libraries(${TARGET_NAME} INTERFACE Threads::Threads)
-
-if (MINGW)
-    # strftime requires this when using MinGw to correctly format the time ..
-    target_link_libraries(${TARGET_NAME} INTERFACE ucrtbase)
-endif ()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
     target_link_libraries(${TARGET_NAME} INTERFACE stdc++fs)
