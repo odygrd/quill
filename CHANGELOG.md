@@ -106,6 +106,8 @@
 
 ## Unreleased
 
+- CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
+  avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 - Reduced overhead for System/User clocks.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of

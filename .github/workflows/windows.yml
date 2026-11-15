@@ -101,5 +101,20 @@ jobs:
         run: cmake -B ../build -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON
       - name: Build
         run: cmake --build ../build
+      - name: Check C runtime linkage
+        run: |
+          set -euo pipefail
+          if [[ "${{matrix.sys}}" == "mingw64" ]]; then
+            unexpected_crt=ucrtbase.dll
+          else
+            unexpected_crt=msvcrt.dll
+          fi
+          imports=$(objdump -p ../build/build/test/TEST_SingleFrontendThread.exe | awk '/DLL Name:/ { print tolower($3) }')
+          if grep -Fxq "$unexpected_crt" <<< "$imports"; then
+            echo "Quill introduced an incompatible C runtime: $unexpected_crt"
+            exit 1
+          fi
+      - name: Test logging with the toolchain C runtime
+        run: ctest --test-dir ../build --output-on-failure --no-tests=error -R '^single_frontend_thread$'
       # - name: Test
       #  run: ctest --test-dir ../build --output-on-failure
