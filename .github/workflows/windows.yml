@@ -92,6 +92,8 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+          # MSVC 14.51 crashes when exporting Quill with import std.
+          toolset: '14.44'
       - name: Install CMake with standard library module support
         uses: jwlawson/actions-setup-cmake@v2
         with:
@@ -107,9 +109,17 @@ jobs:
           -DQUILL_NO_EXCEPTIONS=${{ matrix.no_exceptions }}
           -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON
       - name: Build the module examples
-        run: >-
-          cmake --build build-module --target quill_docs_module
-          quill_example_console_logging_module --parallel 2
+        run: |
+          cmake --build build-module --target quill_docs_module quill_example_console_logging_module --parallel 2 2>&1 |
+            Tee-Object -Variable buildOutput
+          $buildExitCode = $LASTEXITCODE
+          if ($buildExitCode -ne 0) {
+            $buildOutput | Where-Object { $_ -match '\berror\b' } | Select-Object -First 10 | ForEach-Object {
+              $message = "$_" -replace '%', '%25' -replace '\r', '%0D' -replace '\n', '%0A'
+              Write-Output "::error::$message"
+            }
+            exit $buildExitCode
+          }
       - name: Test logging and automatic shutdown
         run: >-
           ctest --test-dir build-module -R '^quill_module_(logging|shutdown)_test$'
