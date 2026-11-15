@@ -102,6 +102,8 @@ public:
       }
     }
 
+    // Successful writes always have backing storage, as in prepare_write_reserve_cached().
+    QUILL_ASSUME(_storage != nullptr);
     return _storage + (_writer_pos & _mask);
   }
 

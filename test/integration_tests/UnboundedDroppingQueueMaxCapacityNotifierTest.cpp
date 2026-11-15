@@ -3,7 +3,7 @@
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
-#include "quill/LogMacros.h"
+#include "quill/core/MacroMetadata.h"
 #include "quill/sinks/FileSink.h"
 
 #include <string>
@@ -32,9 +32,6 @@ TEST_CASE("unbounded_dropping_queue_max_capacity_notifier")
   backend_options.error_notifier = [&notifications](std::string const& error_message)
   { notifications.push_back(error_message); };
 
-  backend_options.sleep_duration = std::chrono::seconds{10};
-  Backend::start(backend_options);
-
   auto file_sink = UnboundedDroppingFrontend::create_or_get_sink<FileSink>(
     filename,
     []()
@@ -45,21 +42,26 @@ TEST_CASE("unbounded_dropping_queue_max_capacity_notifier")
     }(),
     FileEventNotifier{});
 
-  UnboundedDroppingLogger* logger =
-    UnboundedDroppingFrontend::create_or_get_logger(logger_name, std::move(file_sink));
+  UnboundedDroppingLogger* logger = UnboundedDroppingFrontend::create_or_get_logger(
+    logger_name, std::move(file_sink), PatternFormatterOptions{}, ClockSourceType::System);
 
+  static constexpr MacroMetadata metadata{
+    "", "", "message {} {}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  std::vector<std::string> expected_messages;
+
+  // Fill before starting the backend so growth and dropping are deterministic.
   for (size_t i = 0; i < number_of_messages; ++i)
   {
     std::string payload(256, static_cast<char>('A' + (i % 26)));
-    LOG_INFO(logger, "message {} {}", i, payload);
+    bool const accepted = logger->log_statement<false>(&metadata, i, payload);
+    if (accepted)
+    {
+      expected_messages.push_back("message " + std::to_string(i) + " " + payload);
+    }
   }
 
+  Backend::start(backend_options);
   Backend::notify();
-
-  do
-  {
-    std::this_thread::sleep_for(std::chrono::milliseconds{100});
-  } while (testing::file_contents(filename).empty());
 
   logger->flush_log();
   UnboundedDroppingFrontend::remove_logger(logger);
@@ -84,6 +86,13 @@ TEST_CASE("unbounded_dropping_queue_max_capacity_notifier")
 
   REQUIRE(saw_reallocation);
   REQUIRE(saw_max_capacity_drop);
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), expected_messages.size());
+  for (std::string const& message : expected_messages)
+  {
+    REQUIRE(testing::file_contains(file_contents, message));
+  }
 
   testing::remove_file(filename);
 }

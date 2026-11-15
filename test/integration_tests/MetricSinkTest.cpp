@@ -16,6 +16,11 @@
 
 using namespace quill;
 
+struct MetricSinkFrontendOptions : quill::FrontendOptions
+{
+  static constexpr size_t initial_queue_capacity = 1024;
+};
+
 struct CapturedMetric
 {
   MetricMetadata const* metric_metadata{nullptr};
@@ -77,6 +82,8 @@ struct ThrowingFanoutSink final : public quill::Sink
 
 TEST_CASE("metric_sink")
 {
+  using MetricFrontend = FrontendImpl<MetricSinkFrontendOptions>;
+  using MetricLogger = LoggerImpl<MetricSinkFrontendOptions>;
   static std::string const throwing_sink_name = "metric_sink_test_throwing_sink";
   static std::string const sink_name = "metric_sink_test_sink";
   static std::string const logger_name = "metric_sink_test_logger";
@@ -84,16 +91,21 @@ TEST_CASE("metric_sink")
 
   std::atomic<size_t> error_notifications{0};
   BackendOptions backend_options;
-  backend_options.error_notifier = [&error_notifications](std::string const&)
-  { error_notifications.fetch_add(1, std::memory_order_relaxed); };
+  backend_options.error_notifier = [&error_notifications](std::string const& message)
+  {
+    if (message.find("Allocated a new SPSC queue") == std::string::npos)
+    {
+      error_notifications.fetch_add(1, std::memory_order_relaxed);
+    }
+  };
 
-  auto throwing_sink = Frontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
-  auto metric_sink = Frontend::create_or_get_sink<MetricCapturingSink>(sink_name);
-  Logger* logger = Frontend::create_or_get_logger(
+  auto throwing_sink = MetricFrontend::create_or_get_sink<ThrowingFanoutSink>(throwing_sink_name);
+  auto metric_sink = MetricFrontend::create_or_get_sink<MetricCapturingSink>(sink_name);
+  MetricLogger* logger = MetricFrontend::create_or_get_logger(
     logger_name, std::initializer_list<std::shared_ptr<Sink>>{throwing_sink, metric_sink});
 
-  MetricMetadata const* metric_metadata =
-    Frontend::create_metric(metric_key, "requests_total", {{"method", "POST"}, {"status", "200"}});
+  MetricMetadata const* metric_metadata = MetricFrontend::create_metric(
+    metric_key, "requests_total", {{"method", "POST"}, {"status", "200"}});
 
   LOG_INFO(logger, "sink fan-out remains isolated");
   METRIC(logger, metric_metadata, 12.5);
@@ -123,11 +135,22 @@ TEST_CASE("metric_sink")
     DYNAMIC_METRIC(logger, "metric_sink_test_identity", {{"a", std::string{"b\0c", 3}}, {"d", "e"}}, 9.0);
   }
 
+  MetricLogger* recovery_logger = MetricFrontend::create_or_get_logger(
+    "metric_sink_recovery_logger", metric_sink, PatternFormatterOptions{}, ClockSourceType::System);
+  static constexpr size_t recovery_samples = 128;
+
+  // These samples exceed the small queue capacity and exercise metric reservation after growth.
+  for (size_t i = 0; i < recovery_samples; ++i)
+  {
+    REQUIRE(recovery_logger->publish_metric(metric_metadata, static_cast<double>(i)));
+  }
+
   Backend::start(backend_options);
   logger->flush_log();
 
   Backend::stop();
-  Frontend::remove_logger(logger);
+  MetricFrontend::remove_logger(logger);
+  MetricFrontend::remove_logger(recovery_logger);
 
   auto* sink_ptr = static_cast<MetricCapturingSink*>(metric_sink.get());
   REQUIRE_EQ(sink_ptr->log_writes.load(std::memory_order_relaxed), 1);
@@ -138,7 +161,7 @@ TEST_CASE("metric_sink")
 #endif
 
   std::lock_guard<std::mutex> const lock{sink_ptr->mutex};
-  REQUIRE_EQ(sink_ptr->metrics.size(), 11);
+  REQUIRE_EQ(sink_ptr->metrics.size(), 11 + recovery_samples);
 
   REQUIRE_EQ(sink_ptr->metrics[0].metric_metadata, metric_metadata);
   REQUIRE_EQ(sink_ptr->metrics[0].metric_metadata->metric_key(), metric_key);
@@ -188,4 +211,12 @@ TEST_CASE("metric_sink")
   REQUIRE_NE(sink_ptr->metrics[9].metric_metadata->metric_key(), separator_metric->metric_key());
   REQUIRE_NE(sink_ptr->metrics[10].metric_metadata, separator_metric);
   REQUIRE_EQ(sink_ptr->metrics[10].metric_metadata->labels()[0].value, std::string("b\0c", 3));
+
+  for (size_t i = 0; i < recovery_samples; ++i)
+  {
+    CapturedMetric const& sample = sink_ptr->metrics[11 + i];
+    REQUIRE_EQ(sample.metric_metadata, metric_metadata);
+    REQUIRE_EQ(sample.logger_name, "metric_sink_recovery_logger");
+    REQUIRE_EQ(sample.value, doctest::Approx{static_cast<double>(i)});
+  }
 }

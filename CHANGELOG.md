@@ -106,6 +106,7 @@
 
 ## Unreleased
 
+- Reduced overhead for System/User clocks.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
 
