@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 60
     strategy:
       matrix:
-        os: [ macos-14 ]
+        os: [ macos-15 ]
         build_type: [ Debug, Release ]
         std: [ 17, 20 ]
 
