@@ -62,6 +62,7 @@ FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
 
 #  include <cmath>   // std::signbit
 #  include <limits>  // std::numeric_limits
+#  include <new>     // std::bad_alloc
 #  if defined(__GLIBCXX__) && !defined(_GLIBCXX_USE_DUAL_ABI)
 // Workaround for pre gcc 5 libstdc++.
 #    include <memory>  // std::allocator_traits
@@ -749,7 +750,7 @@ template <typename T> struct allocator : private std::decay<void> {
   using value_type = T;
 
   auto allocate(size_t n) -> T* {
-    FMTQUILL_ASSERT(n <= max_value<size_t>() / sizeof(T), "");
+    if (n > max_value<size_t>() / sizeof(T)) FMTQUILL_THROW(std::bad_alloc());
     return static_cast<T*>(detail::allocate(n * sizeof(T)));
   }
 
@@ -3672,6 +3673,11 @@ template <typename Char, typename OutputIt, typename T,
 auto write(OutputIt out, const T* value, const format_specs& specs = {},
            locale_ref = {}) -> OutputIt {
   return write_ptr<Char>(out, bit_cast<uintptr_t>(value), &specs);
+}
+
+template <typename Char, typename OutputIt>
+auto write(OutputIt out, nullptr_t) -> OutputIt {
+  return write<Char>(out, static_cast<const void*>(nullptr));
 }
 
 template <typename Char, typename OutputIt, typename T,
