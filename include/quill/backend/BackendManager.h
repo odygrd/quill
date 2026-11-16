@@ -125,7 +125,7 @@ private:
   Spinlock _stop_spinlock;
   BackendWorker _backend_worker;
   ManualBackendWorker _manual_backend_worker{&_backend_worker};
-  std::atomic<std::once_flag*> _start_once_flag{new std::once_flag};
+  std::atomic<std::once_flag*> _start_once_flag{new std::once_flag{}};
   std::atomic<bool> _atexit_registered{false};
 };
 

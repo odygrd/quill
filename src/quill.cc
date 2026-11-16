@@ -99,8 +99,13 @@ module;
   #if !defined(NOMINMAX)
     #define NOMINMAX
   #endif
+  // import std does not provide these Windows runtime declarations.
   #include <io.h>
+  #include <share.h>
   #include <windows.h>
+  #if defined(_MSVC_STL_VERSION)
+    #include <xtimec.h>
+  #endif
 #endif
 #if !defined(__INTEL_COMPILER)
   #if QUILL_HAS_INCLUDE(<x86gprintrin.h>)
