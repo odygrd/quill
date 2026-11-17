@@ -1,4 +1,5 @@
 - [Unreleased](#unreleased)
+- [v14.0.0](#v1400)
 - [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
 - [v12.2.2](#v1222)
@@ -105,6 +106,8 @@
 - [v1.0.0](#v100)
 
 ## Unreleased
+
+## v14.0.0
 
 - Compile-time immediate-flush control is now `FrontendOptions::enable_immediate_flush`
   (default `true`), replacing the preprocessor setting for both logging APIs. CSV and signal-handler
