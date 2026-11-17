@@ -43,7 +43,7 @@ TEST_CASE("unbounded_dropping_queue_max_capacity_notifier")
     FileEventNotifier{});
 
   UnboundedDroppingLogger* logger = UnboundedDroppingFrontend::create_or_get_logger(
-    logger_name, std::move(file_sink), PatternFormatterOptions{}, ClockSourceType::System);
+    logger_name, std::move(file_sink), PatternFormatterOptions{}, ClockSource::system());
 
   static constexpr MacroMetadata metadata{
     "", "", "message {} {}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};

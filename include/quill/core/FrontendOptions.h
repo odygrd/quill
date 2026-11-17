@@ -8,9 +8,11 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/Common.h"
+#include "quill/core/ClockSource.h"
 
 #ifndef QUILL_MODULE
   #include <cstdint>
+  #include <type_traits>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -39,6 +41,13 @@ QUILL_BEGIN_EXPORT
  */
 struct FrontendOptions
 {
+  /**
+   * Select frontend clock dispatch. ClockSource preserves per-logger runtime clock selection.
+   * To call a UserClockSource implementation directly, set clock_type to that class and pass
+   * ClockSource::custom(clock) when creating a logger. The object must outlive its loggers and records.
+   */
+  using clock_type = ClockSource;
+
   /**
    * Each frontend thread has its own queue, which can be configured with various options:
    * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then blocks.
@@ -78,5 +87,20 @@ struct FrontendOptions
 };
 
 QUILL_END_EXPORT
+
+namespace detail
+{
+template <typename TOptions, typename = void>
+struct FrontendClockType
+{
+  using type = ClockSource;
+};
+
+template <typename TOptions>
+struct FrontendClockType<TOptions, std::void_t<typename TOptions::clock_type>>
+{
+  using type = typename TOptions::clock_type;
+};
+} // namespace detail
 
 QUILL_END_NAMESPACE

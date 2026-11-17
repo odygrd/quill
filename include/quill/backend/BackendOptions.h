@@ -273,10 +273,8 @@ struct BackendOptions
   std::function<void()> backend_worker_on_poll_end = {};
 
   /**
-   * This option is only applicable if at least one frontend is using a Logger with
-   * ClockSourceType::Tsc
-   *
-   * When the system clock is used, this option can be ignored.
+   * Applies to ClockSource::tsc() and user clocks returning TimestampType::TscTicks.
+   * Clocks returning epoch nanoseconds do not use this option.
    *
    * Controls the frequency at which the backend recalculates and syncs the internal RdtscClock
    * with the system time from the system wall clock.

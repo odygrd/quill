@@ -10,6 +10,7 @@
   #include "quill/backend/Utf8Conv.h"
 #endif
 
+#include "quill/UserClockSource.h"
 #include "quill/backend/BackendMdcState.h"
 #include "quill/backend/BackendOptions.h"
 #include "quill/backend/BackendUtilities.h"
@@ -888,13 +889,24 @@ private:
     QUILL_ASSERT(transit_event->logger_base,
                  "transit_event->logger_base is nullptr after memcpy from queue");
 
-    QUILL_ASSERT(transit_event->logger_base->_clock_source == ClockSourceType::Tsc ||
-                   transit_event->logger_base->_clock_source == ClockSourceType::System ||
-                   transit_event->logger_base->_clock_source == ClockSourceType::User,
-                 "transit_event->logger_base->_clock_source has invalid enum value - possible "
-                 "memory corruption");
+    ClockSourceType const clock_source = transit_event->logger_base->_clock_source;
 
-    if (transit_event->logger_base->_clock_source == ClockSourceType::Tsc)
+    QUILL_ASSERT(clock_source == ClockSourceType::Tsc || clock_source == ClockSourceType::System ||
+                   clock_source == ClockSourceType::User,
+                 "Logger has an invalid ClockSourceType");
+
+    // Runtime custom clocks use User for dispatch; their timestamp format is independent.
+    TimestampType const timestamp_type = (clock_source == ClockSourceType::Tsc)
+      ? TimestampType::TscTicks
+      : (transit_event->logger_base->_user_clock
+           ? transit_event->logger_base->_user_clock->timestamp_type()
+           : TimestampType::EpochNanoseconds);
+
+    QUILL_ASSERT(timestamp_type == TimestampType::TscTicks ||
+                   timestamp_type == TimestampType::EpochNanoseconds,
+                 "Clock returned an invalid TimestampType");
+
+    if (timestamp_type == TimestampType::TscTicks)
     {
       // If using the rdtsc clock, convert the value to nanoseconds since epoch.
       // This conversion ensures that every transit inserted in the buffer below has a timestamp in
@@ -923,8 +935,8 @@ private:
         _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->timestamp);
     }
 
-    // Check if strict log timestamp order is enabled and the clock source is not User
-    if ((transit_event->logger_base->_clock_source != ClockSourceType::User) &&
+    // Custom epoch time is authoritative; raw ticks and built-in clocks use normal ordering.
+    if ((clock_source != ClockSourceType::User || timestamp_type == TimestampType::TscTicks) &&
         (ts_now != (std::numeric_limits<uint64_t>::max)()))
     {
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and

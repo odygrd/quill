@@ -174,7 +174,7 @@ public:
   template <typename TLogger>
   LoggerBase* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                             PatternFormatterOptions const& pattern_formatter_options,
-                            ClockSourceType clock_source, UserClockSource* user_clock)
+                            ClockSourceType clock_source, typename TLogger::clock_object_t* clock)
   {
     QUILL_TRY
     {
@@ -202,7 +202,7 @@ public:
 
       std::unique_ptr<LoggerBase> new_logger{
         new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-                    pattern_formatter_options, clock_source, user_clock}};
+                    pattern_formatter_options, clock_source, clock}};
 
       _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
 
@@ -235,7 +235,7 @@ public:
   template <typename TLogger>
   LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                    PatternFormatterOptions const& pattern_formatter_options,
-                                   ClockSourceType clock_source, UserClockSource* user_clock)
+                                   ClockSourceType clock_source, typename TLogger::clock_object_t* clock)
   {
     QUILL_TRY
     {
@@ -257,7 +257,7 @@ public:
         // If logger pointer is null, create a new logger instance.
         std::unique_ptr<LoggerBase> new_logger{
           new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-                      pattern_formatter_options, clock_source, user_clock}};
+                      pattern_formatter_options, clock_source, clock}};
 
         _insert_logger(static_cast<std::unique_ptr<LoggerBase>&&>(new_logger));
 
@@ -295,8 +295,11 @@ public:
       return get_logger(logger_name);
     }
 
-    return create_or_get_logger<TLogger>(logger_name, source_logger->_sinks, source_logger->_pattern_formatter_options,
-                                         source_logger->_clock_source, source_logger->_user_clock);
+    // Frontend validates that the source logger uses the same frontend specialization.
+    auto* clock = static_cast<typename TLogger::clock_object_t*>(source_logger->_user_clock);
+    return create_or_get_logger<TLogger>(logger_name, source_logger->_sinks,
+                                         source_logger->_pattern_formatter_options,
+                                         source_logger->_clock_source, clock);
   }
 
   /***/

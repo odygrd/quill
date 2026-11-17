@@ -24,7 +24,7 @@ int main()
   // Create or get a logger with a console sink, using TSC as the clock source which is already the default
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1"),
-    quill::PatternFormatterOptions{}, quill::ClockSourceType::Tsc);
+    quill::PatternFormatterOptions{}, quill::ClockSource::tsc());
 
   // Log an example message to initialize the backend and timestamp the log
   LOG_INFO(logger, "Backend initialized");

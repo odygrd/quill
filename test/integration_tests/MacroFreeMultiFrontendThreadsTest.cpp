@@ -51,7 +51,7 @@ TEST_CASE("macro_free_multi_frontend_threads")
             "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
             "%(message)",
             "%Y-%m-%d %H:%M:%S.%Qns", Timezone::GmtTime, false},
-          ClockSourceType::System);
+          ClockSource::system());
 
         for (size_t j = 0; j < number_of_messages; ++j)
         {

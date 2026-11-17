@@ -25,7 +25,7 @@ int main()
     "root", std::move(console_sink),
     quill::PatternFormatterOptions{"%(time) [%(process_id)] [%(thread_id)] %(logger) - %(message)",
                                    "%D %H:%M:%S.%Qms %z", quill::Timezone::GmtTime, false},
-    quill::ClockSourceType::System);
+    quill::ClockSource::system());
 
   // Change the LogLevel to print everything
   logger->set_log_level(quill::LogLevel::TraceL3);

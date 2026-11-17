@@ -54,7 +54,7 @@ void quill_benchmark(std::vector<uint16_t> const& thread_count_array,
     quill::PatternFormatterOptions{
       "%(time) [%(thread_id)] %(short_source_location) %(log_level) %(message)", "%H:%M:%S.%Qns",
       quill::Timezone::LocalTime, false},
-    quill::ClockSourceType::System);
+    quill::ClockSource::system());
 
   // Measure enabled logging regardless of the application environment.
   logger->set_log_level(quill::LogLevel::Info);
