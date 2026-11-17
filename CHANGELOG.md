@@ -106,6 +106,9 @@
 
 ## Unreleased
 
+- Compile-time immediate-flush control is now `FrontendOptions::enable_immediate_flush`
+  (default `true`), replacing the preprocessor setting for both logging APIs. CSV and signal-handler
+  messages follow the logger's flush policy.
 - **Breaking change:** Logger creation now takes `ClockSource::tsc()`, `ClockSource::system()`, or
   `ClockSource::custom(clock)` instead of the previous clock-source enum and optional pointer.
 - Added `FrontendOptions::clock_type`, defaulting to `ClockSource` for runtime selection, with

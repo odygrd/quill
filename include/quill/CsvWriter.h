@@ -219,7 +219,7 @@ public:
   void append_row(Args&&... fields)
   {
     _throw_if_closed("append_row()");
-    _logger->template log_statement<false>(&_line_metadata, static_cast<Args&&>(fields)...);
+    _logger->log_statement(&_line_metadata, static_cast<Args&&>(fields)...);
   }
 
   /**
@@ -228,7 +228,7 @@ public:
   void write_header()
   {
     _throw_if_closed("write_header()");
-    _logger->template log_statement<false>(&_header_metadata, TCsvSchema::header);
+    _logger->log_statement(&_header_metadata, TCsvSchema::header);
   }
 
   /**

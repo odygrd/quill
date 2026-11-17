@@ -49,6 +49,12 @@ struct FrontendOptions
   using clock_type = ClockSource;
 
   /**
+   * Compile in support for Logger::set_immediate_flush(). Disable to remove its hot-path check.
+   * Explicit flush_log() calls and internal control events remain available.
+   */
+  static constexpr bool enable_immediate_flush = true;
+
+  /**
    * Each frontend thread has its own queue, which can be configured with various options:
    * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then blocks.
    * - UnboundedDropping: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then drops log messages.

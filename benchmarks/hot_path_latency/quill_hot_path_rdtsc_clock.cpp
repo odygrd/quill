@@ -12,6 +12,7 @@
 
 struct FrontendOptions : quill::FrontendOptions
 {
+  static constexpr bool enable_immediate_flush = false;
 };
 
 using Frontend = quill::FrontendImpl<FrontendOptions>;

@@ -38,7 +38,7 @@ TEST_CASE("bounded_dropping_oversized_control")
   std::atomic<bool> completed{false};
   std::thread producer{[&]
                        {
-                         while (logger->template log_statement<false>(&metadata))
+                         while (logger->log_statement(&metadata))
                          {
                          }
                          full.store(true, std::memory_order_release);

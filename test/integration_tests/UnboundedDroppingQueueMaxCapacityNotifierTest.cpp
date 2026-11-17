@@ -53,7 +53,7 @@ TEST_CASE("unbounded_dropping_queue_max_capacity_notifier")
   for (size_t i = 0; i < number_of_messages; ++i)
   {
     std::string payload(256, static_cast<char>('A' + (i % 26)));
-    bool const accepted = logger->log_statement<false>(&metadata, i, payload);
+    bool const accepted = logger->log_statement(&metadata, i, payload);
     if (accepted)
     {
       expected_messages.push_back("message " + std::to_string(i) + " " + payload);
