@@ -253,6 +253,8 @@ Prometheus integration.
   a configurable grace window for delayed producers and optional sink-visible monotonic timestamp correction.
   See [Timestamp Types](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html).
 - **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or `custom clocks` - ideal for simulations and more.
+  See the [custom clock examples](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html)
+  for runtime-polymorphic clocks or a concrete clock type that allows frontend inlining.
 - **Backtrace Logging**: Store messages in a ring buffer for on-demand display.
   See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
 - **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, ability to create custom sinks and more.
@@ -681,7 +683,7 @@ configure with:
 -DQUILL_NO_THREAD_NAME_SUPPORT:BOOL=ON
 ```
 
-For timestamps, use `quill::ClockSourceType::System`. Quill also includes an `AndroidSink` for
+For timestamps, use `quill::ClockSource::system()`. Quill also includes an `AndroidSink` for
 Android's logging system.
 
 #### Minimal Example to Start Logging on Android
@@ -698,7 +700,7 @@ auto sink = quill::Frontend::create_or_get_sink<quill::AndroidSink>("app", [](){
 
 auto logger = quill::Frontend::create_or_get_logger("root", std::move(sink),
                                                     quill::PatternFormatterOptions {}, 
-                                                    quill::ClockSourceType::System);
+                                                    quill::ClockSource::system());
 
 LOG_INFO(logger, "Test {}", 123);
 ```

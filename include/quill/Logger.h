@@ -87,6 +87,14 @@ class LoggerImpl : public detail::LoggerBase
 {
 public:
   using frontend_options_t = TFrontendOptions;
+  using clock_type = typename detail::FrontendClockType<frontend_options_t>::type;
+
+  static constexpr bool using_runtime_clock = std::is_same_v<clock_type, ClockSource>;
+  using clock_object_t = std::conditional_t<using_runtime_clock, UserClockSource, clock_type>;
+  using clock_source_t = std::conditional_t<using_runtime_clock, ClockSource, UserClockRef<clock_type>>;
+
+  static_assert(std::is_base_of_v<UserClockSource, clock_object_t>,
+                "FrontendOptions::clock_type must be ClockSource or derive from UserClockSource");
 
   static constexpr bool using_unbounded_queue =
     (frontend_options_t::queue_type == QueueType::UnboundedBlocking) ||
@@ -125,16 +133,19 @@ public:
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
                  "Attempting to log with an invalidated logger");
 
-    // Keep TSC here and non-TSC clock calls in the existing noinline helper. A shared writer plus
-    // non-TSC wrapper added extra Args... instantiations per signature; joining runtime clock
-    // calls into this body instead introduced TSC register saves in our assembly probes.
-    if (_clock_source != ClockSourceType::Tsc)
+    // For runtime clock selection, keep non-TSC reads in the noinline helper. A shared writer
+    // plus non-TSC wrapper added extra Args... instantiations per signature; joining runtime
+    // clock calls into this body instead introduced TSC register saves in our assembly probes.
+    if constexpr (using_runtime_clock)
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
-        macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+      if (_clock_source != ClockSourceType::Tsc)
+      {
+        return _log_statement_noinline<enable_immediate_flush, Args...>(
+          macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+      }
     }
 
-    uint64_t const current_timestamp = detail::rdtsc();
+    uint64_t const current_timestamp = _get_timestamp();
     detail::ThreadContext* const thread_context = _thread_context;
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
@@ -209,12 +220,15 @@ public:
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
                  "Attempting to log with an invalidated logger");
 
-    if (_clock_source != ClockSourceType::Tsc)
+    if constexpr (using_runtime_clock)
     {
-      return _publish_metric_noinline(metric_metadata, 0, value);
+      if (_clock_source != ClockSourceType::Tsc)
+      {
+        return _publish_metric_noinline(metric_metadata, 0, value);
+      }
     }
 
-    uint64_t const current_timestamp = detail::rdtsc();
+    uint64_t const current_timestamp = _get_timestamp();
     detail::ThreadContext* const thread_context = _thread_context;
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
@@ -283,8 +297,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::DynamicMetric};
 
-    uint64_t const timestamp =
-      (_clock_source == ClockSourceType::Tsc) ? detail::rdtsc() : _get_non_tsc_timestamp();
+    uint64_t const timestamp = _get_timestamp();
 
     if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
@@ -442,8 +455,7 @@ public:
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
                  "Attempting to log with an invalidated logger");
 
-    uint64_t const current_timestamp =
-      (_clock_source == ClockSourceType::Tsc) ? detail::rdtsc() : _get_non_tsc_timestamp();
+    uint64_t const current_timestamp = _get_timestamp();
 
     if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
@@ -680,12 +692,19 @@ private:
   /***/
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
-             UserClockSource* user_clock)
+             clock_object_t* clock)
     : detail::LoggerBase(static_cast<std::string&&>(logger_name),
                          static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
                          static_cast<PatternFormatterOptions&&>(pattern_formatter_options),
-                         user_clock ? ClockSourceType::User : clock_source, user_clock)
+                         clock ? ClockSourceType::User : clock_source, clock)
   {
+    if constexpr (!using_runtime_clock)
+    {
+      if (!clock)
+      {
+        QUILL_THROW(QuillError{"FrontendOptions::clock_type requires a clock object"});
+      }
+    }
   }
 
   /**
@@ -695,9 +714,12 @@ private:
   QUILL_NODISCARD QUILL_NOINLINE bool _publish_metric_noinline(MetricMetadata const* metric_metadata,
                                                                uint64_t current_timestamp, double value)
   {
-    if (current_timestamp == 0)
+    if constexpr (using_runtime_clock)
     {
-      current_timestamp = _get_non_tsc_timestamp();
+      if (current_timestamp == 0)
+      {
+        current_timestamp = _get_non_tsc_timestamp();
+      }
     }
 
     if (QUILL_UNLIKELY(_thread_context == nullptr))
@@ -748,16 +770,20 @@ private:
   /**
    * Slow path for log_statement. Small, safely copyable arguments are accepted by value so the hot
    * caller can keep them in registers; all other arguments retain their original reference type.
-   * If current_timestamp is 0, a non-TSC timestamp is fetched.
+   * With ClockSource, zero requests a non-TSC read. A concrete clock has already supplied its
+   * timestamp, including a valid zero.
    */
   template <bool enable_immediate_flush, typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
                                                               uint64_t current_timestamp,
                                                               detail::slow_path_arg_t<OriginalArgs>... fmt_args)
   {
-    if (current_timestamp == 0)
+    if constexpr (using_runtime_clock)
     {
-      current_timestamp = _get_non_tsc_timestamp();
+      if (current_timestamp == 0)
+      {
+        current_timestamp = _get_non_tsc_timestamp();
+      }
     }
 
     if (QUILL_UNLIKELY(_thread_context == nullptr))
@@ -809,9 +835,21 @@ private:
     return true;
   }
 
-  /**
-   * @brief Read a System/User timestamp inside the existing non-TSC logging path.
-   */
+  /** Read the selected runtime clock or call the concrete clock directly. */
+  QUILL_NODISCARD inline uint64_t _get_timestamp() const
+  {
+    if constexpr (using_runtime_clock)
+    {
+      return (_clock_source == ClockSourceType::Tsc) ? detail::rdtsc() : _get_non_tsc_timestamp();
+    }
+    else
+    {
+      // Qualified dispatch suppresses virtual calls even when the concrete class is not final.
+      return static_cast<clock_type const*>(_user_clock)->clock_type::now();
+    }
+  }
+
+  /** Keep separate to avoid a redundant TSC check on the System/User slow path. */
   QUILL_NODISCARD inline uint64_t _get_non_tsc_timestamp() const
   {
     if (_clock_source == ClockSourceType::System)

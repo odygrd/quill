@@ -33,11 +33,16 @@ There are several ways to get the timestamp on the frontend:
 
 - **System**: This method calls ``std::chrono::system_clock::now()`` on the frontend and pushes the wall time value to the queue. It is slower than TSC but provides the most accurate and immediately usable timestamps. The backend thread does not require any additional initialization time since the ``RdtscClock`` is not used.
 
-- **User**: This method allows the user to provide a custom timestamp in nanoseconds since epoch via ``UserClockSource``. This is useful, for example, in simulations where you want to display a custom timestamp rather than the current one in the log statements.
+- **User**: Pass a ``UserClockSource`` object to provide custom timestamps. Its optional virtual
+  ``timestamp_type() const noexcept`` method reports the return format: ``TimestampType::TscTicks``
+  or ``TimestampType::EpochNanoseconds`` (the default).
 
-Clock sources are selected when creating a logger and do not change its C++ type, allowing the
-same application binary to choose live or simulation clocks through runtime configuration.
-Custom clocks retain a virtual call to ``UserClockSource::now()``.
+Pass one clock configuration when creating a logger: ``ClockSource::tsc()``,
+``ClockSource::system()``, or ``ClockSource::custom(clock)``. Omitting it selects TSC. With the
+default frontend, these choices share the same ``Logger*`` type, so one binary can choose live
+or simulation clocks through runtime configuration.
+With default frontend options, custom clocks use a virtual ``UserClockSource::now()`` call.
+The backend uses ``timestamp_type()`` to interpret custom clock values.
 
 Providing a Custom Timestamp
 ----------------------------
@@ -45,6 +50,72 @@ Providing a Custom Timestamp
 .. literalinclude:: ../examples/user_clock_source.cpp
    :language: cpp
    :linenos:
+
+Frontend Clock Selection
+------------------------
+
+``FrontendOptions::clock_type`` selects how the frontend reads timestamps. Its default,
+``quill::ClockSource``, is the runtime configuration type accepted by logger creation. A
+``ClockSource`` variable can hold any of the three selections. Options types without
+``clock_type`` retain this runtime behavior.
+
+To inline a clock, set ``clock_type`` to the ``UserClockSource`` subclass implementing the
+``now() const`` function you want called, and pass ``ClockSource::custom(clock)`` through the same
+factory argument. This expression retains the clock's type for compile-time checking.
+The frontend calls that implementation directly, without virtual dispatch. The selected type may
+be abstract if it already implements ``now()``; pass an instance of a derived class in that case.
+Further overrides of ``now()`` in derived classes are bypassed; the backend still calls
+``timestamp_type()`` virtually, so it must describe the selected ``now()`` implementation.
+The option selects dispatch; the argument supplies the clock object and its state.
+
+``ClockSource`` selects a clock implementation; ``TimestampType`` describes the value returned by
+``now()``. The clock object's virtual ``timestamp_type() const noexcept`` defaults to
+``TimestampType::EpochNanoseconds`` for compatibility with existing clocks:
+
+- ``TimestampType::TscTicks`` means raw TSC ticks, converted to epoch nanoseconds by the backend.
+- ``TimestampType::EpochNanoseconds`` means nanoseconds since the Unix epoch. Custom clocks retain
+  the existing authoritative user-clock ordering behavior, whether the value is simulation time
+  or a wall-clock reading.
+
+The clock is non-owned and must outlive its logger. Both clock methods must be thread-safe, and
+its timestamp representation must remain consistent for the logger's lifetime, including queued
+records. Different loggers may use different instances of the configured clock type. Zero is a
+valid nanosecond timestamp and is not read again during queue recovery.
+
+``ClockSource::custom(clock)`` is non-owning and accepts a clock object by reference. When
+``clock_type`` names an implementation class, this reference must refer to that class or a
+derived class. Passing a different clock type, selecting a built-in source, or omitting the
+clock argument when creating a logger is a compile-time error. Use one frontend/options type
+throughout the application and its shared libraries, including typed signal-handler setup.
+
+The same factory expression works with the default frontend (virtual dispatch) and a frontend
+configured with the clock's implementation type (direct dispatch):
+
+.. literalinclude:: snippets/quill_docs_custom_clock.cpp
+   :language: cpp
+   :linenos:
+
+If every logger in the application uses TSC, an instance of the following clock removes runtime
+clock selection. It uses the same inline TSC read and queue encoder as the default TSC logger
+and can save a few frontend instructions, depending on the compiler and build options.
+
+.. literalinclude:: snippets/quill_docs_custom_tsc_clock.cpp
+   :language: cpp
+   :start-at: struct TscClock
+
+Updating Existing Logger Creation Calls
+---------------------------------------
+
+Replace the previous enum/pointer pair with one clock selection. Default TSC creation calls
+without clock arguments remain the same:
+
+.. code-block:: cpp
+
+   // Previous: ..., pattern_options, ClockSourceType::User, &clock
+   // Current:
+   Frontend::create_or_get_logger("app", sink, pattern_options, ClockSource::custom(clock));
+
+Use ``ClockSource::tsc()`` or ``ClockSource::system()`` for explicit built-in clock selections.
 
 Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 ------------------------------------------------------------------

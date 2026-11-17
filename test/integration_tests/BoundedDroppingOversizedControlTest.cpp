@@ -26,7 +26,7 @@ TEST_CASE("bounded_dropping_oversized_control")
   using Frontend = quill::FrontendImpl<BoundedControlOptions>;
   auto sink = Frontend::create_sink<quill::NullSink>("bounded_dropping_control_sink");
   auto* logger = Frontend::create_logger("bounded_dropping_control_logger", sink,
-                                         quill::PatternFormatterOptions{}, quill::ClockSourceType::System);
+                                         quill::PatternFormatterOptions{}, quill::ClockSource::system());
   std::string const oversized(8192, 'x');
   CHECK_THROWS_AS(logger->set_mdc("request", oversized), quill::QuillError);
   CHECK_THROWS_AS(logger->erase_mdc(oversized), quill::QuillError);

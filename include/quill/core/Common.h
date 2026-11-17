@@ -113,14 +113,19 @@ enum class SinkFlushReason : uint8_t
   Final     /**< Final flush requested during backend shutdown. */
 };
 
-/**
- * Enum for the used clock type
- */
+/** Runtime clock selection for a logger. */
 enum class ClockSourceType : uint8_t
 {
   Tsc,
   System,
   User
+};
+
+/** Representation returned by a clock's now() function. */
+enum class TimestampType : uint8_t
+{
+  TscTicks,
+  EpochNanoseconds
 };
 
 /**

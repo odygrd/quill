@@ -44,9 +44,9 @@ public:
   /***/
   LoggerBase(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
-             UserClockSource* user_clock)
+             UserClockSource* clock)
     : _logger_name(static_cast<std::string&&>(logger_name)),
-      _user_clock(user_clock),
+      _user_clock(clock),
       _clock_source(clock_source),
       _pattern_formatter_options(static_cast<PatternFormatterOptions&&>(pattern_formatter_options))
   {
@@ -81,8 +81,8 @@ public:
   QUILL_NODISCARD UserClockSource* get_user_clock_source() const noexcept { return _user_clock; }
 
   /**
-   * Returns the type of clock source being used.
-   * @return The ClockSourceType enum value representing the current clock source.
+   * Returns the configured clock source. Supplied clock objects report User; their
+   * timestamp_type() reports the timestamp representation to the backend.
    */
   QUILL_NODISCARD ClockSourceType get_clock_source_type() const noexcept { return _clock_source; }
 
@@ -217,10 +217,10 @@ protected:
 
   // -- frontend access BEGIN --
   std::string _logger_name; /* Set by the frontend once, accessed by the frontend AND backend */
-  UserClockSource* _user_clock{nullptr}; /* A non-owned pointer to a custom timestamp clock, valid only when provided. used by frontend only */
+  UserClockSource* _user_clock{nullptr}; /* Non-owned; read by both frontend and backend. */
   std::atomic<uint32_t> _message_flush_threshold{0};   /* used by frontend only */
   std::atomic<uint32_t> _messages_since_last_flush{0}; /* used by frontend only */
-  ClockSourceType const _clock_source; /* Set once during construction and accessed by the frontend AND backend */
+  ClockSourceType const _clock_source; /* Built-in clock selection or User for a supplied clock object. */
   std::atomic<LogLevel> _log_level{LogLevel::Info}; /* used by frontend only */
   std::atomic<LogLevel> _backtrace_flush_level{LogLevel::None}; /** Updated by the frontend at any time, accessed by the backend */
   std::atomic<bool> _valid{true}; /* Updated by the frontend at any time, accessed by the backend */

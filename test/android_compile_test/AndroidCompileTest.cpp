@@ -19,7 +19,7 @@ int main()
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "android_logger", std::move(android_sink), quill::PatternFormatterOptions{},
-    quill::ClockSourceType::System);
+    quill::ClockSource::system());
 
   LOG_INFO(logger, "Android compile test {}", 1);
 

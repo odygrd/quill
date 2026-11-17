@@ -236,6 +236,7 @@ set(HEADER_FILES
         include/quill/core/Attributes.h
         include/quill/core/BoundedSPSCQueue.h
         include/quill/core/ChronoTimeUtils.h
+        include/quill/core/ClockSource.h
         include/quill/core/Common.h
         include/quill/core/DynamicFormatArgStore.h
         include/quill/core/Codec.h

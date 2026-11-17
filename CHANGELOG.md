@@ -106,6 +106,11 @@
 
 ## Unreleased
 
+- **Breaking change:** Logger creation now takes `ClockSource::tsc()`, `ClockSource::system()`, or
+  `ClockSource::custom(clock)` instead of the previous clock-source enum and optional pointer.
+- Added `FrontendOptions::clock_type`, defaulting to `ClockSource` for runtime selection, with
+  support for user-clock implementation types to inline timestamp reads.
+  ([#1009](https://github.com/odygrd/quill/issues/1009))
 - Fixed MSVC named module builds with `QUILL_IMPORT_STD=ON` failing with standard library
   redefinition errors or internal compiler errors. ([#1012](https://github.com/odygrd/quill/issues/1012))
 - Updated bundled `libfmt` to `v12.2.1`

@@ -136,7 +136,7 @@ TEST_CASE("metric_sink")
   }
 
   MetricLogger* recovery_logger = MetricFrontend::create_or_get_logger(
-    "metric_sink_recovery_logger", metric_sink, PatternFormatterOptions{}, ClockSourceType::System);
+    "metric_sink_recovery_logger", metric_sink, PatternFormatterOptions{}, ClockSource::system());
   static constexpr size_t recovery_samples = 128;
 
   // These samples exceed the small queue capacity and exercise metric reservation after growth.

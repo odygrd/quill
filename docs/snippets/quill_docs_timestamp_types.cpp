@@ -14,21 +14,21 @@ int main()
 
   auto console_sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("sink_id_1");
 
-  // Ensure at least one logger with quill::ClockSourceType::Tsc is created for BackendTscClock to function
+  // Ensure at least one logger with quill::ClockSource::tsc() is created for BackendTscClock to function
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
     "root", std::move(console_sink),
     quill::PatternFormatterOptions{
       "%(time) [%(thread_id)] %(short_source_location:<28) LOG_%(log_level:<9) %(logger:<12) "
       "%(message)",
       "%H:%M:%S.%Qns", quill::Timezone::LocalTime},
-    quill::ClockSourceType::Tsc);
+    quill::ClockSource::tsc());
 
   // Log an informational message which will also init the backend RdtscClock
   LOG_INFO(logger, "This is a log info example with number {}", 123);
 
   // The function `quill::detail::BackendManager::instance().convert_rdtsc_to_epoch_time(quill::detail::rdtsc())`
   // will return a valid timestamp only after the backend worker has started and processed
-  // at least one log with `ClockSourceType::Tsc`.
+  // at least one log with `ClockSource::tsc()`.
   // This is because the Rdtsc clock is lazily initialized by the backend worker on the first log message.
   // To ensure at least one log message is processed, we call flush_log here.
   logger->flush_log();
