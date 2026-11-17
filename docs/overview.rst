@@ -83,7 +83,9 @@ Sometimes, synchronized logging is necessary during application debugging. This 
 
 This causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
 
-Note that the immediate flush feature can be completely disabled at compile time by defining `QUILL_ENABLE_IMMEDIATE_FLUSH=0`, which eliminates the conditional branch from the hot path for better performance when immediate flushing is never needed.
+Set ``FrontendOptions::enable_immediate_flush = false`` to compile out immediate-flush support
+and its hot-path check. The default is ``true`` for both macros and the macro-free API.
+Explicit ``flush_log()`` calls remain available. See :doc:`recipes` for a compiled example.
 
 Handling Application Crashes
 ----------------------------

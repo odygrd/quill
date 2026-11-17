@@ -22,6 +22,7 @@ struct CustomFrontendOptions : quill::FrontendOptions
 /***/
 TEST_CASE("csv_writing_custom_frontend")
 {
+  using CsvFrontend = FrontendImpl<CustomFrontendOptions>;
   static constexpr char const* filename = "orders_custom_frontend.csv";
 
   // Start the backend thread
@@ -30,6 +31,12 @@ TEST_CASE("csv_writing_custom_frontend")
 
   {
     quill::CsvWriter<OrderCsvSchema, CustomFrontendOptions> csv_writter{filename};
+
+    // CSV rows honor the same per-logger flush policy as regular log messages.
+    auto const loggers = CsvFrontend::get_all_loggers();
+    REQUIRE_EQ(loggers.size(), 1);
+    loggers.front()->set_immediate_flush(1);
+
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");

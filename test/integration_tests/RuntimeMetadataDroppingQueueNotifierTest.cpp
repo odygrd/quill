@@ -57,7 +57,7 @@ void enqueue_runtime_metadata_message_until_success(CustomLogger* logger)
     "[placeholder]", "[placeholder]", "[placeholder]",
     nullptr,         LogLevel::None,  MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy};
 
-  while (!logger->log_statement_runtime_metadata<false>(
+  while (!logger->log_statement_runtime_metadata(
     &macro_metadata, "final runtime metadata message {}",
     "RuntimeMetadataDroppingQueueNotifierTest.cpp", "final_event", "", 9001u, LogLevel::Info, 42))
   {

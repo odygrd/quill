@@ -100,16 +100,6 @@ config_setting(
     flag_values = {":disable_file_info": "true"},
 )
 
-bool_flag(
-    name = "enable_immediate_flush",
-    build_setting_default = True,
-)
-
-config_setting(
-    name = "config_disable_immediate_flush",
-    flag_values = {":enable_immediate_flush": "false"},
-)
-
 _LOG_LEVELS = [
     "TRACE_L3",
     "TRACE_L2",
@@ -180,9 +170,6 @@ cc_library(
         "//conditions:default": [],
     }) + select({
         ":config_disable_file_info": ["QUILL_DISABLE_FILE_INFO"],
-        "//conditions:default": [],
-    }) + select({
-        ":config_disable_immediate_flush": ["QUILL_ENABLE_IMMEDIATE_FLUSH=0"],
         "//conditions:default": [],
     }) + select(_ACTIVE_LOG_LEVEL_SELECT),
     includes = ["include"],

@@ -121,7 +121,7 @@ public:
    *
    * @return true if the message is written to the queue, false if it is dropped
    */
-  template <bool enable_immediate_flush, typename... Args>
+  template <typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement(MacroMetadata const* macro_metadata, Args&&... fmt_args)
   {
     QUILL_ASSERT(
@@ -140,7 +140,7 @@ public:
     {
       if (_clock_source != ClockSourceType::Tsc)
       {
-        return _log_statement_noinline<enable_immediate_flush, Args...>(
+        return _log_statement_noinline<Args...>(
           macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
       }
     }
@@ -150,7 +150,7 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
+      return _log_statement_noinline<Args...>(
         macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
     }
 
@@ -164,7 +164,7 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      return _log_statement_noinline<enable_immediate_flush, Args...>(
+      return _log_statement_noinline<Args...>(
         macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
     }
 
@@ -190,8 +190,11 @@ public:
       "Encoded bytes mismatch in log_statement(): total_size=%zu, actual_encoded=%zu, msg=\"%s\"",
       total_size, static_cast<size_t>(write_buffer - write_begin), macro_metadata->message_format());
 
-    _commit_log_statement_reservation(reservation.bounded_queue,
-                                      reservation.writer_pos + total_size, enable_immediate_flush);
+    // Commit through the cached queue pointer: encoding may alias UnboundedSPSCQueue::_producer,
+    // so looking it up again here would otherwise require a pointer reload.
+    reservation.bounded_queue->finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+
+    _flush_after_log_statement_if_needed(macro_metadata);
     return true;
   }
 
@@ -364,7 +367,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcSet};
 
-    while (!this->template log_statement<false>(&macro_metadata, static_cast<Args&&>(args)...))
+    while (!this->log_statement(&macro_metadata, static_cast<Args&&>(args)...))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
@@ -389,7 +392,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcErase};
 
-    while (!this->template log_statement<false>(&macro_metadata, static_cast<Keys&&>(keys)...))
+    while (!this->log_statement(&macro_metadata, static_cast<Keys&&>(keys)...))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
@@ -411,7 +414,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcClear};
 
-    while (!this->template log_statement<false>(&macro_metadata))
+    while (!this->log_statement(&macro_metadata))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
@@ -439,7 +442,7 @@ public:
    *
    * @return true if the message is written to the queue, false if it is dropped
    */
-  template <bool enable_immediate_flush, typename... Args>
+  template <typename... Args>
   QUILL_ATTRIBUTE_HOT bool log_statement_runtime_metadata(MacroMetadata const* macro_metadata,
                                                           char const* fmt, char const* file_path,
                                                           char const* function_name,
@@ -556,7 +559,8 @@ public:
                           "total_size=%zu, actual_encoded=%zu, fmt=\"%s\"",
                           total_size, static_cast<size_t>(write_buffer - write_begin), fmt);
 
-    _commit_log_statement(queue, total_size, enable_immediate_flush);
+    queue.finish_and_commit_write(total_size);
+    _flush_after_log_statement_if_needed();
 
     return true;
   }
@@ -581,7 +585,7 @@ public:
 
     // we pass this message to the queue and also pass capacity as arg
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_statement<false>(&macro_metadata, max_capacity))
+    while (!this->log_statement(&macro_metadata, max_capacity))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
@@ -605,7 +609,7 @@ public:
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->template log_statement<false>(&macro_metadata))
+    while (!this->log_statement(&macro_metadata))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
@@ -650,7 +654,7 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement<false>(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!this->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if (sleep_duration_ns > 0)
       {
@@ -773,7 +777,7 @@ private:
    * With ClockSource, zero requests a non-TSC read. A concrete clock has already supplied its
    * timestamp, including a valid zero.
    */
-  template <bool enable_immediate_flush, typename... OriginalArgs>
+  template <typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
                                                               uint64_t current_timestamp,
                                                               detail::slow_path_arg_t<OriginalArgs>... fmt_args)
@@ -829,8 +833,8 @@ private:
                           total_size, static_cast<size_t>(write_buffer - write_begin),
                           macro_metadata->message_format());
 
-    _commit_log_statement_reservation(reservation.bounded_queue,
-                                      reservation.writer_pos + total_size, enable_immediate_flush);
+    reservation.bounded_queue->finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+    _flush_after_log_statement_if_needed(macro_metadata);
 
     return true;
   }
@@ -987,60 +991,28 @@ private:
   }
 
   /**
-   * Commit a log statement to the queue and optionally flush it.
-   *
-   * `enable_immediate_flush` is intentionally a runtime parameter (not a template) to avoid
-   * one template instantiation per TU per value. At every call site it is a compile-time
-   * constant (a non-type template parameter on the caller), so the optimizer constant-folds
-   * the branch and emits the same code as the templated version.
-   *
-   * @param queue Reference to the SPSC queue to commit to
-   * @param total_size The total size in bytes of the committed log message
-   * @param enable_immediate_flush Whether to honor per-logger immediate-flush thresholds
-   */
-  QUILL_ATTRIBUTE_HOT inline void _commit_log_statement(queue_t& queue, size_t total_size, bool enable_immediate_flush)
-  {
-    queue.finish_and_commit_write(total_size);
-
-    _flush_after_log_statement_if_needed(enable_immediate_flush);
-  }
-
-  /**
-   * Commit a log statement using the reservation-based API.
-   * Uses finish_and_commit_write_reservation which takes the new writer position directly,
-   * avoiding a re-read of _writer_pos.
-   *
-   * Takes the BoundedSPSCQueue* cached in the reservation instead of going through
-   * UnboundedSPSCQueue::_producer. This saves a pointer reload after the encode stores:
-   * the compiler cannot prove the encode does not alias _producer, so without this it
-   * re-reads _producer from the ThreadContext at the commit site.
-   *
-   * See `_commit_log_statement` for why `enable_immediate_flush` is a runtime parameter.
-   */
-  QUILL_ATTRIBUTE_HOT inline void _commit_log_statement_reservation(detail::BoundedSPSCQueue* bounded_queue,
-                                                                    size_t new_writer_pos, bool enable_immediate_flush)
-  {
-    bounded_queue->finish_and_commit_write_reservation(new_writer_pos);
-
-    _flush_after_log_statement_if_needed(enable_immediate_flush);
-  }
-
-  /**
    * Applies the per-logger immediate-flush policy after a log statement has been committed.
    *
    * Backend callbacks are allowed to log, but the backend thread cannot wait for itself to process
    * a flush event. In that case the message remains queued and is processed after the callback
    * returns to the backend loop.
    */
-  QUILL_ATTRIBUTE_HOT inline void _flush_after_log_statement_if_needed(bool enable_immediate_flush)
+  QUILL_ATTRIBUTE_HOT inline void _flush_after_log_statement_if_needed(MacroMetadata const* macro_metadata = nullptr)
   {
-    if (!enable_immediate_flush)
+    if constexpr (!frontend_options_t::enable_immediate_flush)
     {
       return;
     }
 
     uint32_t const threshold = _message_flush_threshold.load(std::memory_order_relaxed);
     if (QUILL_LIKELY(threshold == 0))
+    {
+      return;
+    }
+
+    // Runtime-metadata calls always log and omit metadata here. Other callers supply metadata
+    // so control events cannot trigger recursive flushing.
+    if (macro_metadata && macro_metadata->event() != MacroMetadata::Event::Log)
     {
       return;
     }

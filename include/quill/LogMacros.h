@@ -126,11 +126,6 @@
   #define QUILL_COMPILE_ACTIVE_LOG_LEVEL -1
 #endif
 
-#if !defined(QUILL_ENABLE_IMMEDIATE_FLUSH)
-  // This is controlled by a runtime flag; we can have it always enabled by default in compile time
-  #define QUILL_ENABLE_IMMEDIATE_FLUSH 1
-#endif
-
 /** -- LOGV_ helpers begin -- **/
 
 // Helper macro to expand __VA_ARGS__ correctly in MSVC
@@ -404,7 +399,7 @@
     if (likelyhood(quill_macro_logger_->template should_log_statement<log_level>()))               \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
-      quill_macro_logger_->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(                   \
+      quill_macro_logger_->log_statement(                                                          \
         &quill_macro_metadata_, ##__VA_ARGS__);                                                    \
     }                                                                                              \
   } while (0)
@@ -426,7 +421,7 @@
       }                                                                                                    \
                                                                                                            \
       QUILL_DEFINE_RATE_LIMIT_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                   \
-      quill_macro_rate_limit_logger_->template log_statement<QUILL_ENABLE_IMMEDIATE_FLUSH>(                \
+      quill_macro_rate_limit_logger_->log_statement(                                                       \
         &quill_macro_metadata_, ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                           \
                                                                                                            \
       quill_next_log_time_ns_ = quill_now_ns_ +                                                            \
@@ -1037,7 +1032,7 @@
       static constexpr quill::MacroMetadata quill_macro_metadata_{                                              \
         "[placeholder]", "[placeholder]", "[placeholder]", nullptr, quill::LogLevel::None, event};              \
                                                                                                                 \
-      quill_macro_logger_->template log_statement_runtime_metadata<QUILL_ENABLE_IMMEDIATE_FLUSH>(               \
+      quill_macro_logger_->log_statement_runtime_metadata(                                                      \
         &quill_macro_metadata_, fmt, file, function, tags, line_number, quill_macro_log_level_, ##__VA_ARGS__); \
     }                                                                                                           \
   } while (0)
