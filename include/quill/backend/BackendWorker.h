@@ -858,6 +858,14 @@ private:
                  "transit_event_buffer is nullptr in "
                  "BackendWorker::_populate_transit_event_from_frontend_queue()");
 
+    // Clear the decoded arguments on every exit. If formatting throws, the record stays in the
+    // queue and is decoded again on the next poll, which must not append to stale arguments.
+    struct FormatArgsStoreClearer
+    {
+      ~FormatArgsStoreClearer() { store.clear(); }
+      DynamicFormatArgStore& store;
+    } const format_args_store_clearer{_format_args_store};
+
     // Allocate a new TransitEvent or use an existing one to store the message from the queue
     TransitEvent* transit_event{nullptr};
 
@@ -1161,8 +1169,6 @@ private:
       thread_context->_transit_event_buffer->push_back();
     }
 
-    _format_args_store.clear();
-
     return true;
   }
 
@@ -1170,7 +1176,7 @@ private:
    * Checks if there are pending events for caching based on the state of transit event buffers and queues.
    * @return True if there are pending events for caching when the _transit_event_buffer is empty, false otherwise.
    */
-  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty() noexcept
+  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty()
   {
     _update_active_thread_contexts_cache();
 
@@ -1934,6 +1940,9 @@ private:
                                                        SinkFlushReason flush_reason,
                                                        bool include_invalidated_loggers = false)
   {
+    // A previous call may have thrown before clearing the cache; its sinks may no longer exist.
+    _active_sinks_cache.clear();
+
     // Removal and shutdown must also flush sinks belonging to invalidated loggers.
     _logger_manager.for_each_logger(
       [this, include_invalidated_loggers](LoggerBase* logger)
