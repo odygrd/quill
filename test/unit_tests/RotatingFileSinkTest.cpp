@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <limits>
+#include <stdexcept>
 #include <string>
 
 #if !defined(_WIN32)
@@ -3449,6 +3450,173 @@ TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
   testing::remove_file(filename_3);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_rotates_after_backup_is_removed_externally")
+{
+  fs::path const filename = "rotating_file_sink_backup_removed_externally.log";
+  auto backup = [](uint32_t index)
+  { return fs::path{"rotating_file_sink_backup_removed_externally." + std::to_string(index) + ".log"}; };
+
+  for (uint32_t i = 1; i <= 6; ++i)
+  {
+    testing::remove_file(backup(i));
+  }
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    auto write_record = [&rfh](std::string const& msg)
+    {
+      std::string formatted_log_statement{msg};
+      formatted_log_statement.append(600, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                    LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    for (size_t i = 0; i < 4; ++i)
+    {
+      write_record("Record_" + std::to_string(i));
+    }
+
+    REQUIRE(fs::exists(backup(3)));
+
+    // e.g. a cron job compresses or deletes the oldest backup while the sink is running
+    testing::remove_file(backup(3));
+
+    for (size_t i = 4; i < 7; ++i)
+    {
+      write_record("Record_" + std::to_string(i));
+      REQUIRE_LE(fs::file_size(filename), 1024u);
+    }
+  }
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE(testing::file_contains(file_contents, "Record_6"));
+  REQUIRE_EQ(file_contents.size(), 1);
+
+  testing::remove_file(filename);
+  for (uint32_t i = 1; i <= 6; ++i)
+  {
+    testing::remove_file(backup(i));
+  }
+}
+
+/***/
+TEST_CASE("rotating_file_sink_at_backup_limit_rotates_after_backup_is_removed_externally")
+{
+  fs::path const filename = "rotating_file_sink_backup_limit_removed_externally.log";
+  fs::path const backup{"rotating_file_sink_backup_limit_removed_externally.1.log"};
+  testing::remove_file(backup);
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_max_backup_files(1);
+                                  cfg.set_overwrite_rolled_files(false);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    auto write_record = [&rfh](std::string const& msg)
+    {
+      std::string formatted_log_statement{msg};
+      formatted_log_statement.append(600, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    write_record("Record_0");
+    write_record("Record_1");
+    REQUIRE(fs::exists(backup));
+
+    // The only allowed backup is removed, which frees the slot even with overwriting disabled
+    testing::remove_file(backup);
+
+    write_record("Record_2");
+    REQUIRE(fs::exists(backup));
+    REQUIRE_LE(fs::file_size(filename), 1024u);
+  }
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE(testing::file_contains(file_contents, "Record_2"));
+  REQUIRE_EQ(file_contents.size(), 1);
+
+  testing::remove_file(filename);
+  testing::remove_file(backup);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_at_backup_limit_recovers_after_failed_reopen")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  fs::path const filename = "rotating_file_sink_backup_limit_failed_reopen.log";
+  fs::path const backup{"rotating_file_sink_backup_limit_failed_reopen.1.log"};
+  testing::remove_file(backup);
+
+  {
+    // Only the reopen after the first rotation fails, e.g. a transient permission error
+    uint32_t opens{0};
+    FileEventNotifier notifier;
+    notifier.before_open = [&opens](fs::path const&)
+    {
+      if (++opens == 2)
+      {
+        throw std::runtime_error{"reopen fails"};
+      }
+    };
+
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_max_backup_files(1);
+                                  cfg.set_overwrite_rolled_files(false);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                notifier};
+
+    auto write_record = [&rfh](std::string const& msg, size_t padding = 600)
+    {
+      std::string formatted_log_statement{msg};
+      formatted_log_statement.append(padding, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    };
+
+    write_record("Record_0");
+    REQUIRE_THROWS(write_record("Record_1"));
+    REQUIRE(fs::exists(backup));
+
+    // The backup limit is reached, but the active file must still be reopened, also by records
+    // too short to reach the rotation threshold
+    write_record("Record_2", 0);
+  }
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE(testing::file_contains(file_contents, "Record_2"));
+
+  testing::remove_file(filename);
+  testing::remove_file(backup);
+#endif
 }
 
 /***/
