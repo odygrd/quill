@@ -238,7 +238,8 @@ public:
   std::vector<int> registered_signal_handlers{};
   std::vector<SignalHandlerRestoreEntry> previous_signal_handlers{};
 #if defined(_WIN32)
-  LPTOP_LEVEL_EXCEPTION_FILTER previous_exception_filter{nullptr};
+  // Atomic because on_exception() reads it without the mutex, e.g. while stop() restores it
+  std::atomic<LPTOP_LEVEL_EXCEPTION_FILTER> previous_exception_filter{nullptr};
   void (*exception_handler_deinit_callback)() = nullptr;
   bool console_ctrl_handler_installed{false};
 #endif
@@ -274,11 +275,15 @@ void on_signal(int32_t signal_number)
     // sleep until a signal is delivered that either terminates the process or causes the
     // invocation of a signal-catching function.
 
+    // Loop because pause() also returns after an unrelated signal handler runs.
+    while (true)
+    {
 #if defined(_WIN32)
-    detail::sleep_for_ns(24'000ull * 3'600ull * 1'000'000'000ull); // 24000 hours
+      detail::sleep_for_ns(24'000ull * 3'600ull * 1'000'000'000ull); // 24000 hours
 #else
-    pause();
+      pause();
 #endif
+    }
   }
 
 #if defined(_WIN32)
@@ -496,6 +501,15 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
     }
   }
 
+  // Windows has a single top-level filter: chain to the one installed before Quill's, e.g. an
+  // application crash reporter, so it still runs.
+  LPTOP_LEVEL_EXCEPTION_FILTER const previous_filter =
+    SignalHandlerContext::instance().previous_exception_filter.load();
+  if (previous_filter && (previous_filter != &on_exception<TFrontendOptions>))
+  {
+    return previous_filter(exception_p);
+  }
+
   // FATAL Exception: It doesn't necessarily stop here. we pass on continue search
   // If nobody catches it, then it will exit anyhow.
   // The risk here is if someone is catching this and returning "EXCEPTION_EXECUTE_HANDLER"
@@ -516,8 +530,8 @@ void deinit_exception_handler()
     ctx.console_ctrl_handler_installed = false;
   }
 
-  SetUnhandledExceptionFilter(ctx.previous_exception_filter);
-  ctx.previous_exception_filter = nullptr;
+  SetUnhandledExceptionFilter(ctx.previous_exception_filter.load());
+  ctx.previous_exception_filter.store(nullptr);
   ctx.exception_handler_deinit_callback = nullptr;
 }
 
@@ -529,12 +543,12 @@ void init_exception_handler()
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
   ctx.exception_handler_deinit_callback = nullptr;
-  ctx.previous_exception_filter = SetUnhandledExceptionFilter(on_exception<TFrontendOptions>);
+  ctx.previous_exception_filter.store(SetUnhandledExceptionFilter(on_exception<TFrontendOptions>));
 
   if (!SetConsoleCtrlHandler(on_console_signal<TFrontendOptions>, TRUE))
   {
-    SetUnhandledExceptionFilter(ctx.previous_exception_filter);
-    ctx.previous_exception_filter = nullptr;
+    SetUnhandledExceptionFilter(ctx.previous_exception_filter.load());
+    ctx.previous_exception_filter.store(nullptr);
     QUILL_THROW(QuillError{"Failed to call SetConsoleCtrlHandler"});
   }
 
