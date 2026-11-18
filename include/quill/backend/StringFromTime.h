@@ -18,8 +18,10 @@
   #include <cstdint>
   #include <cstdlib>
   #include <ctime>
+  #include <limits>
   #include <map>
   #include <string>
+  #include <string_view>
   #include <utility>
   #include <vector>
 #endif
@@ -51,23 +53,16 @@ namespace detail
 class StringFromTime
 {
 public:
-  /***/
-  QUILL_ATTRIBUTE_COLD void init(std::string timestamp_format, Timezone timezone)
+  /**
+   * @return empty, or the first time-of-day specifier that cannot be cached, e.g. `%-H` or `%X`.
+   * A format containing one is formatted with strftime() on every call instead.
+   */
+  QUILL_ATTRIBUTE_COLD std::string init(std::string timestamp_format, Timezone timezone)
   {
     _timestamp_format = std::move(timestamp_format);
     _time_zone = timezone;
 
-    // These composite modifiers embed the time of day but are not split into dynamic parts by
-    // _populate_initial_parts, so the displayed time would freeze at the cached value until the
-    // next recalculation, silently printing stale timestamps
-    for (auto const* unsupported_modifier : {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS"})
-    {
-      if (_find_unescaped_modifier(_timestamp_format, unsupported_modifier) != std::string::npos)
-      {
-        QUILL_THROW(QuillError(std::string{"`"} + unsupported_modifier +
-                               "` as format modifier is not currently supported in format: " + _timestamp_format));
-      }
-    }
+    std::string uncached_specifier = _find_uncached_time_of_day_specifier(_timestamp_format);
 
     // We first look for some special format modifiers and replace them
     _replace_unescaped_modifier(_timestamp_format, "%r", "%I:%M:%S %p");
@@ -76,6 +71,15 @@ public:
 
     // Populate the initial parts that we will use to generate a pre-formatted string
     _populate_initial_parts(_timestamp_format);
+
+    if (!uncached_specifier.empty())
+    {
+      // Every timestamp is now earlier than the cached one, so format_timestamp() always takes
+      // its strftime() path and the time of day cannot go stale
+      _cached_timestamp = (std::numeric_limits<time_t>::max)();
+    }
+
+    return uncached_specifier;
   }
 
   /***/
@@ -83,7 +87,8 @@ public:
   {
     // First we check for the edge case where the given timestamp is back in time. This is when
     // the timestamp provided is less than our cached_timestamp. We only expect to format timestamps
-    // that are incrementing not those back in time. In this case we just fall back to calling strfime
+    // that are incrementing not those back in time. In this case we just fall back to calling strfime.
+    // init() also routes every call here when the format has a specifier that cannot be cached
     if (timestamp < _cached_timestamp)
     {
       // Format part by part so that %s can bypass strftime; strftime's %s round-trips through
@@ -247,6 +252,70 @@ public:
     }
 
     return _pre_formatted_ts;
+  }
+
+  /**
+   * Only the exact %H, %M, %S, %I, %k, %l and %s specifiers are refreshed from the cached time.
+   * Composite specifiers that embed the time of day (%X, %c, BSD %+), and time-of-day specifiers
+   * with a strftime flag, width or E/O modifier (e.g. %-H, %_M, %10S, %OI, %Es), would be cached as
+   * static text and print a stale time until the next recalculation.
+   * @return the first such specifier, or empty if the format can be cached
+   */
+  QUILL_NODISCARD static std::string _find_uncached_time_of_day_specifier(std::string const& timestamp_format)
+  {
+    constexpr std::string_view time_of_day_conversions{"HIklMSsTRrXc+"};
+    constexpr std::string_view strftime_flags{"-_0^#"};
+
+    for (size_t pos = 0; pos < timestamp_format.size(); ++pos)
+    {
+      if (timestamp_format[pos] != '%')
+      {
+        continue;
+      }
+
+      size_t const spec_begin = pos++;
+
+      if ((pos < timestamp_format.size()) && (timestamp_format[pos] == '%'))
+      {
+        // escaped percent sign
+        continue;
+      }
+
+      bool has_modifier{false};
+      while ((pos < timestamp_format.size()) && (strftime_flags.find(timestamp_format[pos]) != std::string_view::npos))
+      {
+        has_modifier = true;
+        ++pos;
+      }
+
+      while ((pos < timestamp_format.size()) && (timestamp_format[pos] >= '0') && (timestamp_format[pos] <= '9'))
+      {
+        has_modifier = true;
+        ++pos;
+      }
+
+      if ((pos < timestamp_format.size()) && ((timestamp_format[pos] == 'E') || (timestamp_format[pos] == 'O')))
+      {
+        has_modifier = true;
+        ++pos;
+      }
+
+      if (pos >= timestamp_format.size())
+      {
+        break;
+      }
+
+      char const conversion = timestamp_format[pos];
+      bool const embeds_time_of_day = (conversion == 'X') || (conversion == 'c') || (conversion == '+');
+
+      if (embeds_time_of_day ||
+          (has_modifier && (time_of_day_conversions.find(conversion) != std::string_view::npos)))
+      {
+        return timestamp_format.substr(spec_begin, pos - spec_begin + 1u);
+      }
+    }
+
+    return std::string{};
   }
 
   /***/

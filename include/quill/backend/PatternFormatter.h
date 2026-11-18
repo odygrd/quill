@@ -183,6 +183,15 @@ public:
   /***/
   QUILL_NODISCARD PatternFormatterOptions const& get_options() const noexcept { return _options; }
 
+  /**
+   * @return empty, or a warning that the timestamp pattern is formatted with strftime() on every
+   * call because it contains a time-of-day specifier that cannot be cached, e.g. `%-H`
+   */
+  QUILL_NODISCARD std::string const& timestamp_pattern_warning() const noexcept
+  {
+    return _timestamp_formatter.warning();
+  }
+
 protected:
   /***/
   QUILL_NODISCARD static std::string_view _process_source_location_path(std::string_view source_location,
