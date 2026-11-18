@@ -113,6 +113,10 @@ TEST_CASE("string_logging")
     char const* npcs = "Example\u0003String\u0004";
     LOG_INFO(logger, "non printable cs [{}]", npcs);
 
+    // UTF-8 bytes are above 0x7F, which the default check treats as non-printable
+    std::string const utf8{"\xE4\xB8\xAD\xE6\x96\x87"};
+    LOG_INFO(logger, "utf8 [{}]", utf8);
+
     LOG_INFO(logger, "csn [{}]", csn);
     LOG_INFO(logger, "st [{}]", st);
     LOG_INFO(logger, "cas [{}]", cas);
@@ -171,7 +175,7 @@ TEST_CASE("string_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), number_of_messages + 22);
+  REQUIRE_EQ(file_contents.size(), number_of_messages + 23);
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       csn []"}));
@@ -187,6 +191,9 @@ TEST_CASE("string_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       non printable cs [Example\\x03String\\x04]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       utf8 [\\xE4\\xB8\\xAD\\xE6\\x96\\x87]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       s [adipiscing]"}));

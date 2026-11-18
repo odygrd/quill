@@ -63,7 +63,11 @@ If you need to log UTF-8 or other non-ASCII text (such as Chinese, etc.), you ca
 
 **Custom Character Filtering**
 
-You can also define custom printable character rules:
+The backend evaluates ``check_printable_char`` once for each of the 256 possible byte values at
+startup and reuses the results. The predicate must depend only on the byte supplied. In an
+exception-enabled build, a byte for which the predicate throws is treated as non-printable.
+
+For example:
 
 .. code-block:: cpp
 
