@@ -6,11 +6,25 @@
 
 #pragma once
 
+/**
+ * Library version, e.g. `#if QUILL_VERSION >= 140000`. The inline namespace follows the major
+ * version so that different major versions linked into one program do not clash.
+ */
+#define QUILL_VERSION_MAJOR 14
+#define QUILL_VERSION_MINOR 0
+#define QUILL_VERSION_PATCH 0
+#define QUILL_VERSION                                                                              \
+  (QUILL_VERSION_MAJOR * 10000 + QUILL_VERSION_MINOR * 100 + QUILL_VERSION_PATCH)
+
+// `v` is pasted directly, so a macro named `v` in user code cannot rename the namespace
+#define QUILL_DETAIL_VERSION_NAMESPACE_IMPL(major) v##major
+#define QUILL_DETAIL_VERSION_NAMESPACE(major) QUILL_DETAIL_VERSION_NAMESPACE_IMPL(major)
+
 #ifndef QUILL_BEGIN_NAMESPACE
   #define QUILL_BEGIN_NAMESPACE                                                                    \
     namespace quill                                                                                \
     {                                                                                              \
-    inline namespace v14                                                                           \
+    inline namespace QUILL_DETAIL_VERSION_NAMESPACE(QUILL_VERSION_MAJOR)                           \
     {
   #define QUILL_END_NAMESPACE                                                                      \
     }                                                                                              \

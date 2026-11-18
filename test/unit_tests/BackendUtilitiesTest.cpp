@@ -1,5 +1,7 @@
 #include "doctest/doctest.h"
 
+#include "quill/Backend.h"
+
 #include "quill/backend/BackendUtilities.h"
 #include "quill/backend/BackendWorker.h"
 #include "quill/backend/BackendWorkerLock.h"
@@ -15,6 +17,16 @@ TEST_SUITE_BEGIN("BackendUtilities");
 
 using namespace quill;
 using namespace quill::detail;
+
+TEST_CASE("version_macros_match_version_constants")
+{
+  static_assert(QUILL_VERSION == (QUILL_VERSION_MAJOR * 10000 + QUILL_VERSION_MINOR * 100 + QUILL_VERSION_PATCH));
+  static_assert(quill::Version == QUILL_VERSION);
+  static_assert(quill::VersionMajor == QUILL_VERSION_MAJOR);
+
+  // The inline namespace is named after the major version
+  REQUIRE_EQ(&quill::v14::VersionMajor, &quill::VersionMajor);
+}
 
 TEST_CASE("normalize_file_sink_path_preserves_special_paths")
 {
