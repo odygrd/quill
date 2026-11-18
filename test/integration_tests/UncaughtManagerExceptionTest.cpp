@@ -13,7 +13,6 @@
 #include <exception>
 #include <memory>
 #include <string>
-#include <string_view>
 #include <thread>
 
 #if !defined(_WIN32)
@@ -30,8 +29,7 @@ class AcceptAllFilter : public quill::Filter
 public:
   AcceptAllFilter() : quill::Filter("uncaught_manager_exception_filter") {}
 
-  QUILL_NODISCARD bool filter(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                              std::string_view, quill::LogLevel, std::string_view, std::string_view) noexcept override
+  QUILL_NODISCARD bool filter(quill::LogRecord const&) noexcept override
   {
     return true;
   }

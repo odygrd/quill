@@ -49,14 +49,11 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   class CountingSink : public quill::Sink
   {
   public:
-    void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                   std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                   std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                   std::string_view, std::string_view) override
+    void write_log(quill::LogRecord const& /* record */) override
     {
       ++writes;
     }
-    void flush_sink() override {}
+    void flush_sink(quill::SinkFlushReason) override {}
     size_t writes{0};
   };
 

@@ -111,8 +111,8 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
     REQUIRE_EQ(file_sink_a.get(), file_sink_b.get());
 
     auto file_sink = std::static_pointer_cast<FileSink>(file_sink_a);
-    file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
-    file_sink->flush_sink();
+    file_sink->write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+    file_sink->flush_sink(SinkFlushReason::Explicit);
     FileSinkConfig overwrite_config;
     overwrite_config.set_open_mode('w');
 
@@ -181,8 +181,8 @@ TEST_CASE("file_sink_symlink_created_before_target_returns_same_sink")
     REQUIRE(fs::exists(target_path));
 
     auto file_sink = std::static_pointer_cast<FileSink>(file_sink_a);
-    file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
-    file_sink->flush_sink();
+    file_sink->write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+    file_sink->flush_sink(SinkFlushReason::Explicit);
 
     // Now the link resolves to its target; both spellings must still return the first sink
     REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config),
@@ -229,14 +229,8 @@ TEST_CASE("get_sink_finds_non_path_sink_names_while_a_file_sink_exists")
 class VirtualBaseSink : public virtual Sink
 {
 public:
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view, std::string const&,
-                 std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view,
-                 std::string_view) override
-  {
-  }
-
-  void flush_sink() override {}
+  void write_log(LogRecord const&) override {}
+  void flush_sink(SinkFlushReason) override {}
 };
 
 /***/
@@ -337,8 +331,8 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
       auto file_sink = std::static_pointer_cast<FileSink>(
         SinkManager::instance().create_or_get_sink<FileSink>((directory / "case_alias.log").string(), config));
       actual_filename = file_sink->get_filename();
-      file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
-      file_sink->flush_sink();
+      file_sink->write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+      file_sink->flush_sink(SinkFlushReason::Explicit);
 
       auto case_name = actual_filename.filename().native();
       case_name[0] = L'C';
@@ -396,8 +390,8 @@ TEST_CASE("file_sink_windows_extended_path_aliases_return_same_sink")
           SinkManager::instance().create_or_get_sink<FileSink>(
             (extended_first ? extended_path : ordinary_path).string(), config));
         actual_filename = file_sink->get_filename();
-        file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
-        file_sink->flush_sink();
+        file_sink->write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+        file_sink->flush_sink(SinkFlushReason::Explicit);
 
         auto alias_sink = SinkManager::instance().create_or_get_sink<FileSink>(
           (extended_first ? ordinary_path : extended_path).string(), config);

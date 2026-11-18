@@ -315,9 +315,9 @@ TEST_CASE("open_unicode_filename")
 
   {
     FileSink file_sink{filename, fsc};
-    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                        LogLevel::Info, "INFO", "I", nullptr, "", "unicode filename test\n");
-    file_sink.flush_sink();
+    file_sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                        LogLevel::Info, "INFO", "I", nullptr, "", "unicode filename test\n", {}});
+    file_sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   REQUIRE(fs::exists(filename));
@@ -352,8 +352,8 @@ TEST_CASE("open_extended_length_filename")
   {
     FileSink sink{filename};
     REQUIRE_EQ(sink.get_filename().native().compare(0, 4, L"\\\\?\\"), 0);
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "long path\n");
-    sink.flush_sink();
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "long path\n", {}});
+    sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   REQUIRE(testing::file_contents(filename) == std::vector<std::string>{"long path"});
@@ -377,9 +377,9 @@ TEST_CASE("dev_null_special_path")
   REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 #endif
 
-  file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                      LogLevel::Info, "INFO", "I", nullptr, "", "dev null test\n");
-  file_sink.flush_sink();
+  file_sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                      LogLevel::Info, "INFO", "I", nullptr, "", "dev null test\n", {}});
+  file_sink.flush_sink(SinkFlushReason::Explicit);
 }
 
 /***/
@@ -392,9 +392,9 @@ TEST_CASE("windows_append_mode_appends_after_external_writer")
 
   auto write_record = [](FileSink& file_sink, std::string_view message)
   {
-    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message);
-    file_sink.flush_sink();
+    file_sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
+    file_sink.flush_sink(SinkFlushReason::Explicit);
   };
 
   FileSinkConfig fsc;
@@ -456,15 +456,15 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 
   auto write_record = [](FileSink& file_sink, std::string_view message)
   {
-    file_sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+    file_sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                        std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
   };
 
   {
     FileSink file_sink{filename, fsc, file_event_notifier};
 
     write_record(file_sink, "first\n");
-    file_sink.flush_sink();
+    file_sink.flush_sink(SinkFlushReason::Explicit);
 
     testing::remove_file(filename);
     REQUIRE_FALSE(fs::exists(filename));
@@ -474,10 +474,10 @@ TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
     // This record is written to the deleted file handle. After close, the notifier recreates the
     // visible file before Quill reopens it.
     write_record(file_sink, "second\n");
-    file_sink.flush_sink();
+    file_sink.flush_sink(SinkFlushReason::Explicit);
 
     write_record(file_sink, "third\n");
-    file_sink.flush_sink();
+    file_sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
@@ -511,23 +511,23 @@ TEST_CASE("deleted_file_retries_failed_reopen")
 
   auto write_record = [](FileSink& sink, std::string_view message)
   {
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
   };
 
   {
     FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
     write_record(sink, "before deletion\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     REQUIRE(fs::remove(filename));
     write_record(sink, "deleted file\n");
-    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_THROWS_AS(sink.flush_sink(SinkFlushReason::Explicit), QuillError);
     CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
     CHECK_EQ(open_attempts, 3u);
     write_record(sink, "recovered\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   auto const contents = testing::file_contents(filename);
@@ -558,23 +558,23 @@ TEST_CASE("deleted_file_retries_failed_before_close")
 
   auto write_record = [](FileSink& sink, std::string_view message)
   {
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
   };
 
   {
     FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
     write_record(sink, "before deletion\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     REQUIRE(fs::remove(filename));
     write_record(sink, "deleted file\n");
-    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_THROWS_AS(sink.flush_sink(SinkFlushReason::Explicit), QuillError);
     CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
     CHECK_EQ(open_attempts, 2u);
     write_record(sink, "recovered\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   auto const contents = testing::file_contents(filename);
@@ -605,23 +605,23 @@ TEST_CASE("deleted_file_retries_failed_after_close")
 
   auto write_record = [](FileSink& sink, std::string_view message)
   {
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
   };
 
   {
     FileSinkTestHarness sink{filename, FileSinkConfig{}, notifier};
     write_record(sink, "before deletion\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     REQUIRE(fs::remove(filename));
     write_record(sink, "deleted file\n");
-    CHECK_THROWS_AS(sink.flush_sink(), QuillError);
+    CHECK_THROWS_AS(sink.flush_sink(SinkFlushReason::Explicit), QuillError);
     CHECK_EQ(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
 
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     CHECK_NE(sink.file_handle(), FileSinkTestHarness::closed_file_handle());
     CHECK_EQ(open_attempts, 2u);
     write_record(sink, "recovered\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   auto const contents = testing::file_contents(filename);
@@ -648,7 +648,7 @@ TEST_CASE("reopen_different_filename_keeps_flushes_on_new_path")
 
   auto write_record = [](FileSink& sink, std::string_view message)
   {
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, message);
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, message, {}});
   };
 
   {
@@ -662,9 +662,9 @@ TEST_CASE("reopen_different_filename_keeps_flushes_on_new_path")
     CHECK_EQ(sink.get_filename(), normalized_new_filename);
 
     write_record(sink, "after move 1\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
     write_record(sink, "after move 2\n");
-    sink.flush_sink();
+    sink.flush_sink(SinkFlushReason::Explicit);
   }
 
   // Flushing must not mistake the old path for a deleted file and reopen it.
@@ -825,7 +825,7 @@ TEST_CASE("windows_destructor_closes_handle_after_write_failure")
     OVERLAPPED range{};
     REQUIRE(::LockFileEx(lock_file.handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
                          0, 4096, 0, &range));
-    sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", "buffered\n");
+    sink->write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", "buffered\n", {}});
     sink.reset(); // Flushing fails because another handle holds the byte-range lock.
 
     DWORD flags{0};
@@ -852,11 +852,11 @@ TEST_CASE("fsync_skipped_by_interval_runs_on_final_flush")
     FileSinkTestHarness sink{filename, config};
 
     // The first fsync runs, the second is within the interval and is deferred
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "first\n");
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "first\n", {}});
     sink.flush_sink(SinkFlushReason::Periodic);
     REQUIRE_FALSE(sink.fsync_pending_for_test());
 
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "second\n");
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "second\n", {}});
     sink.flush_sink(SinkFlushReason::Periodic);
     REQUIRE(sink.fsync_pending_for_test());
 

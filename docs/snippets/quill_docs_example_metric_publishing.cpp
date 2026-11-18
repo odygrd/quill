@@ -14,25 +14,17 @@
 class MyMetricSink final : public quill::Sink
 {
 public:
-  void write_log(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
-                 std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-                 std::string const& /** process_id **/, std::string_view /** logger_name **/,
-                 quill::LogLevel /** log_level **/, std::string_view /** log_level_description **/,
-                 std::string_view /** log_level_short_code **/,
-                 std::vector<std::pair<std::string, std::string>> const* /** named_args **/,
-                 std::string_view /** log_message **/, std::string_view /** log_statement **/) override
+  void write_log(quill::LogRecord const& /* record */) override
   {
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(quill::SinkFlushReason) noexcept override {}
 
   // Called on the backend worker thread for every published sample.
-  void write_metric(quill::MetricMetadata const* metric_metadata, uint64_t /** log_timestamp **/,
-                    std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-                    std::string const& /** process_id **/, std::string_view /** logger_name **/, double value) override
+  void write_metric(quill::MetricRecord const& record) override
   {
     // Export however you like: Prometheus, StatsD, OpenTelemetry, a socket...
-    std::cout << metric_metadata->metric_name() << " = " << value << '\n';
+    std::cout << record.metric_metadata->metric_name() << " = " << record.value << '\n';
   }
 };
 

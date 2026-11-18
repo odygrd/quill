@@ -107,8 +107,8 @@ TEST_CASE("coloured_console_applies_before_write_before_newline_handling")
   TestConsoleSink sink{config, std::move(notifier)};
   REQUIRE(sink.has_file());
 
-  sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "message", "original\n");
+  sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                 std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "message", "original\n", {}});
 
   REQUIRE_EQ(callback_input, "original\n");
 

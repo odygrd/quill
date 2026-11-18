@@ -31,15 +31,11 @@ public:
   /**
    * @brief Discards the provided log record.
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const*, uint64_t, std::string_view,
-                                     std::string_view, std::string const&, std::string_view,
-                                     LogLevel, std::string_view, std::string_view,
-                                     std::vector<std::pair<std::string, std::string>> const*,
-                                     std::string_view, std::string_view) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& /* record */) override
   {
   }
 
-  QUILL_ATTRIBUTE_HOT void flush_sink() override {}
+  QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason) override {}
 };
 
 QUILL_END_EXPORT

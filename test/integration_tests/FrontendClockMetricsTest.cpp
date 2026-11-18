@@ -44,20 +44,16 @@ struct CapturedMetric
 
 struct MetricClockSink : quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(quill::LogRecord const& /* record */) override
   {
   }
 
-  void write_metric(quill::MetricMetadata const*, uint64_t timestamp, std::string_view,
-                    std::string_view, std::string const&, std::string_view, double value) override
+  void write_metric(quill::MetricRecord const& record) override
   {
-    metrics.push_back({timestamp, value});
+    metrics.push_back({record.timestamp, record.value});
   }
 
-  void flush_sink() override {}
+  void flush_sink(quill::SinkFlushReason) override {}
 
   std::vector<CapturedMetric> metrics;
 };

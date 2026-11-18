@@ -12,23 +12,16 @@
  */
 class MyJsonConsoleSink : public quill::JsonConsoleSink
 {
-  void generate_json_message(quill::MacroMetadata const* /** log_metadata **/, uint64_t log_timestamp,
-                             std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-                             std::string const& /** process_id **/, std::string_view /** logger_name **/,
-                             quill::LogLevel /** log_level **/, std::string_view log_level_description,
-                             std::string_view /** log_level_short_code **/,
-                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                             std::string_view /** log_message **/,
-                             std::string_view /** log_statement **/, char const* message_format) override
+  void generate_json_message(quill::LogRecord const& record, char const* message_format) override
   {
     // format json as desired
     _json_message.append(fmtquill::format(R"({{"timestamp":"{}","log_level":"{}","message":"{}")",
-                                          std::to_string(log_timestamp), log_level_description, message_format));
+                                          std::to_string(record.log_timestamp), record.log_level_description, message_format));
 
     // add log statement arguments as key-values to the json
-    if (named_args)
+    if (record.named_args)
     {
-      for (auto const& [key, value] : *named_args)
+      for (auto const& [key, value] : *record.named_args)
       {
         _json_message.append(std::string_view{",\""});
         _json_message.append(key);

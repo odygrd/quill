@@ -149,15 +149,10 @@ public:
   /**
    * @brief Writes a formatted log message to the stream
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* /* log_metadata */,
-                                     uint64_t /* log_timestamp */, std::string_view /* thread_id */,
-                                     std::string_view /* thread_name */, std::string const& /* process_id */,
-                                     std::string_view /* logger_name */, LogLevel /* log_level */,
-                                     std::string_view /* log_level_description */,
-                                     std::string_view /* log_level_short_code */,
-                                     std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-                                     std::string_view /* log_message */, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
+    std::string_view const log_statement = record.log_statement;
+
     if (QUILL_UNLIKELY(!_file))
     {
       // FileSink::flush() tries to re-open a deleted file and if it fails _file can be null
@@ -178,7 +173,7 @@ public:
   /**
    * Flushes the stream
    */
-  QUILL_ATTRIBUTE_HOT void flush_sink() override
+  QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason /* flush_reason */) override
   {
     if (!_write_occurred || !_file)
     {
@@ -305,15 +300,9 @@ protected:
     }
   }
 
-  QUILL_NODISCARD virtual size_t estimate_write_size(
-    MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
-    std::string_view /* thread_id */, std::string_view /* thread_name */,
-    std::string const& /* process_id */, std::string_view /* logger_name */, LogLevel /* log_level */,
-    std::string_view /* log_level_description */, std::string_view /* log_level_short_code */,
-    std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-    std::string_view /* log_message */, std::string_view log_statement)
+  QUILL_NODISCARD virtual size_t estimate_write_size(LogRecord const& record)
   {
-    return log_statement.size();
+    return record.log_statement.size();
   }
 
   /**

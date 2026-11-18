@@ -82,12 +82,12 @@ void check_deadline_saturation(char const* filename_stem, RotatingFileSinkConfig
 
   {
     RotatingFileSink sink{filename, cfg, FileEventNotifier{}, start_time};
-    sink.write_log(nullptr, 1'672'531'200'000'000'000ull, {}, {}, {}, {}, LogLevel::Info, "INFO",
-                   "I", nullptr, {}, "first\n");
-    sink.write_log(nullptr, (std::numeric_limits<uint64_t>::max)() - 10'000'000'000ull, {}, {}, {},
-                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "near max\n");
-    sink.write_log(nullptr, (std::numeric_limits<uint64_t>::max)() - 5'000'000'000ull, {}, {}, {},
-                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "still near max\n");
+    sink.write_log(LogRecord{nullptr, 1'672'531'200'000'000'000ull, {}, {}, {}, {}, LogLevel::Info, "INFO",
+                   "I", nullptr, {}, "first\n", {}});
+    sink.write_log(LogRecord{nullptr, (std::numeric_limits<uint64_t>::max)() - 10'000'000'000ull, {}, {}, {},
+                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "near max\n", {}});
+    sink.write_log(LogRecord{nullptr, (std::numeric_limits<uint64_t>::max)() - 5'000'000'000ull, {}, {}, {},
+                   {}, LogLevel::Info, "INFO", "I", nullptr, {}, "still near max\n", {}});
   }
 
   std::vector<std::string> const current_contents = testing::file_contents(filename);
@@ -198,8 +198,8 @@ TEST_CASE("rotating_file_sink_index_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -262,8 +262,8 @@ TEST_CASE("rotating_file_sink_index_with_backup_limit_overwrite_rolled_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -323,8 +323,8 @@ TEST_CASE("rotating_file_sink_index_with_backup_limit_dont_overwrite_rolled_file
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -384,8 +384,8 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -415,12 +415,12 @@ TEST_CASE("rotating_file_sink_size_check_does_not_overflow")
     TrackedSizeRotatingFileSink sink{filename, cfg, FileEventNotifier{}};
 
     std::string const first_record = "first record";
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, first_record);
-    sink.flush_sink();
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, first_record, {}});
+    sink.flush_sink(SinkFlushReason::Explicit);
 
     sink.set_tracked_file_size((std::numeric_limits<size_t>::max)() - 8u);
     std::string const second_record = "second record that crosses the tracked size boundary";
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, second_record);
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, second_record, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -488,18 +488,18 @@ TEST_CASE("rotating_file_sink_size_rotation_after_deleted_file_reopen")
       f.resize(590);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     };
 
     write_record(0);
-    rfh.flush_sink();
+    rfh.flush_sink(SinkFlushReason::Explicit);
 
     // Simulate an external process (e.g. logrotate) deleting the active log file
     fs::remove(filename);
 
     write_record(1);
-    rfh.flush_sink(); // detects the deleted file and reopens a fresh one
+    rfh.flush_sink(SinkFlushReason::Explicit); // detects the deleted file and reopens a fresh one
 
     // Both records fit inside rotation_max_file_size of the recreated file. A stale
     // _file_size carried over from before the reopen would trigger a bogus rotation here
@@ -535,8 +535,8 @@ TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 
   auto write_json_record = [&named_args](auto& sink)
   {
-    sink.write_log(&macro_metadata, 0, "thread_id", "thread_name", "process_id", "logger_name",
-                   LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message", "x");
+    sink.write_log(LogRecord{&macro_metadata, 0, "thread_id", "thread_name", "process_id", "logger_name",
+                   LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message", "x", {}});
   };
 
   size_t estimated_json_size = 0;
@@ -546,7 +546,7 @@ TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 
     JsonFileSink json_sink{estimate_filename, cfg, FileEventNotifier{}};
     write_json_record(json_sink);
-    json_sink.flush_sink();
+    json_sink.flush_sink(SinkFlushReason::Explicit);
 
     estimated_json_size = static_cast<size_t>(fs::file_size(estimate_filename));
   }
@@ -564,7 +564,7 @@ TEST_CASE("rotating_json_file_sink_size_rotation_uses_actual_json_size")
 
     RotatingJsonFileSink rotating_json_sink{filename, cfg, FileEventNotifier{}};
     write_json_record(rotating_json_sink);
-    rotating_json_sink.flush_sink();
+    rotating_json_sink.flush_sink(SinkFlushReason::Explicit);
     write_json_record(rotating_json_sink);
   }
 
@@ -603,9 +603,9 @@ TEST_CASE("rotating_json_file_sink_failed_rotation_does_not_replay_stale_message
   auto write_json_record = [](auto& sink, std::string const& payload, uint64_t timestamp)
   {
     std::vector<std::pair<std::string, std::string>> named_args{{"payload", payload}};
-    sink.write_log(&macro_metadata, timestamp, "thread_id", "thread_name", "process_id",
+    sink.write_log(LogRecord{&macro_metadata, timestamp, "thread_id", "thread_name", "process_id",
                    "logger_name", LogLevel::Info, "INFO", "I", &named_args, "ignored_log_message",
-                   "x");
+                   "x", {}});
   };
 
   // 2023-01-01 00:30:00 UTC; hourly rotation puts the first time boundary at most one hour later
@@ -628,7 +628,7 @@ TEST_CASE("rotating_json_file_sink_failed_rotation_does_not_replay_stale_message
 
     JsonFileSink json_sink{estimate_filename, cfg, FileEventNotifier{}};
     write_json_record(json_sink, payload_a, record_ab_timestamp);
-    json_sink.flush_sink();
+    json_sink.flush_sink(SinkFlushReason::Explicit);
 
     estimated_json_size = static_cast<size_t>(fs::file_size(estimate_filename));
   }
@@ -739,8 +739,8 @@ TEST_CASE("rotating_file_sink_index_open_mode_write_clean_up_old_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -828,8 +828,8 @@ TEST_CASE("rotating_file_sink_index_open_mode_write_dont_clean_up_old_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -908,8 +908,8 @@ TEST_CASE("rotating_file_sink_index_open_mode_append")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -969,8 +969,8 @@ TEST_CASE("rotating_file_sink_append_recovers_case_alias")
 
   auto write_record = [](RotatingFileSink& sink, char value)
   {
-    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {},
-                   std::string(399, value) + '\n');
+    sink.write_log(LogRecord{nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {},
+                   std::string(399, value) + '\n', {}});
   };
 
   {
@@ -1045,8 +1045,8 @@ TEST_CASE("rotating_file_sink_date_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1059,8 +1059,8 @@ TEST_CASE("rotating_file_sink_date_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1075,8 +1075,8 @@ TEST_CASE("rotating_file_sink_date_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1167,8 +1167,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_overwrite_rolled_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1182,8 +1182,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_overwrite_rolled_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1198,8 +1198,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_overwrite_rolled_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1270,8 +1270,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1285,8 +1285,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1301,8 +1301,8 @@ TEST_CASE("rotating_file_sink_date_with_backup_limit_dont_overwrite_rolled_files
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1398,8 +1398,8 @@ TEST_CASE("rotating_file_sink_date_open_mode_write_clean_up_old_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1489,8 +1489,8 @@ TEST_CASE("rotating_file_sink_date_open_mode_write_dont_clean_up_old_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1579,8 +1579,8 @@ TEST_CASE("rotating_file_sink_data_open_mode_append")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1680,8 +1680,8 @@ TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1696,8 +1696,8 @@ TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1711,8 +1711,8 @@ TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613_2, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613_2, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1727,8 +1727,8 @@ TEST_CASE("rotating_file_sink_dateandtime_no_backup_limit")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1825,8 +1825,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_fil
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1840,8 +1840,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_fil
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1856,8 +1856,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_overwrite_rolled_fil
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -1935,8 +1935,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolle
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -1950,8 +1950,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolle
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     // change the date and rotate again
@@ -1966,8 +1966,8 @@ TEST_CASE("rotating_file_sink_dateandtime_with_backup_limit_dont_overwrite_rolle
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230614, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2063,8 +2063,8 @@ TEST_CASE("rotating_file_sink_date_append_recovers_previous_run_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2154,8 +2154,8 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -2168,8 +2168,8 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2266,8 +2266,8 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files_wit
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -2279,8 +2279,8 @@ TEST_CASE("rotating_file_sink_dateandtime_append_recovers_previous_run_files_wit
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230613, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2362,8 +2362,8 @@ TEST_CASE("rotating_file_sink_dateandtime_append_dont_overwrite_preserves_previo
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp_20230612, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2431,8 +2431,8 @@ TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
     }
@@ -2494,10 +2494,10 @@ TEST_CASE("time_rotation_skipped_for_empty_file_dates_next_backup_from_first_rec
       FileEventNotifier{},
       std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
 
-    rfh.write_log(nullptr, timestamp_20230612 + 10 * one_minute_ns, std::string_view{}, std::string_view{},
-                  std::string{}, std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", "Record [0]\n");
-    rfh.write_log(nullptr, timestamp_20230612 + 11 * one_minute_ns, std::string_view{}, std::string_view{},
-                  std::string{}, std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", "Record [1]\n");
+    rfh.write_log(LogRecord{nullptr, timestamp_20230612 + 10 * one_minute_ns, std::string_view{}, std::string_view{},
+                  std::string{}, std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", "Record [0]\n", {}});
+    rfh.write_log(LogRecord{nullptr, timestamp_20230612 + 11 * one_minute_ns, std::string_view{}, std::string_view{},
+                  std::string{}, std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", "Record [1]\n", {}});
   }
 
   REQUIRE_FALSE(fs::exists(stale_backup));
@@ -2546,8 +2546,8 @@ TEST_CASE("time_rotation_hours_rotating_file_sink_index")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
     }
@@ -2626,8 +2626,8 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_index")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
@@ -2710,8 +2710,8 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     {
@@ -2734,8 +2734,8 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
 
     for (size_t i = 2; i < 4; ++i)
@@ -2754,8 +2754,8 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
     }
@@ -2780,8 +2780,8 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2869,8 +2869,8 @@ TEST_CASE("rotating_file_sink_index_dont_remove_unrelated_files")
       f.resize(1024);
       formatted_log_statement.append(f.data(), f.data() + f.size());
 
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -2972,8 +2972,8 @@ TEST_CASE("rotating_file_sink_date_append_mode")
     {
       std::string s{"Record [" + std::to_string(iter_id) + "][" + std::to_string(i) + "]"};
       std::string formatted_log_statement = s + "\n";
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   };
 
@@ -3175,8 +3175,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -3203,8 +3203,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   // Verify the rotated file contains the initial record
@@ -3249,8 +3249,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -3281,8 +3281,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   // Verify the rotated file contains the initial record
@@ -3451,8 +3451,8 @@ TEST_CASE("rotating_file_sink_partial_rename_failure_corrupts_metadata")
     std::string padding;
     padding.resize(1024);
     formatted_log_statement.append(padding);
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   };
 
   // Create 3 rotated files: base.log, base.1.log, base.2.log
@@ -3522,8 +3522,8 @@ TEST_CASE("rotating_file_sink_rotates_after_backup_is_removed_externally")
       std::string formatted_log_statement{msg};
       formatted_log_statement.append(600, 'x');
       formatted_log_statement.push_back('\n');
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                    LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                    LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     };
 
     for (size_t i = 0; i < 4; ++i)
@@ -3579,8 +3579,8 @@ TEST_CASE("rotating_file_sink_at_backup_limit_rotates_after_backup_is_removed_ex
       std::string formatted_log_statement{msg};
       formatted_log_statement.append(600, 'x');
       formatted_log_statement.push_back('\n');
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                    LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     };
 
     write_record("Record_0");
@@ -3640,8 +3640,8 @@ TEST_CASE("rotating_file_sink_at_backup_limit_recovers_after_failed_reopen")
       std::string formatted_log_statement{msg};
       formatted_log_statement.append(padding, 'x');
       formatted_log_statement.push_back('\n');
-      rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                    LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     };
 
     write_record("Record_0");
@@ -3695,8 +3695,8 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_hours")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
     }
@@ -3707,8 +3707,8 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_hours")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -3761,8 +3761,8 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
 
       timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
     }
@@ -3773,8 +3773,8 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
 
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     }
   }
 
@@ -3834,8 +3834,8 @@ TEST_CASE("time_rotation_interval_boundaries_stay_wall_clock_aligned")
     {
       std::string formatted_log_statement;
       formatted_log_statement.append(s.data(), s.data() + s.size());
-      rfh.write_log(nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+      rfh.write_log(LogRecord{nullptr, timestamp, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
     };
 
     // Boundaries are aligned at +5m, +10m, +15m, ...
@@ -3960,8 +3960,8 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
 
     auto write_record = [&rfh](uint64_t ts, std::string const& message)
     {
-      rfh.write_log(nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
-                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message);
+      rfh.write_log(LogRecord{nullptr, ts, std::string_view{}, std::string_view{}, std::string{},
+                    std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", message, {}});
     };
 
     write_record(before_rotation_timestamp, "Record [before rotation]");
@@ -4010,9 +4010,9 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
                           std::chrono::system_clock::from_time_t(static_cast<time_t>(start / 1'000'000'000ull))};
     auto write_record = [&sink](uint64_t timestamp)
     {
-      sink.write_log(nullptr, timestamp, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr,
-                     "", "record\n");
-      sink.flush_sink();
+      sink.write_log(LogRecord{nullptr, timestamp, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr,
+                     "", "record\n", {}});
+      sink.flush_sink(SinkFlushReason::Explicit);
     };
     write_record(start);
     write_record(local_timestamp(10, 2, 15));
@@ -4069,8 +4069,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled_write_mode")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -4094,8 +4094,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_enabled_write_mode")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
@@ -4137,8 +4137,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_empty_file_does_not_rotate")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE_FALSE(fs::exists(filename_1));
@@ -4213,8 +4213,8 @@ TEST_CASE(
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE_FALSE(fs::exists(filename_1));
@@ -4256,8 +4256,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming_write_mode")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -4285,8 +4285,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming_write_mode")
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_dated);
@@ -4331,8 +4331,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_dateandtime_naming_write
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   REQUIRE(fs::exists(filename));
@@ -4360,8 +4360,8 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_dateandtime_naming_write
     std::string formatted_log_statement;
     formatted_log_statement.append(s.data(), s.data() + s.size());
 
-    rfh.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
-                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement);
+    rfh.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{}, std::string_view{},
+                  LogLevel::Info, "INFO", "I", nullptr, "", formatted_log_statement, {}});
   }
 
   std::vector<std::string> const file_contents_1 = testing::file_contents(filename_dated);
@@ -4412,8 +4412,8 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
 
   auto write = [&sink](std::string_view log_statement)
   {
-    sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", log_statement);
+    sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", log_statement, {}});
   };
 
   write("Record [0]\n");
@@ -4504,8 +4504,8 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
 
     RotatingFileSink sink{filename, cfg, FileEventNotifier{}};
     std::string const appended_record(64, 'B');
-    sink.write_log(nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
-                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", appended_record);
+    sink.write_log(LogRecord{nullptr, 0, std::string_view{}, std::string_view{}, std::string{},
+                   std::string_view{}, LogLevel::Info, "INFO", "I", nullptr, "", appended_record, {}});
   }
 
   directory_cleanup.restore_permissions();
@@ -4540,8 +4540,8 @@ TEST_CASE("rotating_file_sink_unicode_paths")
 
     auto write_record = [](RotatingFileSink& sink, char value)
     {
-      sink.write_log(nullptr, 1583376945000000000ull, {}, {}, {}, {}, LogLevel::Info,
-                     "INFO", "I", nullptr, {}, std::string(399, value) + '\n');
+      sink.write_log(LogRecord{nullptr, 1583376945000000000ull, {}, {}, {}, {}, LogLevel::Info,
+                     "INFO", "I", nullptr, {}, std::string(399, value) + '\n', {}});
     };
 
     {

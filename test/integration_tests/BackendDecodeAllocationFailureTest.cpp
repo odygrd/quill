@@ -56,14 +56,11 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
   class CapturingSink : public quill::Sink
   {
   public:
-    void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                   std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                   std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                   std::string_view log_message, std::string_view) override
+    void write_log(quill::LogRecord const& record) override
     {
-      messages.emplace_back(log_message);
+      messages.emplace_back(record.log_message);
     }
-    void flush_sink() override {}
+    void flush_sink(quill::SinkFlushReason) override {}
     std::vector<std::string> messages;
   };
 

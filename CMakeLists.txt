@@ -268,6 +268,8 @@ set(HEADER_FILES
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
         include/quill/sinks/JsonSink.h
+        include/quill/sinks/LogRecord.h
+        include/quill/sinks/MetricRecord.h
         include/quill/sinks/NullSink.h
         include/quill/sinks/metrics/PrometheusSink.h
         include/quill/sinks/RotatingFileSink.h
