@@ -145,12 +145,11 @@ public:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier, e.what());
+      _backend_worker->_notify_error(e.what());
     }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier,
-                                     std::string{"Caught unhandled exception."});
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
     }
 #endif
   }
@@ -205,12 +204,11 @@ private:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier, e.what());
+      _backend_worker->_notify_error(e.what());
     }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier,
-                                     std::string{"Caught unhandled exception."});
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
     }
 #endif
 
