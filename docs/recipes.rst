@@ -427,7 +427,7 @@ To log user-defined types, you need to define how they should be serialized or c
        - **Copy-only types** (with deleted move constructors) are also supported.
 
     2. **Use DirectFormatCodec**
-       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency.
+       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency. The object is formatted exactly once, so the logged text is a consistent snapshot even if the formatter reads state that other threads change.
 
     3. **Implement a Custom Codec**
        For maximum flexibility, you can define a custom codec to specify exactly how the object should be serialized and deserialized.
@@ -470,8 +470,9 @@ If copying ``first`` into the queue succeeds and then copying ``second`` throws,
 
 The backend never sees the uncommitted record, so the queue remains usable. Only cleanup is lost:
 resources owned by the queue copy of ``first`` may be retained because its destructor is not called.
-Therefore, ``DeferredFormatCodec`` constructors/destructors and ``DirectFormatCodec`` formatters
-must not throw.
+Therefore, ``DeferredFormatCodec`` constructors/destructors must not throw. ``DirectFormatCodec``
+formats once while computing the size, so its formatter may throw; the log call then fails before
+anything is queued.
 
 Custom backend decoders must also consume their complete payload without throwing. Records have no
 byte length, so the backend cannot skip a decoder-poisoned record; catch recoverable errors and

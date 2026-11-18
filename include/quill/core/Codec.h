@@ -132,6 +132,39 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t clamp_encoded_string_length(
   constexpr uint32_t max_val = UINT32_MAX - 1u;
   return (len > max_val) ? max_val : static_cast<uint32_t>(len);
 }
+/**
+ * Stores a string snapshot in the size cache: its length followed by its bytes.
+ * For values that must be formatted or read exactly once, during sizing, and copied unchanged
+ * by encode_cached_string().
+ * @return the encoded size, the length field included
+ */
+inline size_t cache_string(SizeCacheVector& conditional_arg_size_cache, std::string_view str)
+{
+  uint32_t const len = clamp_encoded_string_length(str.size());
+  conditional_arg_size_cache.push_back(len);
+  conditional_arg_size_cache.append_bytes(str.data(), len);
+  return sizeof(uint32_t) + len;
+}
+
+/**
+ * Encodes a string stored by cache_string() in the same layout as Codec<std::string>.
+ */
+inline void encode_cached_string(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
+                                 uint32_t& conditional_arg_size_cache_index)
+{
+  uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
+  std::memcpy(buffer, &len, sizeof(len));
+  buffer += sizeof(len);
+
+  if (len != 0)
+  {
+    std::memcpy(buffer, conditional_arg_size_cache.data() + conditional_arg_size_cache_index, len);
+  }
+
+  buffer += len;
+  conditional_arg_size_cache_index += static_cast<uint32_t>((len + sizeof(uint32_t) - 1u) / sizeof(uint32_t));
+}
+
 /** std string detection, ignoring the Allocator type **/
 template <typename T>
 struct is_std_string : std::false_type
@@ -155,8 +188,8 @@ QUILL_BEGIN_EXPORT
  *   - decode_arg() and decode_and_store_arg() must consume their payload without throwing. Queue
  *     records have no byte length, so the backend cannot skip a decoder-poisoned record.
  *
- * DeferredFormatCodec therefore requires non-throwing selected constructors/destructors, and
- * DirectFormatCodec requires a non-throwing formatter. Custom decoders should catch recoverable
+ * DeferredFormatCodec therefore requires non-throwing selected constructors/destructors.
+ * DirectFormatCodec formats while computing the size, so its formatter may throw. Custom decoders should catch recoverable
  * errors and store a fallback value when possible.
  */
 
