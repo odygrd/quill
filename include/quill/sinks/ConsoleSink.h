@@ -426,22 +426,22 @@ public:
         statement.remove_suffix(1);
       }
 
-      // Write colour code
+      // Build the coloured record and write it with one call: on unbuffered streams each write
+      // is a syscall, and separate writes let other output land between colour and reset.
       std::string_view const colour_code = _config.colours().log_level_colour(log_level);
-      safe_fwrite(colour_code.data(), sizeof(char), colour_code.size(), _file);
-
-      // Write the transformed record directly so before_write is not invoked a second time.
-      _write_statement(statement);
-
-      // Reset colour code
-      safe_fwrite(ConsoleSinkConfig::Colours::reset.data(), sizeof(char),
-                  ConsoleSinkConfig::Colours::reset.size(), _file);
+      _coloured_statement.clear();
+      _coloured_statement.append(colour_code.data(), colour_code.size());
+      _coloured_statement.append(statement.data(), statement.size());
+      _coloured_statement.append(ConsoleSinkConfig::Colours::reset.data(),
+                                 ConsoleSinkConfig::Colours::reset.size());
 
       if (has_trailing_newline)
       {
-        safe_fwrite("\n", sizeof(char), 1, _file);
-        ++_file_size;
+        _coloured_statement.push_back('\n');
       }
+
+      // Write directly so before_write is not invoked a second time.
+      _write_statement(_coloured_statement);
     }
     else
     {
@@ -455,6 +455,15 @@ public:
 protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleSinkConfig _config;
+
+private:
+  /**
+   * Reused to assemble a coloured record so it is written with one call. Do not replace it with
+   * separate writes for the colour code, record and reset: on unbuffered streams such as stderr
+   * each write is a syscall (four per line instead of one), and on Windows output from other
+   * writers could land between the colour and the reset.
+   */
+  std::string _coloured_statement;
 };
 
 QUILL_END_EXPORT
