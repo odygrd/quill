@@ -11,9 +11,6 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/core/InlinedVector.h"
 
-#include "quill/bundled/fmt/format.h"
-#include "quill/bundled/fmt/std.h"
-
 #ifndef QUILL_MODULE
   #include <atomic>
   #include <cstddef>
