@@ -9,6 +9,8 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
+// Keep the <experimental/filesystem> fallback. It lets GCC 7, whose C++17 mode has no
+// <filesystem>, build Quill (#178). Do not replace this with an unconditional <filesystem>.
 #if !defined(QUILL_HAS_FILESYSTEM) && !defined(QUILL_HAS_EXPERIMENTAL_FILESYSTEM)
   #if defined(__cpp_lib_filesystem)
     #define QUILL_HAS_FILESYSTEM 1
