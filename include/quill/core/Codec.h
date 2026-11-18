@@ -391,6 +391,44 @@ struct Codec
 namespace detail
 {
 /**
+ * True on Windows for the wide string types encoded by quill/std/WideString.h. Always false on
+ * other platforms, where Quill has no wide string codec and containers decode as their own type.
+ */
+template <typename T>
+constexpr bool is_wide_string_v =
+#if defined(_WIN32)
+  std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
+                     std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>;
+#else
+  false;
+#endif
+
+/**
+ * Decodes one element of a container or wrapper type for formatting, e.g. a std::vector element,
+ * a std::pair member or the value of a std::optional. Used by the codecs in quill/std/.
+ *
+ * Codec<T>::decode_arg() returns the decoded value as encoded, e.g. std::wstring_view for a
+ * std::wstring, so that decode_members() can assign it back to a member of type T. A container
+ * of such values is formatted with a narrow format string, which cannot format wide strings, so
+ * on Windows this converts wide strings to UTF-8 std::string. Every other type is forwarded to
+ * Codec<T>::decode_arg() unchanged, including a reference it returns.
+ */
+template <typename T>
+QUILL_NODISCARD decltype(auto) decode_element(std::byte*& buffer)
+{
+#if defined(_WIN32)
+  if constexpr (is_wide_string_v<T>)
+  {
+    return utf8_encode(Codec<T>::decode_arg(buffer));
+  }
+  else
+#endif
+  {
+    return Codec<T>::decode_arg(buffer);
+  }
+}
+
+/**
  * @brief Calculates the total size required to encode the provided arguments
 
  * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen

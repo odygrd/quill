@@ -24,13 +24,6 @@
   #include <vector>
 #endif
 
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -97,30 +90,23 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::conjunction_v<
-                    std::disjunction<std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_set<Key, Hash, KeyEqual, Allocator>>,
-                                     std::is_same<UnorderedSetType<Key, Hash, KeyEqual, Allocator>, std::unordered_multiset<Key, Hash, KeyEqual, Allocator>>>,
-                    std::disjunction<std::is_same<Key, wchar_t*>, std::is_same<Key, wchar_t const*>,
-                                     std::is_same<Key, std::wstring>, std::is_same<Key, std::wstring_view>>>)
+    if constexpr (detail::is_wide_string_v<Key>)
     {
-      // Read the size of the vector
+      // Wide strings decode to UTF-8 std::string. Collect them in a vector to keep the frontend
+      // iteration order, which a container keyed by the converted strings could change.
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
-
-      std::vector<std::string> encoded_values;
-      encoded_values.reserve(number_of_elements);
+      std::vector<decltype(detail::decode_element<Key>(buffer))> decoded;
+      decoded.reserve(number_of_elements);
 
       for (size_t i = 0; i < number_of_elements; ++i)
       {
-        std::wstring_view v = Codec<Key>::decode_arg(buffer);
-        encoded_values.emplace_back(detail::utf8_encode(v));
+        decoded.push_back(detail::decode_element<Key>(buffer));
       }
 
-      return encoded_values;
+      return decoded;
     }
     else
     {
-#endif
       using ReturnType = decltype(Codec<Key>::decode_arg(buffer));
       using ReboundHash =
         typename std::conditional<std::is_same<Hash, std::hash<Key>>::value, std::hash<ReturnType>, Hash>::type;
@@ -147,9 +133,7 @@ struct Codec<UnorderedSetType<Key, Hash, KeyEqual, Allocator>,
       }
 
       return arg;
-#if defined(_WIN32)
     }
-#endif
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
