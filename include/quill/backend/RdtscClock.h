@@ -154,27 +154,20 @@ public:
     // should only get called by the backend thread
 
     // get the current index, this is only safe to call from the thread that is doing the resync
-    auto const index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
-    uint64_t const base_tsc = _base[index].base_tsc.load(std::memory_order_relaxed);
-    int64_t const base_time = _base[index].base_time.load(std::memory_order_relaxed);
+    auto index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
 
     // Unsigned subtraction + int64_t cast: a stale rdtsc_value yields a small negative
     // diff, producing a wall time slightly in the past. This is intentional.
-    auto diff = static_cast<int64_t>(rdtsc_value - base_tsc);
+    auto const diff = static_cast<int64_t>(rdtsc_value - _base[index].base_tsc.load(std::memory_order_relaxed));
 
     // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
     if (diff > _resync_interval_ticks)
     {
       resync(resync_lag_cycles);
-      auto const resynced_index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
-      uint64_t const resynced_base_tsc = _base[resynced_index].base_tsc.load(std::memory_order_relaxed);
-      int64_t const resynced_base_time = _base[resynced_index].base_time.load(std::memory_order_relaxed);
-      diff = static_cast<int64_t>(rdtsc_value - resynced_base_tsc);
-      return static_cast<uint64_t>(resynced_base_time +
-                                   static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+      index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
     }
 
-    return static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+    return _convert(_base[index], rdtsc_value);
   }
 
   /***/
@@ -189,17 +182,13 @@ public:
     {
       version = _version.load(std::memory_order_acquire);
       auto const index = version & (_base.size() - 1);
-      uint64_t const base_tsc = _base[index].base_tsc.load(std::memory_order_relaxed);
-      int64_t const base_time = _base[index].base_time.load(std::memory_order_relaxed);
-
-      if (QUILL_UNLIKELY((base_tsc == 0) && (base_time == 0)))
+      if (QUILL_UNLIKELY((_base[index].base_tsc.load(std::memory_order_relaxed) == 0) &&
+                         (_base[index].base_time.load(std::memory_order_relaxed) == 0)))
       {
         return 0;
       }
 
-      // get rdtsc current value and compare the diff then add it to base wall time
-      auto const diff = static_cast<int64_t>(rdtsc_value - base_tsc);
-      wall_ts = static_cast<uint64_t>(base_time + static_cast<int64_t>(static_cast<double>(diff) * _ns_per_tick));
+      wall_ts = _convert(_base[index], rdtsc_value);
 
       // The fence prevents the relaxed data loads above from being reordered after the version
       // re-check below on weakly-ordered architectures; an acquire load alone does not stop
@@ -260,10 +249,15 @@ public:
 
       if (QUILL_LIKELY(end - beg <= lag))
       {
+        uint64_t const tsc = _fast_average(beg, end);
+        BaseTimeTsc const& current = _base[_version.load(std::memory_order_relaxed) & (_base.size() - 1)];
+        double const ns_per_tick = _refined_ns_per_tick(current, wall_time, tsc);
+
         // update the next index
         auto const index = (_version.load(std::memory_order_relaxed) + 1) & (_base.size() - 1);
         _base[index].base_time.store(wall_time, std::memory_order_relaxed);
-        _base[index].base_tsc.store(_fast_average(beg, end), std::memory_order_relaxed);
+        _base[index].base_tsc.store(tsc, std::memory_order_relaxed);
+        _base[index].ns_per_tick.store(ns_per_tick, std::memory_order_relaxed);
         _version.fetch_add(1, std::memory_order_release);
         return true;
       }
@@ -273,6 +267,7 @@ public:
   }
 
   /***/
+  /** The tick rate measured at startup, before any refinement */
   double nanoseconds_per_tick() const noexcept { return _ns_per_tick; }
 
 protected:
@@ -281,7 +276,50 @@ protected:
     BaseTimeTsc() = default;
     std::atomic<int64_t> base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
     std::atomic<uint64_t> base_tsc{0}; /**< Get the initial base tsc time */
+    std::atomic<double> ns_per_tick{0}; /**< Tick rate used from this base */
   };
+
+  /** Converts a tick value using a published base; the caller ensures the base is consistent */
+  QUILL_NODISCARD static uint64_t _convert(BaseTimeTsc const& base, uint64_t rdtsc_value) noexcept
+  {
+    auto const diff = static_cast<int64_t>(rdtsc_value - base.base_tsc.load(std::memory_order_relaxed));
+    return static_cast<uint64_t>(base.base_time.load(std::memory_order_relaxed) +
+                                 static_cast<int64_t>(static_cast<double>(diff) *
+                                                      base.ns_per_tick.load(std::memory_order_relaxed)));
+  }
+
+  /**
+   * The startup rate is measured over a few milliseconds and the wall clock is NTP-disciplined,
+   * so a fixed rate drifts from the wall clock and each resync steps the time, possibly backwards.
+   * Re-derive the rate from the previous base. Keep the previous rate when the interval is too
+   * short to be accurate, or when the result is implausible, e.g. after the wall clock was stepped.
+   */
+  QUILL_NODISCARD double _refined_ns_per_tick(BaseTimeTsc const& previous, int64_t wall_time, uint64_t tsc) const noexcept
+  {
+    double const previous_ns_per_tick = previous.ns_per_tick.load(std::memory_order_relaxed);
+    uint64_t const previous_tsc = previous.base_tsc.load(std::memory_order_relaxed);
+    int64_t const previous_time = previous.base_time.load(std::memory_order_relaxed);
+
+    if (!(previous_ns_per_tick > 0.0) || (tsc <= previous_tsc) || (wall_time <= previous_time))
+    {
+      return _ns_per_tick;
+    }
+
+    constexpr double min_refinement_interval_ns{100'000'000}; // 100 ms
+    constexpr double max_deviation{500e-6};                   // 500 ppm from the startup rate
+
+    double const elapsed_ticks = static_cast<double>(tsc - previous_tsc);
+
+    if ((elapsed_ticks * _ns_per_tick) < min_refinement_interval_ns)
+    {
+      return previous_ns_per_tick;
+    }
+
+    double const measured = static_cast<double>(wall_time - previous_time) / elapsed_ticks;
+    double const deviation = (measured / _ns_per_tick) - 1.0;
+
+    return ((deviation > max_deviation) || (deviation < -max_deviation)) ? previous_ns_per_tick : measured;
+  }
 
   /***/
   QUILL_NODISCARD static uint64_t _fast_average(uint64_t x, uint64_t y) noexcept
