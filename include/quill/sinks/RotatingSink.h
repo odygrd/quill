@@ -432,6 +432,14 @@ public:
 #endif
     }
 
+    if (QUILL_UNLIKELY(this->_file_size == 0))
+    {
+      // The file holds no records yet, so name its backup after this record, as rotation does for
+      // every later file, rather than after when the sink was created. A sparse logger's first
+      // record can arrive days later.
+      _open_file_timestamp = log_timestamp;
+    }
+
     // write to file
     base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
                          logger_name, log_level, log_level_description, log_level_short_code,
@@ -525,7 +533,9 @@ private:
 
     if (_get_file_size(this->_filename) == 0)
     {
-      // Also check the file size is > 0  to better deal with full disk
+      // Also check the file size is > 0  to better deal with full disk. The file holds no records
+      // yet, so date the next backup from now rather than from when it was opened.
+      _open_file_timestamp = record_timestamp_ns;
       return;
     }
 
