@@ -225,6 +225,38 @@ TEST_CASE("get_sink_finds_non_path_sink_names_while_a_file_sink_exists")
   std::remove(file_name.data());
 }
 
+/***/
+class VirtualBaseSink : public virtual Sink
+{
+public:
+  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view, std::string const&,
+                 std::string_view, LogLevel, std::string_view, std::string_view,
+                 std::vector<std::pair<std::string, std::string>> const*, std::string_view,
+                 std::string_view) override
+  {
+  }
+
+  void flush_sink() override {}
+};
+
+/***/
+TEST_CASE("sink_with_virtual_base_can_be_created_and_retrieved")
+{
+  {
+    // Sinks may inherit quill::Sink virtually, which static_pointer_cast cannot downcast
+    std::shared_ptr<VirtualBaseSink> const created =
+      SinkManager::instance().create_sink<VirtualBaseSink>("virtual_base_sink");
+    REQUIRE(created);
+
+#if QUILL_USE_RTTI
+    REQUIRE_EQ(SinkManager::instance().create_or_get_sink<VirtualBaseSink>("virtual_base_sink"), created);
+#endif
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+}
+
+/***/
 TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")
 {
 #if !defined(_WIN32)

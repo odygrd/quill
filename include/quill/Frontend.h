@@ -121,11 +121,11 @@ public:
    *
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
-   * @return std::shared_ptr<Sink> A shared pointer to the created sink.
+   * @return A shared pointer to the created sink.
    * @throws QuillError if a sink with the same name already exists.
    */
   template <typename TSink, typename... Args>
-  static std::shared_ptr<Sink> create_sink(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<TSink> create_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
   }
@@ -135,7 +135,7 @@ public:
    *
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
-   * @return std::shared_ptr<Sink> A shared pointer to the created or retrieved sink.
+   * @return A shared pointer to the created or retrieved sink.
    * @note If a compatible sink with the specified name already exists, it is returned and the
    *       provided constructor arguments are ignored.
    * @throws QuillError if a sink with the same name exists with an incompatible type and RTTI is
@@ -145,7 +145,7 @@ public:
    *          each sink name only with the same type, or with a compatible base type.
    */
   template <typename TSink, typename... Args>
-  static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<TSink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_or_get_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
   }

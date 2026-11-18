@@ -18,6 +18,7 @@
   #include <memory>
   #include <string>
   #include <type_traits>
+  #include <utility>
   #include <vector>
 #endif
 
@@ -130,7 +131,7 @@ public:
    * @throws QuillError if a sink with the same name already exists.
    */
   template <typename TSink, typename... Args>
-  std::shared_ptr<Sink> create_sink(std::string const& sink_name, Args&&... args)
+  std::shared_ptr<TSink> create_sink(std::string const& sink_name, Args&&... args)
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
@@ -151,7 +152,7 @@ public:
    *          requested types compatible.
    */
   template <typename TSink, typename... Args>
-  std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  std::shared_ptr<TSink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
@@ -170,7 +171,12 @@ public:
     }
 #endif
 
-    return sink ? sink : _create_reserved_sink<TSink>(sink_id, normalized_name, static_cast<Args&&>(args)...);
+    if (sink)
+    {
+      return _downcast_sink<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
+    }
+
+    return _create_reserved_sink<TSink>(sink_id, normalized_name, static_cast<Args&&>(args)...);
   }
 
   /***/
@@ -339,11 +345,44 @@ private:
     }
   }
 
-  template <typename TSink, typename... Args>
-  std::shared_ptr<Sink> _create_reserved_sink(std::string const& reserved_id,
-                                              std::string const& normalized_name, Args&&... args)
+  /** True when Sink can be downcast to TSink with static_cast, i.e. not through a virtual base */
+  template <typename TSink, typename = void>
+  struct is_static_downcastable : std::false_type
   {
-    std::shared_ptr<Sink> sink;
+  };
+
+  template <typename TSink>
+  struct is_static_downcastable<TSink, std::void_t<decltype(static_cast<TSink*>(std::declval<Sink*>()))>>
+    : std::true_type
+  {
+  };
+
+  /** Returns an existing sink as TSink. Its type was checked by the caller when RTTI is available */
+  template <typename TSink>
+  QUILL_NODISCARD static std::shared_ptr<TSink> _downcast_sink(std::shared_ptr<Sink> sink)
+  {
+    if constexpr (is_static_downcastable<TSink>::value)
+    {
+      return std::static_pointer_cast<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
+    }
+    else
+    {
+#if QUILL_USE_RTTI
+      // A sink that inherits Sink virtually can only be downcast with dynamic_cast
+      return std::dynamic_pointer_cast<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
+#else
+      static_assert(is_static_downcastable<TSink>::value,
+                    "create_or_get_sink() needs RTTI for a sink that inherits quill::Sink virtually");
+      return nullptr;
+#endif
+    }
+  }
+
+  template <typename TSink, typename... Args>
+  std::shared_ptr<TSink> _create_reserved_sink(std::string const& reserved_id,
+                                               std::string const& normalized_name, Args&&... args)
+  {
+    std::shared_ptr<TSink> sink;
     std::string published_id;
     QUILL_TRY
     {
@@ -365,7 +404,7 @@ private:
   }
 
   template <typename TSink, typename... Args>
-  static std::shared_ptr<Sink> _create_sink_instance(std::string const& sink_id, Args&&... args)
+  static std::shared_ptr<TSink> _create_sink_instance(std::string const& sink_id, Args&&... args)
   {
     if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
     {
