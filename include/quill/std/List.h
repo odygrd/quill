@@ -24,13 +24,6 @@
   #include <vector>
 #endif
 
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -89,53 +82,27 @@ struct Codec<std::list<T, Allocator>>
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    // Wide string support
-    if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                     std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
+    // Read the size
+    size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
+
+    using ReturnType = decltype(detail::decode_element<T>(buffer));
+    using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+    std::list<ReturnType, ReboundAllocator> arg;
+
+    for (size_t i = 0; i < number_of_elements; ++i)
     {
-      // Read the size
-      size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
-
-      std::vector<std::string> arg;
-      arg.reserve(number_of_elements);
-
-      for (size_t i = 0; i < number_of_elements; ++i)
+      auto elem = detail::decode_element<T>(buffer);
+      if constexpr (std::is_move_constructible_v<ReturnType>)
       {
-        std::wstring_view const v = Codec<T>::decode_arg(buffer);
-        arg.emplace_back(detail::utf8_encode(v));
+        arg.emplace_back(std::move(elem));
       }
-
-      return arg;
-    }
-    else
-    {
-#endif
-      // Read the size
-      size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
-
-      using ReturnType = decltype(Codec<T>::decode_arg(buffer));
-      using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
-      std::list<ReturnType, ReboundAllocator> arg;
-
-      for (size_t i = 0; i < number_of_elements; ++i)
+      else
       {
-        auto elem = Codec<T>::decode_arg(buffer);
-        if constexpr (std::is_move_constructible_v<ReturnType>)
-        {
-          arg.emplace_back(std::move(elem));
-        }
-        else
-        {
-          arg.emplace_back(elem);
-        }
+        arg.emplace_back(elem);
       }
-
-      return arg;
-
-#if defined(_WIN32)
     }
-#endif
+
+    return arg;
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

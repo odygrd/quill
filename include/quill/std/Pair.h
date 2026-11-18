@@ -21,13 +21,6 @@
   #include <utility>
 #endif
 
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -40,15 +33,6 @@ private:
   // are instantiated with the underlying types and the decoded pair is assignable
   using UT1 = detail::remove_cvref_t<T1>;
   using UT2 = detail::remove_cvref_t<T2>;
-
-  static auto decode_non_wide_arg(std::byte*& buffer)
-  {
-    using ReturnType1 = decltype(Codec<UT1>::decode_arg(buffer));
-    using ReturnType2 = decltype(Codec<UT2>::decode_arg(buffer));
-
-    // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return std::pair<ReturnType1, ReturnType2>{Codec<UT1>::decode_arg(buffer), Codec<UT2>::decode_arg(buffer)};
-  }
 
 public:
   static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
@@ -81,44 +65,12 @@ public:
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::disjunction_v<std::is_same<UT1, wchar_t*>, std::is_same<UT1, wchar_t const*>,
-                                     std::is_same<UT1, std::wstring>, std::is_same<UT1, std::wstring_view>,
-                                     std::is_same<UT2, wchar_t*>, std::is_same<UT2, wchar_t const*>,
-                                     std::is_same<UT2, std::wstring>, std::is_same<UT2, std::wstring_view>>)
-    {
-      constexpr bool wide_t1 = std::is_same_v<UT1, wchar_t*> || std::is_same_v<UT1, wchar_t const*> ||
-        std::is_same_v<UT1, std::wstring> || std::is_same_v<UT1, std::wstring_view>;
+    using ReturnType1 = decltype(detail::decode_element<UT1>(buffer));
+    using ReturnType2 = decltype(detail::decode_element<UT2>(buffer));
 
-      constexpr bool wide_t2 = std::is_same_v<UT2, wchar_t*> || std::is_same_v<UT2, wchar_t const*> ||
-        std::is_same_v<UT2, std::wstring> || std::is_same_v<UT2, std::wstring_view>;
-
-      if constexpr (wide_t1 && !wide_t2)
-      {
-        using ReturnType2 = decltype(Codec<UT2>::decode_arg(buffer));
-        return std::pair<std::string, ReturnType2>{
-          detail::utf8_encode(Codec<UT1>::decode_arg(buffer)), Codec<UT2>::decode_arg(buffer)};
-      }
-      else if constexpr (!wide_t1 && wide_t2)
-      {
-        using ReturnType1 = decltype(Codec<UT1>::decode_arg(buffer));
-        return std::pair<ReturnType1, std::string>{
-          Codec<UT1>::decode_arg(buffer), detail::utf8_encode(Codec<UT2>::decode_arg(buffer))};
-      }
-      else
-      {
-        return std::pair<std::string, std::string>{detail::utf8_encode(Codec<UT1>::decode_arg(buffer)),
-                                                   detail::utf8_encode(Codec<UT2>::decode_arg(buffer))};
-      }
-    }
-    else
-    {
-#endif
-      return decode_non_wide_arg(buffer);
-
-#if defined(_WIN32)
-    }
-#endif
+    // Brace initialization preserves left-to-right evaluation of the decode calls.
+    return std::pair<ReturnType1, ReturnType2>{detail::decode_element<UT1>(buffer),
+                                               detail::decode_element<UT2>(buffer)};
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
