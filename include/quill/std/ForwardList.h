@@ -38,7 +38,7 @@ QUILL_BEGIN_EXPORT
 template <typename T, typename Allocator>
 struct Codec<std::forward_list<T, Allocator>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      std::forward_list<T, Allocator> const& arg)
   {
     // We need to store the size of the forward_list in the buffer, so we reserve space for it.
@@ -54,7 +54,7 @@ struct Codec<std::forward_list<T, Allocator>>
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     // First encode the number of elements of the forward list.

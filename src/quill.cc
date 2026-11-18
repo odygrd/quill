@@ -165,6 +165,7 @@ import std;
 #include "quill/BinaryDataDeferredFormatCodec.h"
 #include "quill/CsvWriter.h"
 #include "quill/DeferredFormatCodec.h"
+#include "quill/MemberwiseCodec.h"
 #include "quill/DirectFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogFunctions.h"

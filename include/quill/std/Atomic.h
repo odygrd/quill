@@ -27,12 +27,12 @@ struct Codec<std::atomic<T>>
 {
   static_assert(std::is_arithmetic_v<T>, "Atomic logging supports arithmetic types only");
 
-  static size_t compute_encoded_size(detail::SizeCacheVector&, std::atomic<T> const&) noexcept
+  static size_t compute_encoded_size(SizeCacheVector&, std::atomic<T> const&) noexcept
   {
     return sizeof(T);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::atomic<T> const& arg) noexcept
   {
     Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,

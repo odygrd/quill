@@ -97,7 +97,7 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct DirectFormatCodec
 {
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector& conditional_arg_size_cache, T const& arg)
+  static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
     fmtquill::memory_buffer formatted;
 
@@ -116,7 +116,7 @@ struct DirectFormatCodec
                                 std::string_view{formatted.data(), formatted.size()});
   }
 
-  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const&) noexcept
   {
     detail::encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);

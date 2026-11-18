@@ -648,6 +648,19 @@ Writing Custom Codec
 Serialising Non Trivially Copyable User Defined Types With Public Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+When the members needed to format a type are accessible and the type is default constructible,
+``MemberwiseCodec`` from ``quill/MemberwiseCodec.h`` lists them once and generates the codec:
+
+.. code:: cpp
+
+    template <>
+    struct quill::Codec<Order> : quill::MemberwiseCodec<Order, &Order::symbol, &Order::price, &Order::quantity>
+    {
+    };
+
+The hand-written equivalent below shows what it does, and is the starting point when a type needs
+a custom layout.
+
 Note that STL types can be used in custom codecs by passing them to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members``, provided you include the relevant header from ``quill/std/`` for each STL type used.
 
 ``decode_members`` assigns each decoded value to its member. Some codecs decode to a lighter type
@@ -691,12 +704,12 @@ yourself, in the order it was encoded:
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.symbol,
@@ -776,12 +789,12 @@ Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.timestamp, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.timestamp, order.symbol,

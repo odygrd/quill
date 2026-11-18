@@ -145,13 +145,12 @@ QUILL_BEGIN_EXPORT
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
 {
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector&,
-                                     quill::detail::StopWatch<ClockType> const&) noexcept
+  static size_t compute_encoded_size(quill::SizeCacheVector&, quill::detail::StopWatch<ClockType> const&) noexcept
   {
     return sizeof(double);
   }
 
-  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const&, uint32_t&,
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const&, uint32_t&,
                      quill::detail::StopWatch<ClockType> const& sw) noexcept
   {
     // Sample the elapsed time on the frontend thread at the log call site.
