@@ -6,6 +6,8 @@
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
 
+#include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -21,9 +23,12 @@ TEST_CASE("backend_long_sleep_and_notify")
   static constexpr char const* filename = "log_backend_long_sleep_and_notify.log";
   static std::string const logger_name_prefix = "logger_";
 
-  // Start the backend thread
+  // Start the backend thread. Sleep until notified: the maximum duration must not overflow the
+  // wait deadline and turn sleeping into a busy spin.
+  static std::atomic<uint64_t> poll_count{0};
   BackendOptions backend_options;
-  backend_options.sleep_duration = std::chrono::hours{24};
+  backend_options.sleep_duration = std::chrono::nanoseconds::max();
+  backend_options.backend_worker_on_poll_begin = []() { poll_count.fetch_add(1, std::memory_order_relaxed); };
   Backend::start(backend_options);
 
   std::vector<std::thread> threads;
@@ -63,6 +68,10 @@ TEST_CASE("backend_long_sleep_and_notify")
 
   // The backend worker is still sleeping here so no file should exist
   REQUIRE_EQ(testing::file_contents(filename).size(), 0);
+
+  // A sleeping backend polls only a few times; a spinning one polls millions of times per second
+  std::this_thread::sleep_for(std::chrono::milliseconds{200});
+  REQUIRE_LT(poll_count.load(std::memory_order_relaxed), 1000u);
 
   // Notify the backend to wake up and process
   Backend::notify();

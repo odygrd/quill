@@ -600,8 +600,12 @@ private:
         {
           std::unique_lock<std::mutex> lock{_wake_up_mutex};
 
-          // Wait for a timeout or a notification to wake up
-          _wake_up_cv.wait_for(lock, _options.sleep_duration, [this] { return _wake_up_flag; });
+          // Wait for a timeout or a notification to wake up. Clamp the timeout so that
+          // steady_clock::now() + timeout cannot overflow, which makes wait_for() return at once
+          // and turns e.g. a nanoseconds::max() "sleep until notified" setting into a busy spin.
+          constexpr std::chrono::nanoseconds max_sleep_duration{std::chrono::hours{24}};
+          _wake_up_cv.wait_for(lock, (std::min)(_options.sleep_duration, max_sleep_duration),
+                               [this] { return _wake_up_flag; });
 
           // set the flag back to false since we woke up here
           _wake_up_flag = false;
