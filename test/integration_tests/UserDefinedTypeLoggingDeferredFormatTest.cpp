@@ -28,6 +28,9 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 
+#include <array>
+#include <initializer_list>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -145,6 +148,40 @@ struct quill::Codec<RvalueEncoded> : quill::DeferredFormatCodec<RvalueEncoded>
                   "The cold log path must preserve the argument's rvalue category");
     DeferredFormatCodec<RvalueEncoded>::encode(buffer, size_cache, size_cache_index, std::forward<Arg>(arg));
   }
+};
+
+/***/
+// Like nlohmann::json, constructible from an initializer_list of itself. Decoding must not
+// list-initialise it, or GCC wraps the decoded value in a one-element list.
+struct InitListConstructible
+{
+  InitListConstructible() = default;
+  explicit InitListConstructible(int v) : number(v) {}
+  InitListConstructible(std::initializer_list<InitListConstructible> list) : children(list) {}
+
+  int number{0};
+  std::vector<InitListConstructible> children;
+};
+
+template <>
+struct fmtquill::formatter<InitListConstructible>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::InitListConstructible const& arg, format_context& ctx) const
+  {
+    if (arg.children.empty())
+    {
+      return fmtquill::format_to(ctx.out(), "{}", arg.number);
+    }
+
+    return fmtquill::format_to(ctx.out(), "list of {}", arg.children.size());
+  }
+};
+
+template <>
+struct quill::Codec<InitListConstructible> : quill::DeferredFormatCodec<InitListConstructible>
+{
 };
 
 /***/
@@ -510,6 +547,12 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   }
 
   LOG_INFO(logger, "RvalueEncoded {}", RvalueEncoded{43});
+
+  {
+    InitListConstructible const value{42};
+    LOG_INFO(logger, "InitListConstructible {} {} {}", value,
+             std::array<InitListConstructible, 1>{value}, std::optional<InitListConstructible>{value});
+  }
 
   {
     CustomTypeTCCC custom_type_tccc{1233, 13.12, 12};
@@ -1034,9 +1077,9 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
 #if !defined(__GNUC__) || __GNUC__ >= 10
-  REQUIRE_EQ(file_contents.size(), 71);
+  REQUIRE_EQ(file_contents.size(), 72);
 #else
-  REQUIRE_EQ(file_contents.size(), 69);
+  REQUIRE_EQ(file_contents.size(), 70);
 #endif
 
   REQUIRE(quill::testing::file_contains(
@@ -1047,6 +1090,9 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       RvalueEncoded 43"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       InitListConstructible 42 [42] optional(42)"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCCC Name: 1233, Surname: 13.12, Age: 12"}));

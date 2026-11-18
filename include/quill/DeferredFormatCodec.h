@@ -189,16 +189,18 @@ public:
         }
       } destroy_guard{tmp};
 
+      // Use parentheses, not braces: list-initialisation would select a T(std::initializer_list<T>)
+      // constructor (e.g. nlohmann::json) and wrap the decoded value in a one-element list.
       if constexpr (std::is_move_constructible_v<T>)
       {
         // Move into the backend value; DestroyGuard still owns the queue-buffer object.
-        return T{std::move(*tmp)};
+        return T(std::move(*tmp));
       }
       else
       {
-        // Keep the return as an explicit copy. `return T{*tmp};` is preferred over `return *tmp;`
+        // Keep the return as an explicit copy. `return T(*tmp);` is preferred over `return *tmp;`
         // since the latter can still prefer a deleted move constructor for copy-only types.
-        return T{*tmp};
+        return T(*tmp);
       }
     }
   }
