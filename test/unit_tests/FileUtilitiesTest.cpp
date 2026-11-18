@@ -14,7 +14,7 @@ class FileSinkMock : public quill::FileSink
 public:
   static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
   {
-    return quill::FileSink::extract_stem_and_extension(filename);
+    return quill::detail::extract_stem_and_extension(filename);
   }
 
   static fs::path append_datetime_to_filename(fs::path const& filename,
@@ -22,8 +22,8 @@ public:
                                               Timezone time_zone = Timezone::LocalTime,
                                               std::chrono::system_clock::time_point timestamp = {})
   {
-    return quill::FileSink::append_datetime_to_filename(filename, append_filename_format_pattern,
-                                                        time_zone, timestamp);
+    return quill::detail::append_datetime_to_filename(filename, append_filename_format_pattern,
+                                                      time_zone, timestamp);
   }
 };
 
