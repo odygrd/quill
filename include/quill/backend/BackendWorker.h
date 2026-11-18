@@ -1916,10 +1916,10 @@ private:
       if (auto const now = std::chrono::steady_clock::now();
           (now - _last_rdtsc_resync_time) > _options.rdtsc_resync_interval)
       {
-        if (_rdtsc_clock.load(std::memory_order_relaxed)->resync(2500))
-        {
-          _last_rdtsc_resync_time = now;
-        }
+        // Record the attempt even when it fails, so a slow system clock is retried once per
+        // interval rather than on every idle poll.
+        _rdtsc_clock.load(std::memory_order_relaxed)->resync_when_idle();
+        _last_rdtsc_resync_time = now;
       }
     }
   }
