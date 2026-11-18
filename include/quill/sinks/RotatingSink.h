@@ -879,6 +879,47 @@ private:
     return true;
   }
 
+  /**
+   * False when two filenames cannot name the same file: both are ASCII and differ other than by
+   * case. Names with non-ASCII characters may differ by Unicode normalization, so they pass.
+   */
+  QUILL_NODISCARD static bool _may_be_filename_alias(fs::path::string_type const& lhs,
+                                                     fs::path::string_type const& rhs) noexcept
+  {
+    auto const is_ascii = [](fs::path::string_type const& name)
+    {
+      for (auto const c : name)
+      {
+        if ((static_cast<uint32_t>(c) & ~0x7Fu) != 0)
+        {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    if (!is_ascii(lhs) || !is_ascii(rhs))
+    {
+      return true;
+    }
+
+    if (lhs.size() != rhs.size())
+    {
+      return false;
+    }
+
+    for (size_t i = 0; i < lhs.size(); ++i)
+    {
+      auto const to_lower = [](uint32_t c) { return ((c >= 'A') && (c <= 'Z')) ? (c + ('a' - 'A')) : c; };
+      if (to_lower(static_cast<uint32_t>(lhs[i])) != to_lower(static_cast<uint32_t>(rhs[i])))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
                                                ParsedRotatedFileInfo& parsed_file_info) const
   {
@@ -912,31 +953,53 @@ private:
     {
       // Let the filesystem resolve case/normalization aliases. Do not mistake an unrelated
       // symlink to a backup for another backup, or collapse distinct hard-link names.
-      std::error_code ec;
-      fs::file_status const status = fs::symlink_status(candidate_filename, ec);
-      if (ec || (status.type() != fs::file_type::regular))
-      {
-        return false;
-      }
-      fs::path const canonical_candidate = fs::canonical(candidate_filename, ec);
-      if (ec)
-      {
-        return false;
-      }
-
+      // A directory can hold many unrelated files, so test the cheap condition first: the name
+      // spelled with the base stem must exist. Only then compare inodes and canonical paths.
       fs::path::string_type const candidate_stem_and_suffix = base_extension.empty()
         ? candidate_filename.filename().native() : candidate_filename.stem().native();
+      bool candidate_is_regular_file{false};
+      bool candidate_checked{false};
+
       for (size_t separator = candidate_stem_and_suffix.find('.'); separator != fs::path::string_type::npos;
            separator = candidate_stem_and_suffix.find('.', separator + 1u))
       {
         fs::path const alias = base_filename.parent_path() /
           (base_filename.stem().native() + candidate_stem_and_suffix.substr(separator) +
            base_filename.extension().native());
+
+        // Aliases differ only by case or Unicode normalization, so ASCII names must match
+        // case-insensitively. This skips unrelated files without touching the filesystem.
+        if (!_may_be_filename_alias(candidate_filename.filename().native(), alias.filename().native()))
+        {
+          continue;
+        }
+
+        std::error_code ec;
         fs::file_status const alias_status = fs::symlink_status(alias, ec);
         if (ec || (alias_status.type() != fs::file_type::regular))
         {
           continue;
         }
+
+        if (!candidate_checked)
+        {
+          candidate_checked = true;
+          fs::file_status const status = fs::symlink_status(candidate_filename, ec);
+          candidate_is_regular_file = !ec && (status.type() == fs::file_type::regular);
+        }
+
+        if (!candidate_is_regular_file || !fs::equivalent(candidate_filename, alias, ec) || ec)
+        {
+          continue;
+        }
+
+        // Same inode: an alias spelling of the same name, unless it is another hard link
+        fs::path const canonical_candidate = fs::canonical(candidate_filename, ec);
+        if (ec)
+        {
+          continue;
+        }
+
         fs::path const canonical_alias = fs::canonical(alias, ec);
         if (!ec && (canonical_alias == canonical_candidate))
         {
