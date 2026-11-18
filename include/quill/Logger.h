@@ -336,15 +336,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcSet};
 
-    while (!this->log_statement(&macro_metadata, static_cast<Args&&>(args)...))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata, static_cast<Args&&>(args)...);
   }
 
   /**
@@ -361,15 +353,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcErase};
 
-    while (!this->log_statement(&macro_metadata, static_cast<Keys&&>(keys)...))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata, static_cast<Keys&&>(keys)...);
   }
 
   /**
@@ -383,15 +367,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcClear};
 
-    while (!this->log_statement(&macro_metadata))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata);
   }
 
   /**
@@ -552,16 +528,10 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
 
-    // we pass this message to the queue and also pass capacity as arg
-    // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement(&macro_metadata, max_capacity))
+    // Pass the capacity as the event argument
+    if (!_enqueue_control_event(&macro_metadata, max_capacity))
     {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
+      return;
     }
 
     // Also store the desired flush log level
@@ -577,16 +547,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
-    // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement(&macro_metadata))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata);
   }
 
   /**
@@ -644,6 +605,27 @@ public:
 private:
   friend class detail::LoggerManager;
   friend class detail::BackendWorker;
+
+  /**
+   * Enqueues a control event that must not be dropped, retrying while a dropping queue is full.
+   * Returns false without enqueuing on the backend thread, which cannot wait for itself to
+   * drain the queue.
+   */
+  template <typename... Args>
+  bool _enqueue_control_event(MacroMetadata const* macro_metadata, Args&&... args)
+  {
+    while (!this->log_statement(macro_metadata, static_cast<Args&&>(args)...))
+    {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return false;
+      }
+
+      detail::sleep_for_ns(100);
+    }
+
+    return true;
+  }
 
   static_assert(sizeof(detail::FormatArgsDecoder) == sizeof(uintptr_t),
                 "FormatArgsDecoder must fit in uintptr_t for header encoding");
