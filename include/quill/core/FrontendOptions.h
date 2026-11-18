@@ -29,7 +29,8 @@ QUILL_BEGIN_EXPORT
  * @note FrontendOptions are intended to be an application-wide choice. Mixing different
  *       FrontendImpl<TFrontendOptions> or LoggerImpl<TFrontendOptions> specializations is not a
  *       supported configuration. Use one frontend specialization consistently throughout the
- *       application.
+ *       application. Creating a logger whose FrontendOptions values differ from the existing
+ *       loggers throws QuillError.
  *
  * @code
  * struct CustomFrontendOptions : FrontendOptions
