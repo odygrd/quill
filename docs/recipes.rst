@@ -644,6 +644,18 @@ Serialising Non Trivially Copyable User Defined Types With Public Members
 
 Note that STL types can be used in custom codecs by passing them to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members``, provided you include the relevant header from ``quill/std/`` for each STL type used.
 
+``decode_members`` assigns each decoded value to its member. Some codecs decode to a lighter type
+than the one encoded, e.g. ``std::vector<std::string>`` decodes as
+``std::vector<std::string_view>``, which cannot be assigned to the member. Decode such a member
+yourself, in the order it was encoded:
+
+.. code:: cpp
+
+    decode_members(buffer, order, order.symbol, order.price);
+
+    auto const tags = quill::Codec<std::vector<std::string>>::decode_arg(buffer); // std::vector<std::string_view>
+    order.tags.assign(tags.begin(), tags.end());
+
 .. code:: cpp
 
     #include "quill/bundled/fmt/ostream.h"

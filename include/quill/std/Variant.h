@@ -53,17 +53,8 @@ struct DecodedVariant
 {
   using variant_type = std::variant<Types...>;
 
-  operator variant_type const&() const
-  {
-    if (QUILL_UNLIKELY(!value.has_value()))
-    {
-      QUILL_THROW(QuillError{"Decoded std::variant is valueless_by_exception"});
-    }
-
-    return *value;
-  }
-
-  operator variant_type&&() &&
+  /** Single rvalue conversion so `member = decoded` is unambiguous, e.g. in decode_members(). */
+  operator variant_type() &&
   {
     if (QUILL_UNLIKELY(!value.has_value()))
     {
