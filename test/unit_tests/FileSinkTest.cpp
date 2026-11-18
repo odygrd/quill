@@ -34,6 +34,7 @@ public:
 
   void fsync_file_for_test(bool force_fsync) { FileSink::fsync_file(force_fsync); }
   bool write_occurred_for_test() const noexcept { return _write_occurred; }
+  bool fsync_pending_for_test() const noexcept { return _fsync_pending; }
   std::chrono::steady_clock::time_point last_fsync_timestamp_for_test() const noexcept
   {
     return _last_fsync_timestamp;
@@ -837,6 +838,37 @@ TEST_CASE("windows_destructor_closes_handle_after_write_failure")
   }
   testing::remove_file(filename);
 #endif
+}
+
+TEST_CASE("fsync_skipped_by_interval_runs_on_final_flush")
+{
+  fs::path const filename = "fsync_skipped_by_interval_runs_on_final_flush.log";
+
+  FileSinkConfig config;
+  config.set_fsync_enabled(true);
+  config.set_minimum_fsync_interval(std::chrono::hours{1});
+
+  {
+    FileSinkTestHarness sink{filename, config};
+
+    // The first fsync runs, the second is within the interval and is deferred
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "first\n");
+    sink.flush_sink(SinkFlushReason::Periodic);
+    REQUIRE_FALSE(sink.fsync_pending_for_test());
+
+    sink.write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "second\n");
+    sink.flush_sink(SinkFlushReason::Periodic);
+    REQUIRE(sink.fsync_pending_for_test());
+
+    // Nothing new was written, but the deferred fsync is still owed until the final flush
+    sink.flush_sink(SinkFlushReason::Periodic);
+    REQUIRE(sink.fsync_pending_for_test());
+
+    sink.flush_sink(SinkFlushReason::Final);
+    REQUIRE_FALSE(sink.fsync_pending_for_test());
+  }
+
+  testing::remove_file(filename);
 }
 
 TEST_CASE("fsync_reports_os_failure")
