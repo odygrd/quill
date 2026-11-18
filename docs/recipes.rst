@@ -403,9 +403,14 @@ other ``quill/std`` containers (e.g. ``std::vector<std::variant<...>>``).
 Logging std::chrono Types
 -------------------------
 Include ``quill/std/Chrono.h`` to log ``std::chrono::system_clock::time_point``,
-``std::chrono::duration``, ``std::chrono::year_month_day``, weekdays, and the other calendar and
-time-of-day types from ``<chrono>``. Formatting matches ``fmt``'s chrono specifiers, so format specs
-like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as expected.
+``std::chrono::duration`` and ``std::tm``. With a C++20 standard library that defines
+``__cpp_lib_chrono >= 201907L``, it also covers ``std::chrono::year``, ``month``, ``day``,
+``weekday`` and ``year_month_day``. Some standard libraries report an older value even in C++20
+mode, e.g. libstdc++ in GCC 13, and the bundled ``fmt`` has no formatter for these calendar types
+there, so they cannot be logged directly. Time points of other clocks, such as
+``std::chrono::steady_clock``, and other ``<chrono>`` types are not covered. Formatting matches
+``fmt``'s chrono specifiers, so format specs like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as
+expected.
 
 .. code:: cpp
 
