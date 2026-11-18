@@ -283,6 +283,25 @@ TEST_CASE("created_file_permissions_follow_umask")
 }
 
 /***/
+TEST_CASE("open_failure_is_reported_without_retry_delay")
+{
+#if !defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
+  // A directory cannot be opened for writing, and retrying would not help
+  fs::path const directory = "open_failure_is_reported_without_retry_delay_dir";
+  fs::create_directories(directory);
+
+  auto const start = std::chrono::steady_clock::now();
+  REQUIRE_THROWS_AS(FileSink{directory}, QuillError);
+  auto const elapsed = std::chrono::steady_clock::now() - start;
+
+  // Previously three attempts with 200 ms sleeps took at least 400 ms
+  REQUIRE_LT(elapsed, std::chrono::milliseconds{200});
+
+  fs::remove(directory);
+#endif
+}
+
+/***/
 TEST_CASE("open_unicode_filename")
 {
 #if defined(_WIN32)
