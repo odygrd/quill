@@ -6,6 +6,7 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/RotatingFileSink.h"
 #include <cstdio>
+#include <fstream>
 
 TEST_SUITE_BEGIN("SinkManager");
 
@@ -151,6 +152,115 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
   REQUIRE_FALSE(ec);
 }
 
+TEST_CASE("file_sink_symlink_created_before_target_returns_same_sink")
+{
+#if !defined(_WIN32)
+  fs::path const base_dir = fs::path{"sink_manager_symlink_before_target_dir"};
+  fs::path const target_path = base_dir / "target.log";
+  fs::path const symlink_path = base_dir / "current.log";
+
+  std::error_code ec;
+  fs::create_directories(base_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  // The link exists before its target, so the first lookup cannot resolve it
+  fs::create_symlink(target_path.filename(), symlink_path, ec);
+  if (ec)
+  {
+    fs::remove(base_dir, ec);
+    return;
+  }
+
+  {
+    FileSinkConfig overwrite_config;
+    overwrite_config.set_open_mode('w');
+
+    std::shared_ptr<Sink> file_sink_a =
+      SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config);
+    REQUIRE(fs::exists(target_path));
+
+    auto file_sink = std::static_pointer_cast<FileSink>(file_sink_a);
+    file_sink->write_log(nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n");
+    file_sink->flush_sink();
+
+    // Now the link resolves to its target; both spellings must still return the first sink
+    REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config),
+               file_sink_a);
+    REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(target_path.string(), overwrite_config),
+               file_sink_a);
+    REQUIRE_EQ(SinkManager::instance().get_sink(symlink_path.string()), file_sink_a);
+    REQUIRE_EQ(fs::file_size(target_path), 10u);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  fs::remove(symlink_path, ec);
+  fs::remove(target_path, ec);
+  fs::remove(base_dir, ec);
+  REQUIRE_FALSE(ec);
+#endif
+}
+
+TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")
+{
+#if !defined(_WIN32)
+  fs::path const base_dir = fs::path{"sink_manager_retargeted_symlink_dir"};
+  fs::path const first_target = base_dir / "first.log";
+  fs::path const second_target = base_dir / "second.log";
+  fs::path const symlink_path = base_dir / "current.log";
+
+  std::error_code ec;
+  fs::create_directories(base_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  // Both targets exist throughout, so the link always resolves
+  std::ofstream{first_target}.close();
+  std::ofstream{second_target}.close();
+
+  fs::create_symlink(first_target.filename(), symlink_path, ec);
+  if (ec)
+  {
+    fs::remove(first_target, ec);
+    fs::remove(second_target, ec);
+    fs::remove(base_dir, ec);
+    return;
+  }
+
+  {
+    std::shared_ptr<Sink> first_sink =
+      SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), FileSinkConfig{});
+    REQUIRE(fs::exists(first_target));
+
+    // The link now points to another file, so the same name must not return the old file's sink
+    fs::remove(symlink_path, ec);
+    fs::create_symlink(second_target.filename(), symlink_path, ec);
+    REQUIRE_FALSE(ec);
+
+    std::shared_ptr<Sink> second_sink =
+      SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), FileSinkConfig{});
+    REQUIRE_NE(second_sink, first_sink);
+
+    // Replacing the link with a regular file at the same path is another file again
+    fs::remove(symlink_path, ec);
+    std::ofstream{symlink_path}.close();
+
+    std::shared_ptr<Sink> third_sink =
+      SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), FileSinkConfig{});
+    REQUIRE_NE(third_sink, first_sink);
+    REQUIRE_NE(third_sink, second_sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 3);
+
+  fs::remove(symlink_path, ec);
+  fs::remove(first_target, ec);
+  fs::remove(second_target, ec);
+  fs::remove(base_dir, ec);
+  REQUIRE_FALSE(ec);
+#endif
+}
+
+/***/
 TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
 {
 #if defined(_WIN32)
