@@ -313,6 +313,9 @@ struct BackendOptions
    * The check applies only when at least one argument in a log statement is of type string.
    *
    * You can customize this callback to define your own range of printable characters if needed.
+   * The backend calls it once for each of the 256 byte values when it starts and uses the results
+   * as a lookup table, so it must depend only on its argument. A byte for which it throws is
+   * treated as non-printable.
    *
    * To disable this check, you can provide:
    *   std::function<bool(char c)> check_printable_char = {}
