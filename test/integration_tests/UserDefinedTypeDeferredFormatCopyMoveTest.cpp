@@ -25,7 +25,7 @@ public:
   MoveOnlyTypeWithCounter() = default;
   ~MoveOnlyTypeWithCounter() { ++dtor_count; }
 
-  explicit MoveOnlyTypeWithCounter(std::string value) : value(std::move(value)) {}
+  explicit MoveOnlyTypeWithCounter(std::string in_value) : value(std::move(in_value)) {}
 
   MoveOnlyTypeWithCounter(MoveOnlyTypeWithCounter&& other) noexcept : value(std::move(other.value))
   {
@@ -69,7 +69,7 @@ public:
   CopyOnlyTypeWithCounter() = default;
   ~CopyOnlyTypeWithCounter() { ++dtor_count; }
 
-  explicit CopyOnlyTypeWithCounter(std::string value) : value(value) {}
+  explicit CopyOnlyTypeWithCounter(std::string in_value) : value(in_value) {}
 
   CopyOnlyTypeWithCounter(CopyOnlyTypeWithCounter const& other) : value(other.value)
   {
@@ -114,7 +114,7 @@ public:
   MoveAndCopyTypeWithCounter() = default;
   ~MoveAndCopyTypeWithCounter() { ++dtor_count; }
 
-  explicit MoveAndCopyTypeWithCounter(std::string value) : value(std::move(value)) {}
+  explicit MoveAndCopyTypeWithCounter(std::string in_value) : value(std::move(in_value)) {}
 
   MoveAndCopyTypeWithCounter(MoveAndCopyTypeWithCounter&& other) noexcept
     : value(std::move(other.value))
@@ -156,7 +156,7 @@ struct quill::Codec<MoveAndCopyTypeWithCounter> : quill::DeferredFormatCodec<Mov
 class TriviallyCopyableRecipeType
 {
 public:
-  TriviallyCopyableRecipeType(int id, double price) : id(id), price(price) {}
+  TriviallyCopyableRecipeType(int in_id, double in_price) : id(in_id), price(in_price) {}
 
   int id;
   double price;

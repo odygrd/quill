@@ -58,7 +58,7 @@ int main()
 
   // create threads that will cause a segfault
   std::vector<std::thread> threads;
-  for (size_t i = 0; i < 4; ++i)
+  for (size_t thread_index = 0; thread_index < 4; ++thread_index)
   {
     threads.emplace_back(
       [logger]()

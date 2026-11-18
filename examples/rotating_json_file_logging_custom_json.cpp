@@ -27,7 +27,8 @@ public:
   void generate_json_message(quill::LogRecord const& record, char const* message_format) override
   {
     // e.g. custom time formatting
-    std::time_t log_timestamp_seconds = record.log_timestamp / 1'000'000'000;
+    std::time_t log_timestamp_seconds =
+      static_cast<std::time_t>(record.log_timestamp / 1'000'000'000);
 
     // Convert to localtime
     std::tm* tm = std::localtime(&log_timestamp_seconds);

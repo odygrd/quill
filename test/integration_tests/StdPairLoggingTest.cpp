@@ -20,7 +20,7 @@ using namespace quill;
 
 struct PairNoDefaultType
 {
-  explicit PairNoDefaultType(std::string value) : value(std::move(value)) {}
+  explicit PairNoDefaultType(std::string in_value) : value(std::move(in_value)) {}
 
   PairNoDefaultType(PairNoDefaultType const&) = default;
   PairNoDefaultType& operator=(PairNoDefaultType const&) = default;

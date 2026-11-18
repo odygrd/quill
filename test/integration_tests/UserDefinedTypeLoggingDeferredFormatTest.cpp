@@ -41,7 +41,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
   CustomTypeTC() = default;
 
 private:
@@ -88,7 +88,7 @@ static_assert(quill::DeferredFormatCodec<CustomTypeTC>::use_memcpy,
 struct TriviallyCopyableMoveOnly
 {
   TriviallyCopyableMoveOnly() = default;
-  explicit TriviallyCopyableMoveOnly(uint64_t value) : value(value) {}
+  explicit TriviallyCopyableMoveOnly(uint64_t in_value) : value(in_value) {}
 
   TriviallyCopyableMoveOnly(TriviallyCopyableMoveOnly const&) = delete;
   TriviallyCopyableMoveOnly& operator=(TriviallyCopyableMoveOnly const&) = delete;
@@ -234,13 +234,13 @@ class CustomTypeCC
 public:
   CustomTypeCC() = default;
 
-  CustomTypeCC(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age)
+  CustomTypeCC(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
   {
     favorite_colors.push_back("red");
     favorite_colors.push_back("blue");
     favorite_colors.push_back("green");
-  };
+  }
 
   bool operator<(CustomTypeCC const& other) const { return this->age < other.age; }
 
@@ -292,7 +292,7 @@ public:
 
   CustomTypeCCThrows(CustomTypeCCThrows const&) { throw std::runtime_error("error"); }
 
-  explicit CustomTypeCCThrows(std::string name) : name(std::move(name)) {};
+  explicit CustomTypeCCThrows(std::string in_name) : name(std::move(in_name)) {}
 
   std::string name;
 };
@@ -322,8 +322,8 @@ class MoveOnlyType
 public:
   MoveOnlyType() = default;
 
-  explicit MoveOnlyType(std::string name, std::string value, uint32_t count)
-    : name(std::move(name)), value(std::move(value)), count(count)
+  explicit MoveOnlyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(std::move(in_name)), value(std::move(in_value)), count(in_count)
   {
   }
 
@@ -369,8 +369,8 @@ class CopyOnlyType
 public:
   CopyOnlyType() = default;
 
-  explicit CopyOnlyType(std::string name, std::string value, uint32_t count)
-    : name(name), value(value), count(count)
+  explicit CopyOnlyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(in_name), value(in_value), count(in_count)
   {
   }
 
@@ -416,8 +416,8 @@ class MoveAndCopyType
 public:
   MoveAndCopyType() = default;
 
-  explicit MoveAndCopyType(std::string name, std::string value, uint32_t count)
-    : name(std::move(name)), value(std::move(value)), count(count)
+  explicit MoveAndCopyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(std::move(in_name)), value(std::move(in_value)), count(in_count)
   {
   }
 

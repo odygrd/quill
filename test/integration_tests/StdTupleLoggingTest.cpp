@@ -60,7 +60,7 @@ struct fmtquill::formatter<std::tuple<TupleOnlyElement>>
 
 struct TupleNoDefaultType
 {
-  explicit TupleNoDefaultType(std::string value) : value(std::move(value)) {}
+  explicit TupleNoDefaultType(std::string in_value) : value(std::move(in_value)) {}
 
   TupleNoDefaultType(TupleNoDefaultType const&) = default;
   TupleNoDefaultType& operator=(TupleNoDefaultType const&) = default;

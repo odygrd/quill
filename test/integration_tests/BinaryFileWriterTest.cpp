@@ -191,8 +191,8 @@ TEST_CASE("binary_file_writer")
     expected_variable_size += sizeof(uint32_t) + static_cast<size_t>(msg.second); // header + data
   }
 
-  std::streampos expected_file_size = static_cast<std::streampos>(expected_variable_size) +
-    static_cast<std::streampos>(4 * (sizeof(uint32_t) + 5));
+  std::streampos expected_file_size = static_cast<std::streamoff>(expected_variable_size) +
+    static_cast<std::streamoff>(4 * (sizeof(uint32_t) + 5));
 
   REQUIRE_EQ(file_size, expected_file_size);
 
