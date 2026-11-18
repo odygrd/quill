@@ -16,6 +16,7 @@
   #include <atomic>
   #include <cstddef>
   #include <cstdint>
+  #include <new>
   #include <string>
 #endif
 
@@ -58,6 +59,12 @@ private:
      */
     explicit Node(size_t bounded_queue_capacity, HugePagesPolicy huge_pages_policy)
       : bounded_queue(bounded_queue_capacity, huge_pages_policy)
+    {
+    }
+
+    /** Constructs without throwing; check bounded_queue.has_storage() before using the node */
+    Node(std::nothrow_t, size_t bounded_queue_capacity, HugePagesPolicy huge_pages_policy) noexcept
+      : bounded_queue(std::nothrow, bounded_queue_capacity, huge_pages_policy)
     {
     }
 
@@ -305,11 +312,20 @@ private:
       return nullptr;
     }
 
+    // We failed to reserve because the queue was full, create a new node with a new queue.
+    // Growing must not throw from the log call: on failure (out of memory, huge pages
+    // unavailable) keep using the current node and block or drop as at the maximum capacity.
+    Node* const next_node =
+      new (std::nothrow) Node{std::nothrow, capacity, _producer->bounded_queue.huge_pages_policy()};
+
+    if (QUILL_UNLIKELY(!next_node || !next_node->bounded_queue.has_storage()))
+    {
+      delete next_node;
+      return nullptr;
+    }
+
     // commit previous write to the old queue before switching
     _producer->bounded_queue.commit_write();
-
-    // We failed to reserve because the queue was full, create a new node with a new queue
-    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);

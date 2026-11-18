@@ -465,6 +465,14 @@ public:
     while (!logger->log_statement(
       &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr), logger->get_logger_name()))
     {
+      if constexpr (logger_t::using_unbounded_queue)
+      {
+        if (detail::get_local_thread_context<TFrontendOptions>()->last_event_larger_than_queue())
+        {
+          QUILL_THROW(QuillError{"Could not grow the queue to enqueue the logger removal request"});
+        }
+      }
+
       // We do not want to drop the message if a dropping queue is used
       if (sleep_duration_ns > 0)
       {

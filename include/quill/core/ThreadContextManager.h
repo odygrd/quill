@@ -209,6 +209,45 @@ public:
     return _failure_counter.exchange(0, std::memory_order_relaxed);
   }
 
+  /**
+   * Called by the frontend when an unbounded queue could not reserve `event_size` bytes.
+   * A queue that cannot grow, e.g. when out of memory, keeps using its current node, and an event
+   * larger than that node can never be written to it, however long the caller waits or retries.
+   * Such an event is dropped and counted here, separately from the failure counter.
+   * @return true if the event cannot fit and was counted as dropped
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool drop_event_if_larger_than_queue(size_t event_size, size_t queue_capacity) noexcept
+  {
+    _last_event_larger_than_queue = event_size > queue_capacity;
+
+    if (_last_event_larger_than_queue)
+    {
+      _oversized_drop_counter.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    return _last_event_larger_than_queue;
+  }
+
+  /**
+   * Frontend only.
+   * @return whether the last event that failed to reserve space in an unbounded queue was
+   * dropped by drop_event_if_larger_than_queue()
+   */
+  QUILL_NODISCARD bool last_event_larger_than_queue() const noexcept
+  {
+    return _last_event_larger_than_queue;
+  }
+
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_oversized_drop_counter() noexcept
+  {
+    if (QUILL_LIKELY(_oversized_drop_counter.load(std::memory_order_relaxed) == 0))
+    {
+      return 0;
+    }
+    return _oversized_drop_counter.exchange(0, std::memory_order_relaxed);
+  }
+
 private:
   friend class detail::BackendWorker;
 
@@ -220,8 +259,10 @@ private:
   std::shared_ptr<BackendMdcState> _backend_mdc_state; /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
   uint64_t _timestamp_ordering_grace_deadline{0}; /**< backend-owned deadline for the current queue head */
   QueueType _queue_type;
+  bool _last_event_larger_than_queue{false}; /**< frontend only, see drop_event_if_larger_than_queue() */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};
+  std::atomic<size_t> _oversized_drop_counter{0}; /**< events dropped as larger than a queue that could not grow */
 };
 
 /**

@@ -108,8 +108,8 @@ if (QUILL_BUILD_TESTS)
             message(WARNING "Valgrind not found")
         endif ()
 
-        # set valgrind params
-        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
+        # Keep test executables' replacement new/delete active for allocation-failure injection.
+        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --soname-synonyms=somalloc=nouserintercepts --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
 
         # add memcheck test action to ctest
         include(CTest)

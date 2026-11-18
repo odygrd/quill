@@ -1601,6 +1601,18 @@ private:
 
     auto const notify_failures = [this, &error_notifier](ThreadContext* thread_context)
     {
+      size_t const oversized_drop_cnt = thread_context->get_and_reset_oversized_drop_counter();
+
+      if (QUILL_UNLIKELY(oversized_drop_cnt > 0))
+      {
+        _notify_error(
+          error_notifier,
+          fmtquill::format("{} Quill INFO: Could not allocate a larger queue and "
+                           "dropped {} events too large for the current queue from "
+                           "thread {}",
+                           _get_local_time_str(), oversized_drop_cnt, thread_context->thread_id()));
+      }
+
       size_t const failed_events_cnt = thread_context->get_and_reset_failure_counter();
 
       if (QUILL_UNLIKELY(failed_events_cnt > 0))
@@ -1613,8 +1625,8 @@ private:
           {
             _notify_error(error_notifier,
                           fmtquill::format("{} Quill INFO: Reached the maximum configured "
-                                           "unbounded queue capacity and dropped "
-                                           "{} events from thread {}",
+                                           "unbounded queue capacity, or could not allocate a "
+                                           "larger queue, and dropped {} events from thread {}",
                                            timestamp, failed_events_cnt, thread_context->thread_id()));
           }
           else
@@ -1631,8 +1643,8 @@ private:
             _notify_error(
               error_notifier,
               fmtquill::format(
-                "{} Quill INFO: Reached the maximum configured unbounded queue capacity and "
-                "experienced {} blocking occurrences on thread {}",
+                "{} Quill INFO: Reached the maximum configured unbounded queue capacity, or could "
+                "not allocate a larger queue, and experienced {} blocking occurrences on thread {}",
                 timestamp, failed_events_cnt, thread_context->thread_id()));
           }
           else
