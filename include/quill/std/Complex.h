@@ -27,7 +27,7 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<std::complex<T>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      std::complex<T> const& arg) noexcept
   {
     size_t total_size = Codec<T>::compute_encoded_size(conditional_arg_size_cache, arg.real());
@@ -35,7 +35,7 @@ struct Codec<std::complex<T>>
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::complex<T> const& arg) noexcept
   {
     Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.real());

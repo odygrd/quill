@@ -187,7 +187,7 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<std::monostate>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      std::monostate const& arg) noexcept
   {
     (void)conditional_arg_size_cache;
@@ -195,7 +195,7 @@ struct Codec<std::monostate>
     return 0;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::monostate const& arg) noexcept
   {
     (void)buffer;
@@ -248,7 +248,7 @@ private:
   }
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, VariantType const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, VariantType const& arg)
   {
     size_t total_size{sizeof(size_t)};
 
@@ -274,7 +274,7 @@ public:
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if (arg.valueless_by_exception())

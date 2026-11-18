@@ -36,7 +36,7 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<std::optional<T>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      std::optional<T> const& arg)
   {
     size_t total_size{sizeof(bool)};
@@ -50,7 +50,7 @@ struct Codec<std::optional<T>>
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<bool>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.has_value());

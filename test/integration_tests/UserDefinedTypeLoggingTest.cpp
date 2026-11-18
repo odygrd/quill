@@ -4,6 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/MemberwiseCodec.h"
 #include "quill/sinks/FileSink.h"
 
 #include "quill/core/Codec.h"
@@ -65,7 +66,7 @@ struct fmtquill::formatter<CustomType>
 template <>
 struct quill::Codec<CustomType>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      ::CustomType const& custom_type) noexcept
   {
     // pass as arguments the class members you want to serialize
@@ -74,7 +75,7 @@ struct quill::Codec<CustomType>
                                       custom_type.rank_and_title, custom_type.gender);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::CustomType const& custom_type) noexcept
   {
     // You must encode the same members and in the same order as in compute_total_encoded_size
@@ -123,12 +124,12 @@ struct fmtquill::formatter<TaggedType>
 template <>
 struct quill::Codec<TaggedType>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::TaggedType const& tagged)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, ::TaggedType const& tagged)
   {
     return compute_total_encoded_size(conditional_arg_size_cache, tagged.tags, tagged.value);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::TaggedType const& tagged)
   {
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, tagged.tags, tagged.value);
@@ -151,6 +152,33 @@ struct quill::Codec<TaggedType>
   {
     args_store->push_back(decode_arg(buffer));
   }
+};
+
+/***/
+struct MemberwiseType
+{
+  std::string symbol;
+  double price{0};
+  std::vector<uint32_t> venue_ids;
+};
+
+/***/
+template <>
+struct fmtquill::formatter<MemberwiseType>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::MemberwiseType const& value, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "{} @ {} on {}", value.symbol, value.price, value.venue_ids);
+  }
+};
+
+/***/
+template <>
+struct quill::Codec<MemberwiseType>
+  : quill::MemberwiseCodec<MemberwiseType, &MemberwiseType::symbol, &MemberwiseType::price, &MemberwiseType::venue_ids>
+{
 };
 
 /***/
@@ -202,6 +230,9 @@ TEST_CASE("custom_type_defined_type_logging")
   TaggedType const tagged{{"fast", "safe"}, 1.5};
   LOG_INFO(logger, "Tagged {}", tagged);
 
+  MemberwiseType const memberwise{"AAPL", 1.5, {7, 9}};
+  LOG_INFO(logger, "Memberwise {}", memberwise);
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -210,7 +241,10 @@ TEST_CASE("custom_type_defined_type_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 4);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Memberwise AAPL @ 1.5 on [7, 9]"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Tagged Tags: [\"fast\", \"safe\"], Value: 1.5"}));

@@ -89,17 +89,17 @@ public:
     _json_message.append(std::string_view{
       timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
     _json_message.append(std::string_view{"\",\"file_name\":\""});
-    _append_json_escaped(_json_message, log_metadata->file_name());
+    append_json_escaped(_json_message, log_metadata->file_name());
     _json_message.append(std::string_view{"\",\"line\":\""});
-    _append_json_escaped(_json_message, log_metadata->line());
+    append_json_escaped(_json_message, log_metadata->line());
     _json_message.append(std::string_view{"\",\"thread_id\":\""});
-    _append_json_escaped(_json_message, record.thread_id);
+    append_json_escaped(_json_message, record.thread_id);
     _json_message.append(std::string_view{"\",\"logger\":\""});
-    _append_json_escaped(_json_message, record.logger_name);
+    append_json_escaped(_json_message, record.logger_name);
     _json_message.append(std::string_view{"\",\"log_level\":\""});
-    _append_json_escaped(_json_message, record.log_level_description);
+    append_json_escaped(_json_message, record.log_level_description);
     _json_message.append(std::string_view{"\",\"message\":\""});
-    _append_json_escaped(_json_message, message_format);
+    append_json_escaped(_json_message, message_format);
     _json_message.append(std::string_view{"\""});
 
     // Add args as key-values
@@ -132,15 +132,15 @@ public:
             }
           } while (key_exists);
 
-          _append_json_escaped(_json_message, suffixed_key);
+          append_json_escaped(_json_message, suffixed_key);
         }
         else
         {
-          _append_json_escaped(_json_message, key);
+          append_json_escaped(_json_message, key);
         }
 
         _json_message.append(std::string_view{"\":\""});
-        _append_json_escaped(_json_message, value);
+        append_json_escaped(_json_message, value);
         _json_message.append(std::string_view{"\""});
       }
     }
@@ -213,7 +213,11 @@ protected:
       (key == "thread_id") || (key == "logger") || (key == "log_level") || (key == "message");
   }
 
-  static void _append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
+  /**
+   * Appends `value` to `out` escaped for use inside a JSON string, e.g. a key or value written by
+   * an overridden generate_json_message(). Quotes, backslashes and control characters are escaped.
+   */
+  static void append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
   {
     // Pre-computed escape table for control characters (0x00..0x1F). Each entry is the 6-byte
     // \uXXXX form. Faster and locale-safe compared to per-byte snprintf.

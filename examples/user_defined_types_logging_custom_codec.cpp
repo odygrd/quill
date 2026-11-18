@@ -52,14 +52,14 @@ struct fmtquill::formatter<User>
 template <>
 struct quill::Codec<User>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::User const& user) noexcept
+  static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::User const& user) noexcept
   {
     // pass as arguments the class members you want to serialize
     return compute_total_encoded_size(conditional_arg_size_cache, user.name, user.surname, user.age,
                                       user.favorite_colors);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::User const& user) noexcept
   {
     // You must encode the same members and in the same order as in compute_total_encoded_size

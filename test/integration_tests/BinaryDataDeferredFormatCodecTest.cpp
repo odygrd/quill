@@ -56,13 +56,13 @@ struct fmtquill::formatter<BinaryEnvelope>
 template <>
 struct quill::Codec<BinaryEnvelope>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      ::BinaryEnvelope const& envelope) noexcept
   {
     return compute_total_encoded_size(conditional_arg_size_cache, envelope.payload, envelope.trailer);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::BinaryEnvelope const& envelope) noexcept
   {
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
