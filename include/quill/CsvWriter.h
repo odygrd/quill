@@ -262,7 +262,7 @@ public:
 private:
   static bool _is_append_mode(std::string const& open_mode) noexcept
   {
-    return !open_mode.empty() && ((open_mode[0] == 'a') || (open_mode[0] == 'A'));
+    return !open_mode.empty() && (open_mode[0] == 'a');
   }
 
   static bool _should_write_header_on_initial_file(StreamSink const& sink, bool is_append_mode,
