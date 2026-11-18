@@ -275,7 +275,8 @@ public:
       "metric_source=\"%s\"",
       total_size, static_cast<size_t>(write_buffer - write_begin), metric_metadata->source_location());
 
-    queue.finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+    // Commit through the cached queue pointer to avoid reloading the producer node
+    reservation.bounded_queue->finish_and_commit_write_reservation(reservation.writer_pos + total_size);
     return true;
   }
 
