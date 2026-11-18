@@ -17,7 +17,7 @@ using namespace quill::detail;
 class ScopedTimezone
 {
 public:
-  explicit ScopedTimezone(char const* timezone)
+  explicit ScopedTimezone(char const* time_zone)
   {
     if (char const* current_tz = std::getenv("TZ"))
     {
@@ -25,7 +25,7 @@ public:
       _had_tz = true;
     }
 
-    setenv("TZ", timezone, 1);
+    setenv("TZ", time_zone, 1);
     tzset();
   }
 
@@ -631,9 +631,9 @@ public:
     return quill::detail::StringFromTime::_next_quarter_hour_timestamp(timestamp);
   }
 
-  static std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone timezone)
+  static std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone time_zone)
   {
-    return quill::detail::StringFromTime::_safe_strftime(format_string, timestamp, timezone);
+    return quill::detail::StringFromTime::_safe_strftime(format_string, timestamp, time_zone);
   }
 };
 

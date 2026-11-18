@@ -2897,7 +2897,7 @@ TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
                               formatted_log_statement,
                               {}});
 
-      timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+      timestamp += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::minutes(1)).count());
     }
   }
 
@@ -3119,7 +3119,7 @@ TEST_CASE("time_rotation_hours_rotating_file_sink_index")
                               formatted_log_statement,
                               {}});
 
-      timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
+      timestamp += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::hours(1)).count());
     }
   }
 
@@ -3181,7 +3181,7 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_index")
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = ts / 1000000000;
+      time_t timestamp = static_cast<time_t>(ts / 1000000000);
       gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
@@ -3210,7 +3210,7 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_index")
                               formatted_log_statement,
                               {}});
 
-      ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
+      ts += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::hours(24)).count());
     }
   }
 
@@ -3281,7 +3281,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime
-      time_t timestamp = ts / 1000000000;
+      time_t timestamp = static_cast<time_t>(ts / 1000000000);
       gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
@@ -3311,7 +3311,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = ts / 1000000000;
+      time_t timestamp = static_cast<time_t>(ts / 1000000000);
       gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
@@ -3347,7 +3347,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = ts / 1000000000;
+      time_t timestamp = static_cast<time_t>(ts / 1000000000);
       gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
@@ -3371,7 +3371,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
                               formatted_log_statement,
                               {}});
 
-      ts += std::chrono::nanoseconds(std::chrono::hours(24)).count();
+      ts += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::hours(24)).count());
     }
 
     {
@@ -3379,7 +3379,7 @@ TEST_CASE("max_size_and_time_rotation_daily_at_time_rotating_file_sink_index")
       char buffer[80];
 
       // Get the timeinfo struct using std::gmtime#
-      time_t timestamp = ts / 1000000000;
+      time_t timestamp = static_cast<time_t>(ts / 1000000000);
       gmtime_rs(&timestamp, &timeinfo);
 
       // Use std::strftime to format the date
@@ -4447,7 +4447,7 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_hours")
                               formatted_log_statement,
                               {}});
 
-      timestamp += std::chrono::nanoseconds(std::chrono::hours(1)).count();
+      timestamp += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::hours(1)).count());
     }
 
     // Now write at +6h — this should trigger the first rotation
@@ -4535,7 +4535,7 @@ TEST_CASE("time_rotation_initial_rotation_respects_interval_minutes")
                               formatted_log_statement,
                               {}});
 
-      timestamp += std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+      timestamp += static_cast<uint64_t>(std::chrono::nanoseconds(std::chrono::minutes(1)).count());
     }
 
     // Now write at +5m — this should trigger the first rotation
@@ -5372,7 +5372,7 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
 
   struct DirectoryCleanup
   {
-    explicit DirectoryCleanup(fs::path path) : path{std::move(path)} {}
+    explicit DirectoryCleanup(fs::path in_path) : path{std::move(in_path)} {}
     ~DirectoryCleanup()
     {
       restore_permissions();

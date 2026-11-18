@@ -19,7 +19,8 @@ using namespace quill;
 class DequeNoDefaultType
 {
 public:
-  explicit DequeNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  explicit DequeNoDefaultType(std::string in_label, int in_value)
+    : label(std::move(in_label)), value(in_value)
   {
   }
 
@@ -41,8 +42,8 @@ struct NonMoveAssignableInterval
 struct NonMoveAssignable
 {
   NonMoveAssignable() = default;
-  NonMoveAssignable(NonMoveAssignableInterval interval, bool based)
-    : interval{interval}, based{based}
+  NonMoveAssignable(NonMoveAssignableInterval in_interval, bool in_based)
+    : interval{in_interval}, based{in_based}
   {
   }
   NonMoveAssignable(NonMoveAssignable const&) = default;

@@ -19,13 +19,13 @@
 class User
 {
 public:
-  User(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age)
+  User(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
   {
     favorite_colors.push_back("red");
     favorite_colors.push_back("blue");
     favorite_colors.push_back("green");
-  };
+  }
 
   std::string name;
   std::string surname;
@@ -55,8 +55,10 @@ struct quill::Codec<User> : quill::DirectFormatCodec<User>
 class UserOStream
 {
 public:
-  UserOStream(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age) {};
+  UserOStream(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
+  {
+  }
 
   friend std::ostream& operator<<(std::ostream& os, UserOStream const& obj)
   {

@@ -17,7 +17,7 @@ public:
     // logging library adds by default an extra char and space to each tag, so we also add it manually for the correct comparison
     _tag.insert(0, "#");
     _tag.push_back(' ');
-  };
+  }
 
   bool filter(quill::LogRecord const& record) noexcept override
   {

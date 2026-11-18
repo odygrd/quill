@@ -210,7 +210,7 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
   // Generate and store events with varying buffer sizes, triggering multiple reallocations
   for (size_t iteration = 0; iteration < 10000; ++iteration)
   {
-    size_t buffer_size = 20 + (std::rand() % 493); // Random size [20, 512]
+    size_t buffer_size = 20 + static_cast<size_t>(std::rand() % 493); // Random size [20, 512]
     std::string large_string(buffer_size, 'A' + static_cast<char>(iteration % 26));
 
     TransitEvent* te = bte.back();
@@ -373,10 +373,10 @@ TEST_CASE("transit_event_buffer_interleaved_operations")
   for (size_t cycle = 0; cycle < 20; ++cycle)
   {
     // Push phase: Add 10-20 events with varying sizes
-    size_t push_count = 10 + (std::rand() % 11);
+    size_t push_count = 10 + static_cast<size_t>(std::rand() % 11);
     for (size_t i = 0; i < push_count; ++i)
     {
-      size_t buffer_size = 50 + (std::rand() % 400); // [50, 449]
+      size_t buffer_size = 50 + static_cast<size_t>(std::rand() % 400); // [50, 449]
       std::string data(buffer_size, 'a' + static_cast<char>((total_operations + i) % 26));
       std::string key = "cycle" + std::to_string(cycle) + "_item" + std::to_string(i);
 
@@ -659,7 +659,7 @@ TEST_CASE("transit_event_buffer_stress_test")
       REQUIRE(te->formatted_msg);
 
       // Populate with large formatted_msg (20 to 8192 bytes) to stress memory
-      size_t msg_size = 20 + (std::rand() % 8173);
+      size_t msg_size = 20 + static_cast<size_t>(std::rand() % 8173);
       te->formatted_msg->clear();
       te->formatted_msg->reserve(msg_size);
 
