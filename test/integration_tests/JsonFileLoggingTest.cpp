@@ -232,8 +232,8 @@ TEST_CASE("json_file_logging")
     REQUIRE(quill::testing::file_contains(file_contents, expected_extras_json));
     REQUIRE(quill::testing::file_contains(file_contents_s, expected_extras_fmt));
 
-    REQUIRE(quill::testing::file_contains(
-      file_contents, "\"message\":\"indexed rate one then zero (1x)\""));
+    REQUIRE(quill::testing::file_contains(file_contents,
+                                          "\"message\":\"indexed rate one then zero (1x)\""));
     REQUIRE(quill::testing::file_contains(file_contents_s, "indexed rate one then zero (1x)"));
 
     REQUIRE(quill::testing::file_contains(

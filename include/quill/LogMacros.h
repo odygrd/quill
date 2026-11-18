@@ -399,8 +399,7 @@
     if (likelyhood(quill_macro_logger_->template should_log_statement<log_level>()))               \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
-      quill_macro_logger_->log_statement(                                                          \
-        &quill_macro_metadata_, ##__VA_ARGS__);                                                    \
+      quill_macro_logger_->log_statement(&quill_macro_metadata_, ##__VA_ARGS__);                   \
     }                                                                                              \
   } while (0)
 
@@ -421,8 +420,8 @@
       }                                                                                                    \
                                                                                                            \
       QUILL_DEFINE_RATE_LIMIT_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                   \
-      quill_macro_rate_limit_logger_->log_statement(                                                       \
-        &quill_macro_metadata_, ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                           \
+      quill_macro_rate_limit_logger_->log_statement(&quill_macro_metadata_, ##__VA_ARGS__,                 \
+                                                    quill_suppressed_log_count_ + 1);                      \
                                                                                                            \
       quill_next_log_time_ns_ = quill_now_ns_ +                                                            \
         static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(min_interval).count()); \

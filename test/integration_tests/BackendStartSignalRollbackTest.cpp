@@ -63,8 +63,12 @@ struct SignalStateRestorer
     ctx.previous_signal_handlers.clear();
   }
 
-  struct sigaction original_sigterm_action{};
-  struct sigaction original_sigalrm_action{};
+  struct sigaction original_sigterm_action
+  {
+  };
+  struct sigaction original_sigalrm_action
+  {
+  };
   sigset_t original_mask{};
 };
   #endif // !defined(_WIN32)

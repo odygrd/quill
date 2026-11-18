@@ -279,8 +279,7 @@ public:
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
                                  clock_source_t clock = ClockSource::tsc())
   {
-    return create_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
-                         pattern_formatter_options, clock);
+    return create_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks}, pattern_formatter_options, clock);
   }
 
   /**
@@ -331,10 +330,9 @@ public:
    * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  static logger_t* create_or_get_logger(
-    std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-    PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
-    clock_source_t clock = ClockSource::tsc())
+  static logger_t* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+                                        PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                        clock_source_t clock = ClockSource::tsc())
   {
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
       logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
@@ -358,10 +356,10 @@ public:
    * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  static logger_t* create_or_get_logger(
-    std::string const& logger_name, std::initializer_list<std::shared_ptr<Sink>> sinks,
-    PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
-    clock_source_t clock = ClockSource::tsc())
+  static logger_t* create_or_get_logger(std::string const& logger_name,
+                                        std::initializer_list<std::shared_ptr<Sink>> sinks,
+                                        PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                        clock_source_t clock = ClockSource::tsc())
   {
     return create_or_get_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
                                 pattern_formatter_options, clock);
@@ -386,9 +384,8 @@ public:
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, detail::LoggerBase* source_logger = nullptr)
   {
-    detail::LoggerBase* logger_base =
-      detail::LoggerManager::instance().create_or_get_logger<logger_t>(
-        logger_name, source_logger ? _cast_to_logger(source_logger) : nullptr);
+    detail::LoggerBase* logger_base = detail::LoggerManager::instance().create_or_get_logger<logger_t>(
+      logger_name, source_logger ? _cast_to_logger(source_logger) : nullptr);
 
     if (QUILL_UNLIKELY(!logger_base))
     {
@@ -465,8 +462,8 @@ public:
 
     // We do not want to drop the message if a dropping queue is used
     uint32_t attempt{0};
-    while (!logger->log_statement(
-      &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr), logger->get_logger_name()))
+    while (!logger->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr),
+                                  logger->get_logger_name()))
     {
       if constexpr (logger_t::using_unbounded_queue)
       {

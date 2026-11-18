@@ -367,18 +367,14 @@ struct Codec
       // c strings or char array
       char const* arg = decode_arg(buffer);
 
-      // pass the string_view to args_store to avoid the dynamic allocation
-      // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
-      // for std::string_view we would need fmt/format.h
+      // Store a view of the decoded bytes instead of copying them into an owned string
       args_store->push_back(fmtquill::string_view{arg, detail::safe_strnlen(arg)});
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
       std::string_view arg = decode_arg(buffer);
 
-      // pass the string_view to args_store to avoid the dynamic allocation
-      // we pass fmtquill::string_view since fmt/base.h includes a formatter for that type.
-      // for std::string_view we would need fmt/format.h
+      // Store a view of the decoded bytes instead of copying them into an owned string
       args_store->push_back(fmtquill::string_view{arg.data(), arg.size()});
     }
     else

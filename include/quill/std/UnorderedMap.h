@@ -53,7 +53,7 @@ struct Codec<UnorderedMapType<Key, T, Hash, KeyEqual, Allocator>,
 
     if constexpr (std::conjunction_v<std::is_arithmetic<Key>, std::is_arithmetic<T>>)
     {
-      // For built-in types, such as arithmetic or enum types, iteration is unnecessary
+      // For arithmetic types, iteration is unnecessary
       total_size += (sizeof(Key) + sizeof(T)) * arg.size();
     }
     else

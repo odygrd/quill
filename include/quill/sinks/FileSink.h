@@ -76,9 +76,9 @@ class FileSinkConfig
 public:
   /**
    * @brief Sets the append type for the file name.
-   * Possible append types are: StartDate, StartDateTime or None.
-   * When this option is set, the file name will be appended with the start date or date and time
-   * timestamp of when the process started.
+   * Possible append types are: None, StartDate, StartDateTime or StartCustomTimestampFormat.
+   * When this option is set, the file name is appended with the date, date and time, or custom
+   * timestamp of when the sink was created.
    *
    * For example:
    * application.log -> application_20230101.log  (StartDate)
@@ -116,8 +116,8 @@ public:
   }
 
   /**
-   * @brief Sets the timezone to use for time-based operations e.g. when appending the date to the
-   * get_filename or when setting the logging pattern.
+   * @brief Sets the timezone of the timestamp appended to the file name and, for rotating sinks,
+   * of the rotation schedule. The log pattern's timezone is set in PatternFormatterOptions.
    * Valid options for the timezone are 'LocalTime' or 'GmtTime'
    * The default value is 'LocalTime'
    * @param time_zone The timezone to use for time-based operations.
@@ -296,12 +296,6 @@ QUILL_NODISCARD inline std::string format_datetime_string(uint64_t timestamp_ns,
   }
 }
 
-/***/
-QUILL_NODISCARD inline std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
-{
-  return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
-}
-
 /** Inserts the formatted timestamp between the file stem and its extension */
 QUILL_NODISCARD inline fs::path append_datetime_to_filename(fs::path const& filename,
                                                             std::string const& append_filename_format_pattern,
@@ -356,10 +350,9 @@ private:
     fs::path path{normalized_name};
     if (path.is_absolute())
     {
-      HANDLE const directory = ::CreateFileW(
-        path.parent_path().c_str(), FILE_READ_ATTRIBUTES,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-        FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+      HANDLE const directory = ::CreateFileW(path.parent_path().c_str(), FILE_READ_ATTRIBUTES,
+                                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                             nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
       if (directory == INVALID_HANDLE_VALUE)
       {
         QUILL_THROW(QuillError{"Cannot inspect file sink directory. GetLastError: " +
@@ -368,12 +361,12 @@ private:
 
       // FileCaseSensitiveInfo (23) has a single ULONG flag; older SDKs omit the declarations.
       DWORD flags{0};
-      bool const queried = ::GetFileInformationByHandleEx(
-        directory, static_cast<FILE_INFO_BY_HANDLE_CLASS>(23), &flags, sizeof(flags)) != 0;
+      bool const queried =
+        ::GetFileInformationByHandleEx(directory, static_cast<FILE_INFO_BY_HANDLE_CLASS>(23),
+                                       &flags, sizeof(flags)) != 0;
       DWORD const error = queried ? ERROR_SUCCESS : ::GetLastError();
       ::CloseHandle(directory);
-      if (!queried && error != ERROR_INVALID_PARAMETER && error != ERROR_NOT_SUPPORTED &&
-          error != ERROR_INVALID_FUNCTION)
+      if (!queried && error != ERROR_INVALID_PARAMETER && error != ERROR_NOT_SUPPORTED && error != ERROR_INVALID_FUNCTION)
       {
         QUILL_THROW(QuillError{"Cannot query file sink directory case sensitivity. GetLastError: " +
                                std::to_string(error)});
@@ -391,9 +384,9 @@ private:
         }
 
         std::wstring folded(static_cast<size_t>(count), L'\0');
-        int const mapped_count = ::LCMapStringEx(
-          LOCALE_NAME_INVARIANT, LCMAP_UPPERCASE, name.c_str(), static_cast<int>(name.size()),
-          folded.data(), count, nullptr, nullptr, 0);
+        int const mapped_count =
+          ::LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_UPPERCASE, name.c_str(),
+                          static_cast<int>(name.size()), folded.data(), count, nullptr, nullptr, 0);
         if (mapped_count == 0)
         {
           QUILL_THROW(QuillError{"Cannot normalize file sink name. GetLastError: " +
@@ -514,8 +507,8 @@ public:
       // libc++ can report access denied for a file pending deletion. Query the open
       // handle so an unrelated status error does not cause a valid file to be reopened.
       FILE_STANDARD_INFO file_info{};
-      file_removed = ::GetFileInformationByHandleEx(
-                       _native_file_handle, FileStandardInfo, &file_info, sizeof(file_info)) &&
+      file_removed = ::GetFileInformationByHandleEx(_native_file_handle, FileStandardInfo,
+                                                    &file_info, sizeof(file_info)) &&
         file_info.DeletePending;
     }
     if (file_removed)
@@ -643,8 +636,7 @@ protected:
 
     if (_file_event_notifier.after_open)
     {
-      if (!mode.empty() && mode[0] == 'a' &&
-          ::GetFileType(opened_handle_guard.handle) == FILE_TYPE_DISK)
+      if (!mode.empty() && mode[0] == 'a' && ::GetFileType(opened_handle_guard.handle) == FILE_TYPE_DISK)
       {
         LARGE_INTEGER offset{};
         if (!::SetFilePointerEx(opened_handle_guard.handle, offset, nullptr, FILE_END))

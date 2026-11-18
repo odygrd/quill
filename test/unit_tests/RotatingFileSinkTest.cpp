@@ -78,8 +78,7 @@ void check_deadline_saturation(char const* filename_stem, RotatingFileSinkConfig
   testing::remove_file(filename_2);
 
   std::chrono::system_clock::time_point const start_time{
-    std::chrono::duration_cast<std::chrono::system_clock::duration>(
-      std::chrono::seconds{1'672'531'200})};
+    std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{1'672'531'200})};
 
   {
     RotatingFileSink sink{filename, cfg, FileEventNotifier{}, start_time};
@@ -143,6 +142,11 @@ TEST_CASE("rotating_file_sink_config_rejects_invalid_daily_rotation_time")
 #if !defined(QUILL_NO_EXCEPTIONS)
   RotatingFileSinkConfig cfg;
 
+  cfg.set_rotation_frequency_and_interval('H', 3);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("25:00"), QuillError);
+  REQUIRE_EQ(cfg.rotation_frequency(), RotatingFileSinkConfig::RotationFrequency::Hourly);
+  REQUIRE_EQ(cfg.rotation_interval(), 3u);
+
   REQUIRE_NOTHROW(cfg.set_rotation_time_daily("08:30"));
   REQUIRE_EQ(cfg.daily_rotation_time().first, std::chrono::hours{8});
   REQUIRE_EQ(cfg.daily_rotation_time().second, std::chrono::minutes{30});
@@ -151,6 +155,10 @@ TEST_CASE("rotating_file_sink_config_rejects_invalid_daily_rotation_time")
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("ab:cd"), QuillError);
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("24:00"), QuillError);
   REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("23:60"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily(""), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("8:30"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("0830"), QuillError);
+  REQUIRE_THROWS_AS(cfg.set_rotation_time_daily("08:300"), QuillError);
 #else
   return;
 #endif
@@ -188,8 +196,7 @@ TEST_CASE("rotating_file_sink_rejects_unrepresentable_start_timestamp")
     auto const out_of_range_seconds = static_cast<std::chrono::seconds::rep>(
       static_cast<uint64_t>((std::numeric_limits<time_t>::max)()) + 1u);
     std::chrono::system_clock::time_point const start_time{
-      std::chrono::duration_cast<std::chrono::system_clock::duration>(
-        std::chrono::seconds{out_of_range_seconds})};
+      std::chrono::duration_cast<std::chrono::system_clock::duration>(std::chrono::seconds{out_of_range_seconds})};
 
     REQUIRE_THROWS_AS(
       [&]() { RotatingFileSink sink(filename, cfg, FileEventNotifier{}, start_time); }(), QuillError);
@@ -3606,7 +3613,8 @@ TEST_CASE("rotating_file_sink_invalid_params")
 {
   fs::path const filename = "rotating_file_sink_invalid_params.log";
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS(RotatingFileSink{filename, []()
+  REQUIRE_THROWS(RotatingFileSink{filename,
+                                  []()
                                   {
                                     RotatingFileSinkConfig cfg;
                                     cfg.set_rotation_max_file_size(128);
@@ -3618,7 +3626,8 @@ TEST_CASE("rotating_file_sink_invalid_params")
   REQUIRE_FALSE(fs::exists(filename));
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS(RotatingFileSink{filename, []()
+  REQUIRE_THROWS(RotatingFileSink{filename,
+                                  []()
                                   {
                                     RotatingFileSinkConfig cfg;
                                     cfg.set_rotation_frequency_and_interval('Z', 123);
@@ -3630,7 +3639,8 @@ TEST_CASE("rotating_file_sink_invalid_params")
   REQUIRE_FALSE(fs::exists(filename));
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS(RotatingFileSink{filename, []()
+  REQUIRE_THROWS(RotatingFileSink{filename,
+                                  []()
                                   {
                                     RotatingFileSinkConfig cfg;
                                     cfg.set_rotation_frequency_and_interval('M', 0);
@@ -5133,8 +5143,8 @@ TEST_CASE("time_rotation_daily_at_time_rotating_file_sink_localtime_dst")
     config.set_rotation_time_daily("02:30");
     config.set_timezone(Timezone::LocalTime);
     auto const start = local_timestamp(9, 4, 0);
-    RotatingFileSink sink{missing_hour_file, config, {},
-                          std::chrono::system_clock::from_time_t(static_cast<time_t>(start / 1'000'000'000ull))};
+    RotatingFileSink sink{
+      missing_hour_file, config, {}, std::chrono::system_clock::from_time_t(static_cast<time_t>(start / 1'000'000'000ull))};
     auto write_record = [&sink](uint64_t timestamp)
     {
       sink.write_log(LogRecord{
@@ -5766,8 +5776,10 @@ TEST_CASE("rotating_file_sink_unicode_paths")
   for (Naming const naming : {Naming::Index, Naming::Date, Naming::DateAndTime})
   {
     fs::path const filename = directory / fs::path{u"\u65e5\u672c_\u00e9.log"};
-    fs::path const backup = directory / fs::path{naming == Naming::Index ? u"\u65e5\u672c_\u00e9.1.log"
-      : naming == Naming::Date ? u"\u65e5\u672c_\u00e9.20200305.log" : u"\u65e5\u672c_\u00e9.20200305_025545.log"};
+    fs::path const backup = directory /
+      fs::path{naming == Naming::Index    ? u"\u65e5\u672c_\u00e9.1.log"
+                 : naming == Naming::Date ? u"\u65e5\u672c_\u00e9.20200305.log"
+                                          : u"\u65e5\u672c_\u00e9.20200305_025545.log"};
 
     RotatingFileSinkConfig config;
     config.set_timezone(Timezone::GmtTime);

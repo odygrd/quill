@@ -95,7 +95,9 @@ struct TupleReferenceValue
 {
   explicit TupleReferenceValue(int v) : value(v) {}
   TupleReferenceValue(TupleReferenceValue const&) noexcept = default;
-  TupleReferenceValue(TupleReferenceValue&& other) noexcept : value(std::exchange(other.value, -1)) {}
+  TupleReferenceValue(TupleReferenceValue&& other) noexcept : value(std::exchange(other.value, -1))
+  {
+  }
   int value;
 };
 
