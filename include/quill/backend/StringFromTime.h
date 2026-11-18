@@ -654,7 +654,7 @@ protected:
     }
     else
     {
-      magnitude = timestamp;
+      magnitude = static_cast<unsigned_time_t>(timestamp);
     }
 
     do
