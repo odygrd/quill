@@ -70,6 +70,13 @@ public:
     FileSinkIdFunction file_sink_id{nullptr};
     {
       LockGuard const lock{_spinlock};
+
+      std::shared_ptr<Sink> sink = _find_sink(sink_name);
+      if (sink)
+      {
+        return sink;
+      }
+
       for (auto const& entry : _sinks)
       {
         if (!entry.file_sink_id)
@@ -86,30 +93,25 @@ public:
       }
     }
 
-    // Normalize before taking the lock to avoid blocking filesystem calls under the spinlock
-    std::string normalized_sink_name;
-    QUILL_TRY
+    // Only a file sink can be registered under a different spelling of the requested name.
+    // Normalize outside the lock to avoid blocking filesystem calls under the spinlock, and
+    // without throwing: a name that is not a usable path simply does not match a file sink.
+    std::shared_ptr<Sink> sink;
+    if (file_sink_id)
     {
-      normalized_sink_name = detail::normalize_file_sink_path(fs::path{sink_name}, false).string();
-      if (file_sink_id)
+      std::string error;
+      std::string normalized_sink_name =
+        detail::try_normalize_file_sink_path(fs::path{sink_name}, false, error).string();
+
+      if (error.empty() && !normalized_sink_name.empty())
       {
         normalized_sink_name = file_sink_id(normalized_sink_name);
-      }
-    }
-    QUILL_CATCH(QuillError const&)
-    {
-      // Fallback normalization is best-effort for file-path lookups only.
-    }
 
-    // The sinks are used by the backend thread, so after their creation we want to avoid mutating their member variables.
-    std::shared_ptr<Sink> sink;
-    {
-      LockGuard const lock{_spinlock};
-      sink = _find_sink(sink_name);
-
-      if (!sink && !normalized_sink_name.empty() && normalized_sink_name != sink_name)
-      {
-        sink = _find_sink(normalized_sink_name);
+        if (normalized_sink_name != sink_name)
+        {
+          LockGuard const lock{_spinlock};
+          sink = _find_sink(normalized_sink_name);
+        }
       }
     }
 
