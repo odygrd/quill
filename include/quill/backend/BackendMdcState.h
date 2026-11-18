@@ -50,29 +50,31 @@ public:
 
   void rebuild_formatted_mdc()
   {
-    _formatted_mdc.clear();
-
     if (_fields.empty())
     {
+      _formatted_mdc.clear();
       return;
     }
 
-    _formatted_mdc.append(_format_parts.prefix);
+    // Publish only a complete rendering if an append needs to allocate.
+    _format_buffer.clear();
+    _format_buffer.append(_format_parts.prefix);
 
     size_t i = 0;
     for (auto const& [key, value] : _fields)
     {
-      _formatted_mdc.append(key);
-      _formatted_mdc.append(_format_parts.kv_sep);
-      _formatted_mdc.append(value);
+      _format_buffer.append(key);
+      _format_buffer.append(_format_parts.kv_sep);
+      _format_buffer.append(value);
 
       if (++i != _fields.size())
       {
-        _formatted_mdc.append(_format_parts.field_sep);
+        _format_buffer.append(_format_parts.field_sep);
       }
     }
 
-    _formatted_mdc.append(_format_parts.suffix);
+    _format_buffer.append(_format_parts.suffix);
+    _formatted_mdc.swap(_format_buffer);
   }
 
 private:
@@ -133,6 +135,7 @@ private:
   FormatParts _format_parts;
   std::map<std::string, std::string> _fields;
   std::string _formatted_mdc;
+  std::string _format_buffer;
 };
 } // namespace detail
 
