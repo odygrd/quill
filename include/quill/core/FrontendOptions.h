@@ -12,7 +12,6 @@
 
 #ifndef QUILL_MODULE
   #include <cstdint>
-  #include <type_traits>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -22,9 +21,9 @@ QUILL_BEGIN_EXPORT
 /**
  * Frontend options are expressed as a traits type.
  *
- * To override only a subset of options, derive from FrontendOptions and redeclare only the
- * members that change. New members added to FrontendOptions will then be inherited automatically
- * unless the derived type explicitly overrides them.
+ * Custom options must derive from FrontendOptions and redeclare only the members that change.
+ * New members added to FrontendOptions are then inherited automatically unless the derived type
+ * explicitly overrides them.
  *
  * @note FrontendOptions are intended to be an application-wide choice. Mixing different
  *       FrontendImpl<TFrontendOptions> or LoggerImpl<TFrontendOptions> specializations is not a
@@ -97,20 +96,5 @@ struct FrontendOptions
 };
 
 QUILL_END_EXPORT
-
-namespace detail
-{
-template <typename TOptions, typename = void>
-struct FrontendClockType
-{
-  using type = ClockSource;
-};
-
-template <typename TOptions>
-struct FrontendClockType<TOptions, std::void_t<typename TOptions::clock_type>>
-{
-  using type = typename TOptions::clock_type;
-};
-} // namespace detail
 
 QUILL_END_NAMESPACE

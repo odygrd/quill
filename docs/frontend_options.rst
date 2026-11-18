@@ -18,7 +18,7 @@ Even though each thread has its own queue, a single queue type must be defined f
 
 Queue capacities are rounded up to the next power of two. ``unbounded_queue_max_capacity`` must be greater than or equal to ``initial_queue_capacity``.
 
-To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
+To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Deriving is required: options types that do not derive from :cpp:struct:`FrontendOptions` are rejected at compile time. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
 
 It is important to consistently use your custom types throughout the application, instead of the default ones.
 
