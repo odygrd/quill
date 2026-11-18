@@ -256,7 +256,7 @@ private:
       static constexpr quill::MacroMetadata macro_metadata{                                        \
         "SignalHandler:~", "", fmt, nullptr, log_level, quill::MacroMetadata::Event::Log};         \
                                                                                                    \
-      logger->log_statement(&macro_metadata, ##__VA_ARGS__);                                       \
+      logger->log_statement(&macro_metadata, __VA_ARGS__);                                         \
     }                                                                                              \
   } while (0)
 
@@ -453,8 +453,8 @@ BOOL WINAPI on_console_signal(DWORD signal)
     if (logger_base)
     {
       auto logger = static_cast<LoggerImpl<TFrontendOptions>*>(logger_base);
-      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info,
-                               "Program interrupted by Ctrl+C or Ctrl+Break signal");
+      QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Info, "Program interrupted by {} signal",
+                               "Ctrl+C or Ctrl+Break");
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
       logger->flush_log(0);

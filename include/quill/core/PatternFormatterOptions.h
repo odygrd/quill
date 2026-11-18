@@ -32,15 +32,15 @@ private:
 
 public:
   /***/
-  explicit PatternFormatterOptions(std::string format_pattern = default_format_pattern,
-                                   std::string timestamp_pattern = "%H:%M:%S.%Qns",
-                                   Timezone timestamp_timezone = Timezone::LocalTime,
-                                   bool add_metadata_to_multi_line_logs = true, char pattern_suffix = '\n')
-    : format_pattern(static_cast<std::string&&>(format_pattern)),
-      timestamp_pattern(static_cast<std::string&&>(timestamp_pattern)),
-      timestamp_timezone(timestamp_timezone),
-      add_metadata_to_multi_line_logs(add_metadata_to_multi_line_logs),
-      pattern_suffix(pattern_suffix)
+  explicit PatternFormatterOptions(std::string format = default_format_pattern,
+                                   std::string timestamp_format = "%H:%M:%S.%Qns",
+                                   Timezone timestamp_tz = Timezone::LocalTime,
+                                   bool metadata_on_multi_line_logs = true, char suffix = '\n')
+    : format_pattern(static_cast<std::string&&>(format)),
+      timestamp_pattern(static_cast<std::string&&>(timestamp_format)),
+      timestamp_timezone(timestamp_tz),
+      add_metadata_to_multi_line_logs(metadata_on_multi_line_logs),
+      pattern_suffix(suffix)
   {
   }
 

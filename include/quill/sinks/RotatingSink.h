@@ -1318,8 +1318,8 @@ private:
 protected:
   struct FileInfo
   {
-    FileInfo(fs::path base_filename, uint32_t index, std::string date_time)
-      : base_filename{std::move(base_filename)}, date_time{std::move(date_time)}, index{index}
+    FileInfo(fs::path file_base_filename, uint32_t file_index, std::string file_date_time)
+      : base_filename{std::move(file_base_filename)}, date_time{std::move(file_date_time)}, index{file_index}
     {
     }
 
