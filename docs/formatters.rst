@@ -111,10 +111,15 @@ Use ``%%`` to write a literal percent sign in timestamp patterns, including esca
 ``%%Qms`` or ``%%T``. The escaped text is passed through as a literal instead of being interpreted
 as Quill's fractional-second extension or as a cached time modifier.
 
-.. note:: ``%X``, ``%EX``, ``%c``, ``%Ec``, ``%OH``, ``%OI``, ``%OM`` and ``%OS`` are not
-   supported by Quill's cached timestamp formatter because they embed the time of day, which
-   would go stale between cache recalculations. Use explicit equivalents such as ``%H``, ``%M``
-   and ``%S`` instead.
+.. note:: Quill's cached timestamp formatter only updates the plain time-of-day specifiers
+   (``%H``, ``%I``, ``%k``, ``%l``, ``%M``, ``%S``, ``%s``, ``%R``, ``%r``, ``%T``). A pattern that
+   embeds the time of day in another way, with ``%X``, ``%EX``, ``%c``, ``%Ec`` or BSD ``%+``, or a
+   time-of-day specifier with a flag, width or ``E``/``O`` modifier such as ``%-H``, ``%_M``,
+   ``%10S`` or ``%OH``, is formatted with ``strftime()`` for every timestamp instead, which is
+   slower. The backend reports this once through ``BackendOptions::error_notifier``. Date
+   specifiers such as ``%-d`` are unaffected. With ``Timezone::GmtTime``, ``strftime()`` computes
+   a flagged ``%s`` such as ``%10s`` from local time, so it is off by the UTC offset; use plain
+   ``%s``.
 
 .. note:: MinGW does not support all ``strftime(...)`` format specifiers. If the platform ``strftime`` implementation cannot format the configured pattern, Quill reports a formatting error.
 

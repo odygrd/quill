@@ -461,6 +461,16 @@ private:
     return std::string{ts};
   }
 
+  /** Reports a timestamp pattern that is formatted with strftime() on every call, once per formatter */
+  void _notify_pattern_formatter_warning(PatternFormatter const& pattern_formatter)
+  {
+    if (!pattern_formatter.timestamp_pattern_warning().empty())
+    {
+      _notify_error(_options.error_notifier,
+                    _get_local_time_str() + " Quill WARNING: " + pattern_formatter.timestamp_pattern_warning());
+    }
+  }
+
   void _notify_error(std::function<void(std::string const&)> const& error_notifier, std::string const& error_message)
   {
     if (!static_cast<bool>(error_notifier))
@@ -1438,6 +1448,7 @@ private:
         // Didn't find an existing formatter  need to create a new pattern formatter
         transit_event.logger_base->_pattern_formatter =
           std::make_shared<PatternFormatter>(transit_event.logger_base->_pattern_formatter_options);
+        _notify_pattern_formatter_warning(*transit_event.logger_base->_pattern_formatter);
       }
     }
 
@@ -1543,6 +1554,7 @@ private:
             // Initialize override formatter if needed
             sink->_override_pattern_formatter =
               std::make_shared<PatternFormatter>(*sink->_override_pattern_formatter_options);
+            _notify_pattern_formatter_warning(*sink->_override_pattern_formatter);
           }
 
           // Use the sink's override formatter

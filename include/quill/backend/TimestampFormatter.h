@@ -95,19 +95,21 @@ public:
       specifier_begin = search_qns;
     }
 
+    std::string uncached_specifier;
+
     if (specifier_begin == std::string::npos)
     {
       // If no additional specifier was found then we can simply store the whole format string
       QUILL_ASSERT(_additional_format_specifier == AdditionalSpecifier::None,
                    "Unexpected specifier state in TimestampFormatter constructor, should be None "
                    "when no specifier found");
-      _strftime_part_1.init(_time_format, _timestamp_timezone);
+      uncached_specifier = _strftime_part_1.init(_time_format, _timestamp_timezone);
     }
     else
     {
       // We now the index where the specifier begins so copy everything until there from beginning
       std::string const format_part_1 = _time_format.substr(0, specifier_begin);
-      _strftime_part_1.init(format_part_1, _timestamp_timezone);
+      uncached_specifier = _strftime_part_1.init(format_part_1, _timestamp_timezone);
 
       // Now copy the remaining format string, ignoring the specifier
       size_t const specifier_end = specifier_begin + specifier_length;
@@ -116,9 +118,22 @@ public:
 
       if (!format_part_2.empty())
       {
-        _strftime_part_2.init(format_part_2, _timestamp_timezone);
+        std::string part_2_uncached_specifier = _strftime_part_2.init(format_part_2, _timestamp_timezone);
         _has_format_part_2 = true;
+
+        if (uncached_specifier.empty())
+        {
+          uncached_specifier = std::move(part_2_uncached_specifier);
+        }
       }
+    }
+
+    if (!uncached_specifier.empty())
+    {
+      _warning = "Timestamp pattern \"" + _time_format + "\" contains `" + uncached_specifier +
+        "`, which the cached timestamp formatter cannot update, so every timestamp is formatted "
+        "with strftime() instead. Use plain specifiers such as %H, %M and %S to keep the faster "
+        "cached formatting";
     }
   }
 
@@ -184,6 +199,11 @@ public:
   /***/
   QUILL_NODISCARD Timezone timestamp_timezone() const noexcept { return _timestamp_timezone; }
 
+  /**
+   * @return empty, or a warning that the pattern is formatted with strftime() on every call
+   */
+  QUILL_NODISCARD std::string const& warning() const noexcept { return _warning; }
+
 private:
   /***/
   void _write_fractional_seconds(uint32_t extracted_fractional_seconds)
@@ -220,6 +240,7 @@ private:
   static constexpr size_t specifier_length = 4u;
 
   std::string _time_format;
+  std::string _warning;
   fmtquill::basic_memory_buffer<char, 32> _formatted_date;
 
   /** Strftime cache for both parts of the string */

@@ -1,10 +1,12 @@
 #include "quill/backend/StringFromTime.h"
 #include "DocTestExtensions.h"
 #include "doctest/doctest.h"
+#include <array>
 #include <clocale>
 #include <cstdlib>
 #include <ctime>
 #include <limits>
+#include <string>
 
 TEST_SUITE_BEGIN("StringFromTime");
 
@@ -82,27 +84,57 @@ TEST_CASE("string_from_time_handles_legitimately_empty_strftime_expansion")
 }
 
 /***/
-TEST_CASE("string_from_time_rejects_time_embedding_composite_modifiers")
+TEST_CASE("string_from_time_formats_uncached_specifiers_with_strftime")
 {
-#if !defined(QUILL_NO_EXCEPTIONS)
-  // These modifiers embed the time of day but are not split into dynamic parts, so the displayed
-  // time would silently freeze at the cached value between recalculations. init() must reject
-  // them instead.
-  for (auto const* fmt :
-       {"%X", "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS", "prefix %H:%M %c suffix"})
+  // These specifiers embed the time of day but are not refreshed from the cached time, so init()
+  // reports them and every timestamp is formatted with strftime() instead of a stale cache
+  for (auto const* fmt : {"%X",   "%EX",          "%c",
+                          "%Ec",  "%OH",          "%OI",
+                          "%OM",  "%OS",          "prefix %H:%M %c suffix",
+                          "%+",   "%-H:%-M:%-S",  "%_H",
+                          "%10S", "%-I:%M:%S %p", "%0k",
+                          "%^l",  "%-s",          "%Es",
+                          "%-T",  "%#R"})
   {
     StringFromTime string_from_time;
-    REQUIRE_THROWS_AS(string_from_time.init(fmt, Timezone::GmtTime), QuillError);
+    REQUIRE_FALSE(string_from_time.init(fmt, Timezone::GmtTime).empty());
   }
 
-  // escaped variants are literal text and must remain accepted
-  for (auto const* fmt : {"literal %%X", "literal %%EX", "literal %%c", "literal %%Ec",
-                          "literal %%OH", "literal %%OI", "literal %%OM", "literal %%OS"})
+  // escaped variants are literal text and date specifiers with flags are cached as usual
+  for (auto const* fmt :
+       {"literal %%X", "literal %%EX", "literal %%c", "literal %%Ec", "literal %%OH", "literal %%OI",
+        "literal %%OM", "literal %%OS", "literal %%-H", "%-d/%-m/%Y %H:%M:%S", "%Ey %Od %_e"})
   {
     StringFromTime string_from_time;
-    string_from_time.init(fmt, Timezone::GmtTime);
+    REQUIRE(string_from_time.init(fmt, Timezone::GmtTime).empty());
   }
+
+#if defined(_WIN32)
+  // The Windows CRT does not accept the glibc and BSD strftime flags
+  std::array<char const*, 3> const formatted_patterns{"%X", "%c", "prefix %H:%M %c suffix"};
+#else
+  std::array<char const*, 11> const formatted_patterns{
+    "%X",          "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS", "prefix %H:%M %c suffix",
+    "%-H:%-M:%-S", "%_M"};
 #endif
+
+  for (auto const* fmt : formatted_patterns)
+  {
+    StringFromTime string_from_time;
+    REQUIRE_FALSE(string_from_time.init(fmt, Timezone::GmtTime).empty());
+
+    // Crosses a second, a minute, an hour and noon from 2023-11-14 22:13:20 UTC
+    time_t const start{1'700'000'000};
+    for (time_t const timestamp : {start, start + 1, start + 61, start + 3600, start + 15 * 3600})
+    {
+      tm time_info{};
+      gmtime_rs(&timestamp, &time_info);
+
+      std::array<char, 256> expected{};
+      REQUIRE_NE(std::strftime(expected.data(), expected.size(), fmt, &time_info), 0u);
+      REQUIRE_EQ(string_from_time.format_timestamp(timestamp), std::string{expected.data()});
+    }
+  }
 }
 
 /***/
