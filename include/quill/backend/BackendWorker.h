@@ -123,8 +123,8 @@ public:
     if (QUILL_UNLIKELY(!_is_rdtsc_clock_config_valid.load(std::memory_order_relaxed)))
     {
       QUILL_THROW(
-        QuillError{"Invalid config, When TSC clock is used backend_thread_sleep_duration should "
-                   "not be higher than rdtsc_resync_interval"});
+        QuillError{"Invalid config, When TSC clock is used BackendOptions::sleep_duration should "
+                   "not be higher than BackendOptions::rdtsc_resync_interval"});
     }
 
     RdtscClock const* rdtsc_clock = _rdtsc_clock.load(std::memory_order_acquire);

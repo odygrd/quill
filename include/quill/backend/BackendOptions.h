@@ -238,8 +238,8 @@ struct BackendOptions
    * This function sets up a user error notifier to handle backend errors and notifications,
    * such as when the unbounded queue reallocates or when the bounded queue becomes full.
    *
-   * To disable callback notifications, simply leave the function undefined:
-   *   std::function<void(std::string const&)> backend_error_notifier = {};
+   * To disable callback notifications, leave the function empty:
+   *   backend_options.error_notifier = {};
    *
    * Disabling this callback does not suppress Quill's fallback formatting-error entries written
    * to sinks. It only disables the callback notifications themselves.
