@@ -108,6 +108,21 @@ TEST_CASE("file_sink_config")
   REQUIRE_EQ(fsc.write_buffer_size(), 0);
 
   REQUIRE_EQ(fsc.minimum_fsync_interval().count(), 0);
+
+  fsc.set_open_mode('w');
+  REQUIRE_EQ(fsc.open_mode(), "w");
+  fsc.set_open_mode("ab");
+  REQUIRE_EQ(fsc.open_mode(), "ab");
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // Modes the sink cannot honour are rejected instead of failing or misbehaving at open
+  for (auto const* invalid_mode : {"a+", "w+", "r", "r+", "x", ""})
+  {
+    REQUIRE_THROWS_AS(fsc.set_open_mode(std::string_view{invalid_mode}), QuillError);
+  }
+  REQUIRE_THROWS_AS(fsc.set_open_mode('r'), QuillError);
+  REQUIRE_EQ(fsc.open_mode(), "ab");
+#endif
 }
 
 /***/
