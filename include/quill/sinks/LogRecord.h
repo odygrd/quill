@@ -38,25 +38,25 @@ struct LogRecord
   /** Timestamp in nanoseconds since epoch */
   uint64_t log_timestamp{0};
 
-  std::string_view thread_id;
-  std::string_view thread_name;
-  std::string_view process_id;
-  std::string_view logger_name;
+  std::string_view thread_id{};
+  std::string_view thread_name{};
+  std::string_view process_id{};
+  std::string_view logger_name{};
   LogLevel log_level{LogLevel::None};
-  std::string_view log_level_description;
-  std::string_view log_level_short_code;
+  std::string_view log_level_description{};
+  std::string_view log_level_short_code{};
 
   /** The named arguments as key/value pairs, or nullptr when the format string has none */
   std::vector<std::pair<std::string, std::string>> const* named_args{nullptr};
 
   /** The formatted message */
-  std::string_view log_message;
+  std::string_view log_message{};
 
   /** The message formatted with the sink's pattern */
-  std::string_view log_statement;
+  std::string_view log_statement{};
 
   /** The logging thread's MDC fields formatted with BackendOptions::mdc_format_pattern, or empty */
-  std::string_view mdc;
+  std::string_view mdc{};
 };
 
 QUILL_END_EXPORT

@@ -10,6 +10,8 @@
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
 
+#include <type_traits>
+
 #include <cstdio>
 #include <string>
 
@@ -17,6 +19,16 @@ TEST_SUITE_BEGIN("BackendUtilities");
 
 using namespace quill;
 using namespace quill::detail;
+
+TEST_CASE("backend_options_is_an_aggregate")
+{
+  // Allows designated initializers in C++20
+  static_assert(std::is_aggregate_v<quill::BackendOptions>);
+
+  quill::BackendOptions const options{"custom_backend"};
+  REQUIRE_EQ(options.thread_name, "custom_backend");
+  REQUIRE_EQ(options.sleep_duration, std::chrono::microseconds{100});
+}
 
 TEST_CASE("version_macros_match_version_constants")
 {

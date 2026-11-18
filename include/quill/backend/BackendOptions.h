@@ -50,12 +50,11 @@ QUILL_BEGIN_EXPORT
 /**
  * @brief Configuration options for the backend.
  *
- * This struct defines settings for the backend thread
+ * This struct defines settings for the backend thread. It is an aggregate, so in C++20 it can be
+ * initialised with designated initializers, e.g. `BackendOptions{.thread_name = "backend"}`.
  */
 struct BackendOptions
 {
-  BackendOptions() = default;
-
   /**
    * The name assigned to the backend, visible during thread naming queries (e.g.,
    * pthread_getname_np) or in the debugger.
@@ -230,7 +229,7 @@ struct BackendOptions
    *       because this option uses SetThreadAffinityMask. Leave this empty and use a custom
    *       backend-thread hook if your application needs group-aware affinity.
    */
-  std::vector<uint16_t> cpu_affinity;
+  std::vector<uint16_t> cpu_affinity{};
 
   /**
    * The backend may encounter exceptions that cannot be caught within user threads.
