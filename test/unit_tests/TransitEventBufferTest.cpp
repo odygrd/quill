@@ -8,11 +8,34 @@
 #include <ctime>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 TEST_SUITE_BEGIN("TransitEventBuffer");
 
 using namespace quill;
 using namespace quill::detail;
+
+/***/
+TEST_CASE("transit_event_move_keeps_runtime_metadata")
+{
+  static_assert(std::is_nothrow_move_constructible_v<TransitEvent>);
+  static_assert(std::is_nothrow_move_assignable_v<TransitEvent>);
+
+  TransitEvent source;
+  source.ensure_extra_data();
+  source.extra_data->runtime_metadata.set("file.cpp", 7u, "function", "", "runtime {}", LogLevel::Info);
+  source.macro_metadata = &source.extra_data->runtime_metadata.macro_metadata;
+
+  TransitEvent moved_to{std::move(source)};
+  REQUIRE_EQ(moved_to.macro_metadata, &moved_to.extra_data->runtime_metadata.macro_metadata);
+  REQUIRE_STREQ(moved_to.macro_metadata->message_format(), "runtime {}");
+
+  TransitEvent assigned_to;
+  assigned_to = std::move(moved_to);
+  REQUIRE_EQ(assigned_to.macro_metadata, &assigned_to.extra_data->runtime_metadata.macro_metadata);
+  REQUIRE_STREQ(assigned_to.macro_metadata->message_format(), "runtime {}");
+}
 
 /***/
 TEST_CASE("runtime_metadata_truncates_oversized_file_path")
