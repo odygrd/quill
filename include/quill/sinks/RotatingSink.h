@@ -524,7 +524,9 @@ private:
 
     if (_get_file_size(this->_filename) == 0)
     {
-      // Also check the file size is > 0  to better deal with full disk
+      // Also check the file size is > 0  to better deal with full disk. The file holds no records
+      // yet, so date the next backup from now rather than from when it was opened.
+      _open_file_timestamp = record_timestamp_ns;
       return;
     }
 
