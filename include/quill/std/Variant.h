@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "quill/DeferredFormatCodec.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/Codec.h"
 #include "quill/core/DynamicFormatArgStore.h"
@@ -20,8 +21,6 @@
   #include <cstddef>
   #include <cstdint>
   #include <cstdlib>
-  #include <cstring>
-  #include <new>
   #include <optional>
   #include <type_traits>
   #include <utility>
@@ -84,102 +83,6 @@ QUILL_NODISCARD inline DecodedVariantType make_decoded_variant(DecodedType&& dec
   }
 }
 
-template <typename T>
-struct StoredObjectCodec
-{
-  static constexpr bool use_memcpy =
-    std::conjunction_v<std::is_trivially_copyable<T>, std::is_default_constructible<T>>;
-
-  static size_t compute_encoded_size() noexcept
-  {
-    if constexpr (use_memcpy)
-    {
-      return sizeof(T);
-    }
-    else
-    {
-      return sizeof(T) + alignof(T) - 1;
-    }
-  }
-
-  template <typename Arg>
-  static void encode(std::byte*& buffer, Arg&& arg)
-  {
-    if constexpr (use_memcpy)
-    {
-      std::memcpy(buffer, &arg, sizeof(arg));
-      buffer += sizeof(arg);
-    }
-    else
-    {
-      auto* aligned_ptr = align_pointer(buffer, alignof(T));
-
-      if constexpr (std::is_rvalue_reference_v<Arg&&> && std::is_move_constructible_v<T>)
-      {
-        new (static_cast<void*>(aligned_ptr)) T(std::move(arg));
-      }
-      else
-      {
-        static_assert(std::is_copy_constructible_v<T>, "T must be copy-constructible");
-        new (static_cast<void*>(aligned_ptr)) T(arg);
-      }
-
-      buffer += sizeof(T) + alignof(T) - 1;
-    }
-  }
-
-  static T decode(std::byte*& buffer)
-  {
-    if constexpr (use_memcpy)
-    {
-      T arg;
-      std::memcpy(static_cast<void*>(&arg), buffer, sizeof(arg));
-      buffer += sizeof(arg);
-      return arg;
-    }
-    else
-    {
-      static_assert(std::is_move_constructible_v<T> || std::is_copy_constructible_v<T>,
-                    "T must be move or copy constructible");
-
-      auto* aligned_ptr = align_pointer(buffer, alignof(T));
-      auto* tmp = std::launder(reinterpret_cast<T*>(aligned_ptr));
-      buffer += sizeof(T) + alignof(T) - 1;
-
-      // Guarantee *tmp is destroyed even if the move/copy below throws. The original object
-      // was placement-new'd into the queue buffer during encode().
-      struct DestroyGuard
-      {
-        T* ptr;
-        ~DestroyGuard()
-        {
-          if constexpr (!std::is_trivially_destructible_v<T>)
-          {
-            ptr->~T();
-          }
-        }
-      } destroy_guard{tmp};
-
-      if constexpr (std::is_move_constructible_v<T>)
-      {
-        return T(std::move(*tmp));
-      }
-      else
-      {
-        // `return T{*tmp}` is preferred over `return *tmp` since the latter can still
-        // prefer a deleted move constructor for copy-only types.
-        return T(*tmp);
-      }
-    }
-  }
-
-private:
-  static std::byte* align_pointer(void* pointer, size_t alignment) noexcept
-  {
-    return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
-                                        ~(alignment - 1ul));
-  }
-};
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -256,7 +159,7 @@ public:
     {
       if constexpr (can_preserve_valueless_state)
       {
-        total_size += detail::StoredObjectCodec<VariantType>::compute_encoded_size();
+        total_size += DeferredFormatCodec<VariantType>::compute_encoded_size(conditional_arg_size_cache, arg);
       }
 
       return total_size;
@@ -283,7 +186,8 @@ public:
 
       if constexpr (can_preserve_valueless_state)
       {
-        detail::StoredObjectCodec<VariantType>::encode(buffer, std::forward<Arg>(arg));
+        DeferredFormatCodec<VariantType>::encode(buffer, conditional_arg_size_cache,
+                                                conditional_arg_size_cache_index, std::forward<Arg>(arg));
       }
 
       return;
@@ -329,7 +233,7 @@ public:
       if constexpr (can_preserve_valueless_state)
       {
         return DecodedVariantType{
-          std::optional<DecodedVariantValueType>{detail::StoredObjectCodec<VariantType>::decode(buffer)}};
+          std::optional<DecodedVariantValueType>{DeferredFormatCodec<VariantType>::decode_arg(buffer)}};
       }
       else
       {
