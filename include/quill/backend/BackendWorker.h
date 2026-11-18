@@ -1522,8 +1522,8 @@ private:
     {
       QUILL_TRY
       {
-        sink->write_metric(metric_metadata, transit_event.timestamp, thread_id, thread_name,
-                           _process_id, transit_event.logger_base->_logger_name, metric_value);
+        sink->write_metric(MetricRecord{metric_metadata, transit_event.timestamp, thread_id, thread_name,
+                                        _process_id, transit_event.logger_base->_logger_name, metric_value});
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH(std::exception const& e) { _notify_error(_options.error_notifier, e.what()); }
@@ -1547,6 +1547,21 @@ private:
   {
     std::string_view default_log_statement;
     LogLevel const log_level = transit_event.log_level();
+
+    // log_statement is set per sink, since a sink can override the pattern
+    LogRecord record{transit_event.macro_metadata,
+                     transit_event.timestamp,
+                     thread_id,
+                     thread_name,
+                     _process_id,
+                     transit_event.logger_base->_logger_name,
+                     log_level,
+                     log_level_description,
+                     log_level_short_code,
+                     transit_event.get_named_args(),
+                     log_message,
+                     std::string_view{},
+                     transit_event.mdc()};
 
     // Process each sink with the appropriate formatting and filtering
     for (auto& sink : transit_event.logger_base->_sinks)
@@ -1595,16 +1610,13 @@ private:
             transit_event.get_named_args(), log_message, transit_event.mdc());
         }
 
+        record.log_statement = log_to_write;
+
         // Apply filters now that we have the formatted log
-        if (sink->_apply_all_user_filters(transit_event.macro_metadata, transit_event.timestamp,
-                                          thread_id, thread_name, transit_event.logger_base->_logger_name,
-                                          log_level, log_message, log_to_write))
+        if (sink->_apply_all_user_filters(record))
         {
           // Forward the message using the computed log statement that passed the filter
-          sink->write_log(transit_event.macro_metadata, transit_event.timestamp, thread_id,
-                          thread_name, _process_id, transit_event.logger_base->_logger_name,
-                          log_level, log_level_description, log_level_short_code,
-                          transit_event.get_named_args(), log_message, log_to_write);
+          sink->write_log(record);
         }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)

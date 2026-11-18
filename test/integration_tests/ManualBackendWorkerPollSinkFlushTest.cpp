@@ -21,15 +21,15 @@ using namespace quill;
  */
 struct PollSinkFlushCountingSink final : public quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     writes.fetch_add(1, std::memory_order_relaxed);
   }
 
-  void flush_sink() noexcept override { flushes.fetch_add(1, std::memory_order_relaxed); }
+  void flush_sink(SinkFlushReason) noexcept override
+  {
+    flushes.fetch_add(1, std::memory_order_relaxed);
+  }
 
   void run_periodic_tasks() override { periodic_tasks.fetch_add(1, std::memory_order_relaxed); }
 

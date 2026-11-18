@@ -39,12 +39,9 @@ public:
   {
   }
 
-  bool filter(quill::MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
-              std::string_view /* thread_id */, std::string_view /* thread_name */,
-              std::string_view /* logger_name */, quill::LogLevel log_level,
-              std::string_view /* log_message */, std::string_view /* log_statement */) noexcept override
+  bool filter(quill::LogRecord const& record) noexcept override
   {
-    return log_level >= _threshold;
+    return record.log_level >= _threshold;
   }
 
 private:
@@ -60,10 +57,7 @@ public:
   {
   }
 
-  bool filter(quill::MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
-              std::string_view /* thread_id */, std::string_view /* thread_name */,
-              std::string_view /* logger_name */, quill::LogLevel /* log_level */,
-              std::string_view /* log_message */, std::string_view /* log_statement */) noexcept override
+  bool filter(quill::LogRecord const& /* record */) noexcept override
   {
     return (_count++ % _modulo) == 0;
   }

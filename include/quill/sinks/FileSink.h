@@ -354,8 +354,7 @@ private:
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
-  bool _fsync_pending{false};    /**< An fsync was skipped because of minimum_fsync_interval */
-  bool _force_next_fsync{false}; /**< Set during the final flush so a pending fsync is not skipped */
+  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
 };
 
 /**
@@ -482,19 +481,13 @@ public:
   }
 
   /**
-   * The final flush also performs an fsync deferred by minimum_fsync_interval. Forwards to
-   * flush_sink() so overrides of it keep working; it takes no reason, so the final flush is
-   * passed to fsync_file() through _force_next_fsync.
+   * Flushes buffered records to the file and fsyncs it when enabled. The final flush also
+   * performs an fsync deferred by minimum_fsync_interval.
    */
   QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason flush_reason) override
   {
-    _force_next_fsync = (flush_reason == SinkFlushReason::Final);
-    flush_sink();
-    _force_next_fsync = false;
-  }
+    bool const force_fsync = (flush_reason == SinkFlushReason::Final);
 
-  QUILL_ATTRIBUTE_HOT void flush_sink() override
-  {
     if (_write_occurred && !is_open())
     {
       _reopen_file();
@@ -505,7 +498,7 @@ public:
       // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
       if (_fsync_pending && _config.fsync_enabled())
       {
-        fsync_file();
+        fsync_file(force_fsync);
       }
 
       return;
@@ -516,7 +509,7 @@ public:
 
     if (_config.fsync_enabled())
     {
-      fsync_file();
+      fsync_file(force_fsync);
     }
 
     std::error_code ec;
@@ -540,20 +533,14 @@ public:
     }
   }
 
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* /* log_metadata */,
-                                     uint64_t /* log_timestamp */, std::string_view /* thread_id */,
-                                     std::string_view /* thread_name */, std::string const& /* process_id */,
-                                     std::string_view /* logger_name */, LogLevel /* log_level */,
-                                     std::string_view /* log_level_description */,
-                                     std::string_view /* log_level_short_code */,
-                                     std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-                                     std::string_view /* log_message */, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (QUILL_UNLIKELY(_native_file_handle == INVALID_HANDLE_VALUE))
     {
       return;
     }
 
+    std::string_view const log_statement = record.log_statement;
     std::string_view statement = log_statement;
     std::string user_log_statement;
 
@@ -769,10 +756,9 @@ protected:
     }
 
     // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
-    bool const ignore_interval = force_fsync || _force_next_fsync;
     auto const now = std::chrono::steady_clock::now();
 
-    if (!ignore_interval && _is_within_minimum_fsync_interval(now))
+    if (!force_fsync && _is_within_minimum_fsync_interval(now))
     {
       // Deferred: a later flush performs it once the interval has elapsed, or the final flush
       _fsync_pending = true;
@@ -788,7 +774,7 @@ protected:
 
     _fsync_pending = false;
 
-    if (!ignore_interval)
+    if (!force_fsync)
     {
       _last_fsync_timestamp = now;
     }
@@ -892,19 +878,13 @@ public:
   }
 
   /**
-   * The final flush also performs an fsync deferred by minimum_fsync_interval. Forwards to
-   * flush_sink() so overrides of it keep working; it takes no reason, so the final flush is
-   * passed to fsync_file() through _force_next_fsync.
+   * Flushes buffered records to the file and fsyncs it when enabled. The final flush also
+   * performs an fsync deferred by minimum_fsync_interval.
    */
   QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason flush_reason) override
   {
-    _force_next_fsync = (flush_reason == SinkFlushReason::Final);
-    flush_sink();
-    _force_next_fsync = false;
-  }
+    bool const force_fsync = (flush_reason == SinkFlushReason::Final);
 
-  QUILL_ATTRIBUTE_HOT void flush_sink() override
-  {
     if (_write_occurred && !is_open())
     {
       _reopen_file();
@@ -920,17 +900,17 @@ public:
       // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
       if (_fsync_pending && _config.fsync_enabled())
       {
-        fsync_file();
+        fsync_file(force_fsync);
       }
 
       return;
     }
 
-    StreamSink::flush_sink();
+    StreamSink::flush_sink(flush_reason);
 
     if (_config.fsync_enabled())
     {
-      fsync_file();
+      fsync_file(force_fsync);
     }
 
     std::error_code ec;
@@ -1148,7 +1128,7 @@ protected:
 
     QUILL_TRY
     {
-      StreamSink::flush_sink();
+      StreamSink::flush_sink(SinkFlushReason::Final);
       fsync_file(true);
     }
   #if !defined(QUILL_NO_EXCEPTIONS)
@@ -1172,10 +1152,9 @@ protected:
     }
 
     // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
-    bool const ignore_interval = force_fsync || _force_next_fsync;
     auto const now = std::chrono::steady_clock::now();
 
-    if (!ignore_interval && _is_within_minimum_fsync_interval(now))
+    if (!force_fsync && _is_within_minimum_fsync_interval(now))
     {
       // Deferred: a later flush performs it once the interval has elapsed, or the final flush
       _fsync_pending = true;
@@ -1199,7 +1178,7 @@ protected:
 
     _fsync_pending = false;
 
-    if (!ignore_interval)
+    if (!force_fsync)
     {
       _last_fsync_timestamp = now;
     }
@@ -1240,8 +1219,7 @@ private:
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
-  bool _fsync_pending{false};    /**< An fsync was skipped because of minimum_fsync_interval */
-  bool _force_next_fsync{false}; /**< Set during the final flush so a pending fsync is not skipped */
+  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
   std::unique_ptr<char[]> _write_buffer;
 };
 #endif

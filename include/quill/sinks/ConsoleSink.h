@@ -377,26 +377,9 @@ public:
 
   /**
    * @brief Write a formatted log message to the stream
-   * @param log_metadata log metadata
-   * @param log_timestamp log timestamp
-   * @param thread_id thread id
-   * @param thread_name thread name
-   * @param process_id Process Id
-   * @param logger_name logger name
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args vector of key-value pairs of named args
-   * @param log_message log message
-   * @param log_statement log statement
+   * @param record the log record
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                     std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name,
-                                     LogLevel log_level, std::string_view log_level_description,
-                                     std::string_view log_level_short_code,
-                                     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                     std::string_view log_message, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (QUILL_UNLIKELY(!_file))
     {
@@ -408,10 +391,10 @@ public:
       // Apply the user callback to the original statement exactly once and determine newline
       // placement from the transformed result.
       std::string transformed_statement;
-      std::string_view statement = log_statement;
+      std::string_view statement = record.log_statement;
       if (_file_event_notifier.before_write)
       {
-        transformed_statement = _file_event_notifier.before_write(log_statement);
+        transformed_statement = _file_event_notifier.before_write(record.log_statement);
         statement = transformed_statement;
       }
 
@@ -428,7 +411,7 @@ public:
 
       // Build the coloured record and write it with one call: on unbuffered streams each write
       // is a syscall, and separate writes let other output land between colour and reset.
-      std::string_view const colour_code = _config.colours().log_level_colour(log_level);
+      std::string_view const colour_code = _config.colours().log_level_colour(record.log_level);
       _coloured_statement.clear();
       _coloured_statement.append(colour_code.data(), colour_code.size());
       _coloured_statement.append(statement.data(), statement.size());
@@ -446,9 +429,7 @@ public:
     else
     {
       // Write record to file
-      StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                            logger_name, log_level, log_level_description, log_level_short_code,
-                            named_args, log_message, log_statement);
+      StreamSink::write_log(record);
     }
   }
 

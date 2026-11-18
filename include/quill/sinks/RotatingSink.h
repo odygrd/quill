@@ -35,10 +35,7 @@
 
 QUILL_BEGIN_NAMESPACE
 
-/** Forward Declaration **/
 QUILL_BEGIN_EXPORT
-
-class MacroMetadata;
 
 /**
  * @brief The configuration options for the RotatingSink
@@ -370,33 +367,14 @@ public:
   ~RotatingSink() override = default;
 
   /**
-   * @brief Writes a formatted log message to the stream
-   * @param log_metadata The metadata of the log message
-   * @param log_timestamp The timestamp of the log message
-   * @param thread_id The ID of the thread that generated the log message
-   * @param thread_name The name of the thread that generated the log message
-   * @param process_id Process Id
-   * @param logger_name logger name
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args Structured key-value pairs associated with the log message
-   * @param log_message The log message to write
-   * @param log_statement The full log statement
+   * @brief Writes a log record, rotating the file first if needed.
+   * @param record the log record
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                     std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name,
-                                     LogLevel log_level, std::string_view log_level_description,
-                                     std::string_view log_level_short_code,
-                                     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                     std::string_view log_message, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (this->is_null() || !_rotation_enabled())
     {
-      base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                           logger_name, log_level, log_level_description, log_level_short_code,
-                           named_args, log_message, log_statement);
+      base_type::write_log(record);
       return;
     }
 
@@ -405,7 +383,7 @@ public:
       // A failed reopen left no active file. Recover now, through the throttled retry in
       // _rotate_files(), rather than only when a record reaches a rotation threshold: records
       // written to the closed file are lost and never count towards it.
-      _rotate_files(log_timestamp);
+      _rotate_files(record.log_timestamp);
     }
 
     bool time_rotation = false;
@@ -413,17 +391,15 @@ public:
     if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
     {
       // Check if we need to rotate based on time
-      time_rotation = _time_rotation(log_timestamp);
+      time_rotation = _time_rotation(record.log_timestamp);
     }
 
     if (!time_rotation && _config.rotation_max_file_size() != 0)
     {
-      size_t const write_size = this->estimate_write_size(
-        log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
-        log_level_description, log_level_short_code, named_args, log_message, log_statement);
+      size_t const write_size = this->estimate_write_size(record);
 
       // Check if we need to rotate based on size
-      QUILL_TRY { _size_rotation(write_size, log_timestamp); }
+      QUILL_TRY { _size_rotation(write_size, record.log_timestamp); }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
       {
@@ -441,13 +417,11 @@ public:
       // The file holds no records yet, so name its backup after this record, as rotation does for
       // every later file, rather than after when the sink was created. A sparse logger's first
       // record can arrive days later.
-      _open_file_timestamp = log_timestamp;
+      _open_file_timestamp = record.log_timestamp;
     }
 
     // write to file
-    base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                         logger_name, log_level, log_level_description, log_level_short_code,
-                         named_args, log_message, log_statement);
+    base_type::write_log(record);
   }
 
 protected:
@@ -531,7 +505,7 @@ private:
       }
     }
 
-    base_type::flush_sink();
+    base_type::flush_sink(SinkFlushReason::Periodic);
 
     if (_config.fsync_enabled())
     {

@@ -33,24 +33,20 @@ struct CapturedMetric
 
 struct MetricCapturingSink final : public quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     log_writes.fetch_add(1, std::memory_order_relaxed);
   }
 
-  void write_metric(quill::MetricMetadata const* metric_metadata, uint64_t log_timestamp,
-                    std::string_view thread_id, std::string_view, std::string const& process_id,
-                    std::string_view logger_name, double value) override
+  void write_metric(MetricRecord const& record) override
   {
     std::lock_guard<std::mutex> const lock{mutex};
-    metrics.push_back(CapturedMetric{metric_metadata, value, std::string{thread_id}, process_id,
-                                     std::string{logger_name}, log_timestamp});
+    metrics.push_back(CapturedMetric{record.metric_metadata, record.value,
+                                     std::string{record.thread_id}, std::string{record.process_id},
+                                     std::string{record.logger_name}, record.timestamp});
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
   std::mutex mutex;
   std::vector<CapturedMetric> metrics;
@@ -59,25 +55,21 @@ struct MetricCapturingSink final : public quill::Sink
 
 struct ThrowingFanoutSink final : public quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
 #if !defined(QUILL_NO_EXCEPTIONS)
     throw std::runtime_error{"simulated log sink failure"};
 #endif
   }
 
-  void write_metric(quill::MetricMetadata const*, uint64_t, std::string_view, std::string_view,
-                    std::string const&, std::string_view, double) override
+  void write_metric(MetricRecord const& /* record */) override
   {
 #if !defined(QUILL_NO_EXCEPTIONS)
     throw std::runtime_error{"simulated metric sink failure"};
 #endif
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 };
 
 TEST_CASE("metric_sink")
