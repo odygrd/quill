@@ -45,10 +45,12 @@ public:
    *
    * Although optional, it is recommended to invoke this function during the thread initialization
    * phase before the first log message.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   QUILL_ATTRIBUTE_COLD static void preallocate()
   {
-    auto const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
+    auto const volatile spsc_queue_capacity = detail::get_checked_local_thread_context<TFrontendOptions>()
                                                 ->template get_spsc_queue<TFrontendOptions::queue_type>()
                                                 .capacity();
 
@@ -77,7 +79,7 @@ public:
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      detail::get_local_thread_context<TFrontendOptions>()
+      detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .shrink(capacity);
     }
@@ -102,13 +104,13 @@ public:
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .producer_capacity();
     }
     else
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .capacity();
     }

@@ -24,7 +24,7 @@ It is important to consistently use your custom types throughout the application
 
 .. warning::
 
-   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application.
+   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application. Creating a logger whose ``queue_type`` differs from the existing loggers throws ``QuillError``.
 
 Error Notifications
 -------------------
