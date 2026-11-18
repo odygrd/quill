@@ -171,13 +171,13 @@ struct StoredObjectCodec
 
       if constexpr (std::is_move_constructible_v<T>)
       {
-        return T{std::move(*tmp)};
+        return T(std::move(*tmp));
       }
       else
       {
         // `return T{*tmp}` is preferred over `return *tmp` since the latter can still
         // prefer a deleted move constructor for copy-only types.
-        return T{*tmp};
+        return T(*tmp);
       }
     }
   }
