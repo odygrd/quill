@@ -101,23 +101,42 @@ public:
     // Call the user-overridable name accessor before taking the lock.
     std::string filter_name = filter->get_filter_name();
 
-    // Lock and add this filter to our global collection
-    detail::LockGuard const lock{_global_filters_lock};
+    bool duplicate_name{false};
 
-    // Check if the same filter already exists
-    auto const search_filter_it = std::find_if(_global_filters.cbegin(), _global_filters.cend(),
-                                               [&filter_name](RegisteredFilter const& elem_filter)
-                                               { return elem_filter.filter_name == filter_name; });
+    QUILL_TRY
+    {
+      // Lock and add this filter to our global collection
+      detail::LockGuard const lock{_global_filters_lock};
 
-    if (QUILL_UNLIKELY(search_filter_it != _global_filters.cend()))
+      // Check if the same filter already exists
+      auto const search_filter_it = std::find_if(_global_filters.cbegin(), _global_filters.cend(),
+                                                 [&filter_name](RegisteredFilter const& elem_filter)
+                                                 { return elem_filter.filter_name == filter_name; });
+
+      duplicate_name = (search_filter_it != _global_filters.cend());
+
+      if (!duplicate_name)
+      {
+        _global_filters.emplace_back(std::move(filter_name), std::move(filter));
+
+        // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
+        _new_filter.store(true, std::memory_order_relaxed);
+      }
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate().
+      throw;
+    }
+#endif
+
+    // Throw after releasing the lock: an uncaught exception terminates without unwinding, and
+    // the backend takes this lock to pick up new filters.
+    if (QUILL_UNLIKELY(duplicate_name))
     {
       QUILL_THROW(QuillError{"Filter with the same name already exists"});
     }
-
-    _global_filters.emplace_back(std::move(filter_name), std::move(filter));
-
-    // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
-    _new_filter.store(true, std::memory_order_relaxed);
   }
 
 protected:

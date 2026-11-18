@@ -658,12 +658,24 @@ private:
                                std::string help, Labels constant_labels, TAdder adder)
   {
     _validate_prometheus_metadata(metric_type, metric_name, constant_labels, {});
-    detail::LockGuard const lock{_spinlock};
 
-    FamilyKey const key{metric_type, metric_name, std::move(constant_labels)};
-    FamilyHandle& handle = _get_or_create_family<TFamily>(key, std::move(help));
-    _configure_family<TFamily>(handle, key, std::move(adder));
-    handle.keep_empty = true;
+    QUILL_TRY
+    {
+      detail::LockGuard const lock{_spinlock};
+
+      FamilyKey const key{metric_type, metric_name, std::move(constant_labels)};
+      FamilyHandle& handle = _get_or_create_family<TFamily>(key, std::move(help));
+      _configure_family<TFamily>(handle, key, std::move(adder));
+      handle.keep_empty = true;
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate(); write_metric() takes
+      // it for every sample.
+      throw;
+    }
+#endif
   }
 
   template <typename TFamily, typename TAdder>
@@ -702,23 +714,34 @@ private:
     Labels const metric_labels = _make_metric_labels(validated_metric);
     _validate_prometheus_metadata(metric_type, validated_metric.metric_name(), constant_labels, metric_labels);
 
-    detail::LockGuard const lock{_spinlock};
-    _ensure_metric_not_registered(validated_metric.metric_key());
-
-    FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
-    FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
-    auto const insert_result = _metric_series[validated_metric.metric_name()].try_emplace(metric_labels);
-    auto& series = insert_result.first->second;
-    if (!series)
+    QUILL_TRY
     {
-      auto* family = std::get<TFamily*>(family_handle.family);
-      series = adder(family, metric_labels, family_key);
-      ++family_handle.metric_count;
-    }
+      detail::LockGuard const lock{_spinlock};
+      _ensure_metric_not_registered(validated_metric.metric_key());
 
-    _configure_family<TFamily>(family_handle, family_key, std::move(adder));
-    _metrics.emplace(metric_metadata, &series);
-    _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
+      FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
+      FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
+      auto const insert_result = _metric_series[validated_metric.metric_name()].try_emplace(metric_labels);
+      auto& series = insert_result.first->second;
+      if (!series)
+      {
+        auto* family = std::get<TFamily*>(family_handle.family);
+        series = adder(family, metric_labels, family_key);
+        ++family_handle.metric_count;
+      }
+
+      _configure_family<TFamily>(family_handle, family_key, std::move(adder));
+      _metrics.emplace(metric_metadata, &series);
+      _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate(); write_metric() takes
+      // it for every sample.
+      throw;
+    }
+#endif
   }
 
   static Labels _make_metric_labels(MetricMetadata const& metric_metadata)
