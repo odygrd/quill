@@ -315,6 +315,7 @@ private:
     // We failed to reserve because the queue was full, create a new node with a new queue.
     // Growing must not throw from the log call: on failure (out of memory, huge pages
     // unavailable) keep using the current node and block or drop as at the maximum capacity.
+    // The std::nothrow node is also not pre-faulted, which would stall this log call.
     Node* const next_node =
       new (std::nothrow) Node{std::nothrow, capacity, _producer->bounded_queue.huge_pages_policy()};
 
