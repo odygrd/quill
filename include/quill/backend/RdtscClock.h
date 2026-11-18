@@ -225,8 +225,43 @@ public:
     return wall_ts;
   }
 
-  /***/
+  /**
+   * Resyncs from the logging path. On failure the resync interval is doubled so that
+   * time_since_epoch() does not retry on every call.
+   */
   bool resync(uint32_t lag) const noexcept
+  {
+    if (try_resync(lag))
+    {
+      _resync_interval_ticks = _resync_interval_original;
+      return true;
+    }
+
+    constexpr int64_t max_int64_half = (std::numeric_limits<int64_t>::max)() / 2;
+    if (_resync_interval_ticks <= max_int64_half)
+    {
+      _resync_interval_ticks = _resync_interval_ticks * 2;
+    }
+
+    return false;
+  }
+
+  /**
+   * Resyncs while the backend is idle. Prefers a tight lag for an accurate base, and falls back to
+   * the logging path's budget so a slow system clock cannot leave the clock unsynchronized. Unlike
+   * resync(), a failure here does not lengthen the logging path's resync interval.
+   */
+  bool resync_when_idle() const noexcept
+  {
+    constexpr uint32_t idle_resync_lag_cycles{2'500};
+    return try_resync(idle_resync_lag_cycles) || try_resync(resync_lag_cycles);
+  }
+
+  /**
+   * Publishes a new base if the system clock can be read within `lag` ticks.
+   * @return true on success. Leaves the resync interval unchanged.
+   */
+  bool try_resync(uint32_t lag) const noexcept
   {
     // Sometimes we might get an interrupt and might never resync, so we will try again up to max_attempts
     constexpr uint8_t max_attempts{4};
@@ -245,18 +280,8 @@ public:
         _base[index].base_time.store(wall_time, std::memory_order_relaxed);
         _base[index].base_tsc.store(_fast_average(beg, end), std::memory_order_relaxed);
         _version.fetch_add(1, std::memory_order_release);
-
-        _resync_interval_ticks = _resync_interval_original;
         return true;
       }
-    }
-
-    // we failed to return earlier and we never resynced, but we don't really want to keep retrying on each call
-    // to time_since_epoch() so we do non accurate resync we will increase the resync duration to resync later
-    constexpr int64_t max_int64_half = (std::numeric_limits<int64_t>::max)() / 2;
-    if (_resync_interval_ticks <= max_int64_half)
-    {
-      _resync_interval_ticks = _resync_interval_ticks * 2;
     }
 
     return false;
