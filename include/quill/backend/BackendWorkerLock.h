@@ -91,34 +91,19 @@ public:
     std::string path = "/tmp/QuillBackendLock" + pid;
 
     // Open or create the lock file. The file itself is just a vessel for the kernel lock.
-    // Retry on EINTR and transient errors. The lock is a diagnostic aid — if we ultimately
-    // cannot open the file, skip the check rather than crashing the application.
-    constexpr int max_retries{3};
-    constexpr uint64_t retry_delay_ns{100000000}; // 100 ms
-
+    // Retry only on EINTR. The lock is a diagnostic aid: if the file cannot be opened (read-only
+    // or missing /tmp, a file owned by another user, a planted symlink) skip the check instead of
+    // delaying startup with retries that cannot succeed.
     int fd{-1};
-    for (int attempt = 0; attempt < max_retries; ++attempt)
+    do
     {
-      do
-      {
-        // O_CLOEXEC prevents the flock from leaking into fork/exec'd children, which would keep
-        // the lock alive after this process exits and falsely report a duplicate backend for an
-        // unrelated process that recycles the pid. O_NOFOLLOW refuses to open the predictable
-        // /tmp path through a symlink planted by another local user; the failure is then treated
-        // like any other open failure below and the check is skipped
-        fd = open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0644);
-      } while (fd == -1 && errno == EINTR);
-
-      if (fd != -1)
-      {
-        break;
-      }
-
-      if (attempt < max_retries - 1)
-      {
-        sleep_for_ns(retry_delay_ns);
-      }
-    }
+      // O_CLOEXEC prevents the flock from leaking into fork/exec'd children, which would keep
+      // the lock alive after this process exits and falsely report a duplicate backend for an
+      // unrelated process that recycles the pid. O_NOFOLLOW refuses to open the predictable
+      // /tmp path through a symlink planted by another local user; the failure is then treated
+      // like any other open failure below and the check is skipped
+      fd = open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC | O_NOFOLLOW, 0644);
+    } while (fd == -1 && errno == EINTR);
 
     if (fd == -1)
     {
@@ -133,6 +118,8 @@ public:
     // in the same process get independent locks. flock returns -1 with errno EWOULDBLOCK
     // if the lock is already held.
     // Retry on EINTR and transient errors, but EWOULDBLOCK means a genuine duplicate.
+    constexpr int max_retries{3};
+    constexpr uint64_t retry_delay_ns{100000000}; // 100 ms
     int flock_err{0};
     for (int attempt = 0; attempt < max_retries; ++attempt)
     {
