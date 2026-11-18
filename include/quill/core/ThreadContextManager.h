@@ -372,6 +372,10 @@ public:
   /***/
   void remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
+    // Usually the last owner: destroy it after releasing the lock, because unmapping its queue and
+    // transit buffer would otherwise stall threads registering their first log call.
+    std::shared_ptr<ThreadContext> removed_thread_context;
+
     LockGuard const lock{_spinlock};
 
     // We could use std::find_if, but since this header is included in Logger.h, which is essential
@@ -411,6 +415,7 @@ public:
                    "ThreadContextManager::unregister_thread_context()");
     }
 
+    removed_thread_context = static_cast<std::shared_ptr<ThreadContext>&&>(*thread_context_it);
     _thread_contexts.erase(thread_context_it);
 
     // Decrement the counter since we found something to
