@@ -147,7 +147,8 @@ public:
   /**
    * @brief Sets whether the oldest rolled logs should be overwritten when the maximum backup count
    * is reached. If set to false, the oldest logs will not be overwritten when the maximum backup
-   * count is reached, and log file rotation will stop. The default value is true.
+   * count is reached, and log file rotation will stop until a backup file is removed. The default
+   * value is true.
    * @param value True to overwrite the oldest logs, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_overwrite_rolled_files(bool value)
@@ -395,6 +396,14 @@ public:
       return;
     }
 
+    if (QUILL_UNLIKELY(!this->is_open()))
+    {
+      // A failed reopen left no active file. Recover now, through the throttled retry in
+      // _rotate_files(), rather than only when a record reaches a rotation threshold: records
+      // written to the closed file are lost and never count towards it.
+      _rotate_files(log_timestamp);
+    }
+
     bool time_rotation = false;
 
     if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
@@ -468,10 +477,11 @@ private:
   /***/
   void _rotate_files(uint64_t record_timestamp_ns)
   {
-    if ((_created_files.size() > _config.max_backup_files()) && !_config.overwrite_rolled_files())
+    // A failed rotation is retried once per interval rather than for every record, because each
+    // attempt flushes, closes and reopens the file.
+    auto const now = std::chrono::steady_clock::now();
+    if (now < _next_rotation_attempt)
     {
-      // We have reached the max number of backup files, and we are not allowed to overwrite the
-      // oldest file. We will stop rotating
       return;
     }
 
@@ -480,10 +490,33 @@ private:
       // A previous rotation left the sink without an open file (e.g. the disk was full when
       // reopen was attempted). Try to recover by reopening before doing anything else, so we
       // do not flush/fsync a null handle and re-enter this path again on the next write.
+      _next_rotation_attempt = now + rotation_retry_interval;
       this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
+      _next_rotation_attempt = {};
       _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
       return;
+    }
+
+    // Checked after the recovery above: a sink that may not create another backup must still
+    // reopen its active file
+    if ((_created_files.size() > _config.max_backup_files()) && !_config.overwrite_rolled_files())
+    {
+      // We have reached the max number of backup files, and we are not allowed to overwrite the
+      // oldest file. Rotate again only once a backup was removed outside Quill. That check touches
+      // the disk, so run it at most once per retry interval rather than for every record.
+      if (now < _next_backup_limit_check)
+      {
+        return;
+      }
+
+      _next_backup_limit_check = now + rotation_retry_interval;
+      _forget_missing_backups();
+
+      if (_created_files.size() > _config.max_backup_files())
+      {
+        return;
+      }
     }
 
     // We need to flush and also fsync before actually getting the size of the file
@@ -517,6 +550,9 @@ private:
       datetime_suffix =
         this->format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d_%H%M%S");
     }
+
+    // Renaming a missing backup would fail and abort this and every later rotation
+    _forget_missing_backups();
 
     // We need to rotate the files and rename them with an index.
     // Track completed renames so we can undo them if a later rename fails.
@@ -577,6 +613,7 @@ private:
         rename_file(rit->renamed, rit->original);
       }
 
+      _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
       this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
       this->_file_size = _get_file_size(this->_filename);
       return;
@@ -753,6 +790,27 @@ private:
     }
 
     return true;
+  }
+
+  /** Forgets backups that were removed or compressed outside Quill */
+  void _forget_missing_backups()
+  {
+    _created_files.erase(
+      std::remove_if(_created_files.begin(), _created_files.end(),
+                     [](FileInfo const& file_info)
+                     {
+                       if ((file_info.index == 0) && file_info.date_time.empty())
+                       {
+                         // the file being rotated
+                         return false;
+                       }
+
+                       std::error_code ec;
+                       bool const exists = fs::exists(
+                         _get_filename(file_info.base_filename, file_info.index, file_info.date_time), ec);
+                       return !ec && !exists;
+                     }),
+      _created_files.end());
   }
 
   /***/
@@ -1032,6 +1090,7 @@ private:
     std::error_code ec;
     fs::rename(previous_file, new_file, ec);
 
+#if defined(_WIN32)
     if (ec)
     {
       // Retry once after a delay - workaround for Windows antivirus locking files
@@ -1040,14 +1099,10 @@ private:
 
       ec.clear();
       fs::rename(previous_file, new_file, ec);
-
-      if (ec)
-      {
-        return false;
-      }
     }
+#endif
 
-    return true;
+    return !ec;
   }
 
   /***/
@@ -1282,6 +1337,10 @@ protected:
     std::string new_date_time;
   };
 
+  static constexpr std::chrono::seconds rotation_retry_interval{1};
+
+  std::chrono::steady_clock::time_point _next_rotation_attempt{}; /**< Earliest retry after a failed rotation */
+  std::chrono::steady_clock::time_point _next_backup_limit_check{}; /**< Earliest recheck at the backup limit */
   std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
   uint64_t _next_rotation_time{0};     /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
