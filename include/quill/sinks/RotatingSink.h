@@ -29,6 +29,10 @@
   #include <vector>
 #endif
 
+#if !defined(_WIN32)
+  #include <sys/stat.h>
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 /** Forward Declaration **/
@@ -527,11 +531,15 @@ private:
       }
     }
 
-    // We need to flush and also fsync before actually getting the size of the file
     base_type::flush_sink();
-    base_type::fsync_file(true);
 
-    if (_get_file_size(this->_filename) == 0)
+    if (_config.fsync_enabled())
+    {
+      // The rotated file is closed next, so fsync it now regardless of minimum_fsync_interval
+      base_type::fsync_file(true);
+    }
+
+    if (_get_open_file_size() == 0)
     {
       // Also check the file size is > 0  to better deal with full disk. The file holds no records
       // yet, so date the next backup from now rather than from when it was opened.
@@ -800,6 +808,20 @@ private:
     }
 
     return true;
+  }
+
+  /** Size of the open file from its handle, which, unlike the path, needs no fsync to be current. */
+  QUILL_NODISCARD size_t _get_open_file_size() const noexcept
+  {
+#if defined(_WIN32)
+    LARGE_INTEGER size{};
+    return ::GetFileSizeEx(this->_native_file_handle, &size) ? static_cast<size_t>(size.QuadPart) : 0;
+#else
+    struct stat file_stat
+    {
+    };
+    return (::fstat(fileno(this->_file), &file_stat) == 0) ? static_cast<size_t>(file_stat.st_size) : 0;
+#endif
   }
 
   /** Forgets backups that were removed or compressed outside Quill */
