@@ -371,7 +371,7 @@
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO_IMPL(__VA_ARGS__))
 #define QUILL_GET_TAG_GENERATOR_MACRO_IMPL(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 
-// Main macro to generate tags, up to 5 tags
+// Main macro to generate tags, up to 6 tags
 #define QUILL_TAGS(...)                                                                               \
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(__VA_ARGS__, QUILL_GENERATE_TAG_6, QUILL_GENERATE_TAG_5, \
                                              QUILL_GENERATE_TAG_4, QUILL_GENERATE_TAG_3,              \

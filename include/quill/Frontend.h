@@ -484,7 +484,7 @@ public:
   }
 
   /**
-   * @brief Retrieves a map of all registered valid loggers.
+   * @brief Retrieves all registered valid loggers.
    * @note If `remove_logger()` is called from this or another thread, the return value
    *       of this function will become invalid.
    * @return A vector containing all registered loggers.
