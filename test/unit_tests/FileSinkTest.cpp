@@ -9,6 +9,7 @@
 #include <clocale>
 
 #if !defined(_WIN32)
+  #include <sys/stat.h>
   #include <unistd.h>
 #endif
 
@@ -258,6 +259,29 @@ TEST_CASE("create_directory")
   }
 
   testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("created_file_permissions_follow_umask")
+{
+#if !defined(_WIN32)
+  fs::path const filename = "created_file_permissions_follow_umask.log";
+  testing::remove_file(filename);
+
+  mode_t const previous_umask = ::umask(0002);
+  {
+    FileSink file_sink{filename};
+  }
+  ::umask(previous_umask);
+
+  struct stat file_stat
+  {
+  };
+  REQUIRE_EQ(::stat(filename.string().data(), &file_stat), 0);
+  REQUIRE_EQ(file_stat.st_mode & 0777, 0664);
+
+  testing::remove_file(filename);
+#endif
 }
 
 /***/

@@ -965,7 +965,8 @@ protected:
       int fd{-1};
       do
       {
-        fd = ::open(filename.string().data(), flags, 0644);
+        // Let the process umask decide the permissions, as fopen() does.
+        fd = ::open(filename.string().data(), flags, 0666);
       } while (fd == -1 && errno == EINTR);
 
       if (fd != -1)
