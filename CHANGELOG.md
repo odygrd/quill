@@ -126,6 +126,53 @@
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
+- **Breaking change:** `Sink::write_log()`, `Sink::write_metric()`, `Filter::filter()` and
+  `JsonSink::generate_json_message()` now take a single `LogRecord` or `MetricRecord`, and sinks
+  implement one `flush_sink(SinkFlushReason)`, so future record fields will not break custom sinks
+  and filters again.
+- **Breaking change:** Custom frontend options must derive from `quill::FrontendOptions`, so options
+  added in later versions are inherited instead of failing to compile.
+- **Breaking change:** Removed `ConsoleSinkConfig::Colours::set_colours_enabled()` and
+  `colours_enabled()`, which had no effect, and `PrometheusSink::Options`, which no constructor
+  accepted. Use `ConsoleSinkConfig::set_colour_mode()` to disable colours.
+- `Frontend::create_sink<TSink>()` and `Frontend::create_or_get_sink<TSink>()` return
+  `std::shared_ptr<TSink>`, so configuring the created sink no longer needs a cast.
+- `loglevel_from_string()` is deprecated in favour of `log_level_from_string()`.
+- **Breaking change:** Custom codecs use `quill::SizeCacheVector` instead of
+  `quill::detail::SizeCacheVector`. The new `quill::MemberwiseCodec<T, &T::a, &T::b>` generates a
+  codec from a list of data members.
+- **Breaking change:** `FileSinkConfig::set_open_mode()` throws `QuillError` for modes other than
+  `"a"` and `"w"` (or `"ab"` and `"wb"`), which previously failed to open on POSIX or, for `"r+"` on
+  Windows, overwrote the file from its start.
+- Creating loggers whose `FrontendOptions` values differ now throws `QuillError`; mixing queue
+  types previously crashed on the first log call from a thread that used both loggers.
+- On POSIX, with the built-in signal handler, Ctrl-C and `SIGTERM` still flush the logs but now
+  terminate the process by the signal, so shell loops and supervisors see the interruption. `SIGBUS`
+  is also handled.
+- `Backend::stop()` restores the signal handlers installed before `Backend::start()` instead of
+  resetting them to the default.
+- `FileSink` with `minimum_fsync_interval` now performs a skipped fsync once the interval elapses
+  and on the final flush, so the last records are synced, including the first fsync on a system up
+  for less than the interval.
+- `RotatingSink` keeps rotating after a backup file is deleted or compressed outside Quill, instead
+  of letting the active file grow without limit.
+- File sinks on POSIX create files with permissions from the process umask, as `fopen()` does,
+  instead of always 0644.
+- A missing log directory no longer stalls the backend for 400 ms on every flush while `FileSink`
+  retries opening the file.
+- An unbounded queue that cannot grow because memory is exhausted now blocks or drops the message
+  like a full queue, instead of throwing from the `LOG_*` call.
+- Timestamp patterns with flagged time specifiers such as `%-H` or `%_M`, or with `%X` and `%c`, now
+  print the current time instead of a stale cached one. They are formatted with `strftime()`, which
+  `BackendOptions::error_notifier` reports once.
+- With the TSC clock, timestamps keep following the system clock on hosts where reading it is
+  slow, and drift less between resyncs.
+- With the default `check_printable_char`, the backend spends about 30% less time on messages with
+  string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
+- Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
+  rotation no longer fsyncs the file when fsync is disabled.
+- Added `QUILL_VERSION`, `QUILL_VERSION_MAJOR`, `QUILL_VERSION_MINOR` and `QUILL_VERSION_PATCH`.
+- Various other fixes and performance improvements.
 
 ## v13.1.0
 

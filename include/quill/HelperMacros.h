@@ -11,7 +11,6 @@
   #include "quill/DirectFormatCodec.h"
   #include "quill/bundled/fmt/format.h"
   #include "quill/bundled/fmt/ostream.h"
-  #include <type_traits>
 #endif
 
 /**

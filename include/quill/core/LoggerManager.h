@@ -18,7 +18,6 @@
   #include <algorithm>
   #include <atomic>
   #include <cstdlib>
-  #include <initializer_list>
   #include <memory>
   #include <optional>
   #include <string>
@@ -360,7 +359,7 @@ public:
     {
       QUILL_TRY
       {
-        LogLevel const parsed_log_level = loglevel_from_string(log_level);
+        LogLevel const parsed_log_level = log_level_from_string(log_level);
 
         if (parsed_log_level == LogLevel::Backtrace)
         {

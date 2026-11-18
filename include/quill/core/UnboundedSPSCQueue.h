@@ -40,7 +40,7 @@ namespace detail
  * When the internal circular buffer becomes full a new one will be created and the production
  * will continue in the new buffer.
  *
- * Consumption is wait free. If not data is available a special value is returned. If a new
+ * Consumption is wait free. If no data is available a special value is returned. If a new
  * buffer is created from the producer the consumer first consumes everything in the old
  * buffer and then moves to the new buffer.
  */
@@ -214,7 +214,8 @@ public:
 
   /**
    * Prepare to read from the buffer
-   * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
+   * @return the read position or nullptr, and the previous and new capacity when the reader moved
+   * to a newly allocated node
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()
   {
@@ -334,7 +335,7 @@ private:
     // producer is now using the next node
     _producer = next_node;
 
-    // reserve again, this time we know we will always succeed, cast to void* to ignore
+    // reserve again, this time we know we will always succeed
     std::byte* const write_pos = _producer->bounded_queue.prepare_write(nbytes);
 
     QUILL_ASSERT(

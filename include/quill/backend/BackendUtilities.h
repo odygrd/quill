@@ -10,6 +10,7 @@
 #include "quill/core/QuillError.h"
 
 #ifndef QUILL_MODULE
+  #include <cerrno>
   #include <cstdint>
   #include <cstring>
   #include <string>
@@ -268,10 +269,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
 /***/
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD inline uint32_t get_process_id() noexcept
 {
-#if defined(__CYGWIN__)
-  // get pid on cygwin not supported
-  return 0;
-#elif defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
   return static_cast<uint32_t>(GetCurrentProcessId());
 #else
   return static_cast<uint32_t>(getpid());

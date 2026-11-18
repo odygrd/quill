@@ -41,7 +41,6 @@ private:
 
   struct SinkInfo
   {
-    explicit SinkInfo() = default;
     SinkInfo(std::string sid, std::string name, std::weak_ptr<Sink> sptr, FileSinkIdFunction id_function)
       : sink_id(static_cast<std::string&&>(sid)), sink_name(static_cast<std::string&&>(name)),
         sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)), file_sink_id(id_function)
@@ -404,11 +403,12 @@ private:
   }
 
   template <typename TSink, typename... Args>
-  static std::shared_ptr<TSink> _create_sink_instance(std::string const& sink_id, Args&&... args)
+  static std::shared_ptr<TSink> _create_sink_instance(std::string const& sink_name, Args&&... args)
   {
     if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
     {
-      return std::make_shared<TSink>(sink_id, static_cast<Args&&>(args)...);
+      // File sinks take the (normalized) filename as their first constructor argument
+      return std::make_shared<TSink>(sink_name, static_cast<Args&&>(args)...);
     }
     else
     {
@@ -444,22 +444,22 @@ private:
   }
 
   /***/
-  void _insert_sink(std::string const& sink_name, std::string const& original_name,
+  void _insert_sink(std::string const& sink_id, std::string const& sink_name,
                     std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
     auto search_it =
-      std::lower_bound(_sinks.begin(), _sinks.end(), sink_name,
+      std::lower_bound(_sinks.begin(), _sinks.end(), sink_id,
                        [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
 
-    if (search_it != _sinks.end() && search_it->sink_id == sink_name && search_it->sink_ptr.expired())
+    if (search_it != _sinks.end() && search_it->sink_id == sink_id && search_it->sink_ptr.expired())
     {
       search_it->sink_ptr = sink;
-      search_it->sink_name = original_name;
+      search_it->sink_name = sink_name;
       search_it->file_sink_id = file_sink_id;
       return;
     }
 
-    _sinks.insert(search_it, SinkInfo{sink_name, original_name, sink, file_sink_id});
+    _sinks.insert(search_it, SinkInfo{sink_id, sink_name, sink, file_sink_id});
   }
 
   QUILL_NODISCARD bool _is_sink_pending(std::string const& key) const noexcept

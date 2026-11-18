@@ -76,9 +76,9 @@ class FileSinkConfig
 public:
   /**
    * @brief Sets the append type for the file name.
-   * Possible append types are: StartDate, StartDateTime or None.
-   * When this option is set, the file name will be appended with the start date or date and time
-   * timestamp of when the process started.
+   * Possible append types are: None, StartDate, StartDateTime or StartCustomTimestampFormat.
+   * When this option is set, the file name is appended with the date, date and time, or custom
+   * timestamp of when the sink was created.
    *
    * For example:
    * application.log -> application_20230101.log  (StartDate)
@@ -116,8 +116,8 @@ public:
   }
 
   /**
-   * @brief Sets the timezone to use for time-based operations e.g. when appending the date to the
-   * get_filename or when setting the logging pattern.
+   * @brief Sets the timezone of the timestamp appended to the file name and, for rotating sinks,
+   * of the rotation schedule. The log pattern's timezone is set in PatternFormatterOptions.
    * Valid options for the timezone are 'LocalTime' or 'GmtTime'
    * The default value is 'LocalTime'
    * @param time_zone The timezone to use for time-based operations.

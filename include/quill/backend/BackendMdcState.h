@@ -38,12 +38,6 @@ public:
 
   void erase(std::string_view key) { _fields.erase(std::string{key}); }
 
-  void clear()
-  {
-    _fields.clear();
-    _formatted_mdc.clear();
-  }
-
   QUILL_NODISCARD std::string_view formatted_mdc() const noexcept { return _formatted_mdc; }
 
   QUILL_NODISCARD bool empty() const noexcept { return _fields.empty(); }

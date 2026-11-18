@@ -70,7 +70,7 @@ public:
   /**
    * @brief Constructs a new RotatingFileSinkConfig object.
    */
-  RotatingFileSinkConfig() : _daily_rotation_time{_disabled_daily_rotation_time()} {}
+  RotatingFileSinkConfig() = default;
 
   /**
    * @brief Sets the maximum file size for rotation.
@@ -125,7 +125,7 @@ public:
 
     _rotation_frequency = rotation_frequency;
     _rotation_interval = interval;
-    _daily_rotation_time = _disabled_daily_rotation_time();
+    _daily_rotation_time = {};
   }
 
   /**
@@ -209,78 +209,45 @@ public:
 
 private:
   /***/
-  static std::pair<std::chrono::hours, std::chrono::minutes> _disabled_daily_rotation_time() noexcept
-  {
-    return std::make_pair(std::chrono::hours{(std::numeric_limits<std::chrono::hours::rep>::max)()},
-                          std::chrono::minutes{(std::numeric_limits<std::chrono::minutes::rep>::max)()});
-  }
-
-  /***/
   static std::pair<std::chrono::hours, std::chrono::minutes> _parse_daily_rotation_time(std::string const& daily_rotation_time_str)
   {
-    std::vector<std::string> tokens;
-    std::string token;
-    size_t start = 0, end = 0;
-
-    while ((end = daily_rotation_time_str.find(':', start)) != std::string::npos)
-    {
-      token = daily_rotation_time_str.substr(start, end - start);
-      tokens.push_back(token);
-      start = end + 1;
-    }
-
-    // Add the last token (or the only token if there's no delimiter)
-    token = daily_rotation_time_str.substr(start);
-    tokens.push_back(token);
-
-    if (tokens.size() != 2)
+    if ((daily_rotation_time_str.size() != 5) || (daily_rotation_time_str[2] != ':'))
     {
       QUILL_THROW(
         QuillError{"Invalid daily_rotation_time_str value format. The format should be `HH:MM`."});
     }
 
-    for (auto const& parsed_token : tokens)
-    {
-      if (parsed_token.size() != 2)
-      {
-        QUILL_THROW(QuillError{
-          "Invalid daily_rotation_time_str value format. Each component of the time (HH and MM) "
-          "should be two digits."});
-      }
-    }
+    std::chrono::hours const hours{_parse_two_digit_time_component(daily_rotation_time_str, 0)};
+    std::chrono::minutes const minutes{_parse_two_digit_time_component(daily_rotation_time_str, 3)};
 
-    uint32_t const hours = _parse_two_digit_time_component(tokens[0]);
-    uint32_t const minutes = _parse_two_digit_time_component(tokens[1]);
-
-    auto const daily_rotation_time_str_tp =
-      std::make_pair(std::chrono::hours{hours}, std::chrono::minutes{minutes});
-
-    if ((daily_rotation_time_str_tp.first > std::chrono::hours{23}) ||
-        (daily_rotation_time_str_tp.second > std::chrono::minutes{59}))
+    if ((hours > std::chrono::hours{23}) || (minutes > std::chrono::minutes{59}))
     {
       QUILL_THROW(
         QuillError("Invalid rotation values. The hour value should be between 00 and 23, and the "
                    "minute value should be between 00 and 59."));
     }
 
-    return daily_rotation_time_str_tp;
+    return std::make_pair(hours, minutes);
   }
 
-  /***/
-  static uint32_t _parse_two_digit_time_component(std::string const& token)
+  /** Parses the two digits at `pos` */
+  static uint32_t _parse_two_digit_time_component(std::string const& time_str, size_t pos)
   {
-    if ((token.size() != 2) || (token[0] < '0') || (token[0] > '9') || (token[1] < '0') || (token[1] > '9'))
+    char const tens = time_str[pos];
+    char const ones = time_str[pos + 1];
+
+    if ((tens < '0') || (tens > '9') || (ones < '0') || (ones > '9'))
     {
       QUILL_THROW(QuillError{
         "Invalid daily_rotation_time_str value format. Each component of the time (HH and MM) "
         "should be two digits."});
     }
 
-    return (static_cast<uint32_t>(token[0] - '0') * 10u) + static_cast<uint32_t>(token[1] - '0');
+    return (static_cast<uint32_t>(tens - '0') * 10u) + static_cast<uint32_t>(ones - '0');
   }
 
 private:
-  std::pair<std::chrono::hours, std::chrono::minutes> _daily_rotation_time;
+  std::pair<std::chrono::hours, std::chrono::minutes> _daily_rotation_time{}; // used only by Daily rotation
   size_t _rotation_max_file_size{0};                                  // 0 means disabled
   uint32_t _max_backup_files{(std::numeric_limits<uint32_t>::max)()}; // max means disabled
   uint32_t _rotation_interval{0};                                     // 0 means disabled
@@ -317,23 +284,19 @@ public:
                 std::move(file_event_notifier), false, start_time),
       _config(config)
   {
-    uint64_t const today_timestamp_ns = static_cast<uint64_t>(
+    uint64_t const start_time_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
     bool const recovery_succeeded =
-      _clean_and_recover_files(this->_filename, _config.open_mode(), today_timestamp_ns);
+      _clean_and_recover_files(this->_filename, _config.open_mode(), start_time_ns);
 
     if (recovery_succeeded && (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled))
     {
       // Calculate next rotation time
-      _next_rotation_time = _calculate_initial_rotation_tp(
-        static_cast<uint64_t>(
-          std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count()),
-        config);
+      _next_rotation_time = _calculate_initial_rotation_tp(start_time_ns, config);
     }
 
-    _open_file_timestamp = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
+    _open_file_timestamp = start_time_ns;
 
     if (recovery_succeeded)
     {
@@ -348,7 +311,7 @@ public:
 
     if (can_rotate_on_creation)
     {
-      _rotate_closed_file(today_timestamp_ns);
+      _rotate_closed_file(start_time_ns);
     }
     else
     {
@@ -1147,7 +1110,7 @@ private:
   }
 
   /***/
-  bool static _rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
+  static bool _rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept
   {
     std::error_code ec;
     fs::rename(previous_file, new_file, ec);
@@ -1403,7 +1366,7 @@ protected:
 
   std::chrono::steady_clock::time_point _next_rotation_attempt{}; /**< Earliest retry after a failed rotation */
   std::chrono::steady_clock::time_point _next_backup_limit_check{}; /**< Earliest recheck at the backup limit */
-  std::deque<FileInfo> _created_files; /**< We store in a queue the filenames we created, first: index, second: date/datetime, third: base_filename */
+  std::deque<FileInfo> _created_files; /**< The files this sink created or recovered on startup */
   uint64_t _next_rotation_time{0};     /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
   RotatingFileSinkConfig _config;

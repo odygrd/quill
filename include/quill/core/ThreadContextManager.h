@@ -17,7 +17,6 @@
 #ifndef QUILL_MODULE
   #include <atomic>
   #include <cstdint>
-  #include <cstdlib>
   #include <memory>
   #include <new>
   #include <string>
@@ -214,7 +213,7 @@ private:
 
   SpscQueueUnion _spsc_queue_union;            /**< queue for this thread */
   SizeCacheVector _conditional_arg_size_cache; /**< cache for storing sizes needed for specific operations, such as when calling `strn` functions or when a loop is required e.g. caching the size of a type */
-  std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread pid */
+  std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread id */
   std::string _thread_name = get_thread_name();              /**< cached thread name */
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   std::shared_ptr<BackendMdcState> _backend_mdc_state; /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
@@ -320,7 +319,7 @@ public:
     if (_new_thread_context_flag.load(std::memory_order_relaxed))
     {
       // if the variable was updated to true, set it to false,
-      // There should not be any race condition here as this is the only place _changed is set to
+      // There should not be any race condition here as this is the only place the flag is set to
       // false, and we will return true anyway
       _new_thread_context_flag.store(false, std::memory_order_relaxed);
       return true;
@@ -352,35 +351,35 @@ public:
 
     QUILL_ASSERT(thread_context_it != _thread_contexts.end(),
                  "Attempting to remove a non-existent thread context in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
 
     QUILL_ASSERT(!thread_context_it->get()->is_valid(),
                  "Attempting to remove a valid thread context in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
 
     QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
-                 "Invalid queue type in ThreadContextManager::unregister_thread_context()");
+                 "Invalid queue type in ThreadContextManager::remove_shared_invalidated_thread_context()");
 
     if (thread_context->has_unbounded_queue_type())
     {
       QUILL_ASSERT(thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty(),
                    "Attempting to remove a thread context with a non-empty unbounded queue in "
-                   "ThreadContextManager::unregister_thread_context()");
+                   "ThreadContextManager::remove_shared_invalidated_thread_context()");
     }
     else if (thread_context->has_bounded_queue_type())
     {
       QUILL_ASSERT(thread_context->get_spsc_queue_union().bounded_spsc_queue.empty(),
                    "Attempting to remove a thread context with a non-empty bounded queue in "
-                   "ThreadContextManager::unregister_thread_context()");
+                   "ThreadContextManager::remove_shared_invalidated_thread_context()");
     }
 
     removed_thread_context = static_cast<std::shared_ptr<ThreadContext>&&>(*thread_context_it);
     _thread_contexts.erase(thread_context_it);
 
-    // Decrement the counter since we found something to
+    // Decrement the counter since we removed an invalidated context
     QUILL_ASSERT(_invalid_thread_context_count.load(std::memory_order_relaxed) != 0,
                  "_invalid_thread_context_count underflow in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
     _invalid_thread_context_count.fetch_sub(1, std::memory_order_relaxed);
   }
 
@@ -451,8 +450,8 @@ public:
   {
     // This destructor will get called when the thread that created this wrapper stops
     // we will only invalidate the thread context
-    // The backend thread will empty an invalidated ThreadContext and then remove_file it from
-    // the ThreadContextCollection
+    // The backend thread will empty an invalidated ThreadContext and then remove it from
+    // the ThreadContextManager
     // There is only exception for the thread who owns the ThreadContextCollection the
     // main thread. The thread context of the main thread can get deleted before getting invalidated
     // Count retirement before publishing invalidity: the backend may remove it immediately.
@@ -489,9 +488,9 @@ private:
 
 /**
  * Non-template implementation that owns the thread local context. This ensures that when building
- * with shared libraries, the thread-local context is shared accross all shared libraries
+ * with shared libraries, the thread-local context is shared across all shared libraries
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT
+QUILL_NODISCARD QUILL_EXPORT
 #ifndef QUILL_MODULE
   inline
 #endif

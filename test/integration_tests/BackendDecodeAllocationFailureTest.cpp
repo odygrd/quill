@@ -71,8 +71,7 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
   auto* worker = quill::Backend::acquire_manual_backend_worker();
   worker->init(options);
 
-  auto sink = std::static_pointer_cast<CapturingSink>(
-    quill::Frontend::create_or_get_sink<CapturingSink>("decode_allocation_failure_sink"));
+  auto sink = quill::Frontend::create_or_get_sink<CapturingSink>("decode_allocation_failure_sink");
   auto* logger = quill::Frontend::create_or_get_logger("decode_allocation_failure_logger", sink);
 
   // Discover this thread's context and grow the backend's scratch buffers

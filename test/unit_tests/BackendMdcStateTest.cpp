@@ -50,7 +50,8 @@ TEST_CASE("backend_mdc_state_overwrite_erase_and_clear_update_output")
   mdc_state.rebuild_formatted_mdc();
   REQUIRE_EQ(std::string{mdc_state.formatted_mdc()}, "[b=3]");
 
-  mdc_state.clear();
+  mdc_state.erase("b");
+  mdc_state.rebuild_formatted_mdc();
   REQUIRE(mdc_state.empty());
   REQUIRE(mdc_state.formatted_mdc().empty());
 }

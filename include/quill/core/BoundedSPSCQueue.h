@@ -97,9 +97,6 @@ public:
       return;
     }
 
-    _atomic_writer_pos.store(0);
-    _atomic_reader_pos.store(0);
-
     // reader_pos starts at 0, so cached value is 0 + capacity
     _reader_pos_cache_plus_capacity = _capacity;
   }
