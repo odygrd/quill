@@ -77,6 +77,8 @@ struct FrontendOptions
   /**
    * Interval for retrying when using BoundedBlocking or UnboundedBlocking.
    * Applicable only when using BoundedBlocking or UnboundedBlocking.
+   * A sleep cannot be shorter than the OS timer granularity, so any non-zero value waits at least
+   * about 50 us on Linux and 1 ms or more on Windows. 0 retries without sleeping.
    */
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
 
