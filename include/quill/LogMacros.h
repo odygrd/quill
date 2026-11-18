@@ -1056,7 +1056,7 @@
 #define QUILL_METRIC(logger, metric_metadata, value)                                               \
   do                                                                                               \
   {                                                                                                \
-    logger->publish_metric((metric_metadata), value);                                              \
+    (logger)->publish_metric((metric_metadata), (value));                                          \
   } while (0)
 
 /** Publishes a metric with runtime names and labels; variadic arguments allow inline label lists. */

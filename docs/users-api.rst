@@ -240,18 +240,12 @@ PrometheusSink Class
 Optional sink for exporting Quill metric samples through ``prometheus-cpp``.
 
 .. doxygenclass:: PrometheusSink
-   :members: PrometheusSink, registry, exposer, exposer_scrape_endpoint, exposer_listening_ports, has_metric, register_counter, register_gauge, register_histogram, register_summary, unregister_metric
+   :members: PrometheusSink, registry, exposer, exposer_scrape_endpoint, exposer_listening_ports, has_metric, register_counter, register_gauge, register_histogram, register_summary, register_counter_family, register_gauge_family, register_histogram_family, register_summary_family, linear_buckets, exponential_buckets, unregister_metric
 
 PrometheusSink::ExposerConfiguration Struct
 -------------------------------------------
 
 .. doxygenstruct:: PrometheusSink::ExposerConfiguration
-   :members:
-
-PrometheusSink::Options Struct
-------------------------------
-
-.. doxygenstruct:: PrometheusSink::Options
    :members:
 
 PrometheusSink::SummaryQuantile Struct
