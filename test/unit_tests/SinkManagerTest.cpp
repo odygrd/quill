@@ -4,6 +4,7 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/NullSink.h"
 #include "quill/sinks/RotatingFileSink.h"
 #include <cstdio>
 #include <fstream>
@@ -199,6 +200,29 @@ TEST_CASE("file_sink_symlink_created_before_target_returns_same_sink")
   fs::remove(base_dir, ec);
   REQUIRE_FALSE(ec);
 #endif
+}
+
+TEST_CASE("get_sink_finds_non_path_sink_names_while_a_file_sink_exists")
+{
+  std::string const file_name = "sink_manager_non_path_lookup.log";
+
+  {
+    // A live file sink makes get_sink() consider path normalization for misses
+    std::shared_ptr<Sink> file_sink = SinkManager::instance().create_or_get_sink<FileSink>(file_name);
+
+    for (auto const* name : {"tcp://collector:4317", "audit/syslog"})
+    {
+      std::shared_ptr<Sink> null_sink = SinkManager::instance().create_or_get_sink<NullSink>(name);
+      REQUIRE_EQ(SinkManager::instance().get_sink(name), null_sink);
+    }
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+    REQUIRE_THROWS_AS((void)SinkManager::instance().get_sink("missing/sink"), QuillError);
+#endif
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 3);
+  std::remove(file_name.data());
 }
 
 TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")

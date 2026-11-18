@@ -68,6 +68,7 @@ QUILL_END_NAMESPACE
 #elif QUILL_HAS_FILESYSTEM
   #ifndef QUILL_MODULE
     #include <filesystem>
+    #include <string>
     #include <system_error>
   #endif
 
@@ -86,7 +87,12 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
-QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool create_directories = true)
+/**
+ * Resolves a file sink path to an absolute path with a canonical parent directory.
+ * On failure returns an empty path and stores the reason in `error` instead of throwing.
+ */
+QUILL_NODISCARD inline fs::path try_normalize_file_sink_path(fs::path const& filename,
+                                                             bool create_directories, std::string& error)
 {
   if ((filename == "stdout") || (filename == "stderr") || (filename == "/dev/null"))
   {
@@ -111,29 +117,30 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
     {
       if (!create_directories)
       {
-        QUILL_THROW(QuillError{std::string{"cannot create canonical path for path "} +
-                               parent_path.string() + std::string{" - error: directory does not exist"}});
+        error = "cannot create canonical path for path " + parent_path.string() +
+          " - error: directory does not exist";
+        return fs::path{};
       }
 
       fs::create_directories(parent_path, ec);
       if (ec)
       {
-        QUILL_THROW(QuillError{std::string{"cannot create directories for path "} +
-                               parent_path.string() + std::string{" - error: "} + ec.message()});
+        error = "cannot create directories for path " + parent_path.string() + " - error: " + ec.message();
+        return fs::path{};
       }
     }
   }
   else
   {
-    // Use the non-throwing overload: when the working directory has been deleted or is
-    // inaccessible, the throwing overload raises fs::filesystem_error, which callers that treat
-    // normalization as best-effort (e.g. SinkManager::get_sink) only guard against as QuillError.
+    // Use the non-throwing overload: the throwing one raises fs::filesystem_error when the
+    // working directory has been deleted or is inaccessible.
     parent_path = fs::current_path(ec);
 
     if (ec)
     {
-      QUILL_THROW(QuillError{std::string{"cannot resolve the current working directory for path "} +
-                             filename.string() + std::string{" - error: "} + ec.message()});
+      error = "cannot resolve the current working directory for path " + filename.string() +
+        " - error: " + ec.message();
+      return fs::path{};
     }
   }
 
@@ -150,8 +157,8 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
 
     if (ec)
     {
-      QUILL_THROW(QuillError{std::string{"cannot resolve path "} + parent_path.string() +
-                             std::string{" - error: "} + ec.message()});
+      error = "cannot resolve path " + parent_path.string() + " - error: " + ec.message();
+      return fs::path{};
     }
 
     return absolute_path.lexically_normal() / filename.filename();
@@ -168,6 +175,23 @@ QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path filename, bool
   }
 #endif
   return canonical_path / filename.filename();
+}
+
+/**
+ * Resolves a file sink path to an absolute path with a canonical parent directory.
+ * @throws QuillError if the path cannot be resolved
+ */
+QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path const& filename, bool create_directories = true)
+{
+  std::string error;
+  fs::path normalized = try_normalize_file_sink_path(filename, create_directories, error);
+
+  if (QUILL_UNLIKELY(!error.empty()))
+  {
+    QUILL_THROW(QuillError{error});
+  }
+
+  return normalized;
 }
 } // namespace detail
 
