@@ -120,6 +120,29 @@ public:
 
   static auto decode_arg(std::byte*& buffer)
   {
+    if constexpr (std::is_arithmetic_v<T>)
+    {
+      // Copy in one go: decoding element by element through a pack expansion makes compile time
+      // and memory grow steeply with N
+      std::array<T, N> arg;
+      std::memcpy(arg.data(), buffer, sizeof(T) * N);
+      buffer += sizeof(T) * N;
+      return arg;
+    }
+    else
+    {
+      return _decode_elements(buffer);
+    }
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
+  }
+
+private:
+  static auto _decode_elements(std::byte*& buffer)
+  {
 #if defined(_WIN32)
     if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                      std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
@@ -133,10 +156,6 @@ public:
     }
   }
 
-  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-  {
-    args_store->push_back(decode_arg(buffer));
-  }
 };
 
 /** Specialization for std::array **/
@@ -235,6 +254,35 @@ public:
 
   static auto decode_arg(std::byte*& buffer)
   {
+    if constexpr (std::is_arithmetic_v<UT>)
+    {
+      // Copy in one go: decoding element by element through a pack expansion makes compile time
+      // and memory grow steeply with N
+      std::array<UT, N> arg;
+
+      if constexpr (N > 0)
+      {
+        // std::array<T, 0>::data() can return nullptr, see encode()
+        std::memcpy(arg.data(), buffer, sizeof(UT) * N);
+        buffer += sizeof(UT) * N;
+      }
+
+      return arg;
+    }
+    else
+    {
+      return _decode_elements(buffer);
+    }
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
+  }
+
+private:
+  static auto _decode_elements(std::byte*& buffer)
+  {
 #if defined(_WIN32)
     if constexpr (std::disjunction_v<std::is_same<UT, wchar_t*>, std::is_same<UT, wchar_t const*>,
                                      std::is_same<UT, std::wstring>, std::is_same<UT, std::wstring_view>>)
@@ -251,10 +299,6 @@ public:
 #endif
   }
 
-  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-  {
-    args_store->push_back(decode_arg(buffer));
-  }
 };
 
 QUILL_END_EXPORT
