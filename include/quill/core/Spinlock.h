@@ -7,6 +7,8 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/ThreadPrimitives.h"
+
 #ifndef QUILL_MODULE
   #include <atomic>
   #include <cstdint>
@@ -28,14 +30,27 @@ public:
   Spinlock(Spinlock const&) = delete;
   Spinlock& operator=(Spinlock const&) = delete;
 
-  /***/
+  /**
+   * Spins first, since the guarded sections are short, then yields between attempts so a waiter
+   * does not burn a core while the holder is descheduled or performs a long operation.
+   */
   QUILL_ATTRIBUTE_HOT void lock() noexcept
   {
+    constexpr uint32_t max_spins_before_yield{1024};
+    uint32_t spins{0};
+
     do
     {
       while (_flag.load(std::memory_order_relaxed) == State::Locked)
       {
-        // keep trying
+        if (spins < max_spins_before_yield)
+        {
+          ++spins;
+        }
+        else
+        {
+          yield_thread();
+        }
       }
     } while (_flag.exchange(State::Locked, std::memory_order_acquire) == State::Locked);
   }

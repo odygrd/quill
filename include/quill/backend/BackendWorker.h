@@ -2030,20 +2030,24 @@ private:
       // An allocation failure must leave discovery pending for the next poll.
       _thread_context_cache_refresh_pending = true;
       _active_thread_contexts_cache.clear();
-      _thread_context_manager.for_each_thread_context(
-        [this](ThreadContext* thread_context)
-        {
-          if (!thread_context->_transit_event_buffer)
-          {
-            // Lazy initialise the _transit_event_buffer for this thread_context
-            thread_context->_transit_event_buffer =
-              std::make_shared<TransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
-          }
 
-          // We do not skip invalidated && empty queue thread contexts as this is very rare,
-          // so instead we just add them and expect them to be cleaned in the next iteration
-          _active_thread_contexts_cache.push_back(thread_context);
-        });
+      // We do not skip invalidated && empty queue thread contexts as this is very rare,
+      // so instead we just add them and expect them to be cleaned in the next iteration
+      _thread_context_manager.for_each_thread_context([this](ThreadContext* thread_context)
+                                                      { _active_thread_contexts_cache.push_back(thread_context); });
+
+      // Only the backend removes thread contexts, so they stay valid after the manager lock is
+      // released. Allocate transit buffers outside it to avoid blocking registering threads.
+      for (ThreadContext* thread_context : _active_thread_contexts_cache)
+      {
+        if (!thread_context->_transit_event_buffer)
+        {
+          // Lazy initialise the _transit_event_buffer for this thread_context
+          thread_context->_transit_event_buffer =
+            std::make_shared<TransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
+        }
+      }
+
       _thread_context_cache_refresh_pending = false;
     }
   }
