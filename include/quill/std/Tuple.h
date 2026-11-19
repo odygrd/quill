@@ -30,8 +30,15 @@ template <typename... Types>
 struct Codec<std::tuple<Types...>>
 {
 private:
+  // decode_arg() keeps the element types as encoded, e.g. std::wstring_view, so that
+  // decode_members() can assign the decoded tuple back to a std::tuple member
   using DecodedTuple =
     std::tuple<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(std::declval<std::byte*&>()))...>;
+
+  // decode_and_store_arg() passes the tuple to the narrow tuple formatter, so its elements are
+  // decoded with decode_element(), which converts wide strings to UTF-8 on Windows
+  using FormattedTuple =
+    std::tuple<decltype(detail::decode_element<detail::remove_cvref_t<Types>>(std::declval<std::byte*&>()))...>;
 
   template <size_t... Indices>
   static auto decode_arg_impl(std::byte*& buffer, std::index_sequence<Indices...>)
@@ -41,6 +48,13 @@ private:
     // which also preserve array extents
     // Brace initialization preserves left-to-right evaluation of the decode calls.
     return DecodedTuple{((void)Indices, Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))...};
+  }
+
+  template <size_t... Indices>
+  static auto decode_formatted_tuple(std::byte*& buffer, std::index_sequence<Indices...>)
+  {
+    // Brace initialization preserves left-to-right evaluation of the decode calls.
+    return FormattedTuple{((void)Indices, detail::decode_element<detail::remove_cvref_t<Types>>(buffer))...};
   }
 
 public:
@@ -98,18 +112,18 @@ public:
     // a user-provided formatter for the complete tuple can intentionally support elements that
     // have no standalone formatter. The check lives here rather than at class scope so that
     // decode-only nested use of this codec does not require a formatter for the tuple itself.
-    static_assert(fmtquill::is_formattable<DecodedTuple, char>::value,
+    static_assert(fmtquill::is_formattable<FormattedTuple, char>::value,
                   "Codec<std::tuple<Types...>> requires the decoded tuple type to be formattable "
                   "by bundled fmt");
 
-    if constexpr (std::conjunction_v<std::is_move_constructible<decltype(Codec<detail::remove_cvref_t<Types>>::decode_arg(buffer))>...>)
+    if constexpr (std::conjunction_v<std::is_move_constructible<decltype(detail::decode_element<detail::remove_cvref_t<Types>>(buffer))>...>)
     {
-      auto arg = decode_arg(buffer);
+      auto arg = decode_formatted_tuple(buffer, std::index_sequence_for<Types...>{});
       args_store->push_back(std::move(arg));
     }
     else
     {
-      auto const arg = decode_arg(buffer);
+      auto const arg = decode_formatted_tuple(buffer, std::index_sequence_for<Types...>{});
       args_store->push_back(arg);
     }
   }
