@@ -232,6 +232,20 @@ TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
   REQUIRE_EQ(macro_metadata.has_named_args(), true);
 }
 
+TEST_CASE("contains_named_args_looks_past_nested_replacement_fields")
+{
+  static_assert(MacroMetadata::contains_named_args("{:{}} {unit}"),
+                "a named field after a dynamic width should be detected");
+  static_assert(MacroMetadata::contains_named_args("{:.{}f} {unit}"),
+                "a named field after a dynamic precision should be detected");
+  static_assert(MacroMetadata::contains_named_args("{:{width}}"),
+                "a named dynamic width should be detected");
+  static_assert(!MacroMetadata::contains_named_args("{:{}} {}"),
+                "positional fields with a dynamic width are not named");
+  static_assert(!MacroMetadata::contains_named_args("{}}}{{name}}"),
+                "escaped braces around a name should not be detected as named args");
+}
+
 TEST_CASE("empty_source_location_is_handled")
 {
   constexpr MacroMetadata macro_metadata{"",               // source_location
