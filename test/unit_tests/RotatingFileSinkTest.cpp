@@ -3988,6 +3988,264 @@ TEST_CASE("rotating_file_sink_rotation_on_creation_with_date_naming")
   testing::remove_file(filename_dated);
 }
 
+/***/
+TEST_CASE("rotating_file_sink_rotation_on_creation_dateandtime_same_second_restarts")
+{
+  // Runs in "w" mode do not track the backups of earlier runs, and runs that start within the
+  // same second produce the same DateAndTime backup name. Rotation must not replace that backup,
+  // and the newest backup must keep index 0, which append-mode recovery treats as the newest.
+  fs::path const filename = "rotating_file_sink_rotation_on_creation_dateandtime_same_second.log";
+  fs::path const newest_backup =
+    "rotating_file_sink_rotation_on_creation_dateandtime_same_second.20230612_000000.log";
+  fs::path const oldest_backup =
+    "rotating_file_sink_rotation_on_creation_dateandtime_same_second.20230612_000000.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(newest_backup);
+  testing::remove_file(oldest_backup);
+
+  std::chrono::system_clock::time_point const start_time =
+    std::chrono::system_clock::time_point{std::chrono::seconds{1686528000}}; // 2023-06-12 00:00:00
+
+  for (size_t run = 1; run <= 3; ++run)
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_rotation_on_creation(true);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}, start_time};
+
+    std::string const formatted_log_statement{"Run " + std::to_string(run) + "\n"};
+    rfh.write_log(LogRecord{nullptr,
+                            0,
+                            std::string_view{},
+                            std::string_view{},
+                            std::string{},
+                            std::string_view{},
+                            LogLevel::Info,
+                            "INFO",
+                            "I",
+                            nullptr,
+                            "",
+                            formatted_log_statement,
+                            {}});
+  }
+
+  REQUIRE(testing::file_contains(testing::file_contents(newest_backup), "Run 2"));
+  REQUIRE(testing::file_contains(testing::file_contents(oldest_backup), "Run 1"));
+  REQUIRE(testing::file_contains(testing::file_contents(filename), "Run 3"));
+
+  // Recovery in append mode keeps the newest backup when it enforces the backup limit
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_max_backup_files(1);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{}, start_time};
+  }
+
+  REQUIRE(testing::file_contains(testing::file_contents(newest_backup), "Run 2"));
+  REQUIRE_FALSE(fs::exists(oldest_backup));
+  REQUIRE(testing::file_contains(testing::file_contents(filename), "Run 3"));
+
+  testing::remove_file(filename);
+  testing::remove_file(newest_backup);
+  testing::remove_file(oldest_backup);
+}
+
+/***/
+TEST_CASE(
+  "rotating_file_sink_rotation_on_creation_dateandtime_same_second_restarts_at_backup_limit")
+{
+  // A backup left by an earlier run within the same second counts towards max_backup_files. With
+  // overwrite_rolled_files disabled, reaching the limit must keep that backup and append to the
+  // current file instead of rotating
+  fs::path const filename = "rotating_file_sink_rotation_on_creation_dateandtime_backup_limit.log";
+  fs::path const backup =
+    "rotating_file_sink_rotation_on_creation_dateandtime_backup_limit.20230612_000000.log";
+  fs::path const second_backup =
+    "rotating_file_sink_rotation_on_creation_dateandtime_backup_limit.20230612_000000.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(backup);
+  testing::remove_file(second_backup);
+
+  std::chrono::system_clock::time_point const start_time =
+    std::chrono::system_clock::time_point{std::chrono::seconds{1686528000}}; // 2023-06-12 00:00:00
+
+  for (size_t run = 1; run <= 3; ++run)
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_timezone(quill::Timezone::GmtTime);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_rotation_on_creation(true);
+        cfg.set_max_backup_files(1);
+        cfg.set_overwrite_rolled_files(false);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}, start_time};
+
+    std::string const formatted_log_statement{"Run " + std::to_string(run) + "\n"};
+    rfh.write_log(LogRecord{nullptr,
+                            0,
+                            std::string_view{},
+                            std::string_view{},
+                            std::string{},
+                            std::string_view{},
+                            LogLevel::Info,
+                            "INFO",
+                            "I",
+                            nullptr,
+                            "",
+                            formatted_log_statement,
+                            {}});
+  }
+
+  std::vector<std::string> const backup_contents = testing::file_contents(backup);
+  REQUIRE_EQ(backup_contents.size(), 1u);
+  REQUIRE_EQ(backup_contents[0], "Run 1");
+  REQUIRE_FALSE(fs::exists(second_backup));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 2u);
+  REQUIRE_EQ(file_contents[0], "Run 2");
+  REQUIRE_EQ(file_contents[1], "Run 3");
+
+  testing::remove_file(filename);
+  testing::remove_file(backup);
+  testing::remove_file(second_backup);
+}
+
+TEST_CASE("rotating_file_sink_dateandtime_local_time_repeated_hour")
+{
+#if defined(_WIN32)
+  // The POSIX TZ rule this test sets is not supported
+  return;
+#else
+  // Local time repeats one hour when daylight saving time ends, so a backup of the second pass
+  // gets the name of a backup of the first pass. Rotation must shift the earlier backup to index
+  // 1 and keep rotating afterwards.
+  std::string previous_tz;
+  bool had_previous_tz = false;
+  char const* const current_tz = std::getenv("TZ");
+
+  if (current_tz)
+  {
+    previous_tz = current_tz;
+    had_previous_tz = true;
+  }
+
+  setenv("TZ", "EST5EDT,M3.2.0/2,M11.1.0/2", 1);
+  tzset();
+
+  // 2025-11-02 04:45:00 UTC is 00:45:00 EDT. Local time goes from 01:59:59 EDT to 01:00:00 EST
+  uint64_t constexpr start_time_s = 1762058700ull;
+  uint64_t constexpr start_time_ns = start_time_s * 1'000'000'000ull;
+  uint64_t constexpr half_hour_ns = 1800ull * 1'000'000'000ull;
+
+  std::string const stem = "rotating_file_sink_dateandtime_local_time_repeated_hour";
+  fs::path const filename = stem + ".log";
+  std::vector<std::string> const backups = {
+    stem + ".20251102_010000.log", stem + ".20251102_011500.log", stem + ".20251102_011500.1.log",
+    stem + ".20251102_014500.log", stem + ".20251102_014500.1.log"};
+
+  testing::remove_file(filename);
+
+  for (std::string const& backup : backups)
+  {
+    testing::remove_file(backup);
+  }
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('m', 30);
+        cfg.set_timezone(quill::Timezone::LocalTime);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{}, std::chrono::system_clock::time_point{std::chrono::seconds{start_time_s}}};
+
+    // Record 0 at 01:00 EDT, then one record at each rotation: 01:15 EDT, 01:45 EDT, 01:15 EST,
+    // 01:45 EST and 02:15 EST
+    for (uint64_t i = 0; i < 6; ++i)
+    {
+      uint64_t const timestamp =
+        (i == 0) ? (start_time_ns + (half_hour_ns / 2)) : (start_time_ns + (i * half_hour_ns));
+      std::string const formatted_log_statement{"Record [" + std::to_string(i) + "]\n"};
+
+      rfh.write_log(LogRecord{nullptr,
+                              timestamp,
+                              std::string_view{},
+                              std::string_view{},
+                              std::string{},
+                              std::string_view{},
+                              LogLevel::Info,
+                              "INFO",
+                              "I",
+                              nullptr,
+                              "",
+                              formatted_log_statement,
+                              {}});
+    }
+  }
+
+  REQUIRE(testing::file_contains(testing::file_contents(backups[0]), "Record [0]"));
+  REQUIRE(testing::file_contains(testing::file_contents(backups[2]), "Record [1]"));
+  REQUIRE(testing::file_contains(testing::file_contents(backups[4]), "Record [2]"));
+  REQUIRE(testing::file_contains(testing::file_contents(backups[1]), "Record [3]"));
+  REQUIRE(testing::file_contains(testing::file_contents(backups[3]), "Record [4]"));
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1u);
+  REQUIRE_EQ(file_contents[0], "Record [5]");
+
+  testing::remove_file(filename);
+
+  for (std::string const& backup : backups)
+  {
+    testing::remove_file(backup);
+  }
+
+  if (had_previous_tz)
+  {
+    setenv("TZ", previous_tz.c_str(), 1);
+  }
+  else
+  {
+    unsetenv("TZ");
+  }
+
+  tzset();
+#endif
+}
+
 TEST_CASE("rotating_file_sink_cleanup_preserves_unrelated_prefix_files")
 {
   fs::path const dir = "rotating_file_sink_cleanup_preserves_unrelated_prefix_files";
