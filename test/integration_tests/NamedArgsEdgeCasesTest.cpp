@@ -135,6 +135,8 @@ TEST_CASE("named_args_edge_cases")
   LOG_INFO_LIMIT(std::chrono::milliseconds{1}, logger, "{value:{width}} {unit}", 7, 3, "ms");
   // 19. A named field after an unnamed field with a dynamic width
   LOG_INFO(logger, "{:{}} {unit}", 7, 3, "ms");
+  // 20. An extra argument whose index placeholder matches a named field
+  LOG_INFO(logger, "{_1}", 31, 42);
 
   logger->flush_log();
   Frontend::remove_logger_blocking(logger);
@@ -144,8 +146,8 @@ TEST_CASE("named_args_edge_cases")
   std::vector<std::string> const text_file_contents = quill::testing::file_contents(text_filename);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_EQ(json_file_contents.size(), 22u);
-  REQUIRE_EQ(text_file_contents.size(), 22u);
+  REQUIRE_EQ(json_file_contents.size(), 23u);
+  REQUIRE_EQ(text_file_contents.size(), 23u);
   REQUIRE_EQ(error_messages.size(), 2u);
 
   // Check the malformed case (1)
@@ -162,8 +164,8 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(quill::testing::file_contains(
     text_file_contents, R"([Could not format log statement. message: "{name}} text")"));
 #else
-  REQUIRE_EQ(json_file_contents.size(), 20u);
-  REQUIRE_EQ(text_file_contents.size(), 20u);
+  REQUIRE_EQ(json_file_contents.size(), 21u);
+  REQUIRE_EQ(text_file_contents.size(), 21u);
 #endif
 
   // Successful cases (2, 4, 5, 6, 7, 8, 9)
@@ -216,6 +218,10 @@ TEST_CASE("named_args_edge_cases")
   // A named field after an unnamed field with a dynamic width (19)
   REQUIRE(quill::testing::file_contains(text_file_contents, "  7 ms [:   7, _1: 3, unit: ms]"));
   REQUIRE(quill::testing::file_contains(json_file_contents, R"("":"  7","_1":"3","unit":"ms")"));
+
+  // Extra arguments get a suffixed key instead of repeating a named field's key (20)
+  REQUIRE(quill::testing::file_contains(text_file_contents, "31 [_1: 31, _1_1: 42]"));
+  REQUIRE(quill::testing::file_contains(json_file_contents, R"("message":"{_1}","_1":"31","_1_1":"42")"));
 
   testing::remove_file(json_filename);
   testing::remove_file(text_filename);
