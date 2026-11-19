@@ -47,6 +47,7 @@ public:
 
   void set_fail_on_call(uint32_t n) { _fail_on_call = n; }
   void reset_rename_count() { _rename_call_count = 0; }
+  void expire_rotation_retry_interval() { _next_rotation_attempt = {}; }
 
   std::deque<FileInfo> const& created_files() const { return _created_files; }
 
@@ -472,6 +473,70 @@ TEST_CASE("rotating_file_sink_rename_failure_preserves_current_file_and_state")
   std::vector<std::string> const file_contents = testing::file_contents(filename);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [0]"), true);
   REQUIRE_EQ(testing::file_contains(file_contents, "Record [1]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+TEST_CASE("time_rotation_retries_failed_rename_before_next_rotation_time")
+{
+  // A time rotation whose rename failed stays due, so it is retried once the retry interval has
+  // passed instead of at the next scheduled rotation
+  fs::path const filename = "time_rotation_retries_failed_rename_before_next_rotation_time.log";
+  fs::path const filename_1 = "time_rotation_retries_failed_rename_before_next_rotation_time.1.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  // 2023-01-01 00:30:00 UTC, so the first hourly rotation is due at 01:00:00
+  std::chrono::system_clock::time_point const start_time{std::chrono::seconds{1672533000}};
+  uint64_t const start_time_ns = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
+  uint64_t const one_hour_ns = 3600ull * 1'000'000'000ull;
+
+  auto write_record = [](auto& sink, std::string const& message, uint64_t timestamp)
+  {
+    sink.write_log(LogRecord{nullptr,
+                             timestamp,
+                             std::string_view{},
+                             std::string_view{},
+                             std::string{},
+                             std::string_view{},
+                             LogLevel::Info,
+                             "INFO",
+                             "I",
+                             nullptr,
+                             "",
+                             message,
+                             {}});
+  };
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_frequency_and_interval('H', 1);
+
+    PartialFailingRenameRotatingFileSink sink{filename, cfg, FileEventNotifier{}, start_time};
+    sink.set_fail_on_call(1);
+
+    write_record(sink, "Record A\n", start_time_ns + 1'000'000'000ull);
+
+    // The rotation is due but its rename fails, so the record stays in the current file
+    write_record(sink, "Record B\n", start_time_ns + one_hour_ns);
+    REQUIRE_FALSE(fs::exists(filename_1));
+
+    sink.expire_rotation_retry_interval();
+    write_record(sink, "Record C\n", start_time_ns + one_hour_ns + 2'000'000'000ull);
+  }
+
+  std::vector<std::string> const backup_contents = testing::file_contents(filename_1);
+  REQUIRE_EQ(backup_contents.size(), 2u);
+  REQUIRE_EQ(backup_contents[0], "Record A");
+  REQUIRE_EQ(backup_contents[1], "Record B");
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1u);
+  REQUIRE_EQ(file_contents[0], "Record C");
 
   testing::remove_file(filename);
   testing::remove_file(filename_1);
