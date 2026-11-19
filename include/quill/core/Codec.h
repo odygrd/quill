@@ -199,8 +199,8 @@ template <typename Arg, typename = void>
 struct Codec
 {
   /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(
-    QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache,
+                                                                         QUILL_MAYBE_UNUSED Arg const& arg)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
                                      std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
