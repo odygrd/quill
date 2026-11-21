@@ -47,6 +47,7 @@
 
 #ifndef QUILL_MODULE
   #include <algorithm>
+  #include <array>
   #include <atomic>
   #include <chrono>
   #include <condition_variable>
@@ -642,6 +643,26 @@ private:
 
     // ManualBackendWorker::init() calls _init() directly, so validate here as well.
     validate_options(_options);
+
+    // Evaluate the printable-character predicate once per byte value, instead of calling the
+    // std::function for every character of every formatted message.
+    if (_options.check_printable_char)
+    {
+      for (size_t c = 0; c < _printable_chars.size(); ++c)
+      {
+        // A predicate that throws for a byte marks it non-printable instead of terminating here,
+        // in the backend startup, for a byte the application may never log
+        _printable_chars[c] = false;
+        QUILL_TRY
+        {
+          _printable_chars[c] =
+            _options.check_printable_char(static_cast<char>(static_cast<unsigned char>(c)));
+        }
+#if !defined(QUILL_NO_EXCEPTIONS)
+        QUILL_CATCH_ALL() {}
+#endif
+      }
+    }
 
     (void)get_thread_name();
 
@@ -2385,7 +2406,7 @@ private:
   static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>> const& orig_arg_names,
                                           std::vector<std::pair<std::string, std::string>>& named_args,
                                           DynamicFormatArgStore const& format_args_store,
-                                          BackendOptions const& options)
+                                          BackendOptions const& options, std::array<bool, 256> const& printable_chars)
   {
     for (size_t i = 0; i < named_args.size(); ++i)
     {
@@ -2411,7 +2432,7 @@ private:
 
       if (options.check_printable_char && format_args_store.has_string_related_type())
       {
-        sanitize_non_printable_chars(named_args[i].second, options);
+        sanitize_non_printable_chars(named_args[i].second, printable_chars);
       }
     }
   }
@@ -2457,7 +2478,10 @@ private:
     }
 
     // Then populate all the values of each arg
-    QUILL_TRY { _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options); }
+    QUILL_TRY
+    {
+      _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options, _printable_chars);
+    }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
     {
@@ -2489,7 +2513,7 @@ private:
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
-        sanitize_non_printable_chars(*transit_event->formatted_msg, _options);
+        sanitize_non_printable_chars(*transit_event->formatted_msg, _printable_chars);
       }
 
       if (is_rate_limited)
@@ -2570,14 +2594,17 @@ private:
   }
 
   template <typename TFormattedMsg>
-  static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, BackendOptions const& options)
+  static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, std::array<bool, 256> const& printable_chars)
   {
+    auto const is_printable = [&printable_chars](char c)
+    { return printable_chars[static_cast<unsigned char>(c)]; };
+
     // check for non-printable characters in the formatted_msg
     bool contains_non_printable_char{false};
 
     for (char c : formatted_msg)
     {
-      if (!options.check_printable_char(c))
+      if (!is_printable(c))
       {
         contains_non_printable_char = true;
         break;
@@ -2592,7 +2619,7 @@ private:
 
       for (char c : formatted_msg_copy)
       {
-        if (options.check_printable_char(c))
+        if (is_printable(c))
         {
           formatted_msg.push_back(c);
         }
@@ -2619,6 +2646,7 @@ private:
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
   BackendOptions _options;
+  std::array<bool, 256> _printable_chars{}; /**< check_printable_char() result per byte value */
   uint64_t _last_output_timestamp{0};
   std::thread _worker_thread;
 
