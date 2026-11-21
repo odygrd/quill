@@ -154,8 +154,10 @@ private:
     char const* file = source_location;
     while (*source_location)
     {
-      char cur = *source_location++;
-      if (cur == '/' || cur == detail::PATH_PREFERRED_SEPARATOR)
+      char const cur = *source_location++;
+
+      // Windows toolchains, and builds hosted on Windows, can spell source paths with either
+      if ((cur == '/') || (cur == '\\'))
       {
         file = source_location;
       }
