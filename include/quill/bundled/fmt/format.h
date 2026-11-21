@@ -47,6 +47,7 @@ FMTQUILL_MSC_WARNING(disable : 4702) // unreachable code
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wfloat-equal"
+  #pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
 // libc++ supports string_view in pre-c++17.

@@ -455,7 +455,7 @@ TEST_CASE("test_clear_multiple_times")
 {
   InlinedVector<uint32_t, 2> vec;
 
-  for (int round = 0; round < 5; ++round)
+  for (uint32_t round = 0; round < 5; ++round)
   {
     vec.clear();
     REQUIRE_EQ(vec.size(), 0);
@@ -742,7 +742,7 @@ TEST_CASE("rapid_clear_and_refill")
 {
   InlinedVector<uint32_t, 2> vec;
 
-  for (int iteration = 0; iteration < 10; ++iteration)
+  for (uint32_t iteration = 0; iteration < 10; ++iteration)
   {
     vec.clear();
 

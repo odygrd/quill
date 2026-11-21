@@ -83,7 +83,8 @@ struct fmtquill::formatter<TestEnumClass> : fmtquill::ostream_formatter
 class CArrayNoDefaultType
 {
 public:
-  explicit CArrayNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  explicit CArrayNoDefaultType(std::string in_label, int in_value)
+    : label(std::move(in_label)), value(in_value)
   {
   }
 

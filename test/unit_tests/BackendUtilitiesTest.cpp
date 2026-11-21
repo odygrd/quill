@@ -161,7 +161,7 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
   int selected_cpu = -1;
   for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu)
   {
-    if (CPU_ISSET(cpu, &original_cpuset))
+    if (CPU_ISSET(static_cast<size_t>(cpu), &original_cpuset))
     {
       selected_cpu = cpu;
       break;

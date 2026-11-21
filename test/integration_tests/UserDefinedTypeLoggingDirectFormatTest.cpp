@@ -40,7 +40,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
 
 private:
   template <typename T, typename Char, typename Enable>
@@ -77,7 +77,7 @@ struct quill::Codec<CustomTypeTC> : quill::DirectFormatCodec<CustomTypeTC>
 /***/
 struct CustomTypeTCThrows
 {
-  CustomTypeTCThrows(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTCThrows(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
 
 private:
   template <typename T, typename Char, typename Enable>
@@ -168,13 +168,13 @@ class CustomTypeCC
 public:
   CustomTypeCC() = default;
 
-  CustomTypeCC(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age)
+  CustomTypeCC(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
   {
     favorite_colors.push_back("red");
     favorite_colors.push_back("blue");
     favorite_colors.push_back("green");
-  };
+  }
 
   bool operator<(CustomTypeCC const& other) const { return this->age < other.age; }
 

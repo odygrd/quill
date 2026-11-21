@@ -34,7 +34,8 @@ int main()
   logger->flush_log();
 
   // Get a timestamp synchronized with the backend's clock
-  uint64_t const backend_timestamp = quill::BackendTscClock::now().time_since_epoch().count();
+  uint64_t const backend_timestamp =
+    static_cast<uint64_t>(quill::BackendTscClock::now().time_since_epoch().count());
   std::cout << "Synchronized timestamp with the backend: " << backend_timestamp << std::endl;
 
   return 0;

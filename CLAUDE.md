@@ -99,7 +99,8 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
     `std::is_same<T, U>::value`, with the element-wise copy fallback when the types differ.
   - In `chrono.h`, keep the `std::micro` suffix as `"us"` unless upstream already matches that behavior.
   - In `format.h`, retain only the warning suppressions still needed by supported compilers, such as GCC/Clang
-    `-Wfloat-equal` and GCC `-Wstringop-overflow` false positives.
+    `-Wfloat-equal`, `-Wsign-conversion` (the BSD `FILE` buffer code in `format-inl.h`) and GCC
+    `-Wstringop-overflow` false positives.
   - Keep `is_fast_float<T>::value` in places where supported compilers require the type-trait form; if upstream changes
     this code, confirm with a targeted compile instead of applying a blind search-and-replace.
   - Search the previous local diff for any other Quill-specific compiler workarounds, diagnostics, ABI/header-only

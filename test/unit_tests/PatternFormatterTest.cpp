@@ -677,7 +677,7 @@ TEST_CASE("pattern_formatter_process_function_name")
 
 struct PatternFormatterMock : public PatternFormatter
 {
-  PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {};
+  PatternFormatterMock() : PatternFormatter(PatternFormatterOptions{}) {}
 
   std::string process_source_location_path(std::string_view source_location,
                                            std::string const& strip_prefix, bool remove_relative_paths) const
