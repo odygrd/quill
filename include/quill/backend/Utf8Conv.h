@@ -42,23 +42,28 @@ namespace detail
  */
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string utf8_encode(std::byte const* data, size_t wide_str_len)
 {
-  // Check if the input is empty or exceeds the maximum length WideCharToMultiByte accepts.
-  // Also reject lengths where allocating (wide_str_len + 1) wchar_t would overflow size_t,
-  // which can happen on 32-bit targets where size_t is the same width as the length.
-  constexpr size_t max_wide_len = ((std::numeric_limits<size_t>::max)() / sizeof(wchar_t)) - 1u;
-  if (wide_str_len == 0 || wide_str_len > static_cast<size_t>((std::numeric_limits<int>::max)()) ||
-      wide_str_len > max_wide_len)
+  // WideCharToMultiByte takes an int length. That limit also keeps the byte counts below within
+  // size_t, since a wchar_t is two bytes on Windows.
+  if ((wide_str_len == 0) || (wide_str_len > static_cast<size_t>((std::numeric_limits<int>::max)())))
   {
     return std::string{};
   }
 
-  // Create a unique_ptr to hold the buffer and one for the null terminator
-  std::unique_ptr<wchar_t[]> wide_buffer{new wchar_t[wide_str_len + 1]};
+  // The queue packs arguments without padding. Copy to aligned storage before conversion.
+  // Three UTF-8 bytes per UTF-16 code unit suffice, including replacement characters.
+  constexpr size_t short_wide_len{64};
+  if (wide_str_len <= short_wide_len)
+  {
+    wchar_t wide_buffer[short_wide_len];
+    char utf8_buffer[short_wide_len * 3];
+    std::memcpy(wide_buffer, data, wide_str_len * sizeof(wchar_t));
+    int const len = ::WideCharToMultiByte(CP_UTF8, 0, wide_buffer, static_cast<int>(wide_str_len),
+                                          utf8_buffer, sizeof(utf8_buffer), nullptr, nullptr);
+    return std::string{utf8_buffer, static_cast<size_t>(len)};
+  }
 
-  // Because we are using a std::byte* buffer and the data are coming from there we will cast
-  // back the data to char* and then copy them to a wide string buffer before accessing them
+  std::unique_ptr<wchar_t[]> wide_buffer{new wchar_t[wide_str_len]};
   std::memcpy(wide_buffer.get(), data, wide_str_len * sizeof(wchar_t));
-  wide_buffer[wide_str_len] = L'\0';
 
   // Calculate the size needed for the UTF-8 string
   int const size_needed = WideCharToMultiByte(

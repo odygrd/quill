@@ -6,14 +6,18 @@
 #include "quill/backend/BackendWorker.h"
 #include "quill/backend/BackendWorkerLock.h"
 #include "quill/backend/ThreadUtilities.h"
+#include "quill/backend/Utf8Conv.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
 
 #include <type_traits>
 
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
+#include <vector>
 
 TEST_SUITE_BEGIN("BackendUtilities");
 
@@ -214,6 +218,44 @@ TEST_CASE("windows_thread_name_preserves_long_unicode_descriptions")
   set_thread_name(previous.c_str());
 
   REQUIRE_EQ(actual, name);
+#endif
+}
+
+TEST_CASE("utf8_encode_converts_around_the_short_string_buffer_size")
+{
+#if defined(_WIN32)
+  // Arguments are stored unaligned in the queue, so encode from an odd address
+  auto const encode = [](std::wstring const& text)
+  {
+    std::vector<std::byte> storage(text.size() * sizeof(wchar_t) + 1u);
+    std::memcpy(storage.data() + 1, text.data(), text.size() * sizeof(wchar_t));
+    return utf8_encode(storage.data() + 1, text.size());
+  };
+
+  auto const repeat = [](std::string const& text, size_t count)
+  {
+    std::string result;
+    for (size_t i = 0; i < count; ++i)
+    {
+      result += text;
+    }
+    return result;
+  };
+
+  // Up to 64 UTF-16 code units use a stack buffer of three UTF-8 bytes per code unit
+  REQUIRE_EQ(encode(std::wstring(64, L'\u4e2d')), repeat("\xe4\xb8\xad", 64));
+  REQUIRE_EQ(encode(std::wstring(65, L'\u4e2d')), repeat("\xe4\xb8\xad", 65));
+
+  std::wstring emoji;
+  for (size_t i = 0; i < 32; ++i)
+  {
+    emoji += L"\U0001F600";
+  }
+  REQUIRE_EQ(encode(emoji), repeat("\xf0\x9f\x98\x80", 32));
+
+  // A surrogate pair split at the end becomes U+FFFD
+  std::wstring const split_pair{std::wstring(63, L'a') + static_cast<wchar_t>(0xD83D)};
+  REQUIRE_EQ(encode(split_pair), std::string(63, 'a') + "\xef\xbf\xbd");
 #endif
 }
 
