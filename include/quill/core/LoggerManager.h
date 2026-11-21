@@ -403,7 +403,8 @@ public:
 
     // Commit only after parsing and validation succeed. If parsing throws, first logger creation
     // can be retried after the environment is corrected without retaining partial state.
-    _env_log_level = env_log_level;
+    _has_env_log_level = env_log_level.has_value();
+    _env_log_level = env_log_level.value_or(LogLevel::None);
     _env_log_level_parsed = true;
   }
 
@@ -440,9 +441,9 @@ private:
       new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
                   pattern_formatter_options, clock_source, clock}};
 
-    if (_env_log_level)
+    if (_has_env_log_level)
     {
-      new_logger->set_log_level(*_env_log_level);
+      new_logger->set_log_level(_env_log_level);
     }
 
     LoggerBase* const logger_ptr = new_logger.get();
@@ -492,9 +493,13 @@ private:
 private:
   std::vector<std::unique_ptr<LoggerBase>> _loggers;
   std::atomic<uint64_t> _next_unique_logger_id{0};
-  std::optional<LogLevel> _env_log_level;
   mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};
+
+  // Not a std::optional: MSVC 19.44 crashes (C1001) emitting the function-local singleton of a
+  // class with a std::optional member in a Release build of the named module.
+  LogLevel _env_log_level{LogLevel::None};
+  bool _has_env_log_level{false};
   bool _env_log_level_parsed{false};
 };
 } // namespace detail
