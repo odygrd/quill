@@ -143,14 +143,10 @@ public:
 
     QUILL_TRY { _backend_worker->_poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e)
-    {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier, e.what());
-    }
+    QUILL_CATCH(std::exception const& e) { _backend_worker->_notify_error(e.what()); }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier,
-                                     std::string{"Caught unhandled exception."});
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
     }
 #endif
   }
@@ -203,14 +199,10 @@ private:
   {
     QUILL_TRY { return _backend_worker->_check_frontend_queues_and_cached_transit_events_empty(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e)
-    {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier, e.what());
-    }
+    QUILL_CATCH(std::exception const& e) { _backend_worker->_notify_error(e.what()); }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier,
-                                     std::string{"Caught unhandled exception."});
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
     }
 #endif
 
