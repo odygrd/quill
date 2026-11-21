@@ -151,6 +151,10 @@ public:
   /**
    * @brief Retrieves an existing sink with the specified name.
    *
+   * For a file sink whose path goes through a symlink that was later retargeted, this may return
+   * a previously registered sink, or no sink, depending on the spelling. Use create_or_get_sink()
+   * to get the sink of the file the path resolves to now.
+   *
    * @param sink_name The name of the sink.
    * @return std::shared_ptr<Sink> A shared pointer to the retrieved sink.
    * @throws QuillError if the sink does not exist.
