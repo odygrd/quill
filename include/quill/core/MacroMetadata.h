@@ -104,70 +104,46 @@ public:
 
   QUILL_NODISCARD bool is_rate_limited() const noexcept { return _is_rate_limited; }
 
-  /***/
+  /**
+   * @return true if a replacement field, including one nested in a format spec such as the
+   * width in "{:{width}}", starts with a name rather than an index or its format spec.
+   */
   QUILL_NODISCARD static constexpr bool contains_named_args(std::string_view fmt) noexcept
   {
-    uint32_t pos{0};
-    bool found_named_arg{false};
+    size_t pos{0};
 
-    // Iterates the format string and checks if any characters are contained inside `{}`
     while (pos < fmt.length())
     {
-      if (fmt[pos] == '{')
+      if (fmt[pos] != '{')
       {
-        ++pos; // consume {
-        if (pos >= fmt.length())
-        {
-          break;
-        }
-
-        // first character after the {
-        auto const fc = fmt[pos];
-        if (fc == '{')
-        {
-          // this means first '{' was escaped, so we ignore both of them
-          ++pos;
-          continue;
-        }
-
-        // else look for the next '}'
-        uint32_t char_cnt{0};
-        while (pos < fmt.length())
-        {
-          if (fmt[pos] == '}')
-          {
-            ++pos; // consume }
-            if (pos >= fmt.length())
-            {
-              break;
-            }
-
-            if (fmt[pos] == '}')
-            {
-              // this means first '}', was escaped ignore it
-              ++pos;
-              ++char_cnt;
-              continue;
-            }
-
-            // we found '{' match, we can break
-            break;
-          }
-
-          ++pos;
-          ++char_cnt;
-        }
-
-        if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_')))
-        {
-          found_named_arg = true;
-        }
+        ++pos;
         continue;
       }
-      ++pos;
+
+      ++pos; // consume {
+      if (pos >= fmt.length())
+      {
+        break;
+      }
+
+      // first character after the {
+      char const fc = fmt[pos];
+      if (fc == '{')
+      {
+        // this means first '{' was escaped, so we ignore both of them
+        ++pos;
+        continue;
+      }
+
+      // Scan on from the first character instead of skipping to the closing '}', so a nested field
+      // such as the dynamic width in "{:{}} {name}" cannot hide a named field that follows it
+      if ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_'))
+      {
+        return true;
+      }
     }
 
-    return found_named_arg;
+    return false;
   }
 
 private:
