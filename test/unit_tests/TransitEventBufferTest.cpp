@@ -747,4 +747,48 @@ TEST_CASE("transit_event_buffer_stores_messages_in_event_order")
   REQUIRE(bte.empty());
 }
 
+/***/
+TEST_CASE("transit_event_buffer_after_front")
+{
+  TransitEventBuffer bte{4};
+  REQUIRE_FALSE(bte.after_front());
+
+  // A single event has no event after it
+  TransitEvent* te = bte.back();
+  te->timestamp = 0;
+  bte.push_back();
+  REQUIRE_FALSE(bte.after_front());
+
+  for (size_t i = 1; i < 4; ++i)
+  {
+    te = bte.back();
+    te->timestamp = i;
+    bte.push_back();
+
+    // It is the second event, however many follow it
+    REQUIRE_EQ(bte.after_front()->timestamp, 1);
+  }
+
+  bte.pop_front();
+  REQUIRE_EQ(bte.after_front()->timestamp, 2);
+
+  // Move the front to the last slot, so that the event after it wraps around to the first slot
+  bte.pop_front();
+  bte.pop_front();
+
+  REQUIRE_EQ(bte.front()->timestamp, 3);
+  REQUIRE_FALSE(bte.after_front());
+
+  te = bte.back();
+  te->timestamp = 4;
+  bte.push_back();
+
+  REQUIRE_EQ(bte.capacity(), 4);
+  REQUIRE_EQ(bte.after_front()->timestamp, 4);
+
+  bte.pop_front();
+  REQUIRE_EQ(bte.front()->timestamp, 4);
+  REQUIRE_FALSE(bte.after_front());
+}
+
 TEST_SUITE_END();

@@ -53,10 +53,27 @@
   #include <unistd.h>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_IX86))
+  #include <intrin.h>
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
+/**
+ * Asks the CPU to start loading the cache line of `address`. It is only a hint: it does not
+ * fault, and compiles to nothing where the compiler has no such instruction.
+ */
+inline void prefetch_cache_line(QUILL_MAYBE_UNUSED char const* address) noexcept
+{
+#if defined(__GNUC__) || defined(__clang__)
+  __builtin_prefetch(address);
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+  _mm_prefetch(address, _MM_HINT_T0);
+#endif
+}
+
 /**
  * A record is normally ready when timestamp <= cutoff (wall time minus the grace period).
  * Otherwise, its first deferred check starts a steady-clock deadline one grace period ahead.

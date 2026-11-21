@@ -83,6 +83,16 @@ public:
     return &_storage[_reader_pos & _mask];
   }
 
+  /** @return the event that follows front(), or nullptr when there is none */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent const* after_front() const noexcept
+  {
+    if (size() < 2)
+    {
+      return nullptr;
+    }
+    return &_storage[(_reader_pos + 1) & _mask];
+  }
+
   /** Removes front() and releases its formatted message */
   QUILL_ATTRIBUTE_HOT void pop_front() noexcept
   {
