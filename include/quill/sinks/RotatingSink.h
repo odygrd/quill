@@ -282,6 +282,15 @@ public:
                 std::move(file_event_notifier), false, start_time),
       _config(config)
   {
+#if defined(_WIN32)
+    // Windows has no /dev/null device. FileSink discards the output without opening a file, so
+    // there is nothing to rotate. POSIX opens the real device below and only skips its rotation.
+    if (this->is_null())
+    {
+      return;
+    }
+#endif
+
     uint64_t const start_time_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
@@ -835,7 +844,17 @@ private:
     std::string date_time;
   };
 
-  QUILL_NODISCARD static bool _parse_uint32(std::string_view value, uint32_t& parsed_value) noexcept
+  using NativeFilenameView = std::basic_string_view<fs::path::value_type>;
+
+  // Date suffixes contain only validated ASCII digits and an optional underscore.
+  static void _assign_date_suffix(std::string& result, NativeFilenameView suffix)
+  {
+    result.resize(suffix.size());
+    std::transform(suffix.begin(), suffix.end(), result.begin(),
+                   [](auto c) { return static_cast<char>(c); });
+  }
+
+  QUILL_NODISCARD static bool _parse_uint32(NativeFilenameView value, uint32_t& parsed_value) noexcept
   {
     if (value.empty())
     {
@@ -843,7 +862,7 @@ private:
     }
 
     uint64_t parsed{0};
-    for (char const c : value)
+    for (auto const c : value)
     {
       if ((c < '0') || (c > '9'))
       {
@@ -906,15 +925,9 @@ private:
   QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
                                                ParsedRotatedFileInfo& parsed_file_info) const
   {
-    auto const utf8_string = [](fs::path const& path)
-    {
-      auto const text = path.u8string();
-      return std::string{reinterpret_cast<char const*>(text.data()), text.size()};
-    };
-
-    std::string const base_extension = utf8_string(base_filename.extension());
-    std::string const base_stem = utf8_string(base_filename.stem());
-    std::string candidate_name = utf8_string(candidate_filename.filename());
+    fs::path::string_type const base_extension = base_filename.extension().native();
+    fs::path::string_type const base_stem = base_filename.stem().native();
+    fs::path::string_type candidate_name = candidate_filename.filename().native();
 
     // Match "<stem>.<suffix><extension>", e.g. "app.1.log". The index/date is parsed below.
     // Require a non-empty suffix before indexing the separator or comparing the extension.
@@ -937,9 +950,8 @@ private:
       // symlink to a backup for another backup, or collapse distinct hard-link names.
       // A directory can hold many unrelated files, so test the cheap condition first: the name
       // spelled with the base stem must exist. Only then compare inodes and canonical paths.
-      fs::path::string_type const candidate_stem_and_suffix = base_extension.empty()
-        ? candidate_filename.filename().native()
-        : candidate_filename.stem().native();
+      fs::path::string_type const candidate_stem_and_suffix =
+        base_extension.empty() ? candidate_name : candidate_filename.stem().native();
       bool candidate_is_regular_file{false};
       bool candidate_checked{false};
 
@@ -947,12 +959,11 @@ private:
            separator = candidate_stem_and_suffix.find('.', separator + 1u))
       {
         fs::path const alias = base_filename.parent_path() /
-          (base_filename.stem().native() + candidate_stem_and_suffix.substr(separator) +
-           base_filename.extension().native());
+          (base_stem + candidate_stem_and_suffix.substr(separator) + base_extension);
 
         // Aliases differ only by case or Unicode normalization, so ASCII names must match
         // case-insensitively. This skips unrelated files without touching the filesystem.
-        if (!_may_be_filename_alias(candidate_filename.filename().native(), alias.filename().native()))
+        if (!_may_be_filename_alias(candidate_name, alias.filename().native()))
         {
           continue;
         }
@@ -986,13 +997,13 @@ private:
         fs::path const canonical_alias = fs::canonical(alias, ec);
         if (!ec && (canonical_alias == canonical_candidate))
         {
-          candidate_name = utf8_string(alias.filename());
+          candidate_name = alias.filename().native();
           break;
         }
       }
     }
 
-    std::string_view candidate_stem{candidate_name};
+    NativeFilenameView candidate_stem{candidate_name};
 
     if (!base_extension.empty())
     {
@@ -1004,7 +1015,7 @@ private:
       }
 
       candidate_stem =
-        std::string_view{candidate_name.data(), candidate_name.size() - base_extension.size()};
+        NativeFilenameView{candidate_name.data(), candidate_name.size() - base_extension.size()};
     }
 
     if ((candidate_stem.size() <= (base_stem.size() + 1)) ||
@@ -1014,8 +1025,8 @@ private:
       return false;
     }
 
-    std::string_view const suffix{candidate_stem.data() + base_stem.size() + 1,
-                                  candidate_stem.size() - base_stem.size() - 1};
+    NativeFilenameView const suffix{candidate_stem.data() + base_stem.size() + 1,
+                                    candidate_stem.size() - base_stem.size() - 1};
 
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
     {
@@ -1026,25 +1037,25 @@ private:
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
     {
       size_t const separator_pos = suffix.find('.');
-      std::string_view date_part =
-        (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
+      NativeFilenameView date_part =
+        (separator_pos == NativeFilenameView::npos) ? suffix : suffix.substr(0, separator_pos);
 
       if ((date_part.size() != 8u) || !_parse_uint32(date_part, parsed_file_info.index))
       {
         // With an extensionless base filename, indexed Date files are generated as
         // "name.<index>.<date>" because the date suffix is treated as the extension when the
         // index is appended.
-        if (base_extension.empty() && (separator_pos != std::string_view::npos) &&
-            (suffix.find('.', separator_pos + 1) == std::string_view::npos))
+        if (base_extension.empty() && (separator_pos != NativeFilenameView::npos) &&
+            (suffix.find('.', separator_pos + 1) == NativeFilenameView::npos))
         {
-          std::string_view const index_part = suffix.substr(0, separator_pos);
+          NativeFilenameView const index_part = suffix.substr(0, separator_pos);
           date_part = suffix.substr(separator_pos + 1);
 
           uint32_t date_part_value{0};
           if (_parse_uint32(index_part, parsed_file_info.index) && (date_part.size() == 8u) &&
               _parse_uint32(date_part, date_part_value))
           {
-            parsed_file_info.date_time.assign(date_part.data(), date_part.size());
+            _assign_date_suffix(parsed_file_info.date_time, date_part);
             return true;
           }
         }
@@ -1052,28 +1063,28 @@ private:
         return false;
       }
 
-      parsed_file_info.date_time.assign(date_part.data(), date_part.size());
+      _assign_date_suffix(parsed_file_info.date_time, date_part);
       parsed_file_info.index = 0;
 
-      if (separator_pos == std::string_view::npos)
+      if (separator_pos == NativeFilenameView::npos)
       {
         return true;
       }
 
-      if (suffix.find('.', separator_pos + 1) != std::string_view::npos)
+      if (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos)
       {
         return false;
       }
 
-      std::string_view const index_part = suffix.substr(separator_pos + 1);
+      NativeFilenameView const index_part = suffix.substr(separator_pos + 1);
       return _parse_uint32(index_part, parsed_file_info.index);
     }
 
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
     {
       size_t const separator_pos = suffix.find('.');
-      std::string_view date_time_part =
-        (separator_pos == std::string_view::npos) ? suffix : suffix.substr(0, separator_pos);
+      NativeFilenameView date_time_part =
+        (separator_pos == NativeFilenameView::npos) ? suffix : suffix.substr(0, separator_pos);
 
       // expect the %Y%m%d_%H%M%S format
       uint32_t date_part_value{0};
@@ -1085,17 +1096,17 @@ private:
         // With an extensionless base filename, indexed DateAndTime files are generated as
         // "name.<index>.<date_time>" because the date_time suffix is treated as the extension
         // when the index is appended.
-        if (base_extension.empty() && (separator_pos != std::string_view::npos) &&
-            (suffix.find('.', separator_pos + 1) == std::string_view::npos))
+        if (base_extension.empty() && (separator_pos != NativeFilenameView::npos) &&
+            (suffix.find('.', separator_pos + 1) == NativeFilenameView::npos))
         {
-          std::string_view const index_part = suffix.substr(0, separator_pos);
+          NativeFilenameView const index_part = suffix.substr(0, separator_pos);
           date_time_part = suffix.substr(separator_pos + 1);
 
           if (_parse_uint32(index_part, parsed_file_info.index) && (date_time_part.size() == 15u) &&
               (date_time_part[8] == '_') && _parse_uint32(date_time_part.substr(0, 8), date_part_value) &&
               _parse_uint32(date_time_part.substr(9), time_part_value))
           {
-            parsed_file_info.date_time.assign(date_time_part.data(), date_time_part.size());
+            _assign_date_suffix(parsed_file_info.date_time, date_time_part);
             return true;
           }
         }
@@ -1103,20 +1114,20 @@ private:
         return false;
       }
 
-      parsed_file_info.date_time.assign(date_time_part.data(), date_time_part.size());
+      _assign_date_suffix(parsed_file_info.date_time, date_time_part);
       parsed_file_info.index = 0;
 
-      if (separator_pos == std::string_view::npos)
+      if (separator_pos == NativeFilenameView::npos)
       {
         return true;
       }
 
-      if (suffix.find('.', separator_pos + 1) != std::string_view::npos)
+      if (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos)
       {
         return false;
       }
 
-      std::string_view const index_part = suffix.substr(separator_pos + 1);
+      NativeFilenameView const index_part = suffix.substr(separator_pos + 1);
       return _parse_uint32(index_part, parsed_file_info.index);
     }
 

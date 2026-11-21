@@ -3876,6 +3876,51 @@ TEST_CASE("rotating_file_sink_date_append_mode")
 }
 
 /***/
+TEST_CASE("rotating_file_sink_skips_unrelated_native_windows_filename")
+{
+#if defined(_WIN32)
+  fs::path const directory{"rotating_sink_native_filenames"};
+  fs::create_directories(directory);
+  fs::path const unrelated{directory / (std::wstring{L"unrelated_"} + static_cast<wchar_t>(0xD800) + L".txt")};
+  HANDLE const file{::CreateFileW(unrelated.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                  FILE_ATTRIBUTE_NORMAL, nullptr)};
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    // Some filesystems reject an unpaired UTF-16 surrogate in a filename.
+    fs::remove(directory);
+    return;
+  }
+  ::CloseHandle(file);
+
+  fs::path const filename{directory / "ordinary.log"};
+  {
+    RotatingFileSink sink{filename, RotatingFileSinkConfig{}};
+    REQUIRE(fs::exists(filename));
+    REQUIRE(fs::exists(unrelated));
+  }
+  fs::remove(filename);
+  fs::remove(unrelated);
+  fs::remove(directory);
+#endif
+}
+
+/***/
+TEST_CASE("rotating_file_sink_windows_dev_null_discards_output")
+{
+#if defined(_WIN32)
+  FileEventNotifier notifier;
+  notifier.before_open = [](fs::path const&) { FAIL("The null sink should never open a file"); };
+  RotatingFileSink sink{"/dev/null", RotatingFileSinkConfig{}, notifier};
+  REQUIRE(sink.is_null());
+
+  LogRecord record;
+  record.log_statement = "Discarded";
+  sink.write_log(record);
+  sink.flush_sink(SinkFlushReason::Final);
+#endif
+}
+
+/***/
 TEST_CASE("rotating_file_sink_preserves_four_gib_at_startup")
 {
   // Only a 32-bit build, where size_t is 32 bits, would misread this file size

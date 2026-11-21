@@ -248,6 +248,7 @@
   of dropping samples or failing every publish.
 - `RotatingFileSinkConfig::set_rotation_time_daily()` no longer switches the configuration to daily
   rotation when it throws for an invalid time.
+- Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.
 
 ## v13.1.0
