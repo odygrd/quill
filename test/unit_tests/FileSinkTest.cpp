@@ -98,6 +98,15 @@ size_t count_open_fds_for_path(fs::path const& filename)
 TEST_CASE("file_sink_config")
 {
   FileSinkConfig fsc;
+
+  // Each write to a file costs more on Windows, so the default buffer is larger there
+#if defined(_WIN32)
+  REQUIRE_EQ(fsc.write_buffer_size(), 256u * 1024u);
+#else
+  REQUIRE_EQ(fsc.write_buffer_size(), 64u * 1024u);
+#endif
+  REQUIRE_EQ(fsc.write_buffer_size(), FileSinkConfig::default_write_buffer_size);
+
   fsc.set_write_buffer_size(8 * 1024);
   REQUIRE_EQ(fsc.write_buffer_size(), 8 * 1024);
 

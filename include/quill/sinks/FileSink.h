@@ -169,7 +169,7 @@ public:
    *
    * To disable custom buffering and revert to the default size, pass a value of 0.
    *
-   * @note By default, a buffer size of 64 KB is used.
+   * @note By default, a buffer of 64 KiB is used, or of 256 KiB on Windows.
    * @param value Size of the buffer in bytes. If set to 0, the default buffer size will be used.
    */
   QUILL_ATTRIBUTE_COLD void set_write_buffer_size(size_t value)
@@ -241,10 +241,21 @@ public:
     return _override_pattern_formatter_options;
   }
 
+public:
+  /**
+   * The write buffer size that is used by default. A write to a file takes a few microseconds on
+   * Windows whatever its size, so the buffer is larger there to make fewer of them.
+   */
+#if defined(_WIN32)
+  static constexpr size_t default_write_buffer_size{256 * 1024};
+#else
+  static constexpr size_t default_write_buffer_size{64 * 1024};
+#endif
+
 private:
   std::string _open_mode{'a'};
   std::string _append_filename_format_pattern;
-  size_t _write_buffer_size{64 * 1024}; // Default size 64k
+  size_t _write_buffer_size{default_write_buffer_size};
   std::chrono::milliseconds _minimum_fsync_interval{0};
   std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
   Timezone _time_zone{Timezone::LocalTime};
@@ -824,7 +835,7 @@ protected:
   }
 
 protected:
-  static constexpr size_t default_write_buffer_size{64 * 1024};
+  static constexpr size_t default_write_buffer_size{FileSinkConfig::default_write_buffer_size};
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
