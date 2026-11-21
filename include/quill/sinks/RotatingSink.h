@@ -442,8 +442,13 @@ private:
   {
     if (record_timestamp_ns >= _next_rotation_time)
     {
-      _rotate_files(record_timestamp_ns);
-      _next_rotation_time = _calculate_rotation_tp(_next_rotation_time, record_timestamp_ns, _config);
+      // A failed rotation stays due, so it is retried after rotation_retry_interval instead of at
+      // the next scheduled rotation
+      if (_rotate_files(record_timestamp_ns))
+      {
+        _next_rotation_time = _calculate_rotation_tp(_next_rotation_time, record_timestamp_ns, _config);
+      }
+
       return true;
     }
 
@@ -460,15 +465,18 @@ private:
     }
   }
 
-  /***/
-  void _rotate_files(uint64_t record_timestamp_ns)
+  /**
+   * @return false if the file was not rotated and the rotation should be retried, e.g. a rename
+   * failed or a failed rotation waits for its retry interval
+   */
+  bool _rotate_files(uint64_t record_timestamp_ns)
   {
     // A failed rotation is retried once per interval rather than for every record, because each
     // attempt flushes, closes and reopens the file.
     auto const now = std::chrono::steady_clock::now();
     if (now < _next_rotation_attempt)
     {
-      return;
+      return false;
     }
 
     if (!this->is_open())
@@ -481,7 +489,7 @@ private:
       _next_rotation_attempt = {};
       _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
-      return;
+      return false;
     }
 
     // Checked after the recovery above: a sink that may not create another backup must still
@@ -493,7 +501,7 @@ private:
       // the disk, so run it at most once per retry interval rather than for every record.
       if (now < _next_backup_limit_check)
       {
-        return;
+        return true;
       }
 
       _next_backup_limit_check = now + rotation_retry_interval;
@@ -501,7 +509,7 @@ private:
 
       if (_created_files.size() > _config.max_backup_files())
       {
-        return;
+        return true;
       }
     }
 
@@ -518,15 +526,15 @@ private:
       // Also check the file size is > 0  to better deal with full disk. The file holds no records
       // yet, so date the next backup from now rather than from when it was opened.
       _open_file_timestamp = record_timestamp_ns;
-      return;
+      return true;
     }
 
     this->close_file();
-    _rotate_closed_file(record_timestamp_ns);
+    return _rotate_closed_file(record_timestamp_ns);
   }
 
-  /***/
-  void _rotate_closed_file(uint64_t record_timestamp_ns)
+  /** @return false if a rename failed and the file was reopened without rotating */
+  bool _rotate_closed_file(uint64_t record_timestamp_ns)
   {
     bool rotation_succeeded = true;
 
@@ -562,7 +570,7 @@ private:
         // them. Keep writing to the current file, as rotation does at the limit.
         this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
         this->_file_size = _get_file_size(this->_filename);
-        return;
+        return true;
       }
     }
 
@@ -628,7 +636,7 @@ private:
       _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
       this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
       this->_file_size = _get_file_size(this->_filename);
-      return;
+      return false;
     }
 
     // All renames succeeded — apply metadata updates
@@ -656,6 +664,7 @@ private:
     this->open_file(this->_filename, _config.open_mode());
     _open_file_timestamp = record_timestamp_ns;
     this->_file_size = 0;
+    return true;
   }
 
   /***/
