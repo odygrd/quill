@@ -134,6 +134,8 @@
 - `LoggerBase::mark_invalid()` is now protected; remove loggers with `Frontend::remove_logger()` or
   `Frontend::remove_logger_blocking()`. The unused macros `QUILL_CPLUSPLUS`, `QUILL_HAS_INCLUDE`,
   `QUILL_HAS_CPP_ATTRIBUTE` and `QUILL_MAGIC_SEPARATOR` are removed.
+- Quill now requires the standard `<filesystem>` header, so GCC 8 is the oldest supported GCC. The
+  `<experimental/filesystem>` fallback for GCC 7 is removed; it no longer compiled.
 
 ### API and Behaviour Changes
 
