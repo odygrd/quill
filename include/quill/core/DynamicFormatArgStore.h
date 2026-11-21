@@ -88,6 +88,7 @@ private:
   // without relocation because items in data_ refer to it.
   detail::DynamicArgList _dynamic_arg_list;
   bool _has_string_related_type{false};
+  bool _has_custom_type{false};
 
   template <typename T>
   void emplace_arg(T&& arg)
@@ -151,6 +152,11 @@ public:
     {
       _has_string_related_type = true;
     }
+
+    if constexpr (has_user_formatter)
+    {
+      _has_custom_type = true;
+    }
   }
 
   /** Erase all elements from the store */
@@ -159,9 +165,17 @@ public:
     _data.clear();
     _dynamic_arg_list = detail::DynamicArgList{};
     _has_string_related_type = false;
+    _has_custom_type = false;
   }
 
   QUILL_NODISCARD bool has_string_related_type() const noexcept { return _has_string_related_type; }
+
+  /**
+   * @return true if an argument is formatted by a fmtquill::formatter specialization. Unlike the
+   * formatting of a built-in type, it can depend on the other arguments, which the formatter
+   * reads through its format context.
+   */
+  QUILL_NODISCARD bool has_custom_type() const noexcept { return _has_custom_type; }
 };
 
 QUILL_END_EXPORT

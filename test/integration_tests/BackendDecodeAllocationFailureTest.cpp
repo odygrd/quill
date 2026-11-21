@@ -59,14 +59,25 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
     void write_log(quill::LogRecord const& record) override
     {
       messages.emplace_back(record.log_message);
+
+      if (record.named_args)
+      {
+        for (auto const& named_arg : *record.named_args)
+        {
+          named_args.emplace_back(named_arg.first + "=" + named_arg.second);
+        }
+      }
     }
     void flush_sink(quill::SinkFlushReason) override {}
     std::vector<std::string> messages;
+    std::vector<std::string> named_args;
   };
 
   size_t errors{0};
   quill::BackendOptions options;
   options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
+  // A buffer of four events, so that the named arguments below reuse the ones of earlier events
+  options.transit_event_buffer_initial_capacity = 4;
   options.error_notifier = [&errors](std::string const&) { ++errors; };
   auto* worker = quill::Backend::acquire_manual_backend_worker();
   worker->init(options);
@@ -101,6 +112,65 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
 
   REQUIRE_EQ(sink->messages.size(), 1u);
   CHECK_EQ(sink->messages[0], "id=42 values=[7, 8, 9]");
+  sink->messages.clear();
+
+  // Give each transit event of the buffer its named arguments, with values that need no allocation
+  auto const log_order = [logger](int id, std::string const& user)
+  { LOG_INFO(logger, "order {id} from {user}", id, user); };
+
+  for (int id = 0; id < 4; ++id)
+  {
+    log_order(id, "short");
+    worker->poll();
+  }
+
+  sink->messages.clear();
+  sink->named_args.clear();
+
+  // The value of `user` now needs an allocation. A failure leaves that value empty and the message
+  // is formatted from the arguments. The record is not decoded again: a value that never gets its
+  // memory would hold up the records behind it
+  std::string const user(40, 'u');
+  log_order(51, user);
+  log_order(52, "short");
+  fail_next_allocation = true;
+  worker->poll();
+
+  REQUIRE_FALSE(fail_next_allocation);
+  REQUIRE_EQ(sink->messages.size(), 2u);
+  CHECK_EQ(sink->messages[0], "order 51 from " + user);
+  CHECK_EQ(sink->messages[1], "order 52 from short");
+  REQUIRE_EQ(sink->named_args.size(), 4u);
+  CHECK_EQ(sink->named_args[0], "id=51");
+  CHECK_EQ(sink->named_args[1], "user=");
+  CHECK_EQ(sink->named_args[2], "id=52");
+  CHECK_EQ(sink->named_args[3], "user=short");
+  sink->messages.clear();
+  sink->named_args.clear();
+
+  // A value with non-printable characters is sanitized into a longer string. That is the first
+  // allocation of the poll below, as the short message and value need none before they are
+  // sanitized. A failure leaves the value empty, and the record is not decoded again
+  auto const log_tag = [logger](std::string const& tag) { LOG_INFO(logger, "{tag}", tag); };
+  log_tag("warmup");
+  worker->poll();
+  sink->messages.clear();
+  sink->named_args.clear();
+
+  std::string const control_characters(10, '\x01');
+  log_tag(control_characters);
+  log_order(53, "short");
+  fail_next_allocation = true;
+  worker->poll();
+
+  REQUIRE_FALSE(fail_next_allocation);
+  REQUIRE_EQ(sink->messages.size(), 2u);
+  CHECK_EQ(sink->messages[0], R"(\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01)");
+  CHECK_EQ(sink->messages[1], "order 53 from short");
+  REQUIRE_EQ(sink->named_args.size(), 3u);
+  CHECK_EQ(sink->named_args[0], "tag=");
+  CHECK_EQ(sink->named_args[1], "id=53");
+  CHECK_EQ(sink->named_args[2], "user=short");
 
   worker->shutdown();
   quill::Frontend::remove_logger(logger);

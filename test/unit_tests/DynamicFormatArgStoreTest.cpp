@@ -136,4 +136,24 @@ TEST_CASE("dynamic_format_arg_store_type_without_formatter_uses_conversion_to_st
   REQUIRE_EQ(result, std::string{"converted"});
 }
 
+/***/
+TEST_CASE("dynamic_format_arg_store_tells_an_argument_with_its_own_formatter")
+{
+  DynamicFormatArgStore store;
+  REQUIRE_FALSE(store.has_custom_type());
+
+  // Built-in types, and a type that is stored as its conversion to std::string
+  store.push_back(42);
+  store.push_back(3.5);
+  store.push_back(std::string{"plain"});
+  store.push_back(NoFormatterConvertibleToString{});
+  REQUIRE_FALSE(store.has_custom_type());
+
+  store.push_back(PriceConvertibleToString{1234});
+  REQUIRE(store.has_custom_type());
+
+  store.clear();
+  REQUIRE_FALSE(store.has_custom_type());
+}
+
 TEST_SUITE_END();
