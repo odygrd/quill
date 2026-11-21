@@ -24,7 +24,7 @@ It is important to consistently use your custom types throughout the application
 
 .. warning::
 
-   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application.
+   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application. Creating a logger whose ``FrontendOptions`` values differ from the existing loggers throws ``QuillError``, and so does passing incompatible option values to ``Backend::start<TFrontendOptions>()`` together with ``SignalHandlerOptions``, because the signal handler logs with that type. On Windows the same check applies to each thread that calls ``quill::init_signal_handler<TFrontendOptions>()``.
 
 Error Notifications
 -------------------

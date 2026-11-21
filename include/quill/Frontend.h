@@ -45,10 +45,12 @@ public:
    *
    * Although optional, it is recommended to invoke this function during the thread initialization
    * phase before the first log message.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   QUILL_ATTRIBUTE_COLD static void preallocate()
   {
-    auto const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
+    auto const volatile spsc_queue_capacity = detail::get_checked_local_thread_context<TFrontendOptions>()
                                                 ->template get_spsc_queue<TFrontendOptions::queue_type>()
                                                 .capacity();
 
@@ -72,12 +74,14 @@ public:
    *          associated with the calling thread, so it is important that the appropriate thread invokes it.
    *
    * @param capacity The desired new capacity for the thread-local SPSC queue.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   static void shrink_thread_local_queue(size_t capacity)
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      detail::get_local_thread_context<TFrontendOptions>()
+      detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .shrink(capacity);
     }
@@ -97,18 +101,20 @@ public:
    *       is invoking this function to check its own queue.
    *
    * @return The current capacity of the thread-local SPSC queue.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   QUILL_NODISCARD static size_t get_thread_local_queue_capacity()
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .producer_capacity();
     }
     else
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .capacity();
     }
@@ -220,7 +226,8 @@ public:
    *              A non-default frontend clock_type requires a matching user-clock reference.
    *
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
@@ -243,7 +250,8 @@ public:
    * @param clock ClockSource::tsc(), ClockSource::system(), or ClockSource::custom(clock).
    *              A non-default frontend clock_type requires a matching user-clock reference.
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
@@ -263,7 +271,8 @@ public:
    * @param clock ClockSource::tsc(), ClockSource::system(), or ClockSource::custom(clock).
    *              A non-default frontend clock_type requires a matching user-clock reference.
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name,
                                  std::initializer_list<std::shared_ptr<Sink>> sinks,
@@ -289,6 +298,8 @@ public:
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
    *
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
@@ -316,6 +327,8 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(
@@ -341,6 +354,8 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(
@@ -365,6 +380,8 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return A pointer to the logger instance, either newly created or retrieved.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, detail::LoggerBase* source_logger = nullptr)

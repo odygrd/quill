@@ -10,6 +10,7 @@
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
 #include "quill/core/InlinedVector.h"
+#include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 
@@ -223,6 +224,41 @@ private:
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};
 };
 
+/**
+ * The FrontendOptions values of a thread queue or a logger. They must be the same throughout the
+ * application, because each thread owns one queue, created with the options of its first use.
+ * clock_type is not compared: it is a type, and each logger reads its own clock.
+ */
+struct FrontendOptionsValues
+{
+  template <typename TFrontendOptions>
+  QUILL_NODISCARD static constexpr FrontendOptionsValues of() noexcept
+  {
+    return FrontendOptionsValues{TFrontendOptions::initial_queue_capacity,
+                                 TFrontendOptions::unbounded_queue_max_capacity,
+                                 TFrontendOptions::blocking_queue_retry_interval_ns,
+                                 TFrontendOptions::queue_type,
+                                 TFrontendOptions::huge_pages_policy,
+                                 TFrontendOptions::enable_immediate_flush};
+  }
+
+  QUILL_NODISCARD bool operator==(FrontendOptionsValues const& other) const noexcept
+  {
+    return (initial_queue_capacity == other.initial_queue_capacity) &&
+      (unbounded_queue_max_capacity == other.unbounded_queue_max_capacity) &&
+      (blocking_queue_retry_interval_ns == other.blocking_queue_retry_interval_ns) &&
+      (queue_type == other.queue_type) && (huge_pages_policy == other.huge_pages_policy) &&
+      (enable_immediate_flush == other.enable_immediate_flush);
+  }
+
+  size_t initial_queue_capacity;
+  size_t unbounded_queue_max_capacity;
+  uint32_t blocking_queue_retry_interval_ns;
+  QueueType queue_type;
+  HugePagesPolicy huge_pages_policy;
+  bool enable_immediate_flush;
+};
+
 class ThreadContextManager
 {
 public:
@@ -338,40 +374,68 @@ public:
     _invalid_thread_context_count.fetch_sub(1, std::memory_order_relaxed);
   }
 
+  /**
+   * Selects the application's FrontendOptions on first use, or checks them against that choice.
+   * Matching and claiming happen in one step so two threads cannot select different options.
+   * The first claim stands even if the queue or logger it was made for then fails to be created:
+   * mixing FrontendOptions is unsupported, so this only rejects a later, different choice.
+   * @return false if `frontend_options` differ from the FrontendOptions already in use
+   */
+  QUILL_NODISCARD bool claim_frontend_options(FrontendOptionsValues const& frontend_options) noexcept
+  {
+    // The options never change once claimed, so every later check reads them without the lock
+    if (QUILL_LIKELY(_frontend_options_set.load(std::memory_order_acquire)))
+    {
+      return _frontend_options == frontend_options;
+    }
+
+    LockGuard const lock{_spinlock};
+
+    if (!_frontend_options_set.load(std::memory_order_relaxed))
+    {
+      _frontend_options = frontend_options;
+      _frontend_options_set.store(true, std::memory_order_release);
+      return true;
+    }
+
+    return _frontend_options == frontend_options;
+  }
+
 private:
   ThreadContextManager() = default;
   ~ThreadContextManager() = default;
 
 private:
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
+  FrontendOptionsValues _frontend_options{}; /**< Claimed by the first queue or logger */
   Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  std::atomic<bool> _frontend_options_set{false}; /**< _frontend_options is immutable once this is set */
   std::atomic<bool> _new_thread_context_flag{false};
   std::atomic<uint32_t> _invalid_thread_context_count{0};
 };
+
+/**
+ * Every user of a thread's queue reads it as the queue type of its own FrontendOptions.
+ * @throws QuillError if `frontend_options` differ from the ones the application already uses
+ */
+inline void check_frontend_options(FrontendOptionsValues const& frontend_options)
+{
+  if (QUILL_UNLIKELY(!ThreadContextManager::instance().claim_frontend_options(frontend_options)))
+  {
+    QUILL_THROW(
+      QuillError{"FrontendOptions differ from the ones used by the rest of the application. "
+                 "Use one FrontendOptions specialization throughout the application."});
+  }
+}
 
 class ScopedThreadContext
 {
 public:
   /***/
-  ScopedThreadContext(QueueType queue_type, size_t initial_queue_capacity,
-                      size_t unbounded_queue_max_capacity, HugePagesPolicy huge_pages_policy)
-    : _thread_context(std::make_shared<ThreadContext>(
-        queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy))
+  explicit ScopedThreadContext(FrontendOptionsValues const& frontend_options)
+    : _thread_context(_create_thread_context(frontend_options))
   {
-#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
-    // Thread-local flag to track if an instance has been created for this thread.
-    // This ensures that get_local_thread_context() is not called with different template arguments
-    // when using custom FrontendOptions. Having multiple thread contexts in a single thread is fine
-    // and functional but goes against the design principle of maintaining a single thread context
-    // per thread.
-    thread_local bool thread_local_instance_created = false;
-
-    QUILL_ASSERT(!thread_local_instance_created,
-                 R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
-
-    thread_local_instance_created = true;
-#endif
-
+    // One thread context per thread: get_scoped_thread_context_impl() owns the only thread_local.
     ThreadContextManager::instance().register_thread_context(_thread_context);
   }
 
@@ -402,6 +466,17 @@ public:
   }
 
 private:
+  /** @throws QuillError if `frontend_options` differ from the ones the application already uses */
+  static std::shared_ptr<ThreadContext> _create_thread_context(FrontendOptionsValues const& frontend_options)
+  {
+    check_frontend_options(frontend_options);
+
+    return std::make_shared<ThreadContext>(
+      frontend_options.queue_type, frontend_options.initial_queue_capacity,
+      frontend_options.unbounded_queue_max_capacity, frontend_options.huge_pages_policy);
+  }
+
+private:
   /**<
    * This could be unique_ptr but the thread context of main thread that owns
    * ThreadContextCollection can be destructed last even after the logger singleton destruction
@@ -417,11 +492,10 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT
 #ifndef QUILL_MODULE
   inline
 #endif
-  ThreadContext* get_scoped_thread_context_impl(QueueType queue_type, size_t initial_queue_capacity,
-                                                size_t unbounded_queue_max_capacity, HugePagesPolicy huge_pages_policy)
+  ThreadContext*
+  get_scoped_thread_context_impl(FrontendOptionsValues const& frontend_options)
 {
-  thread_local ScopedThreadContext scoped_thread_context{
-    queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy};
+  thread_local ScopedThreadContext scoped_thread_context{frontend_options};
 
   return scoped_thread_context.get_thread_context();
 }
@@ -434,9 +508,26 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context()
                 "FrontendOptions::unbounded_queue_max_capacity must be greater than or equal to "
                 "FrontendOptions::initial_queue_capacity");
 
-  return get_scoped_thread_context_impl(
-    TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity,
-    TFrontendOptions::unbounded_queue_max_capacity, TFrontendOptions::huge_pages_policy);
+  constexpr FrontendOptionsValues frontend_options = FrontendOptionsValues::of<TFrontendOptions>();
+  return get_scoped_thread_context_impl(frontend_options);
+}
+
+/**
+ * Like get_local_thread_context(), for cold callers such as Frontend::preallocate() that may run
+ * after this thread's queue was created with other FrontendOptions.
+ * @throws QuillError if TFrontendOptions differ from the ones the application already uses
+ */
+template <typename TFrontendOptions>
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD ThreadContext* get_checked_local_thread_context()
+{
+  // A successful claim lasts for the process lifetime, including backend restarts.
+  static bool const checked = []
+  {
+    check_frontend_options(FrontendOptionsValues::of<TFrontendOptions>());
+    return true;
+  }();
+  (void)checked;
+  return get_local_thread_context<TFrontendOptions>();
 }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)

@@ -487,4 +487,67 @@ TEST_CASE("create_logger_succeeds_and_rejects_duplicate")
   lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
 }
 
+/***/
+struct BoundedDroppingFrontendOptions : quill::FrontendOptions
+{
+  static constexpr quill::QueueType queue_type = quill::QueueType::BoundedDropping;
+};
+
+/***/
+struct LargerQueueFrontendOptions : quill::FrontendOptions
+{
+  static constexpr size_t initial_queue_capacity = 2u * quill::FrontendOptions::initial_queue_capacity;
+};
+
+/***/
+struct DerivedDefaultFrontendOptions : quill::FrontendOptions
+{
+};
+
+/***/
+TEST_CASE("create_logger_rejects_different_frontend_options")
+{
+  std::shared_ptr<ConsoleSink> sink = std::make_unique<ConsoleSink>();
+  LoggerManager& lm = LoggerManager::instance();
+
+  LoggerBase* logger =
+    lm.create_or_get_logger<Logger>("queue_type_default_logger", std::vector<std::shared_ptr<Sink>>{sink},
+                                    PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr);
+  REQUIRE_NE(logger, nullptr);
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+  // A thread's queue is created by its first log call, so mixing queue types would make one of
+  // the loggers reinterpret that queue as another type.
+  REQUIRE_THROWS_AS(lm.create_logger<LoggerImpl<BoundedDroppingFrontendOptions>>(
+                      "queue_type_bounded_logger", std::vector<std::shared_ptr<Sink>>{sink},
+                      PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr),
+                    QuillError);
+  REQUIRE_EQ(lm.get_logger("queue_type_bounded_logger"), nullptr);
+
+  // The other values are also application-wide: a thread whose queue already exists ignores them
+  REQUIRE_THROWS_AS(lm.create_or_get_logger<LoggerImpl<LargerQueueFrontendOptions>>(
+                      "queue_capacity_logger", std::vector<std::shared_ptr<Sink>>{sink},
+                      PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr),
+                    QuillError);
+  REQUIRE_EQ(lm.get_logger("queue_capacity_logger"), nullptr);
+
+  // An existing logger is not returned as a logger with other FrontendOptions
+  REQUIRE_THROWS_AS(lm.create_or_get_logger<LoggerImpl<LargerQueueFrontendOptions>>(
+                      "queue_type_default_logger", std::vector<std::shared_ptr<Sink>>{sink},
+                      PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr),
+                    QuillError);
+
+  // The same values from another FrontendOptions type are accepted
+  LoggerBase* same_options_logger = lm.create_logger<LoggerImpl<DerivedDefaultFrontendOptions>>(
+    "same_options_logger", std::vector<std::shared_ptr<Sink>>{sink}, PatternFormatterOptions{},
+    ClockSourceType::Tsc, nullptr);
+  REQUIRE_NE(same_options_logger, nullptr);
+  lm.remove_logger(same_options_logger);
+#endif
+
+  lm.remove_logger(logger);
+  std::vector<std::string> removed_loggers;
+  lm.cleanup_invalidated_loggers([]() { return true; }, removed_loggers);
+}
+
 TEST_SUITE_END();

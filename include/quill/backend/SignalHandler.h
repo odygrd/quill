@@ -555,6 +555,8 @@ template <typename TFrontendOptions>
 void init_signal_handler(std::vector<int> const& catchable_signals = std::vector<int>{
                            SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV})
 {
+  detail::check_frontend_options(detail::FrontendOptionsValues::of<TFrontendOptions>());
+
   auto& ctx = detail::SignalHandlerContext::instance();
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 

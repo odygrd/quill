@@ -12,6 +12,7 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/MetricManager.h"
 #include "quill/core/QuillError.h"
+#include "quill/core/ThreadContextManager.h"
 
 #ifndef QUILL_MODULE
   #include <atomic>
@@ -81,6 +82,9 @@ public:
    * @param backend_options Backend options to configure the backend behavior.
    * @param signal_handler_options SignalHandler options to configure the signal handler behavior.
    *
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions the application's
+   *         loggers use. The signal handler logs with TFrontendOptions.
+   *
    * @note Enabling the built-in signal handler overrides the listed process signal handlers.
    * @note Concurrent calls to start() and stop() from different threads are not supported.
    *
@@ -106,6 +110,10 @@ public:
                                          SignalHandlerOptions const& signal_handler_options)
   {
     detail::BackendWorker::validate_options(backend_options);
+
+    // The signal handler logs through LoggerImpl<TFrontendOptions>, which must be the type of the
+    // application's loggers
+    detail::check_frontend_options(detail::FrontendOptionsValues::of<TFrontendOptions>());
 
     std::call_once(
       detail::BackendManager::instance().get_start_once_flag(),
