@@ -64,6 +64,7 @@
   #include <limits>
   #include <memory>
   #include <mutex>
+  #include <new>
   #include <optional>
   #include <string>
   #include <string_view>
@@ -372,9 +373,9 @@ public:
     _removed_loggers = {};
     _active_thread_contexts_cache = {};
     _active_sinks_cache = {};
-    _named_args_template_cache.clear();
     _named_arg_value_buffer = fmtquill::memory_buffer{};
     _format_args_store = DynamicFormatArgStore{};
+    _named_args_template_cache.clear();
     _dynamic_metric_labels = {};
   }
 
@@ -1109,9 +1110,11 @@ private:
         {
           format_args_decoder(read_pos, _format_args_store);
 
-          if (!transit_event->macro_metadata->has_named_args())
+          MacroMetadata const& macro_metadata = *transit_event->macro_metadata;
+
+          if (!macro_metadata.has_named_args())
           {
-            _populate_formatted_log_message(transit_event, transit_event->macro_metadata->message_format());
+            _populate_formatted_log_message(transit_event, macro_metadata.message_format(), nullptr);
           }
           else if (runtime_metadata_event)
           {
@@ -1119,20 +1122,27 @@ private:
             // caching them would grow the cache without bound for the lifetime of the backend, so
             // process them without caching
             auto const [message_format, arg_names] =
-              process_named_args_format_message(transit_event->macro_metadata->message_format());
+              process_named_args_format_message(macro_metadata.message_format());
 
-            _populate_formatted_log_message(transit_event, message_format.data());
-            _populate_formatted_named_args(transit_event, arg_names);
+            (void)_populate_formatted_named_args(transit_event, arg_names);
+            _populate_formatted_log_message(transit_event, message_format, nullptr);
+            _sanitize_named_arg_values(transit_event);
           }
           else
           {
-            // The format string of a log statement stays at its address, so its rewrite is found
-            // by that address, without copying and hashing the format string of every message
             NamedArgsTemplate const& named_args_template =
-              _named_args_template_cache.get(transit_event->macro_metadata->message_format());
+              _named_args_template_cache.get(macro_metadata.message_format());
 
-            _populate_formatted_log_message(transit_event, named_args_template.format().data());
-            _populate_formatted_named_args(transit_event, named_args_template.arg_names());
+            // Each argument is formatted once into the value of its named argument, and the
+            // message is built from these values
+            bool const has_all_values =
+              _populate_formatted_named_args(transit_event, named_args_template.arg_names());
+
+            _populate_formatted_log_message(
+              transit_event, named_args_template.format(),
+              (has_all_values && named_args_template.can_build_from_values()) ? &named_args_template : nullptr);
+
+            _sanitize_named_arg_values(transit_event);
           }
 
           _set_transit_event_mdc(*thread_context, transit_event);
@@ -2156,7 +2166,6 @@ private:
   static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>> const& orig_arg_names,
                                           std::vector<std::pair<std::string, std::string>>& named_args,
                                           DynamicFormatArgStore const& format_args_store,
-                                          BackendOptions const& options, PrintableChars const& printable_chars,
                                           fmtquill::memory_buffer& value_buffer)
   {
     for (size_t i = 0; i < named_args.size(); ++i)
@@ -2188,15 +2197,18 @@ private:
       }
 
       named_args[i].second.assign(value_buffer.data(), value_buffer.size());
-
-      if (options.check_printable_char && format_args_store.has_string_related_type())
-      {
-        sanitize_non_printable_chars(named_args[i].second, printable_chars);
-      }
     }
   }
 
-  void _populate_formatted_named_args(TransitEvent* transit_event,
+  /**
+   * Formats the value of each named argument. The values are sanitized after the message is built
+   * from them, see _sanitize_named_arg_values()
+   * @return true if the message can be built from the values: each named argument has its value,
+   * and no argument is formatted by a formatter of its own. Such a formatter can read the other
+   * arguments through its format context, e.g. a precision, and a value is formatted without the
+   * arguments before it.
+   */
+  bool _populate_formatted_named_args(TransitEvent* transit_event,
                                       std::vector<std::pair<std::string, std::string>> const& arg_names)
   {
     transit_event->ensure_extra_data();
@@ -2206,7 +2218,7 @@ private:
     if (arg_names.empty())
     {
       named_args->clear();
-      return;
+      return false;
     }
 
     named_args->resize(arg_names.size());
@@ -2239,23 +2251,59 @@ private:
     }
 
     // Then populate all the values of each arg
+    bool values_formatted{false};
+
     QUILL_TRY
     {
-      _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options,
-                                  _printable_chars, _named_arg_value_buffer);
+      _format_and_split_arguments(arg_names, *named_args, _format_args_store, _named_arg_value_buffer);
+      values_formatted = true;
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
     {
-      // This catch block simply catches the exception.
-      // Since the error has already been handled in _populate_formatted_log_message,
-      // there is no additional action required here.
+      // The message is then formatted from the arguments, and _populate_formatted_log_message
+      // reports an error of the log statement. An allocation failure is not rethrown to decode
+      // the record again: a value that never gets its memory would hold up every record behind it.
     }
     QUILL_CATCH_ALL() { _notify_error(std::string{"Caught unhandled exception."}); }
 #endif
+
+    bool const has_all_values = values_formatted && (user_arg_count >= arg_names.size());
+    return has_all_values && !_format_args_store.has_custom_type();
   }
 
-  QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event, char const* message_format)
+  /** Sanitizes the values of the named arguments, as _populate_formatted_log_message does the message */
+  void _sanitize_named_arg_values(TransitEvent* transit_event)
+  {
+    if (!_options.check_printable_char || !_format_args_store.has_string_related_type())
+    {
+      return;
+    }
+
+    for (auto& named_arg : transit_event->extra_data->named_args)
+    {
+      QUILL_TRY { sanitize_non_printable_chars(named_arg.second, _printable_chars); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        // The sanitized value did not get its memory. It is left empty, like a value that fails
+        // to format, rather than written with the characters it must not have. The exception is
+        // not rethrown to decode the record again: a value that never gets its memory would hold
+        // up every record behind it.
+        named_arg.second.clear();
+      }
+#endif
+    }
+  }
+
+  /**
+   * @param message_format the format string, with positional fields
+   * @param named_args_template when not nullptr, the message is built from the values of the
+   * event's named arguments instead of formatting the arguments again
+   */
+  QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event,
+                                                           fmtquill::string_view message_format,
+                                                           NamedArgsTemplate const* named_args_template)
   {
     transit_event->formatted_msg->clear();
 
@@ -2266,9 +2314,17 @@ private:
 
     QUILL_TRY
     {
-      fmtquill::vformat_to(
-        std::back_inserter(*transit_event->formatted_msg), message_format,
-        fmtquill::basic_format_args<fmtquill::format_context>{_format_args_store.data(), user_arg_count});
+      if (named_args_template)
+      {
+        named_args_template->build_from_values(*transit_event->formatted_msg,
+                                               transit_event->extra_data->named_args);
+      }
+      else
+      {
+        fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), message_format,
+                             fmtquill::basic_format_args<fmtquill::format_context>{
+                               _format_args_store.data(), user_arg_count});
+      }
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
