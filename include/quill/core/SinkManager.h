@@ -42,8 +42,12 @@ private:
   {
     explicit SinkInfo() = default;
     SinkInfo(std::string sid, std::string name, std::weak_ptr<Sink> sptr, FileSinkIdFunction id_function)
-      : sink_id(static_cast<std::string&&>(sid)), sink_name(static_cast<std::string&&>(name)),
-        sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)), file_sink_id(id_function) {};
+      : sink_id(static_cast<std::string&&>(sid)),
+        sink_name(static_cast<std::string&&>(name)),
+        sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)),
+        file_sink_id(id_function)
+    {
+    }
 
     std::string sink_id;
     std::string sink_name;

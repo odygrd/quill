@@ -108,7 +108,7 @@ public:
     std::string_view /** log_message **/, std::string_view /** log_statement **/, char const* message_format)
   {
     _json_message.append(std::string_view{"{\"timestamp\":\""});
-    char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1];
+    char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1u];
     auto const timestamp_result =
       std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), log_timestamp);
     _json_message.append(std::string_view{

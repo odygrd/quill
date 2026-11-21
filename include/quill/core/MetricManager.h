@@ -116,9 +116,10 @@ private:
                                                                      std::vector<MetricLabel>& labels,
                                                                      size_t label_count)
   {
-    auto const labels_end = labels.begin() + label_count;
+    MetricLabel* const labels_begin = labels.data();
+    MetricLabel* const labels_end = labels_begin + label_count;
 
-    std::sort(labels.begin(), labels_end,
+    std::sort(labels_begin, labels_end,
               [](MetricLabel const& lhs, MetricLabel const& rhs)
               { return lhs.key < rhs.key || (lhs.key == rhs.key && lhs.value < rhs.value); });
 
@@ -134,7 +135,7 @@ private:
 
     append_key(metric_name);
 
-    for (auto it = labels.begin(); it != labels_end; ++it)
+    for (MetricLabel const* it = labels_begin; it != labels_end; ++it)
     {
       append_key(it->key);
       append_key(it->value);
@@ -148,7 +149,7 @@ private:
     }
 
     auto metadata = std::make_unique<MetricMetadata>(_dynamic_metric_key, std::string{metric_name},
-                                                     std::vector<MetricLabel>{labels.begin(), labels_end});
+                                                     std::vector<MetricLabel>{labels_begin, labels_end});
 
     return _dynamic_metrics.emplace(_dynamic_metric_key, std::move(metadata)).first->second.get();
   }

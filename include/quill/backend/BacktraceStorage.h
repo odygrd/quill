@@ -125,10 +125,10 @@ public:
 private:
   struct StoredTransitEvent
   {
-    StoredTransitEvent(std::string thread_id, std::string thread_name, TransitEvent transit_event)
-      : thread_id(std::move(thread_id)),
-        thread_name(std::move(thread_name)),
-        transit_event(std::move(transit_event))
+    StoredTransitEvent(std::string stored_thread_id, std::string stored_thread_name, TransitEvent event)
+      : thread_id(std::move(stored_thread_id)),
+        thread_name(std::move(stored_thread_name)),
+        transit_event(std::move(event))
     {
     }
 
