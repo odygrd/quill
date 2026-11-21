@@ -23,6 +23,25 @@ public:
 };
 
 /***/
+TEST_CASE("windows_filename_gmt_timestamp_has_utc_offset_and_zone")
+{
+#if defined(_WIN32)
+  REQUIRE_EQ(quill::detail::format_datetime_string(1'750'000'000'000'000'000ull, Timezone::GmtTime,
+                                                   "%z %Z %%z %%Z"),
+             "+0000 UTC %z %Z");
+#endif
+}
+
+TEST_CASE("windows_unsupported_filename_timestamp_directive_throws")
+{
+#if defined(_MSC_VER) && !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_THROWS_AS((void)quill::detail::format_datetime_string(1'750'000'000'000'000'000ull,
+                                                                Timezone::GmtTime, "%-H"),
+                    QuillError);
+#endif
+}
+
+/***/
 TEST_CASE("append_date_to_filename")
 {
   std::chrono::system_clock::time_point const ts =

@@ -631,7 +631,7 @@ public:
     return quill::detail::StringFromTime::_next_quarter_hour_timestamp(timestamp);
   }
 
-  static std::vector<char> safe_strftime(char const* format_string, time_t timestamp, Timezone time_zone)
+  static std::string safe_strftime(char const* format_string, time_t timestamp, Timezone time_zone)
   {
     return quill::detail::StringFromTime::_safe_strftime(format_string, timestamp, time_zone);
   }

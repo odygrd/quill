@@ -251,6 +251,8 @@
 - On Windows, `Frontend::create_or_get_sink<FileSink>()` returns the existing sink for another
   spelling of the same file, such as `app.log.` or, in MinGW builds, a directory differing only in
   letter case, instead of opening the file again, which could truncate it in `w` mode.
+- MSVC builds report a formatting error for a timestamp or file name pattern with a specifier the C
+  runtime does not support, such as `%-H`, instead of terminating the process.
 - Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.
 
