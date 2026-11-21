@@ -23,7 +23,7 @@ namespace
 {
 struct VariantThrowOnConstruction
 {
-  explicit VariantThrowOnConstruction(int value) : value(value) {}
+  explicit VariantThrowOnConstruction(int in_value) : value(in_value) {}
 
   VariantThrowOnConstruction(VariantThrowOnConstruction const&) = default;
 

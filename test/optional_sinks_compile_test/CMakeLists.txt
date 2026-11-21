@@ -18,18 +18,16 @@ endif ()
 
 find_package(prometheus-cpp REQUIRED CONFIG)
 
-set(QUILL_OPTIONAL_SINK_WARNINGS -Wall -Wextra -Wpedantic -Wshadow -Wsign-conversion -Werror)
-
 add_executable(quill_syslog_sink_compile_test SyslogSinkCompileTest.cpp)
 target_link_libraries(quill_syslog_sink_compile_test PRIVATE quill::quill)
-target_compile_options(quill_syslog_sink_compile_test PRIVATE ${QUILL_OPTIONAL_SINK_WARNINGS})
+set_common_compile_options(quill_syslog_sink_compile_test)
 
 add_executable(quill_systemd_sink_compile_test SystemdSinkCompileTest.cpp)
 target_include_directories(quill_systemd_sink_compile_test SYSTEM PRIVATE ${SYSTEMD_INCLUDE_DIR})
 target_link_libraries(quill_systemd_sink_compile_test PRIVATE quill::quill ${SYSTEMD_LIBRARY})
-target_compile_options(quill_systemd_sink_compile_test PRIVATE ${QUILL_OPTIONAL_SINK_WARNINGS})
+set_common_compile_options(quill_systemd_sink_compile_test)
 
 add_executable(quill_prometheus_sink_compile_test PrometheusSinkCompileTest.cpp)
 target_link_libraries(quill_prometheus_sink_compile_test
         PRIVATE quill::quill prometheus-cpp::core prometheus-cpp::pull)
-target_compile_options(quill_prometheus_sink_compile_test PRIVATE ${QUILL_OPTIONAL_SINK_WARNINGS})
+set_common_compile_options(quill_prometheus_sink_compile_test)

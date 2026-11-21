@@ -24,7 +24,7 @@ struct NonStdThrowingFormat
 
 struct ThrowingMoveOnBackendDecode
 {
-  explicit ThrowingMoveOnBackendDecode(int value) : value(value) {}
+  explicit ThrowingMoveOnBackendDecode(int in_value) : value(in_value) {}
   ThrowingMoveOnBackendDecode(ThrowingMoveOnBackendDecode const&) = default;
   ThrowingMoveOnBackendDecode& operator=(ThrowingMoveOnBackendDecode const&) = default;
 

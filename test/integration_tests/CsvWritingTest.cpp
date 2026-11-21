@@ -25,9 +25,9 @@ struct FileSinkPathHelper : quill::FileSink
   using FileSink::FileSink;
 
   static fs::path appended_filename(fs::path const& filename, std::string const& pattern,
-                                    Timezone timezone, std::chrono::system_clock::time_point timestamp)
+                                    Timezone time_zone, std::chrono::system_clock::time_point timestamp)
   {
-    return quill::detail::append_datetime_to_filename(filename, pattern, timezone, timestamp);
+    return quill::detail::append_datetime_to_filename(filename, pattern, time_zone, timestamp);
   }
 };
 

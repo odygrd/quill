@@ -19,7 +19,7 @@
 class UserFilter : public quill::Filter
 {
 public:
-  UserFilter() : quill::Filter("filter_1") {};
+  UserFilter() : quill::Filter("filter_1") {}
 
   bool filter(quill::LogRecord const& record) noexcept override
   {

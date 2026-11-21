@@ -32,8 +32,8 @@ namespace custom
 class User
 {
 public:
-  User(std::string name, std::string department, uint32_t age)
-    : name(std::move(name)), department(std::move(department)), age(age)
+  User(std::string in_name, std::string in_department, uint32_t in_age)
+    : name(std::move(in_name)), department(std::move(in_department)), age(in_age)
   {
   }
 

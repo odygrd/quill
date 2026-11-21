@@ -84,7 +84,7 @@ TEST_CASE("bounded_queue_integer_overflow")
     std::byte* w = buffer.prepare_read();
     REQUIRE(w);
     char result[256];
-    std::memcpy(&result[0], w, static_cast<uint8_t>(to_write.length()) + static_cast<uint8_t>(1));
+    std::memcpy(&result[0], w, to_write.length() + 1u);
     REQUIRE_STREQ(result, to_write.data());
     buffer.finish_read(static_cast<uint8_t>(to_write.length()) + static_cast<uint8_t>(1));
     buffer.commit_read();

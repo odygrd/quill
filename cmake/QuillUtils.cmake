@@ -38,6 +38,12 @@ function(set_common_compile_options target_name)
             # General warnings for Clang, AppleClang, and GNU, but NOT on Windows
             $<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>,$<NOT:$<PLATFORM_ID:Windows>>>:
             -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal
+            -Wshadow -Wsign-conversion
+            >
+
+            # -Wextra-semi is available from GCC 8, but NOT on Windows
+            $<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,8.0>>>,$<NOT:$<PLATFORM_ID:Windows>>>:
+            -Wextra-semi
             >
 
             # GCC-specific hardening and security flags
