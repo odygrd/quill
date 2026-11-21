@@ -10,16 +10,16 @@
 #include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Common.h"
 #include "quill/core/Rdtsc.h"
+#include "quill/core/ThreadPrimitives.h"
 
 #ifndef QUILL_MODULE
-  #include <algorithm>
   #include <array>
   #include <atomic>
   #include <chrono>
   #include <cstdint>
   #include <cstdio>
   #include <limits>
-  #include <vector>
+  #include <utility>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -66,59 +66,45 @@ public:
       // freq is typically exactly 24000000, 50000000, or 1000000000 depending on the SoC
       _ns_per_tick = 1e9 / static_cast<double>(freq);
 #else
-      // Convert rdtsc to wall time.
-      // 1. Get real time and rdtsc current count
-      // 2. Calculate how many rdtsc ticks can occur in one
-      // calculate _ticks_per_ns as the median over a number of observations
-      // we use always odd number of trials for easy median calc
-      constexpr uint64_t spin_duration_ns = 10ull * 1'000'000ull; // 10 ms
-      constexpr size_t max_trials = 15;
-      constexpr size_t min_trials = 3;
-      constexpr double convergence_threshold = 0.01; // 1% threshold
-
-      std::vector<double> rates;
-      rates.reserve(max_trials);
-
-      double previous_median = 0.0;
-
-      for (size_t i = 0; i < max_trials; ++i)
+      // Measure the tick rate against the steady clock between two points 10 ms apart. Each point
+      // takes the tightest of several rdtsc/clock/rdtsc reads, so preemption between the points
+      // does not affect the result; RdtscClock refines the rate at each resync.
+      auto const sample = []()
       {
-        uint64_t const beg_ts = detail::get_steady_time_ns();
-        uint64_t const beg_tsc = rdtsc();
-        uint64_t end_tsc;
-        uint64_t elapsed_ns;
+        constexpr uint32_t attempts{8};
+        uint64_t best_lag{(std::numeric_limits<uint64_t>::max)()};
+        std::pair<uint64_t, uint64_t> best_sample{};
 
-        do
+        for (uint32_t attempt = 0; attempt < attempts; ++attempt)
         {
-          uint64_t const end_ts = detail::get_steady_time_ns();
-          end_tsc = rdtsc();
-          elapsed_ns = end_ts - beg_ts;
-        } while (elapsed_ns < spin_duration_ns);
+          uint64_t const beg_tsc = rdtsc();
+          uint64_t const steady_ns = detail::get_steady_time_ns();
+          uint64_t const end_tsc = rdtsc();
 
-        rates.push_back(static_cast<double>(end_tsc - beg_tsc) / static_cast<double>(elapsed_ns));
-
-        // Check for convergence after minimum trials and only on an odd count of trials.
-        if (((i + 1) >= min_trials) && (((i + 1) % 2) != 0))
-        {
-          std::nth_element(rates.begin(), rates.begin() + static_cast<ptrdiff_t>((i + 1) / 2), rates.end());
-          double current_median = rates[(i + 1) / 2];
-
-          // If we've converged, break early
-          if (std::abs(current_median - previous_median) / current_median < convergence_threshold)
+          if ((end_tsc - beg_tsc) < best_lag)
           {
-            break;
+            best_lag = end_tsc - beg_tsc;
+            best_sample = {steady_ns, beg_tsc + ((end_tsc - beg_tsc) / 2u)};
           }
-
-          previous_median = current_median;
         }
+
+        return best_sample;
+      };
+
+      constexpr uint64_t calibration_interval_ns{10'000'000};
+
+      auto const begin = sample();
+      detail::sleep_for_ns(calibration_interval_ns);
+      auto end = sample();
+
+      while ((end.first - begin.first) < calibration_interval_ns)
+      {
+        // a sleep can wake up early on some platforms
+        end = sample();
       }
 
-      // Calculate final median.
-      std::nth_element(rates.begin(), rates.begin() + static_cast<ptrdiff_t>(rates.size() / 2),
-                       rates.end());
-
-      double const ticks_per_ns = rates[rates.size() / 2];
-      _ns_per_tick = 1 / ticks_per_ns;
+      _ns_per_tick =
+        static_cast<double>(end.first - begin.first) / static_cast<double>(end.second - begin.second);
 #endif
     }
 
