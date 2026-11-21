@@ -63,12 +63,18 @@ public:
       int const error = errno;
       QUILL_THROW(QuillError{std::string{"Failed to allocate the queue storage. errno: "} + std::to_string(error)});
     }
+
+    // Pre-fault the logical queue region. The queue never reads bytes it has not written, so this
+    // only moves page faults out of the logging path. The second half is scratch space for
+    // records that cross the ring boundary.
+    std::memset(_storage, 0, static_cast<size_t>(_capacity));
   }
 
   /**
-   * Constructs the queue without throwing, e.g. to grow an unbounded queue inside a log call.
+   * Constructs the queue without throwing, to grow an unbounded queue inside a log call.
    * If the capacity is too large or the allocation fails, has_storage() returns false and the
-   * queue must not be used.
+   * queue must not be used. Unlike the throwing constructor it does not pre-fault the memory,
+   * which would stall that log call for a time proportional to the capacity.
    */
   BoundedSPSCQueueImpl(std::nothrow_t, integer_type capacity, HugePagesPolicy huge_pages_policy,
                        integer_type reader_store_percent = 5) noexcept
@@ -89,10 +95,6 @@ public:
     {
       return;
     }
-
-    // Initialise and pre-fault the logical queue region. The second half is scratch space for
-    // records that cross the ring boundary and is written before it is read.
-    std::memset(_storage, 0, static_cast<size_t>(_capacity));
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
