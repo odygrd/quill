@@ -63,12 +63,23 @@ public:
       int const error = errno;
       QUILL_THROW(QuillError{std::string{"Failed to allocate the queue storage. errno: "} + std::to_string(error)});
     }
+
+    // Pre-fault the logical queue region. The queue never reads bytes it has not written, so this
+    // only moves page faults out of the logging path. The second half is scratch space for
+    // records that cross the ring boundary. The storage is page aligned, so that half starts on
+    // a page of its own: its start is pre-faulted as well, or the first record that crosses the
+    // boundary would fault that page in.
+    constexpr size_t scratch_prefault_size{4096};
+    size_t const logical_size = static_cast<size_t>(_capacity);
+    size_t const scratch_size = (logical_size < scratch_prefault_size) ? logical_size : scratch_prefault_size;
+    std::memset(_storage, 0, logical_size + scratch_size);
   }
 
   /**
-   * Constructs the queue without throwing, e.g. to grow an unbounded queue inside a log call.
+   * Constructs the queue without throwing, to grow an unbounded queue inside a log call.
    * If the capacity is too large or the allocation fails, has_storage() returns false and the
-   * queue must not be used.
+   * queue must not be used. Unlike the throwing constructor it does not pre-fault the memory,
+   * which would stall that log call for a time proportional to the capacity.
    */
   BoundedSPSCQueueImpl(std::nothrow_t, integer_type capacity, HugePagesPolicy huge_pages_policy,
                        integer_type reader_store_percent = 5) noexcept
@@ -89,15 +100,6 @@ public:
     {
       return;
     }
-
-    // Initialise and pre-fault the logical queue region. The second half is scratch space for
-    // records that cross the ring boundary and is written before it is read. The storage is page
-    // aligned, so that half starts on a page of its own: its start is pre-faulted as well, or the
-    // first record that crosses the boundary would fault that page in.
-    constexpr size_t scratch_prefault_size{4096};
-    size_t const logical_size = static_cast<size_t>(_capacity);
-    size_t const scratch_size = (logical_size < scratch_prefault_size) ? logical_size : scratch_prefault_size;
-    std::memset(_storage, 0, logical_size + scratch_size);
 
     _atomic_writer_pos.store(0);
     _atomic_reader_pos.store(0);
