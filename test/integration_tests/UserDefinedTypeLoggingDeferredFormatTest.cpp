@@ -28,6 +28,9 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 
+#include <array>
+#include <initializer_list>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -38,7 +41,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
   CustomTypeTC() = default;
 
 private:
@@ -85,7 +88,7 @@ static_assert(quill::DeferredFormatCodec<CustomTypeTC>::use_memcpy,
 struct TriviallyCopyableMoveOnly
 {
   TriviallyCopyableMoveOnly() = default;
-  explicit TriviallyCopyableMoveOnly(uint64_t value) : value(value) {}
+  explicit TriviallyCopyableMoveOnly(uint64_t in_value) : value(in_value) {}
 
   TriviallyCopyableMoveOnly(TriviallyCopyableMoveOnly const&) = delete;
   TriviallyCopyableMoveOnly& operator=(TriviallyCopyableMoveOnly const&) = delete;
@@ -138,13 +141,46 @@ template <>
 struct quill::Codec<RvalueEncoded> : quill::DeferredFormatCodec<RvalueEncoded>
 {
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& size_cache,
-                     uint32_t& size_cache_index, Arg&& arg)
+  static void encode(std::byte*& buffer, SizeCacheVector const& size_cache, uint32_t& size_cache_index, Arg&& arg)
   {
     static_assert(std::is_rvalue_reference_v<Arg&&>,
                   "The cold log path must preserve the argument's rvalue category");
     DeferredFormatCodec<RvalueEncoded>::encode(buffer, size_cache, size_cache_index, std::forward<Arg>(arg));
   }
+};
+
+/***/
+// Like nlohmann::json, constructible from an initializer_list of itself. Decoding must not
+// list-initialise it, or GCC wraps the decoded value in a one-element list.
+struct InitListConstructible
+{
+  InitListConstructible() = default;
+  explicit InitListConstructible(int v) : number(v) {}
+  InitListConstructible(std::initializer_list<InitListConstructible> list) : children(list) {}
+
+  int number{0};
+  std::vector<InitListConstructible> children;
+};
+
+template <>
+struct fmtquill::formatter<InitListConstructible>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::InitListConstructible const& arg, format_context& ctx) const
+  {
+    if (arg.children.empty())
+    {
+      return fmtquill::format_to(ctx.out(), "{}", arg.number);
+    }
+
+    return fmtquill::format_to(ctx.out(), "list of {}", arg.children.size());
+  }
+};
+
+template <>
+struct quill::Codec<InitListConstructible> : quill::DeferredFormatCodec<InitListConstructible>
+{
 };
 
 /***/
@@ -197,13 +233,13 @@ class CustomTypeCC
 public:
   CustomTypeCC() = default;
 
-  CustomTypeCC(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age)
+  CustomTypeCC(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
   {
     favorite_colors.push_back("red");
     favorite_colors.push_back("blue");
     favorite_colors.push_back("green");
-  };
+  }
 
   bool operator<(CustomTypeCC const& other) const { return this->age < other.age; }
 
@@ -255,7 +291,7 @@ public:
 
   CustomTypeCCThrows(CustomTypeCCThrows const&) { throw std::runtime_error("error"); }
 
-  explicit CustomTypeCCThrows(std::string name) : name(std::move(name)) {};
+  explicit CustomTypeCCThrows(std::string in_name) : name(std::move(in_name)) {}
 
   std::string name;
 };
@@ -285,8 +321,8 @@ class MoveOnlyType
 public:
   MoveOnlyType() = default;
 
-  explicit MoveOnlyType(std::string name, std::string value, uint32_t count)
-    : name(std::move(name)), value(std::move(value)), count(count)
+  explicit MoveOnlyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(std::move(in_name)), value(std::move(in_value)), count(in_count)
   {
   }
 
@@ -332,8 +368,8 @@ class CopyOnlyType
 public:
   CopyOnlyType() = default;
 
-  explicit CopyOnlyType(std::string name, std::string value, uint32_t count)
-    : name(name), value(value), count(count)
+  explicit CopyOnlyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(in_name), value(in_value), count(in_count)
   {
   }
 
@@ -379,8 +415,8 @@ class MoveAndCopyType
 public:
   MoveAndCopyType() = default;
 
-  explicit MoveAndCopyType(std::string name, std::string value, uint32_t count)
-    : name(std::move(name)), value(std::move(value)), count(count)
+  explicit MoveAndCopyType(std::string in_name, std::string in_value, uint32_t in_count)
+    : name(std::move(in_name)), value(std::move(in_value)), count(in_count)
   {
   }
 
@@ -510,6 +546,12 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   }
 
   LOG_INFO(logger, "RvalueEncoded {}", RvalueEncoded{43});
+
+  {
+    InitListConstructible const value{42};
+    LOG_INFO(logger, "InitListConstructible {} {} {}", value,
+             std::array<InitListConstructible, 1>{value}, std::optional<InitListConstructible>{value});
+  }
 
   {
     CustomTypeTCCC custom_type_tccc{1233, 13.12, 12};
@@ -1034,9 +1076,9 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
 
 #if !defined(__GNUC__) || __GNUC__ >= 10
-  REQUIRE_EQ(file_contents.size(), 71);
+  REQUIRE_EQ(file_contents.size(), 72);
 #else
-  REQUIRE_EQ(file_contents.size(), 69);
+  REQUIRE_EQ(file_contents.size(), 70);
 #endif
 
   REQUIRE(quill::testing::file_contains(
@@ -1047,6 +1089,9 @@ TEST_CASE("custom_type_defined_type_deferred_format_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       RvalueEncoded 43"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       InitListConstructible 42 [42] optional(42)"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTCCC Name: 1233, Surname: 13.12, Age: 12"}));

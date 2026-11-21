@@ -28,13 +28,11 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
-/** Specialization for arrays of arithmetic types and enums **/
+/** Specialization for wide strings, decoded on the backend as UTF-8 **/
 template <typename T>
-struct Codec<T,
-             std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                                 std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
+struct Codec<T, std::enable_if_t<detail::is_wide_string_v<T>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
     size_t len;
 
@@ -69,7 +67,7 @@ struct Codec<T,
     return sizeof(uint32_t) + (static_cast<size_t>(len_u32) * sizeof(wchar_t));
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
   {
     // The wide string size in bytes

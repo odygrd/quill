@@ -20,14 +20,6 @@
   #include <cstdint>
   #include <type_traits>
   #include <utility>
-  #include <vector>
-#endif
-
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -39,30 +31,23 @@ template <typename T, std::size_t N>
 struct Codec<T[N], std::enable_if_t<std::negation_v<std::is_same<T, char>>>>
 {
 private:
-  // When T can be constructed from what Codec<T>::decode_arg returns (e.g. std::string
+  // When T can be constructed from the decoded element (e.g. std::string
   // from std::string_view), we materialise the declared element type so that the
   // decoded std::array matches T and can be assigned by decode_members().
   using DecodedElement =
-    detail::remove_cvref_t<decltype(Codec<T>::decode_arg(std::declval<std::byte*&>()))>;
+    detail::remove_cvref_t<decltype(detail::decode_element<T>(std::declval<std::byte*&>()))>;
   using ArrayElement = std::conditional_t<std::is_constructible_v<T, DecodedElement>, T, DecodedElement>;
 
   template <size_t... Indices>
   static auto decode_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
-    // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement{Codec<T>::decode_arg(buffer)})...}};
+    // The outer braced list preserves left-to-right evaluation of the decode calls. Construct each
+    // element with parentheses so an initializer_list constructor cannot wrap the decoded value.
+    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement(detail::decode_element<T>(buffer)))...}};
   }
-
-#if defined(_WIN32)
-  template <size_t... Indices>
-  static auto decode_wide_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
-  {
-    return std::vector<std::string>{{((void)Indices, detail::utf8_encode(Codec<T>::decode_arg(buffer)))...}};
-  }
-#endif
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const (&arg)[N])
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, T const (&arg)[N])
   {
     if constexpr (std::is_arithmetic_v<T>)
     {
@@ -87,7 +72,7 @@ public:
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_arithmetic_v<T>)
@@ -119,14 +104,16 @@ public:
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                     std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
+    if constexpr (std::is_arithmetic_v<T>)
     {
-      return decode_wide_array_impl(buffer, std::make_index_sequence<N>{});
+      // Copy in one go: decoding element by element through a pack expansion makes compile time
+      // and memory grow steeply with N
+      std::array<T, N> arg;
+      std::memcpy(arg.data(), buffer, sizeof(T) * N);
+      buffer += sizeof(T) * N;
+      return arg;
     }
     else
-#endif
     {
       return decode_array_impl(buffer, std::make_index_sequence<N>{});
     }
@@ -147,31 +134,23 @@ private:
   // encoded and decoded through the underlying element codec
   using UT = detail::remove_cvref_t<T>;
 
-  // When UT can be constructed from what Codec<UT>::decode_arg returns (e.g. std::string
+  // When UT can be constructed from the decoded element (e.g. std::string
   // from std::string_view), we materialise the declared element type so that the
   // decoded std::array matches UT and can be assigned by decode_members().
   using DecodedElement =
-    detail::remove_cvref_t<decltype(Codec<UT>::decode_arg(std::declval<std::byte*&>()))>;
+    detail::remove_cvref_t<decltype(detail::decode_element<UT>(std::declval<std::byte*&>()))>;
   using ArrayElement = std::conditional_t<std::is_constructible_v<UT, DecodedElement>, UT, DecodedElement>;
 
   template <size_t... Indices>
   static auto decode_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
-    // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement{Codec<UT>::decode_arg(buffer)})...}};
+    // The outer braced list preserves left-to-right evaluation of the decode calls. Construct each
+    // element with parentheses so an initializer_list constructor cannot wrap the decoded value.
+    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement(detail::decode_element<UT>(buffer)))...}};
   }
-
-#if defined(_WIN32)
-  template <size_t... Indices>
-  static auto decode_wide_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
-  {
-    return std::vector<std::string>{{((void)Indices, detail::utf8_encode(Codec<UT>::decode_arg(buffer)))...}};
-  }
-#endif
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::array<T, N> const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::array<T, N> const& arg)
   {
     if constexpr (std::is_arithmetic_v<UT>)
     {
@@ -196,7 +175,7 @@ public:
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_arithmetic_v<UT>)
@@ -233,20 +212,25 @@ public:
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::disjunction_v<std::is_same<UT, wchar_t*>, std::is_same<UT, wchar_t const*>,
-                                     std::is_same<UT, std::wstring>, std::is_same<UT, std::wstring_view>>)
+    if constexpr (std::is_arithmetic_v<UT>)
     {
-      return decode_wide_array_impl(buffer, std::make_index_sequence<N>{});
+      // Copy in one go: decoding element by element through a pack expansion makes compile time
+      // and memory grow steeply with N
+      std::array<UT, N> arg;
+
+      if constexpr (N > 0)
+      {
+        // std::array<T, 0>::data() can return nullptr, see encode()
+        std::memcpy(arg.data(), buffer, sizeof(UT) * N);
+        buffer += sizeof(UT) * N;
+      }
+
+      return arg;
     }
     else
     {
-#endif
       return decode_array_impl(buffer, std::make_index_sequence<N>{});
-
-#if defined(_WIN32)
     }
-#endif
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

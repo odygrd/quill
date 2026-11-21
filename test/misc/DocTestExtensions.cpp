@@ -69,7 +69,7 @@ CapturedStream::CapturedStream(int fd) : fd_(fd), uncaptured_fd_(dup(fd))
   char name_template[] = "/tmp/captured_stream.XXXXXX";
   #endif // __ANDROID__
 
-  const int captured_fd = mkstemp(name_template);
+  int const captured_fd = mkstemp(name_template);
 
   if (captured_fd == -1)
   {
@@ -185,7 +185,7 @@ std::string GetCapturedStream(CapturedStream** captured_stream)
 int const kStdOutFileno = 1;
 int const kStdErrFileno = 2;
 #else
-const int kStdOutFileno = STDOUT_FILENO;
+int const kStdOutFileno = STDOUT_FILENO;
 int const kStdErrFileno = STDERR_FILENO;
 #endif // _MSC_VER
 

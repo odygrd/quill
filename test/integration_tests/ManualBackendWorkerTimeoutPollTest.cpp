@@ -17,16 +17,13 @@ using namespace quill;
 
 struct SlowCountingSink final : public quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     writes.fetch_add(1, std::memory_order_relaxed);
     std::this_thread::sleep_for(std::chrono::microseconds{50});
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
   std::atomic<size_t> writes{0};
 };

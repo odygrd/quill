@@ -30,13 +30,13 @@ static_assert(!fmtquill::is_formattable<TupleOnlyElement, char>::value,
 template <>
 struct quill::Codec<TupleOnlyElement>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& cache, TupleOnlyElement const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& cache, TupleOnlyElement const& arg)
   {
     return Codec<int>::compute_encoded_size(cache, arg.value);
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& cache,
-                     uint32_t& cache_index, TupleOnlyElement const& arg)
+  static void encode(std::byte*& buffer, SizeCacheVector const& cache, uint32_t& cache_index,
+                     TupleOnlyElement const& arg)
   {
     Codec<int>::encode(buffer, cache, cache_index, arg.value);
   }
@@ -60,7 +60,7 @@ struct fmtquill::formatter<std::tuple<TupleOnlyElement>>
 
 struct TupleNoDefaultType
 {
-  explicit TupleNoDefaultType(std::string value) : value(std::move(value)) {}
+  explicit TupleNoDefaultType(std::string in_value) : value(std::move(in_value)) {}
 
   TupleNoDefaultType(TupleNoDefaultType const&) = default;
   TupleNoDefaultType& operator=(TupleNoDefaultType const&) = default;
@@ -95,7 +95,9 @@ struct TupleReferenceValue
 {
   explicit TupleReferenceValue(int v) : value(v) {}
   TupleReferenceValue(TupleReferenceValue const&) noexcept = default;
-  TupleReferenceValue(TupleReferenceValue&& other) noexcept : value(std::exchange(other.value, -1)) {}
+  TupleReferenceValue(TupleReferenceValue&& other) noexcept : value(std::exchange(other.value, -1))
+  {
+  }
   int value;
 };
 

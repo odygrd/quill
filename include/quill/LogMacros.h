@@ -351,7 +351,7 @@
 // Helper macro to prepend "#" to an argument
 #define QUILL_ADD_HASH(x) "#" x
 
-// Define macros to handle up to five arguments and prepend "#" to each, with spaces in between
+// Define macros to handle up to six arguments and prepend "#" to each, with spaces in between
 #define QUILL_GENERATE_TAG_1(a) QUILL_ADD_HASH(a) " "
 #define QUILL_GENERATE_TAG_2(a, b) QUILL_ADD_HASH(a) " " QUILL_ADD_HASH(b) " "
 #define QUILL_GENERATE_TAG_3(a, b, c)                                                              \
@@ -371,7 +371,7 @@
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO_IMPL(__VA_ARGS__))
 #define QUILL_GET_TAG_GENERATOR_MACRO_IMPL(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 
-// Main macro to generate tags, up to 5 tags
+// Main macro to generate tags, up to 6 tags
 #define QUILL_TAGS(...)                                                                               \
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(__VA_ARGS__, QUILL_GENERATE_TAG_6, QUILL_GENERATE_TAG_5, \
                                              QUILL_GENERATE_TAG_4, QUILL_GENERATE_TAG_3,              \
@@ -399,8 +399,7 @@
     if (likelyhood(quill_macro_logger_->template should_log_statement<log_level>()))               \
     {                                                                                              \
       QUILL_DEFINE_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                      \
-      quill_macro_logger_->log_statement(                                                          \
-        &quill_macro_metadata_, ##__VA_ARGS__);                                                    \
+      quill_macro_logger_->log_statement(&quill_macro_metadata_, ##__VA_ARGS__);                   \
     }                                                                                              \
   } while (0)
 
@@ -421,8 +420,8 @@
       }                                                                                                    \
                                                                                                            \
       QUILL_DEFINE_RATE_LIMIT_MACRO_METADATA(QUILL_FUNCTION_NAME, fmt, tags, log_level);                   \
-      quill_macro_rate_limit_logger_->log_statement(                                                       \
-        &quill_macro_metadata_, ##__VA_ARGS__, quill_suppressed_log_count_ + 1);                           \
+      quill_macro_rate_limit_logger_->log_statement(&quill_macro_metadata_, ##__VA_ARGS__,                 \
+                                                    quill_suppressed_log_count_ + 1);                      \
                                                                                                            \
       quill_next_log_time_ns_ = quill_now_ns_ +                                                            \
         static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(min_interval).count()); \
@@ -1056,7 +1055,7 @@
 #define QUILL_METRIC(logger, metric_metadata, value)                                               \
   do                                                                                               \
   {                                                                                                \
-    logger->publish_metric((metric_metadata), value);                                              \
+    (logger)->publish_metric((metric_metadata), (value));                                          \
   } while (0)
 
 /** Publishes a metric with runtime names and labels; variadic arguments allow inline label lists. */

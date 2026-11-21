@@ -403,9 +403,14 @@ other ``quill/std`` containers (e.g. ``std::vector<std::variant<...>>``).
 Logging std::chrono Types
 -------------------------
 Include ``quill/std/Chrono.h`` to log ``std::chrono::system_clock::time_point``,
-``std::chrono::duration``, ``std::chrono::year_month_day``, weekdays, and the other calendar and
-time-of-day types from ``<chrono>``. Formatting matches ``fmt``'s chrono specifiers, so format specs
-like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as expected.
+``std::chrono::duration`` and ``std::tm``. With a C++20 standard library that defines
+``__cpp_lib_chrono >= 201907L``, it also covers ``std::chrono::year``, ``month``, ``day``,
+``weekday`` and ``year_month_day``. Some standard libraries report an older value even in C++20
+mode, e.g. libstdc++ in GCC 13, and the bundled ``fmt`` has no formatter for these calendar types
+there, so they cannot be logged directly. Time points of other clocks, such as
+``std::chrono::steady_clock``, and other ``<chrono>`` types are not covered. Formatting matches
+``fmt``'s chrono specifiers, so format specs like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as
+expected.
 
 .. code:: cpp
 
@@ -427,7 +432,7 @@ To log user-defined types, you need to define how they should be serialized or c
        - **Copy-only types** (with deleted move constructors) are also supported.
 
     2. **Use DirectFormatCodec**
-       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency.
+       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency. The object is formatted exactly once, so the logged text is a consistent snapshot even if the formatter reads state that other threads change.
 
     3. **Implement a Custom Codec**
        For maximum flexibility, you can define a custom codec to specify exactly how the object should be serialized and deserialized.
@@ -470,8 +475,9 @@ If copying ``first`` into the queue succeeds and then copying ``second`` throws,
 
 The backend never sees the uncommitted record, so the queue remains usable. Only cleanup is lost:
 resources owned by the queue copy of ``first`` may be retained because its destructor is not called.
-Therefore, ``DeferredFormatCodec`` constructors/destructors and ``DirectFormatCodec`` formatters
-must not throw.
+Therefore, ``DeferredFormatCodec`` constructors/destructors must not throw. ``DirectFormatCodec``
+formats once while computing the size, so its formatter may throw; the log call then fails before
+anything is queued.
 
 Custom backend decoders must also consume their complete payload without throwing. Records have no
 byte length, so the backend cannot skip a decoder-poisoned record; catch recoverable errors and
@@ -589,6 +595,11 @@ Outputs:
 DirectFormatCodec
 ~~~~~~~~~~~~~~~~~
 
+The calling thread formats the value once and keeps those bytes in its size cache until it copies
+them into the queue. Long values can allocate on the calling thread. Each thread retains its cache
+capacity for reuse until its thread context is destroyed, so a single unusually large record can
+increase the memory retained by a long-lived logging thread.
+
 .. code:: cpp
 
     #include "quill/DirectFormatCodec.h"
@@ -642,7 +653,33 @@ Writing Custom Codec
 Serialising Non Trivially Copyable User Defined Types With Public Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+When the members needed to format a type are accessible and the type is default constructible,
+``MemberwiseCodec`` from ``quill/MemberwiseCodec.h`` lists them once and generates the codec:
+
+.. code:: cpp
+
+    template <>
+    struct quill::Codec<Order> : quill::MemberwiseCodec<Order, &Order::symbol, &Order::price, &Order::quantity>
+    {
+    };
+
+The hand-written equivalent below shows what it does, and is the starting point when a type needs
+a custom layout.
+
 Note that STL types can be used in custom codecs by passing them to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members``, provided you include the relevant header from ``quill/std/`` for each STL type used.
+
+``decode_members`` assigns each decoded value to its member. Some codecs decode to a lighter type
+than the one encoded, e.g. ``std::vector<std::string>`` decodes as
+``std::vector<std::string_view>`` and ``std::variant<int, std::string>`` as
+``std::variant<int, std::string_view>``, which cannot be assigned to the member. Decode such a
+member yourself, in the order it was encoded:
+
+.. code:: cpp
+
+    decode_members(buffer, order, order.symbol, order.price);
+
+    auto const tags = quill::Codec<std::vector<std::string>>::decode_arg(buffer); // std::vector<std::string_view>
+    order.tags.assign(tags.begin(), tags.end());
 
 .. code:: cpp
 
@@ -673,12 +710,12 @@ Note that STL types can be used in custom codecs by passing them to ``compute_to
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.symbol,
@@ -758,12 +795,12 @@ Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``
     template <>
     struct quill::Codec<Order>
     {
-      static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
+      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
       {
         return compute_total_encoded_size(conditional_arg_size_cache, order.timestamp, order.symbol, order.price, order.quantity);
       }
 
-      static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
                          uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
       {
         encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.timestamp, order.symbol,

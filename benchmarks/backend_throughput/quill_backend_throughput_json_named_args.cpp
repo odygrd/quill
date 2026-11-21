@@ -56,9 +56,31 @@ int main()
   auto const start_time = std::chrono::steady_clock::now();
   for (size_t iteration = 0; iteration < total_iterations; ++iteration)
   {
-    LOG_INFO(logger,
-             "Iteration: {iteration_identifier} endpoint: {request_endpoint} payload: {payload}",
-             iteration, request_endpoint, payload);
+    // Cycle between five log statements: an application does not repeat a single one
+    switch (iteration % 5)
+    {
+    case 0:
+      LOG_INFO(logger,
+               "Iteration: {iteration_identifier} endpoint: {request_endpoint} payload: {payload}",
+               iteration, request_endpoint, payload);
+      break;
+    case 1:
+      LOG_INFO(logger, "Order: {order_identifier} venue: {venue_endpoint} details: {details}",
+               iteration, request_endpoint, payload);
+      break;
+    case 2:
+      LOG_INFO(logger, "Request: {request_identifier} target: {target_endpoint} body: {body}",
+               iteration, request_endpoint, payload);
+      break;
+    case 3:
+      LOG_INFO(logger, "Session: {session_identifier} peer: {peer_endpoint} state: {state}",
+               iteration, request_endpoint, payload);
+      break;
+    default:
+      LOG_INFO(logger, "Worker: {worker_identifier} queue: {queue_endpoint} task: {task}",
+               iteration, request_endpoint, payload);
+      break;
+    }
   }
 
   logger->flush_log(0);

@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <limits>
 #include <thread>
 
 TEST_SUITE_BEGIN("RdtscClock");
@@ -64,6 +65,7 @@ public:
     auto const index = (_version.load(std::memory_order_relaxed) + 1u) & (_base.size() - 1u);
     _base[index].base_time = base_time;
     _base[index].base_tsc = base_tsc;
+    _base[index].ns_per_tick = _ns_per_tick;
     _version.fetch_add(1u, std::memory_order_release);
   }
 };
@@ -166,6 +168,71 @@ TEST_CASE("reconfigure_is_safe_with_concurrent_readers")
   REQUIRE_EQ(zero_timestamps.load(std::memory_order_relaxed), 0u);
 }
 
+TEST_CASE("resync_refines_tick_rate_from_previous_base")
+{
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{500}};
+  double const startup_rate = tsc_clock.ns_per_tick();
+
+  // A base published 1 s of ticks ago at a wall time that implies a rate 100 ppm faster
+  uint64_t const now_tsc = quill::detail::rdtsc();
+  int64_t const now_time = static_cast<int64_t>(quill::detail::get_system_time_ns());
+  double const ticks_per_second = 1e9 / startup_rate;
+  tsc_clock.publish_snapshot(now_time - static_cast<int64_t>(1e9 * 1.0001),
+                             now_tsc - static_cast<uint64_t>(ticks_per_second));
+
+  REQUIRE(tsc_clock.try_resync(std::numeric_limits<uint32_t>::max()));
+  size_t const index = tsc_clock.version().load() & (tsc_clock.base().size() - 1);
+  double const refined = tsc_clock.base()[index].ns_per_tick.load();
+  REQUIRE_GT(refined / startup_rate - 1.0, 50e-6);
+  REQUIRE_LT(refined / startup_rate - 1.0, 150e-6);
+
+  // A wall clock step implies an implausible rate, which is ignored
+  tsc_clock.publish_snapshot(static_cast<int64_t>(quill::detail::get_system_time_ns()) - 10'000'000'000,
+                             quill::detail::rdtsc() - static_cast<uint64_t>(ticks_per_second));
+  REQUIRE(tsc_clock.try_resync(std::numeric_limits<uint32_t>::max()));
+  size_t const stepped_index = tsc_clock.version().load() & (tsc_clock.base().size() - 1);
+  REQUIRE_EQ(tsc_clock.base()[stepped_index].ns_per_tick.load(), doctest::Approx(startup_rate));
+
+  // A wall clock that stepped backwards says nothing about the tick rate, so the refined rate of
+  // the previous base is kept
+  tsc_clock.publish_snapshot(static_cast<int64_t>(quill::detail::get_system_time_ns()) + 10'000'000'000,
+                             quill::detail::rdtsc() - static_cast<uint64_t>(ticks_per_second));
+  size_t const refined_index = tsc_clock.version().load() & (tsc_clock.base().size() - 1);
+  tsc_clock.base()[refined_index].ns_per_tick = refined;
+
+  REQUIRE(tsc_clock.try_resync(std::numeric_limits<uint32_t>::max()));
+  size_t const backward_index = tsc_clock.version().load() & (tsc_clock.base().size() - 1);
+  REQUIRE_EQ(tsc_clock.base()[backward_index].ns_per_tick.load(), doctest::Approx(refined));
+}
+
+TEST_CASE("failed_idle_resync_does_not_lengthen_resync_interval")
+{
+#if !defined(__x86_64__) && !defined(_M_X64) && !defined(__i386__) && !defined(_M_IX86)
+  // Only the x86 TSC is guaranteed to advance while the wall clock is read. Coarser counters, such
+  // as the 24 MHz ARM generic timer, can return the same value twice and meet a zero lag budget.
+  return;
+#else
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{500}};
+  int64_t const interval = tsc_clock.resync_interval_ticks();
+
+  // A zero lag budget can never be met, so every attempt fails
+  REQUIRE_FALSE(tsc_clock.try_resync(0));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval);
+
+  // The logging path backs off instead, so it does not retry on every call
+  REQUIRE_FALSE(tsc_clock.resync(0));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval * 2);
+
+  // The idle resync never changes the logging path's interval, even when it succeeds
+  REQUIRE(tsc_clock.resync_when_idle());
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval * 2);
+
+  // A successful logging-path resync restores the configured interval
+  REQUIRE(tsc_clock.resync(std::numeric_limits<uint32_t>::max()));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval);
+#endif
+}
+
 TEST_CASE("time_since_epoch_uses_resynced_slot")
 {
   RdtscClockMock tsc_clock{std::chrono::milliseconds{1200}};
@@ -204,14 +271,14 @@ TEST_CASE("time_since_epoch_uses_resynced_slot")
     REQUIRE_NE(new_index, old_index);
 
     auto const diff_new = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[new_index].base_tsc);
-    uint64_t const expected_new =
-      static_cast<uint64_t>(tsc_clock.base()[new_index].base_time +
-                            static_cast<int64_t>(static_cast<double>(diff_new) * tsc_clock.ns_per_tick()));
+    uint64_t const expected_new = static_cast<uint64_t>(
+      tsc_clock.base()[new_index].base_time +
+      static_cast<int64_t>(static_cast<double>(diff_new) * tsc_clock.base()[new_index].ns_per_tick.load()));
 
     auto const diff_stale = static_cast<int64_t>(rdtsc_value - tsc_clock.base()[old_index].base_tsc);
     uint64_t const expected_from_stale_slot = static_cast<uint64_t>(
       tsc_clock.base()[old_index].base_time +
-      static_cast<int64_t>(static_cast<double>(diff_stale) * tsc_clock.ns_per_tick()));
+      static_cast<int64_t>(static_cast<double>(diff_stale) * tsc_clock.base()[old_index].ns_per_tick.load()));
 
     REQUIRE_EQ(result, expected_new);
     REQUIRE_NE(result, expected_from_stale_slot);

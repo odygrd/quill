@@ -121,6 +121,8 @@ private:
 
 /**
  * Stopwatch using TSC (Time Stamp Counter) for high-resolution timing.
+ * The first StopWatchTsc in a process calibrates the TSC on the constructing thread, which takes
+ * about 10 ms; construct one early, e.g. at startup, if that matters for the first measurement.
  */
 using StopWatchTsc = detail::StopWatch<ClockSourceType::Tsc>;
 
@@ -145,13 +147,12 @@ QUILL_BEGIN_EXPORT
 template <quill::ClockSourceType ClockType>
 struct quill::Codec<quill::detail::StopWatch<ClockType>>
 {
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector&,
-                                     quill::detail::StopWatch<ClockType> const&) noexcept
+  static size_t compute_encoded_size(quill::SizeCacheVector&, quill::detail::StopWatch<ClockType> const&) noexcept
   {
     return sizeof(double);
   }
 
-  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const&, uint32_t&,
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const&, uint32_t&,
                      quill::detail::StopWatch<ClockType> const& sw) noexcept
   {
     // Sample the elapsed time on the frontend thread at the log call site.

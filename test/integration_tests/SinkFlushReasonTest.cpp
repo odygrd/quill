@@ -5,8 +5,8 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/sinks/Sink.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/Sink.h"
 
 #include <atomic>
 #include <chrono>
@@ -23,13 +23,7 @@ using namespace quill;
 class FlushReasonSink final : public Sink
 {
 public:
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
-  {
-  }
-
-  void flush_sink() noexcept override { ++legacy_flushes; }
+  void write_log(LogRecord const& /* record */) override {}
 
   void flush_sink(SinkFlushReason flush_reason) noexcept override
   {
@@ -47,7 +41,6 @@ public:
     }
   }
 
-  std::atomic<uint32_t> legacy_flushes{0};
   std::atomic<uint32_t> periodic_flushes{0};
   std::atomic<uint32_t> explicit_flushes{0};
   std::atomic<uint32_t> final_flushes{0};
@@ -58,13 +51,7 @@ class FinalFlushErrorSink final : public Sink
 public:
   explicit FinalFlushErrorSink(std::string error) : _error(std::move(error)) {}
 
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
-  {
-  }
-
-  void flush_sink() override {}
+  void write_log(LogRecord const& /* record */) override {}
 
   void flush_sink(SinkFlushReason reason) override
   {
@@ -125,7 +112,6 @@ TEST_CASE("sink_flush_reason_is_passed_to_custom_sinks")
   REQUIRE_GT(flush_reason_sink->periodic_flushes.load(), 0);
   REQUIRE_GT(flush_reason_sink->explicit_flushes.load(), 0);
   REQUIRE_EQ(flush_reason_sink->final_flushes.load(), 1);
-  REQUIRE_EQ(flush_reason_sink->legacy_flushes.load(), 0);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   char const* diagnostic_filename = "sink_flush_reason_diagnostics.log";

@@ -15,7 +15,6 @@
 #ifndef QUILL_MODULE
   #include <cstddef>
   #include <cstdint>
-  #include <cstring>
   #include <string_view>
   #include <type_traits>
 #endif
@@ -89,56 +88,38 @@ QUILL_BEGIN_NAMESPACE
 QUILL_BEGIN_EXPORT
 
 /**
- * @note The user-provided `fmtquill::formatter<T>` must be a non-throwing pure function of `arg`:
- *       it runs once while sizing and again after queue reservation while encoding, and must
- *       produce the same byte count both times. For fmt view types (e.g. fmtquill::join_view),
- *       each pass formats a temporary T{arg} because fmt disallows formatting views as lvalues.
+ * Formats the argument once on the calling thread, while sizing the record, and copies the
+ * formatted bytes into the queue. The logged text is therefore one consistent snapshot even if the
+ * formatter reads state that changes concurrently, and a throwing formatter fails the log call
+ * before anything is queued. The thread-local size cache retains its capacity for later records
+ * until the thread context is destroyed.
  */
 template <typename T>
 struct DirectFormatCodec
 {
-  static size_t compute_encoded_size(quill::detail::SizeCacheVector& conditional_arg_size_cache, T const& arg)
+  static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
-    // The computed size includes the size of the length field.
-    // Note: this formats the argument once to measure it, and encode() formats it again to
-    // write the bytes — two formatting passes per argument on the frontend hot path.
-    if constexpr (fmtquill::detail::is_view<T>::value)
-    {
-      return sizeof(uint32_t) +
-        conditional_arg_size_cache.push_back(
-          detail::clamp_encoded_string_length(fmtquill::formatted_size("{}", T{arg})));
-    }
-    else
-    {
-      return sizeof(uint32_t) +
-        conditional_arg_size_cache.push_back(
-          detail::clamp_encoded_string_length(fmtquill::formatted_size("{}", arg)));
-    }
-  }
-
-  static void encode(std::byte*& buffer, quill::detail::SizeCacheVector const& conditional_arg_size_cache,
-                     uint32_t& conditional_arg_size_cache_index, T const& arg)
-  {
-    uint32_t const len = conditional_arg_size_cache[conditional_arg_size_cache_index++];
-    std::memcpy(buffer, &len, sizeof(len));
-    buffer += sizeof(len);
+    fmtquill::memory_buffer formatted;
 
     if constexpr (fmtquill::detail::is_view<T>::value)
     {
       // fmt disallows formatting view types as lvalues; formatting a temporary copy keeps
       // DirectFormatCodec usable for cheap fmt views such as fmtquill::join_view.
-      QUILL_MAYBE_UNUSED auto const result =
-        fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", T{arg});
-      assert_formatted_size_matches_encoded_size(result.size, len);
+      fmtquill::format_to(fmtquill::appender{formatted}, "{}", T{arg});
     }
     else
     {
-      QUILL_MAYBE_UNUSED auto const result =
-        fmtquill::format_to_n(reinterpret_cast<char*>(buffer), len, "{}", arg);
-      assert_formatted_size_matches_encoded_size(result.size, len);
+      fmtquill::format_to(fmtquill::appender{formatted}, "{}", arg);
     }
 
-    buffer += len;
+    return detail::cache_string(conditional_arg_size_cache,
+                                std::string_view{formatted.data(), formatted.size()});
+  }
+
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
+                     uint32_t& conditional_arg_size_cache_index, T const&) noexcept
+  {
+    detail::encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);
   }
 
   static std::string_view decode_arg(std::byte*& buffer)
@@ -149,20 +130,6 @@ struct DirectFormatCodec
   static void decode_and_store_arg(std::byte*& buffer, quill::DynamicFormatArgStore* args_store)
   {
     args_store->push_back(decode_arg(buffer));
-  }
-
-private:
-  static void assert_formatted_size_matches_encoded_size(QUILL_MAYBE_UNUSED size_t formatted_size,
-                                                         QUILL_MAYBE_UNUSED uint32_t len) noexcept
-  {
-    // The formatter must be pure: the size probed via formatted_size() in
-    // compute_encoded_size() must match what format_to_n() actually produces. A mismatch
-    // means the user's fmtquill::formatter<T> is non-deterministic, which silently
-    // truncates or leaves garbage bytes in the encoded log message.
-    QUILL_ASSERT(static_cast<uint32_t>(formatted_size) == len,
-                 "DirectFormatCodec: fmtquill::formatter<T> produced a different byte count "
-                 "between formatted_size() and format_to_n(). The formatter must be a pure "
-                 "function of its argument");
   }
 };
 

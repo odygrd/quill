@@ -35,7 +35,8 @@ TEST_CASE("signal_handler_sigterm_without_logger")
 
   int child_status{0};
   REQUIRE_EQ(waitpid(child_pid, &child_status, 0), child_pid);
-  REQUIRE(WIFEXITED(child_status));
-  REQUIRE_EQ(WEXITSTATUS(child_status), EXIT_SUCCESS);
+  // A shutdown signal is re-raised with its default disposition, so the parent sees the signal
+  REQUIRE(WIFSIGNALED(child_status));
+  REQUIRE_EQ(WTERMSIG(child_status), SIGTERM);
 #endif
 }

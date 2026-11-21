@@ -50,7 +50,7 @@ QUILL_NODISCARD constexpr unsigned long sleep_timeout_ms(uint64_t ns) noexcept
 /**
  * Mirrors std::this_thread::sleep_for(std::chrono::nanoseconds{ns}).
  */
-QUILL_ATTRIBUTE_HOT inline void sleep_for_ns(uint64_t ns) noexcept
+inline void sleep_for_ns(uint64_t ns) noexcept
 {
   if (ns == 0)
   {
@@ -72,13 +72,34 @@ QUILL_ATTRIBUTE_HOT inline void sleep_for_ns(uint64_t ns) noexcept
 /**
  * Mirrors std::this_thread::yield().
  */
-QUILL_ATTRIBUTE_HOT inline void yield_thread() noexcept
+inline void yield_thread() noexcept
 {
 #if defined(_WIN32)
   ::SwitchToThread();
 #else
   ::sched_yield();
 #endif
+}
+
+/**
+ * Waits before checking again for work the backend usually completes within microseconds.
+ * Yields for the first attempts because a sleep cannot be shorter than the OS timer granularity
+ * (about 50 us on Linux, 1 ms or more on Windows), then sleeps for `sleep_duration_ns`, or keeps
+ * yielding when it is zero.
+ */
+inline void backoff_wait(uint32_t& attempt, uint64_t sleep_duration_ns) noexcept
+{
+  constexpr uint32_t yields_before_sleeping{64};
+
+  if ((sleep_duration_ns == 0) || (attempt < yields_before_sleeping))
+  {
+    attempt += (attempt < yields_before_sleeping) ? 1u : 0u;
+    yield_thread();
+  }
+  else
+  {
+    sleep_for_ns(sleep_duration_ns);
+  }
 }
 } // namespace detail
 

@@ -125,12 +125,6 @@ public:
     CivetCallbacks const* callbacks{nullptr};
   };
 
-  struct Options
-  {
-    Registry::InsertBehavior insert_behavior{Registry::InsertBehavior::Merge};
-    std::optional<ExposerConfiguration> exposer;
-  };
-
   /**
    * A single quantile target for a summary metric.
    *
@@ -264,6 +258,10 @@ public:
   void register_histogram(MetricMetadata const* metric_metadata, std::string help,
                           HistogramBuckets bucket_boundaries, Labels constant_labels = {})
   {
+    // Reject invalid buckets before any family exists. A family this call created would keep its
+    // help text after the failure, and one that already existed may belong to the application
+    _validate_histogram_buckets(bucket_boundaries);
+
     _register_metric<histogram_family_t>(
       metric_metadata, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
       [buckets = std::move(bucket_boundaries)](
@@ -310,6 +308,10 @@ public:
   void register_histogram_family(std::string const& metric_name, std::string help,
                                  HistogramBuckets bucket_boundaries, Labels constant_labels = {})
   {
+    // Every runtime series is created with these buckets, and a later registration of the family
+    // does not replace them, so reject invalid ones now rather than on each publish
+    _validate_histogram_buckets(bucket_boundaries);
+
     _register_metric_family<histogram_family_t>(
       metric_name, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
       [buckets = std::move(bucket_boundaries)](histogram_family_t* family, Labels const& labels,
@@ -358,9 +360,7 @@ public:
     return true;
   }
 
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     // Intentionally ignore log events.
     //
@@ -369,47 +369,47 @@ public:
     // to flow to the regular log sinks without PrometheusSink asserting or throwing here.
   }
 
-  void write_metric(MetricMetadata const* metric_metadata, uint64_t, std::string_view,
-                    std::string_view, std::string const&, std::string_view, double value) override
+  void write_metric(MetricRecord const& record) override
   {
-    QUILL_ASSERT(metric_metadata,
+    QUILL_ASSERT(record.metric_metadata,
                  "PrometheusSink::write_metric received a null metric metadata pointer");
 
     detail::LockGuard const lock{_spinlock};
 
-    auto metric_it = _metrics.find(metric_metadata);
+    auto metric_it = _metrics.find(record.metric_metadata);
     if (metric_it == _metrics.end())
     {
-      FamilyHandle* family = _find_family(metric_metadata->metric_name());
+      FamilyHandle* family = _find_family(record.metric_metadata->metric_name());
       if (!family)
       {
         return;
       }
 
-      Labels const labels = _make_metric_labels(*metric_metadata);
-      auto& series = _metric_series[metric_metadata->metric_name()];
+      Labels const labels = _make_metric_labels(*record.metric_metadata);
+      auto& series = _metric_series[record.metric_metadata->metric_name()];
       auto series_it = series.find(labels);
       if (series_it != series.end() && !series_it->second)
       {
         return;
       }
 
-      _ensure_metric_not_registered(metric_metadata->metric_key());
+      _ensure_metric_not_registered(record.metric_metadata->metric_key());
       if (series_it == series.end())
       {
         series_it = series.emplace(labels, family->create_series(labels)).first;
         ++family->metric_count;
       }
 
-      metric_it = _metrics.emplace(metric_metadata, &series_it->second).first;
-      _metric_keys.emplace(metric_metadata->metric_key(), metric_metadata);
+      metric_it = _metrics.emplace(record.metric_metadata, &series_it->second).first;
+      _metric_keys.emplace(record.metric_metadata->metric_key(), record.metric_metadata);
     }
 
-    std::visit([value](auto& registered_metric) { _apply_sample(registered_metric, value); },
+    std::visit([value = record.value](auto& registered_metric)
+               { _apply_sample(registered_metric, value); },
                **metric_it->second);
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
   void run_periodic_tasks() noexcept override {}
 
@@ -658,12 +658,24 @@ private:
                                std::string help, Labels constant_labels, TAdder adder)
   {
     _validate_prometheus_metadata(metric_type, metric_name, constant_labels, {});
-    detail::LockGuard const lock{_spinlock};
 
-    FamilyKey const key{metric_type, metric_name, std::move(constant_labels)};
-    FamilyHandle& handle = _get_or_create_family<TFamily>(key, std::move(help));
-    _configure_family<TFamily>(handle, key, std::move(adder));
-    handle.keep_empty = true;
+    QUILL_TRY
+    {
+      detail::LockGuard const lock{_spinlock};
+
+      FamilyKey const key{metric_type, metric_name, std::move(constant_labels)};
+      FamilyHandle& handle = _get_or_create_family<TFamily>(key, std::move(help));
+      _configure_family<TFamily>(handle, key, std::move(adder));
+      handle.keep_empty = true;
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate(); write_metric() takes
+      // it for every sample.
+      throw;
+    }
+#endif
   }
 
   template <typename TFamily, typename TAdder>
@@ -702,23 +714,46 @@ private:
     Labels const metric_labels = _make_metric_labels(validated_metric);
     _validate_prometheus_metadata(metric_type, validated_metric.metric_name(), constant_labels, metric_labels);
 
-    detail::LockGuard const lock{_spinlock};
-    _ensure_metric_not_registered(validated_metric.metric_key());
-
-    FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
-    FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
-    auto const insert_result = _metric_series[validated_metric.metric_name()].try_emplace(metric_labels);
-    auto& series = insert_result.first->second;
-    if (!series)
+    QUILL_TRY
     {
-      auto* family = std::get<TFamily*>(family_handle.family);
-      series = adder(family, metric_labels, family_key);
-      ++family_handle.metric_count;
-    }
+      detail::LockGuard const lock{_spinlock};
+      _ensure_metric_not_registered(validated_metric.metric_key());
 
-    _configure_family<TFamily>(family_handle, family_key, std::move(adder));
-    _metrics.emplace(metric_metadata, &series);
-    _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
+      FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
+      FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
+      auto& label_series = _metric_series[validated_metric.metric_name()];
+      auto series_it = label_series.find(metric_labels);
+      if ((series_it == label_series.end()) || !series_it->second)
+      {
+        // Add the series before inserting its entry. An empty entry marks unregistered labels, so
+        // one left behind by a throwing adder would drop every later sample for these labels
+        auto* family = std::get<TFamily*>(family_handle.family);
+        metric_series_t new_series{adder(family, metric_labels, family_key)};
+        series_it = label_series.insert_or_assign(metric_labels, std::move(new_series)).first;
+        ++family_handle.metric_count;
+      }
+
+      auto& series = series_it->second;
+
+      _configure_family<TFamily>(family_handle, family_key, std::move(adder));
+      _metrics.emplace(metric_metadata, &series);
+      _metric_keys.emplace(validated_metric.metric_key(), metric_metadata);
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate(); write_metric() takes
+      // it for every sample.
+      throw;
+    }
+#endif
+  }
+
+  /** Throws for bucket boundaries prometheus::Histogram rejects, using its own check */
+  static void _validate_histogram_buckets(HistogramBuckets const& bucket_boundaries)
+  {
+    prometheus::Histogram const histogram{bucket_boundaries};
+    (void)histogram;
   }
 
   static Labels _make_metric_labels(MetricMetadata const& metric_metadata)

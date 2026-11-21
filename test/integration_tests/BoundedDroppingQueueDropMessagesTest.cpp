@@ -143,8 +143,8 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
 
   std::string const retired_filename = "bounded_dropping_retired_thread.log";
   std::string retired_notification;
-  auto* retired_logger = CustomFrontend::create_or_get_logger("bounded_dropping_retired_thread",
-    CustomFrontend::create_or_get_sink<FileSink>(retired_filename));
+  auto* retired_logger = CustomFrontend::create_or_get_logger(
+    "bounded_dropping_retired_thread", CustomFrontend::create_or_get_sink<FileSink>(retired_filename));
 
   std::promise<void> poll_started;
   std::promise<void> release_poll;
@@ -155,7 +155,8 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
 
   BackendOptions retired_options;
   retired_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
-  retired_options.error_notifier = [&](std::string const& message) { retired_notification += message; };
+  retired_options.error_notifier = [&](std::string const& message)
+  { retired_notification += message; };
   retired_options.backend_worker_on_poll_begin = [&]()
   {
     if (!first_poll)
@@ -171,13 +172,14 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
     std::string const thread_id = std::to_string(flusher_id.load());
     while (!queued)
     {
-      detail::ThreadContextManager::instance().for_each_thread_context([&](auto* context)
-      {
-        if (context->thread_id() == thread_id)
+      detail::ThreadContextManager::instance().for_each_thread_context(
+        [&](auto* context)
         {
-          queued = !context->template get_spsc_queue<CustomFrontendOptions::queue_type>().empty();
-        }
-      });
+          if (context->thread_id() == thread_id)
+          {
+            queued = !context->template get_spsc_queue<CustomFrontendOptions::queue_type>().empty();
+          }
+        });
       std::this_thread::yield();
     }
   };
@@ -190,13 +192,14 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
 
   std::promise<void> flusher_ready;
   auto flush_ready = flusher_ready.get_future();
-  std::thread flusher([&]()
-  {
-    CustomFrontend::preallocate();
-    flusher_id.store(detail::get_thread_id());
-    flusher_ready.set_value();
-    retired_logger->flush_log();
-  });
+  std::thread flusher(
+    [&]()
+    {
+      CustomFrontend::preallocate();
+      flusher_id.store(detail::get_thread_id());
+      flusher_ready.set_value();
+      retired_logger->flush_log();
+    });
 
   flush_ready.wait();
   release_poll.set_value();

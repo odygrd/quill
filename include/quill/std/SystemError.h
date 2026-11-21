@@ -17,7 +17,6 @@
 #ifndef QUILL_MODULE
   #include <cstddef>
   #include <cstdint>
-  #include <cstring>
   #include <iterator>
   #include <string>
   #include <string_view>
@@ -74,8 +73,7 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<std::error_code>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::error_code const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::error_code const& arg)
   {
     size_t total_size = Codec<int>::compute_encoded_size(conditional_arg_size_cache, arg.value());
 
@@ -84,22 +82,22 @@ struct Codec<std::error_code>
     // queue size calculated here. Cache the category before message(), which may mutate storage
     // owned by a stateful category.
     char const* category_name = arg.category().name();
-    total_size +=
-      _cache_string(conditional_arg_size_cache, std::string_view{category_name ? category_name : ""});
+    total_size += detail::cache_string(conditional_arg_size_cache,
+                                       std::string_view{category_name ? category_name : ""});
 
     std::string const message = arg.message();
-    total_size += _cache_string(conditional_arg_size_cache, message);
+    total_size += detail::cache_string(conditional_arg_size_cache, message);
 
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::error_code const& arg)
   {
     Codec<int>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.value());
 
-    _encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);
-    _encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);
+    detail::encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);
+    detail::encode_cached_string(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index);
   }
 
   static detail::DecodedErrorCode decode_arg(std::byte*& buffer)
@@ -113,44 +111,6 @@ struct Codec<std::error_code>
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     args_store->push_back(decode_arg(buffer));
-  }
-
-private:
-  static size_t _cache_string(detail::SizeCacheVector& cache, std::string_view str)
-  {
-    uint32_t const len = detail::clamp_encoded_string_length(str.size());
-    size_t const words = static_cast<size_t>(len) / sizeof(uint32_t) +
-      ((static_cast<size_t>(len) % sizeof(uint32_t)) != 0u ? 1u : 0u);
-    cache.reserve(cache.size() + 1u + words);
-    cache.push_back(len);
-
-    for (size_t offset = 0; offset < static_cast<size_t>(len); offset += sizeof(uint32_t))
-    {
-      uint32_t word{0};
-      size_t const remaining = static_cast<size_t>(len) - offset;
-      size_t const bytes_to_copy = (remaining < sizeof(word)) ? remaining : sizeof(word);
-      std::memcpy(&word, str.data() + offset, bytes_to_copy);
-      cache.push_back(word);
-    }
-
-    return sizeof(uint32_t) + len;
-  }
-
-  static void _encode_cached_string(std::byte*& buffer, detail::SizeCacheVector const& cache, uint32_t& cache_index)
-  {
-    uint32_t const len = cache[cache_index++];
-    std::memcpy(buffer, &len, sizeof(len));
-    buffer += sizeof(len);
-
-    for (size_t offset = 0; offset < static_cast<size_t>(len); offset += sizeof(uint32_t))
-    {
-      uint32_t const word = cache[cache_index++];
-      size_t const remaining = static_cast<size_t>(len) - offset;
-      size_t const bytes_to_copy = (remaining < sizeof(word)) ? remaining : sizeof(word);
-      std::memcpy(buffer + offset, &word, bytes_to_copy);
-    }
-
-    buffer += len;
   }
 };
 QUILL_END_EXPORT

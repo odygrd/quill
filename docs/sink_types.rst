@@ -10,12 +10,25 @@ ConsoleSink
 
 The `ConsoleSink` class sends logging output to streams `stdout` or `stderr`. Printing color codes to terminal or Windows console is also supported.
 
+On Windows, the console interprets bytes written by ``ConsoleSink`` using its output code page.
+To display UTF-8 logs, set the console output code page to UTF-8 with ``SetConsoleOutputCP(CP_UTF8)``
+and disable or customize :cpp:member:`BackendOptions::check_printable_char` to preserve UTF-8 bytes.
+When output is redirected to a pipe or file, the sink writes the original bytes.
+
 FileSink
 ~~~~~~~~
 
 The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The filepath of the `FileSink` serves as a unique identifier, allowing you to retrieve the same sink later using :cpp:func:`FrontendImpl::get_sink`.
 
 Each file can only have a single instance of `FileSink`.
+
+On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
+characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
+
+.. code-block:: cpp
+
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+      std::filesystem::path{L"C:\\logs\\\u65e5\u8a8c.log"}, quill::FileSinkConfig{});
 
 .. note::
 
@@ -120,8 +133,9 @@ same setup sequence applies to a POSIX pipe stream opened with ``fdopen()``:
    ``FileEventNotifier::after_open``, but changing buffering in that callback does not
    enable the retry flag.
 
-   ``FileSink`` uses a 64 KiB buffer by default. ``FileSinkConfig::set_write_buffer_size(0)``
-   selects default buffering; it does not make the stream unbuffered.
+   ``FileSink`` uses a 64 KiB buffer by default, and a 256 KiB one on Windows.
+   ``FileSinkConfig::set_write_buffer_size(0)`` selects default buffering; it does not make the
+   stream unbuffered.
 
 Buffered short writes retain the existing error reporting. This feature does not provide
 lossless recovery for buffered streams: some C libraries discard pending buffered data on

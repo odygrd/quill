@@ -36,7 +36,7 @@ class LoggerBase;
 /***/
 struct TransitEvent
 {
-  using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
+  struct RuntimeMetadata;
 
   /***/
   TransitEvent() = default;
@@ -50,69 +50,34 @@ struct TransitEvent
   TransitEvent(TransitEvent const& other) = delete;
   TransitEvent& operator=(TransitEvent const& other) = delete;
 
-  /***/
-  TransitEvent(TransitEvent&& other) noexcept
-    : timestamp(other.timestamp),
-      macro_metadata(other.macro_metadata),
-      logger_base(other.logger_base),
-      formatted_msg(std::move(other.formatted_msg)),
-      extra_data(std::move(other.extra_data)),
-      event_payload(std::move(other.event_payload))
-  {
-    other.event_payload = std::monostate{};
+  /**
+   * Moves keep macro_metadata valid: runtime metadata lives in the heap-allocated ExtraData,
+   * whose address does not change when the unique_ptr is moved.
+   */
+  TransitEvent(TransitEvent&& other) noexcept = default;
+  TransitEvent& operator=(TransitEvent&& other) noexcept = default;
 
-    // Update macro_metadata pointer if it was pointing to runtime_metadata
-    if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
-    {
-      // Point to our own runtime_metadata instead of the moved-from object's
-      macro_metadata = &extra_data->runtime_metadata.macro_metadata;
-    }
-  }
-
-  /***/
-  TransitEvent& operator=(TransitEvent&& other) noexcept
-  {
-    if (this != &other)
-    {
-      timestamp = other.timestamp;
-      macro_metadata = other.macro_metadata;
-      logger_base = other.logger_base;
-      formatted_msg = std::move(other.formatted_msg);
-      extra_data = std::move(other.extra_data);
-      event_payload = std::move(other.event_payload);
-      other.event_payload = std::monostate{};
-
-      if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
-      {
-        // Point to our own runtime_metadata instead of the moved-from object's
-        macro_metadata = &extra_data->runtime_metadata.macro_metadata;
-      }
-    }
-
-    return *this;
-  }
-
-  /***/
+  /**
+   * Copies the event to `other`, except for its formatted message: `other` refers to the message
+   * of this event, which is released with this event. A copy that is kept for longer needs a
+   * message of its own, see BacktraceStorage::store().
+   */
   void copy_to(TransitEvent& other) const
   {
     other.timestamp = timestamp;
     other.macro_metadata = macro_metadata;
     other.logger_base = logger_base;
+    other.formatted_msg = formatted_msg;
     other.event_payload = event_payload;
-
-    // manually copy the fmt::buffer
-    other.formatted_msg->clear();
-    other.formatted_msg->reserve(formatted_msg->size());
-    other.formatted_msg->append(*formatted_msg);
 
     if (extra_data)
     {
       other.extra_data = std::make_unique<ExtraData>(*extra_data);
 
-      if (other.extra_data->runtime_metadata.has_runtime_metadata)
+      if (extra_data->runtime_metadata && (macro_metadata == &extra_data->runtime_metadata->macro_metadata))
       {
         // then point macro_metadata to the correct object
-        other.macro_metadata = &other.extra_data->runtime_metadata.macro_metadata;
+        other.macro_metadata = &other.extra_data->runtime_metadata->macro_metadata;
       }
     }
   }
@@ -151,6 +116,19 @@ struct TransitEvent
     }
 
     extra_data = std::make_unique<ExtraData>();
+  }
+
+  /** @return the runtime metadata of this event, allocated for the first event of this slot that has one */
+  QUILL_ATTRIBUTE_HOT RuntimeMetadata& ensure_runtime_metadata()
+  {
+    ensure_extra_data();
+
+    if (!extra_data->runtime_metadata)
+    {
+      extra_data->runtime_metadata = std::make_unique<RuntimeMetadata>();
+    }
+
+    return *extra_data->runtime_metadata;
   }
 
   QUILL_ATTRIBUTE_HOT void set_flush_flag(std::atomic<bool>* flush_flag_ptr) noexcept
@@ -197,16 +175,9 @@ struct TransitEvent
     QUILL_ATTRIBUTE_HOT void set(char const* file, uint32_t line, char const* function,
                                  char const* in_tags, char const* in_fmt, LogLevel log_level)
     {
-      if ((macro_metadata.event() == MacroMetadata::Event::Log) && (macro_metadata.log_level() == log_level) &&
-          (fmt == _safe_string(in_fmt)) && (function_name == _safe_string(function)) &&
-          (tags == _safe_string(in_tags)) && _source_location_matches(file, line))
-      {
-        has_runtime_metadata = true;
-        return;
-      }
-
+      // Not skipped when the slot already holds the same metadata: an application interleaves
+      // many log statements, so a slot rarely gets the same one twice in a row
       fmt.assign(_safe_string(in_fmt));
-      line_number = line;
       _set_source_location(file, line);
       function_name.assign(_safe_string(function));
       tags.assign(_safe_string(in_tags));
@@ -214,7 +185,6 @@ struct TransitEvent
       macro_metadata =
         MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
                       tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log);
-      has_runtime_metadata = true;
     }
 
     RuntimeMetadata(RuntimeMetadata const& other)
@@ -224,9 +194,7 @@ struct TransitEvent
         tags(other.tags),
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
                        tags.empty() ? nullptr : tags.data(), other.macro_metadata.log_level(),
-                       MacroMetadata::Event::Log),
-        line_number(other.line_number),
-        has_runtime_metadata(other.has_runtime_metadata)
+                       MacroMetadata::Event::Log)
     {
       // Recreate macro_metadata to point to our own strings
     }
@@ -239,8 +207,6 @@ struct TransitEvent
         source_location = other.source_location;
         function_name = other.function_name;
         tags = other.tags;
-        line_number = other.line_number;
-        has_runtime_metadata = other.has_runtime_metadata;
 
         // Recreate macro_metadata to point to our own strings
         macro_metadata = MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
@@ -258,35 +224,11 @@ struct TransitEvent
     std::string function_name;
     std::string tags;
     MacroMetadata macro_metadata;
-    uint32_t line_number{0};
-    bool has_runtime_metadata{false};
 
   private:
     QUILL_NODISCARD static char const* _safe_string(char const* value) noexcept
     {
       return value ? value : "";
-    }
-
-    QUILL_NODISCARD bool _source_location_matches(char const* file, uint32_t line) const noexcept
-    {
-      if (!file || (file[0] == '\0' && line == 0))
-      {
-        return source_location.empty();
-      }
-
-      if (line_number != line)
-      {
-        return false;
-      }
-
-      std::string_view file_path{file};
-      constexpr size_t max_file_path_length{(std::numeric_limits<uint16_t>::max)()};
-      if (QUILL_UNLIKELY(file_path.size() > max_file_path_length))
-      {
-        file_path.remove_prefix(file_path.size() - max_file_path_length);
-      }
-
-      return macro_metadata.full_path() == file_path;
     }
 
     void _set_source_location(char const* file, uint32_t line)
@@ -318,17 +260,38 @@ struct TransitEvent
 
   struct ExtraData
   {
+    ExtraData() = default;
+
+    ExtraData(ExtraData const& other)
+      : named_args(other.named_args),
+        mdc(other.mdc),
+        runtime_metadata(other.runtime_metadata ? std::make_unique<RuntimeMetadata>(*other.runtime_metadata) : nullptr)
+    {
+    }
+
+    ExtraData& operator=(ExtraData const& other) = delete;
+
     // Additional fields that are used for some features as a separate structure to keep
     // TransitEvent size smaller for the main scenarios
     std::vector<std::pair<std::string, std::string>> named_args;
     std::string mdc;
-    RuntimeMetadata runtime_metadata;
+
+    /**
+     * Allocated by ensure_runtime_metadata(), so the extra data of the other events, e.g. with
+     * named args, takes 64 bytes instead of several cache lines
+     */
+    std::unique_ptr<RuntimeMetadata> runtime_metadata;
   };
 
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};
   LoggerBase* logger_base{nullptr};
-  std::unique_ptr<FormatBuffer> formatted_msg{std::make_unique<FormatBuffer>()}; /** buffer for message **/
+
+  /**
+   * The formatted message. An event does not own it: it is stored in the MessageArena of the
+   * TransitEventBuffer or BacktraceStorage that holds the event, and released with the event.
+   */
+  std::string_view formatted_msg;
   std::unique_ptr<ExtraData> extra_data; /** A unique ptr to save space as these fields not always used */
   std::variant<std::monostate, std::atomic<bool>*, double> event_payload{
     std::monostate{}}; /** This is only used in the case of Event::Flush or Event::Metric **/

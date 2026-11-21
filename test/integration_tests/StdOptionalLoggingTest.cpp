@@ -21,8 +21,8 @@ using namespace quill;
 class OptionalCopyOnlyType
 {
 public:
-  explicit OptionalCopyOnlyType(std::string label, int value)
-    : label(std::move(label)), value(value)
+  explicit OptionalCopyOnlyType(std::string in_label, int in_value)
+    : label(std::move(in_label)), value(in_value)
   {
   }
 

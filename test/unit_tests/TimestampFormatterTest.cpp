@@ -200,4 +200,27 @@ TEST_CASE("escaped_fractional_specifiers_are_literals")
   }
 }
 
+TEST_CASE("windows_log_gmt_timestamp_has_utc_offset_and_zone")
+{
+#if defined(_WIN32)
+  TimestampFormatter formatter{"%H:%M:%S %z %Z %%z %%Z", quill::Timezone::GmtTime};
+  REQUIRE_EQ(formatter.format_timestamp(std::chrono::nanoseconds{1'750'000'000'000'000'000ll}),
+             "15:06:40 +0000 UTC %z %Z");
+  #if defined(_MSC_VER)
+  TimestampFormatter modified{"%Ez %#OZ", quill::Timezone::GmtTime};
+  REQUIRE_EQ(modified.format_timestamp(std::chrono::nanoseconds{1'750'000'000'000'000'000ll}),
+             "+0000 UTC");
+  #endif
+#endif
+}
+
+TEST_CASE("windows_unsupported_log_timestamp_directive_throws")
+{
+#if defined(_MSC_VER) && !defined(QUILL_NO_EXCEPTIONS)
+  TimestampFormatter formatter{"%-H", quill::Timezone::GmtTime};
+  REQUIRE_THROWS_AS((void)formatter.format_timestamp(std::chrono::nanoseconds{1'750'000'000'000'000'000ll}),
+                    quill::QuillError);
+#endif
+}
+
 TEST_SUITE_END();

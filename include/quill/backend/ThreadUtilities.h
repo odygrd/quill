@@ -13,7 +13,9 @@
   #include <atomic>
   #include <cstdint>
   #include <cstring>
+  #include <memory>
   #include <string>
+  #include <string_view>
 #endif
 
 #if defined(_WIN32)
@@ -93,7 +95,7 @@ QUILL_NODISCARD inline std::wstring s2ws(std::string const& str)
  * @param wstr input wide string
  * @return the value of input wide string as string
  */
-QUILL_NODISCARD inline std::string ws2s(std::wstring const& wstr)
+QUILL_NODISCARD inline std::string ws2s(std::wstring_view wstr)
 {
   if (wstr.empty())
   {
@@ -187,9 +189,8 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
     return std::string{"ThreadNameDisabled"};
   }
 
-  std::wstring const wide_name{data, wcsnlen_s(data, 256)};
-  LocalFree(data);
-  return ws2s(wide_name);
+  std::unique_ptr<wchar_t, decltype(&::LocalFree)> const wide_name{data, &::LocalFree};
+  return ws2s(wide_name.get());
 #else
   // Apple, linux
   // Linux limits thread names to 15 characters, but macOS keeps up to 63 bytes, so size the

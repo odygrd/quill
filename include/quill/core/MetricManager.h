@@ -50,16 +50,34 @@ public:
   {
     _validate_key_and_name(metric_key, metric_name);
 
-    LockGuard const lock{_spinlock};
+    MetricMetadata const* metric_metadata{nullptr};
 
-    if (_find_metric(metric_key))
+    QUILL_TRY
+    {
+      LockGuard const lock{_spinlock};
+
+      if (!_find_metric(metric_key))
+      {
+        metric_metadata = _insert_metric(metric_key, metric_name, labels);
+      }
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate().
+      throw;
+    }
+#endif
+
+    // Throw after releasing the lock, an uncaught exception terminates without unwinding
+    if (QUILL_UNLIKELY(!metric_metadata))
     {
       QUILL_THROW(QuillError{"Metric with key \"" + metric_key +
                              "\" already exists. Use create_or_get_metric() if you want "
                              "to retrieve the existing metric metadata pointer."});
     }
 
-    return _insert_metric(metric_key, metric_name, labels);
+    return metric_metadata;
   }
 
   /**
@@ -79,16 +97,26 @@ public:
   {
     _validate_key_and_name(metric_key, metric_name);
 
-    LockGuard const lock{_spinlock};
-
-    MetricMetadata const* metric_metadata = _find_metric(metric_key);
-
-    if (!metric_metadata)
+    QUILL_TRY
     {
-      metric_metadata = _insert_metric(metric_key, metric_name, labels);
-    }
+      LockGuard const lock{_spinlock};
 
-    return metric_metadata;
+      MetricMetadata const* metric_metadata = _find_metric(metric_key);
+
+      if (!metric_metadata)
+      {
+        metric_metadata = _insert_metric(metric_key, metric_name, labels);
+      }
+
+      return metric_metadata;
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate().
+      throw;
+    }
+#endif
   }
 
   /**
@@ -96,11 +124,14 @@ public:
    */
   QUILL_NODISCARD MetricMetadata const* get_metric(std::string const& metric_key)
   {
-    LockGuard const lock{_spinlock};
+    MetricMetadata const* metric_metadata{nullptr};
+    {
+      LockGuard const lock{_spinlock};
+      metric_metadata = _find_metric(metric_key);
+    }
 
-    MetricMetadata const* metric_metadata = _find_metric(metric_key);
-
-    if (!metric_metadata)
+    // Throw after releasing the lock, an uncaught exception terminates without unwinding
+    if (QUILL_UNLIKELY(!metric_metadata))
     {
       QUILL_THROW(QuillError{"Metric with key \"" + metric_key + "\" does not exist"});
     }
@@ -116,9 +147,10 @@ private:
                                                                      std::vector<MetricLabel>& labels,
                                                                      size_t label_count)
   {
-    auto const labels_end = labels.begin() + label_count;
+    MetricLabel* const labels_begin = labels.data();
+    MetricLabel* const labels_end = labels_begin + label_count;
 
-    std::sort(labels.begin(), labels_end,
+    std::sort(labels_begin, labels_end,
               [](MetricLabel const& lhs, MetricLabel const& rhs)
               { return lhs.key < rhs.key || (lhs.key == rhs.key && lhs.value < rhs.value); });
 
@@ -134,7 +166,7 @@ private:
 
     append_key(metric_name);
 
-    for (auto it = labels.begin(); it != labels_end; ++it)
+    for (MetricLabel const* it = labels_begin; it != labels_end; ++it)
     {
       append_key(it->key);
       append_key(it->value);
@@ -148,7 +180,7 @@ private:
     }
 
     auto metadata = std::make_unique<MetricMetadata>(_dynamic_metric_key, std::string{metric_name},
-                                                     std::vector<MetricLabel>{labels.begin(), labels_end});
+                                                     std::vector<MetricLabel>{labels_begin, labels_end});
 
     return _dynamic_metrics.emplace(_dynamic_metric_key, std::move(metadata)).first->second.get();
   }

@@ -8,6 +8,7 @@
 
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"
@@ -17,7 +18,7 @@
 #include "quill/bundled/fmt/format.h"
 
 #ifndef QUILL_MODULE
-  #include <charconv>
+  #include <algorithm>
   #include <chrono>
   #include <cstdint>
   #include <cstring>
@@ -46,48 +47,26 @@ public:
   ~JsonSink() override = default;
 
   /**
-   * @brief Logs a formatted log message to the sink.
-   * @note Accessor for backend processing.
-   * @param log_metadata Pointer to the macro metadata.
-   * @param log_timestamp Timestamp of the log event.
-   * @param thread_id ID of the thread.
-   * @param thread_name Name of the thread.
-   * @param process_id Process Id
-   * @param logger_name Name of the logger.
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args Vector of key-value pairs of named args
-   * @param log_message log message
-   * @param log_statement log statement
+   * @brief Writes the record as a JSON line.
+   * @param record the log record
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                     std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name,
-                                     LogLevel log_level, std::string_view log_level_description,
-                                     std::string_view log_level_short_code,
-                                     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                     std::string_view log_message, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (!_json_message_ready)
     {
-      char const* const message_format =
-        _normalized_message_format(log_metadata, named_args, log_message);
+      char const* const message_format = _normalized_message_format(record);
 
       _json_message.clear();
-
-      generate_json_message(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                            logger_name, log_level, log_level_description, log_level_short_code,
-                            named_args, log_message, log_statement, message_format);
-
-      _json_message.append(std::string_view{"}\n"});
+      generate_json_message(record, message_format);
+      append_to_buffer(_json_message, std::string_view{"}\n"});
     }
 
     _json_message_ready = false;
 
-    base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
-                         log_level_description, log_level_short_code, named_args, std::string_view{},
-                         std::string_view{_json_message.data(), _json_message.size()});
+    LogRecord json_record = record;
+    json_record.log_message = std::string_view{};
+    json_record.log_statement = std::string_view{_json_message.data(), _json_message.size()};
+    base_type::write_log(json_record);
   }
 
   /**
@@ -99,40 +78,33 @@ public:
    * It is designed to be customizable by overriding in derived classes. Users can provide their own
    * implementation to generate a log message in a custom format or to include additional fields.
    */
-  QUILL_ATTRIBUTE_HOT virtual void generate_json_message(
-    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-    std::string_view /** thread_name **/, std::string const& /** process_id **/,
-    std::string_view logger_name, LogLevel /** log_level **/,
-    std::string_view log_level_description, std::string_view /** log_level_short_code **/,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view /** log_message **/, std::string_view /** log_statement **/, char const* message_format)
+  QUILL_ATTRIBUTE_HOT virtual void generate_json_message(LogRecord const& record, char const* message_format)
   {
-    _json_message.append(std::string_view{"{\"timestamp\":\""});
-    char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1];
-    auto const timestamp_result =
-      std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), log_timestamp);
-    _json_message.append(std::string_view{
-      timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
-    _json_message.append(std::string_view{"\",\"file_name\":\""});
-    _append_json_escaped(_json_message, log_metadata->file_name());
-    _json_message.append(std::string_view{"\",\"line\":\""});
-    _append_json_escaped(_json_message, log_metadata->line());
-    _json_message.append(std::string_view{"\",\"thread_id\":\""});
-    _append_json_escaped(_json_message, thread_id);
-    _json_message.append(std::string_view{"\",\"logger\":\""});
-    _append_json_escaped(_json_message, logger_name);
-    _json_message.append(std::string_view{"\",\"log_level\":\""});
-    _append_json_escaped(_json_message, log_level_description);
-    _json_message.append(std::string_view{"\",\"message\":\""});
-    _append_json_escaped(_json_message, message_format);
-    _json_message.append(std::string_view{"\""});
+    MacroMetadata const* const log_metadata = record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
+
+    append_to_buffer(_json_message, std::string_view{"{\"timestamp\":\""});
+    _append_decimal(_json_message, record.log_timestamp);
+    append_to_buffer(_json_message, std::string_view{"\",\"file_name\":\""});
+    append_json_escaped(_json_message, log_metadata->file_name());
+    append_to_buffer(_json_message, std::string_view{"\",\"line\":\""});
+    append_json_escaped(_json_message, log_metadata->line());
+    append_to_buffer(_json_message, std::string_view{"\",\"thread_id\":\""});
+    append_json_escaped(_json_message, record.thread_id);
+    append_to_buffer(_json_message, std::string_view{"\",\"logger\":\""});
+    append_json_escaped(_json_message, record.logger_name);
+    append_to_buffer(_json_message, std::string_view{"\",\"log_level\":\""});
+    append_json_escaped(_json_message, record.log_level_description);
+    append_to_buffer(_json_message, std::string_view{"\",\"message\":\""});
+    append_json_escaped(_json_message, message_format);
+    append_to_buffer(_json_message, std::string_view{"\""});
 
     // Add args as key-values
     if (named_args)
     {
       for (auto const& [key, value] : *named_args)
       {
-        _json_message.append(std::string_view{",\""});
+        append_to_buffer(_json_message, std::string_view{",\""});
 
         if (_is_reserved_json_key(key))
         {
@@ -157,50 +129,41 @@ public:
             }
           } while (key_exists);
 
-          _append_json_escaped(_json_message, suffixed_key);
+          append_json_escaped(_json_message, suffixed_key);
         }
         else
         {
-          _append_json_escaped(_json_message, key);
+          append_json_escaped(_json_message, key);
         }
 
-        _json_message.append(std::string_view{"\":\""});
-        _append_json_escaped(_json_message, value);
-        _json_message.append(std::string_view{"\""});
+        append_to_buffer(_json_message, std::string_view{"\":\""});
+        append_json_escaped(_json_message, value);
+        append_to_buffer(_json_message, std::string_view{"\""});
       }
     }
   }
 
 protected:
-  QUILL_NODISCARD size_t estimate_write_size(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string const& process_id, std::string_view logger_name,
-                                             LogLevel log_level, std::string_view log_level_description,
-                                             std::string_view log_level_short_code,
-                                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                                             std::string_view log_message, std::string_view log_statement) override
+  QUILL_NODISCARD size_t estimate_write_size(LogRecord const& record) override
   {
     _json_message.clear();
 
-    char const* const message_format =
-      _normalized_message_format(log_metadata, named_args, log_message);
+    char const* const message_format = _normalized_message_format(record);
+    generate_json_message(record, message_format);
 
-    generate_json_message(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                          logger_name, log_level, log_level_description, log_level_short_code,
-                          named_args, log_message, log_statement, message_format);
-
-    _json_message.append(std::string_view{"}\n"});
+    append_to_buffer(_json_message, std::string_view{"}\n"});
     _json_message_ready = true;
     return _json_message.size();
   }
 
   void discard_write_estimate() noexcept { _json_message_ready = false; }
 
-  QUILL_NODISCARD char const* _normalized_message_format(
-    MacroMetadata const* log_metadata,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view log_message)
+  QUILL_NODISCARD char const* _normalized_message_format(LogRecord const& record)
   {
+    MacroMetadata const* const log_metadata = record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
+    std::string_view const log_message = record.log_message;
+
     char const* const message_format = log_metadata->message_format();
     if (!log_metadata->is_rate_limited() && (strchr(message_format, '\n') == nullptr))
     {
@@ -233,10 +196,7 @@ protected:
     }
 
     // Keep the JSON message template on one line.
-    for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; ++pos)
-    {
-      _format.replace(pos, 1, " ");
-    }
+    std::replace(_format.begin(), _format.end(), '\n', ' ');
 
     return _format.data();
   }
@@ -247,7 +207,11 @@ protected:
       (key == "thread_id") || (key == "logger") || (key == "log_level") || (key == "message");
   }
 
-  static void _append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
+  /**
+   * Appends `value` to `out` escaped for use inside a JSON string, e.g. a key or value written by
+   * an overridden generate_json_message(). Quotes, backslashes and control characters are escaped.
+   */
+  static void append_json_escaped(fmtquill::memory_buffer& out, std::string_view value)
   {
     // Pre-computed escape table for control characters (0x00..0x1F). Each entry is the 6-byte
     // \uXXXX form. Faster and locale-safe compared to per-byte snprintf.
@@ -260,31 +224,37 @@ protected:
     size_t const size = value.size();
     char const* const data = value.data();
 
-    for (size_t i = 0; i < size; ++i)
+    // Bytes that need no escape, nearly all of them, are appended in runs rather than one by one
+    size_t run_begin = 0;
+
+    for (size_t i = _find_json_escape_candidate(data, 0, size); i < size;
+         i = _find_json_escape_candidate(data, i, size))
     {
       unsigned char const c = static_cast<unsigned char>(data[i]);
+      std::string_view escaped;
+
       switch (c)
       {
       case '"':
-        out.append(std::string_view{"\\\""});
+        escaped = std::string_view{"\\\""};
         break;
       case '\\':
-        out.append(std::string_view{"\\\\"});
+        escaped = std::string_view{"\\\\"};
         break;
       case '\b':
-        out.append(std::string_view{"\\b"});
+        escaped = std::string_view{"\\b"};
         break;
       case '\f':
-        out.append(std::string_view{"\\f"});
+        escaped = std::string_view{"\\f"};
         break;
       case '\n':
-        out.append(std::string_view{"\\n"});
+        escaped = std::string_view{"\\n"};
         break;
       case '\r':
-        out.append(std::string_view{"\\r"});
+        escaped = std::string_view{"\\r"};
         break;
       case '\t':
-        out.append(std::string_view{"\\t"});
+        escaped = std::string_view{"\\t"};
         break;
       // U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are valid JSON characters
       // but they break some JavaScript consumers that treat JSON as JS source. Escape the
@@ -293,27 +263,127 @@ protected:
         if (i + 2 < size && static_cast<unsigned char>(data[i + 1]) == 0x80 &&
             (static_cast<unsigned char>(data[i + 2]) == 0xA8 || static_cast<unsigned char>(data[i + 2]) == 0xA9))
         {
-          out.append(static_cast<unsigned char>(data[i + 2]) == 0xA8 ? std::string_view{"\\u2028"}
-                                                                     : std::string_view{"\\u2029"});
-          i += 2;
-        }
-        else
-        {
-          out.push_back(static_cast<char>(c));
+          escaped = static_cast<unsigned char>(data[i + 2]) == 0xA8 ? std::string_view{"\\u2028"}
+                                                                    : std::string_view{"\\u2029"};
         }
         break;
       default:
-        if (c < 0x20)
-        {
-          out.append(std::string_view{control_escape_table[c], 6});
-        }
-        else
-        {
-          out.push_back(static_cast<char>(c));
-        }
+        escaped = std::string_view{control_escape_table[c], 6};
+        break;
+      }
+
+      if (escaped.empty())
+      {
+        // 0xE2 that does not start a line or paragraph separator stays in the run
+        ++i;
+        continue;
+      }
+
+      append_to_buffer(out, std::string_view{data + run_begin, i - run_begin});
+      append_to_buffer(out, escaped);
+
+      // A separator escapes three bytes
+      i += (c == 0xE2) ? 3u : 1u;
+      run_begin = i;
+    }
+
+    append_to_buffer(out, std::string_view{data + run_begin, size - run_begin});
+  }
+
+  /**
+   * Appends `value` in decimal, as std::to_chars() does. Splitting off 8 digits at a time shortens
+   * the chain of divisions for the 19 digits of a timestamp in nanoseconds
+   */
+  static void _append_decimal(fmtquill::memory_buffer& out, uint64_t value)
+  {
+    constexpr uint64_t chunk_divisor{100'000'000};
+
+    char digits[std::numeric_limits<uint64_t>::digits10 + 1u];
+    char* const end = digits + sizeof(digits);
+    char* begin = end;
+
+    while (value >= chunk_divisor)
+    {
+      uint64_t const quotient = value / chunk_divisor;
+      uint32_t const chunk = static_cast<uint32_t>(value - (quotient * chunk_divisor));
+      value = quotient;
+
+      // The digits of the two halves do not depend on each other
+      uint32_t const high = chunk / 10'000u;
+      uint32_t const low = chunk % 10'000u;
+
+      begin -= 8;
+      std::memcpy(begin, fmtquill::detail::digits2(high / 100u), 2);
+      std::memcpy(begin + 2, fmtquill::detail::digits2(high % 100u), 2);
+      std::memcpy(begin + 4, fmtquill::detail::digits2(low / 100u), 2);
+      std::memcpy(begin + 6, fmtquill::detail::digits2(low % 100u), 2);
+    }
+
+    uint32_t remaining = static_cast<uint32_t>(value);
+
+    while (remaining >= 100u)
+    {
+      begin -= 2;
+      std::memcpy(begin, fmtquill::detail::digits2(remaining % 100u), 2);
+      remaining /= 100u;
+    }
+
+    if (remaining >= 10u)
+    {
+      begin -= 2;
+      std::memcpy(begin, fmtquill::detail::digits2(remaining), 2);
+    }
+    else
+    {
+      --begin;
+      *begin = static_cast<char>('0' + remaining);
+    }
+
+    append_to_buffer(out, std::string_view{begin, static_cast<size_t>(end - begin)});
+  }
+
+  /**
+   * @return the position of the first byte from `pos` that may need an escape: a control
+   * character, '"', '\\', or 0xE2, which starts U+2028 and U+2029. `size` if there is none
+   */
+  QUILL_NODISCARD static size_t _find_json_escape_candidate(char const* data, size_t pos, size_t size) noexcept
+  {
+    // Check 8 bytes at a time. The high bit of a byte of `candidates` is set for a byte below 0x20
+    // and for a byte equal to one of the others, and bytes above such a byte can be set as well
+    // by a borrow, so the bytes of a word with a candidate are checked one by one below
+    constexpr uint64_t ones{0x0101010101010101ull};
+    constexpr uint64_t high_bits{0x8080808080808080ull};
+
+    for (; (pos + sizeof(uint64_t)) <= size; pos += sizeof(uint64_t))
+    {
+      uint64_t word;
+      std::memcpy(&word, data + pos, sizeof(word));
+
+      // Bytes equal to '"', '\\' or 0xE2 are zero in these
+      uint64_t const quote = word ^ (ones * '"');
+      uint64_t const backslash = word ^ (ones * '\\');
+      uint64_t const separator = word ^ (ones * 0xE2u);
+
+      uint64_t const candidates = ((word - (ones * 0x20u)) & ~word) | ((quote - ones) & ~quote) |
+        ((backslash - ones) & ~backslash) | ((separator - ones) & ~separator);
+
+      if ((candidates & high_bits) != 0)
+      {
         break;
       }
     }
+
+    for (; pos < size; ++pos)
+    {
+      unsigned char const c = static_cast<unsigned char>(data[pos]);
+
+      if ((c < 0x20) || (c == '"') || (c == '\\') || (c == 0xE2))
+      {
+        return pos;
+      }
+    }
+
+    return size;
   }
 
   fmtquill::memory_buffer _json_message;

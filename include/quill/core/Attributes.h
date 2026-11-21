@@ -6,32 +6,29 @@
 
 #pragma once
 
+/**
+ * Library version, e.g. `#if QUILL_VERSION >= 140000`. The inline namespace follows the major
+ * version so that different major versions linked into one program do not clash.
+ */
+#define QUILL_VERSION_MAJOR 14
+#define QUILL_VERSION_MINOR 0
+#define QUILL_VERSION_PATCH 0
+#define QUILL_VERSION                                                                              \
+  (QUILL_VERSION_MAJOR * 10000 + QUILL_VERSION_MINOR * 100 + QUILL_VERSION_PATCH)
+
+// `v` is pasted directly, so a macro named `v` in user code cannot rename the namespace
+#define QUILL_DETAIL_VERSION_NAMESPACE_IMPL(major) v##major
+#define QUILL_DETAIL_VERSION_NAMESPACE(major) QUILL_DETAIL_VERSION_NAMESPACE_IMPL(major)
+
 #ifndef QUILL_BEGIN_NAMESPACE
   #define QUILL_BEGIN_NAMESPACE                                                                    \
     namespace quill                                                                                \
     {                                                                                              \
-    inline namespace v14                                                                           \
+    inline namespace QUILL_DETAIL_VERSION_NAMESPACE(QUILL_VERSION_MAJOR)                           \
     {
   #define QUILL_END_NAMESPACE                                                                      \
     }                                                                                              \
     }
-#endif
-
-#ifdef _MSVC_LANG
-  #define QUILL_CPLUSPLUS _MSVC_LANG
-#else
-  #define QUILL_CPLUSPLUS __cplusplus
-#endif
-
-/**
- * __has_include
- */
-#ifndef QUILL_HAS_INCLUDE
-  #ifdef __has_include
-    #define QUILL_HAS_INCLUDE(x) __has_include(x)
-  #else
-    #define QUILL_HAS_INCLUDE(x) 0
-  #endif
 #endif
 
 /**
@@ -56,45 +53,13 @@
   #endif
 #endif
 
-/**
- * __has_cpp_attribute
- */
-#ifndef QUILL_HAS_CPP_ATTRIBUTE
-  #if defined(__cplusplus) && defined(__has_cpp_attribute)
-    #define QUILL_HAS_CPP_ATTRIBUTE(x) __has_cpp_attribute(x)
-  #else
-    #define QUILL_HAS_CPP_ATTRIBUTE(x) 0
-  #endif
-#endif
-
-/**
- * Portable no discard warnings
- */
+/** C++17 attributes, kept as macros for existing users */
 #ifndef QUILL_NODISCARD
-  #if QUILL_HAS_CPP_ATTRIBUTE(nodiscard)
-    #define QUILL_NODISCARD [[nodiscard]]
-  #elif QUILL_HAS_CPP_ATTRIBUTE(gnu::warn_unused_result)
-    #define QUILL_NODISCARD [[gnu::warn_unused_result]]
-  #else
-    #define QUILL_NODISCARD
-  #endif
+  #define QUILL_NODISCARD [[nodiscard]]
 #endif
 
-/**
- * Portable maybe_unused
- */
 #ifndef QUILL_MAYBE_UNUSED
-  // MSVC reports __cplusplus as 199711L unless /Zc:__cplusplus is passed; check _MSVC_LANG too
-  #if QUILL_HAS_CPP_ATTRIBUTE(maybe_unused) &&                                                     \
-    ((__cplusplus >= 201703L) || (defined(_MSVC_LANG) && (_MSVC_LANG >= 201703L)))
-    #define QUILL_MAYBE_UNUSED [[maybe_unused]]
-  #elif QUILL_HAS_ATTRIBUTE(__unused__)
-    #define QUILL_MAYBE_UNUSED __attribute__((__unused__))
-  #elif defined(_MSC_VER)
-    #define QUILL_MAYBE_UNUSED __pragma(warning(suppress : 4100 4189))
-  #else
-    #define QUILL_MAYBE_UNUSED
-  #endif
+  #define QUILL_MAYBE_UNUSED [[maybe_unused]]
 #endif
 
 /**
@@ -143,9 +108,6 @@
   #endif
 #endif
 
-/**
- * Likely
- */
 /**
  * Tells the compiler that a condition is always true, enabling optimisations
  * that rely on that guarantee.  Behaviour is undefined if the condition is false.
@@ -208,7 +170,9 @@
  */
 #ifndef QUILL_BEGIN_EXPORT
   #if defined(QUILL_MODULE)
-    #define QUILL_BEGIN_EXPORT export {
+    #define QUILL_BEGIN_EXPORT                                                                     \
+      export                                                                                       \
+      {
     #define QUILL_END_EXPORT }
   #else
     #define QUILL_BEGIN_EXPORT
@@ -238,11 +202,4 @@
   #else
     #define QUILL_THREAD_LOCAL thread_local
   #endif
-#endif
-
-/**
- * Separator used by quill internals
- */
-#if !defined(QUILL_MAGIC_SEPARATOR)
-  #define QUILL_MAGIC_SEPARATOR "\x01\x02\x03"
 #endif

@@ -94,6 +94,12 @@ If the format string is malformed:
 
 If ``BackendOptions::error_notifier`` is set to ``{}``, those callback notifications are disabled, but the fallback log entry is still written to the sink output.
 
+This fallback relies on C++ exceptions. In a build with exceptions disabled (``-fno-exceptions``
+with ``QUILL_NO_EXCEPTIONS``), ``fmt`` cannot report the error and the backend calls ``abort()``
+on a format string that is malformed or does not match its arguments, including a string literal.
+Check the format strings of such builds before deploying them, and do not log format strings
+supplied at runtime.
+
 Logging Different Types
 ------------------------
 
@@ -173,7 +179,7 @@ How do I ensure logs aren't lost on application crash?
 
 During normal program termination, Quill automatically flushes all pending log messages. However, when an application crashes (e.g., segmentation fault, abort), some log messages may be lost if they haven't been processed yet.
 
-Quill provides a built-in signal handler that can preserve pending logs in many common crash and termination scenarios (SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV). To enable it, pass ``SignalHandlerOptions`` when starting the backend with ``quill::Backend::start()``.
+Quill provides a built-in signal handler that can preserve pending logs in many common crash and termination scenarios (SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV and, where available, SIGBUS). To enable it, pass ``SignalHandlerOptions`` when starting the backend with ``quill::Backend::start()``.
 
 On POSIX systems, any thread that may run the built-in handler should either have already logged once, called ``Frontend::preallocate()``, or have the handled signals blocked on that thread.
 

@@ -10,13 +10,13 @@
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/Common.h"
 #include "quill/core/InlinedVector.h"
+#include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 #include "quill/core/UnboundedSPSCQueue.h"
 
 #ifndef QUILL_MODULE
   #include <atomic>
   #include <cstdint>
-  #include <cstdlib>
   #include <memory>
   #include <new>
   #include <string>
@@ -208,19 +208,95 @@ public:
     return _failure_counter.exchange(0, std::memory_order_relaxed);
   }
 
+  /**
+   * Called by the frontend when an unbounded queue could not reserve `event_size` bytes.
+   * A queue that cannot grow, e.g. when out of memory, keeps using its current node, and an event
+   * larger than that node can never be written to it, however long the caller waits or retries.
+   * Such an event is dropped and counted here, separately from the failure counter.
+   * @return true if the event cannot fit and was counted as dropped
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool drop_event_if_larger_than_queue(size_t event_size, size_t queue_capacity) noexcept
+  {
+    _last_event_larger_than_queue = event_size > queue_capacity;
+
+    if (_last_event_larger_than_queue)
+    {
+      _oversized_drop_counter.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    return _last_event_larger_than_queue;
+  }
+
+  /**
+   * Frontend only.
+   * @return whether the last event that failed to reserve space in an unbounded queue was
+   * dropped by drop_event_if_larger_than_queue()
+   */
+  QUILL_NODISCARD bool last_event_larger_than_queue() const noexcept
+  {
+    return _last_event_larger_than_queue;
+  }
+
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t get_and_reset_oversized_drop_counter() noexcept
+  {
+    if (QUILL_LIKELY(_oversized_drop_counter.load(std::memory_order_relaxed) == 0))
+    {
+      return 0;
+    }
+    return _oversized_drop_counter.exchange(0, std::memory_order_relaxed);
+  }
+
 private:
   friend class detail::BackendWorker;
 
   SpscQueueUnion _spsc_queue_union;            /**< queue for this thread */
   SizeCacheVector _conditional_arg_size_cache; /**< cache for storing sizes needed for specific operations, such as when calling `strn` functions or when a loop is required e.g. caching the size of a type */
-  std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread pid */
+  std::string _thread_id = std::to_string(get_thread_id());  /**< cached thread id */
   std::string _thread_name = get_thread_name();              /**< cached thread name */
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   std::shared_ptr<BackendMdcState> _backend_mdc_state; /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
   uint64_t _timestamp_ordering_grace_deadline{0}; /**< backend-owned deadline for the current queue head */
   QueueType _queue_type;
+  bool _last_event_larger_than_queue{false}; /**< frontend only, see drop_event_if_larger_than_queue() */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<size_t> _failure_counter{0};
+  std::atomic<size_t> _oversized_drop_counter{0}; /**< events dropped as larger than a queue that could not grow */
+};
+
+/**
+ * The FrontendOptions values of a thread queue or a logger. They must be the same throughout the
+ * application, because each thread owns one queue, created with the options of its first use.
+ * clock_type is not compared: it is a type, and each logger reads its own clock.
+ */
+struct FrontendOptionsValues
+{
+  template <typename TFrontendOptions>
+  QUILL_NODISCARD static constexpr FrontendOptionsValues of() noexcept
+  {
+    return FrontendOptionsValues{TFrontendOptions::initial_queue_capacity,
+                                 TFrontendOptions::unbounded_queue_max_capacity,
+                                 TFrontendOptions::blocking_queue_retry_interval_ns,
+                                 TFrontendOptions::queue_type,
+                                 TFrontendOptions::huge_pages_policy,
+                                 TFrontendOptions::enable_immediate_flush};
+  }
+
+  QUILL_NODISCARD bool operator==(FrontendOptionsValues const& other) const noexcept
+  {
+    return (initial_queue_capacity == other.initial_queue_capacity) &&
+      (unbounded_queue_max_capacity == other.unbounded_queue_max_capacity) &&
+      (blocking_queue_retry_interval_ns == other.blocking_queue_retry_interval_ns) &&
+      (queue_type == other.queue_type) && (huge_pages_policy == other.huge_pages_policy) &&
+      (enable_immediate_flush == other.enable_immediate_flush);
+  }
+
+  size_t initial_queue_capacity;
+  size_t unbounded_queue_max_capacity;
+  uint32_t blocking_queue_retry_interval_ns;
+  QueueType queue_type;
+  HugePagesPolicy huge_pages_policy;
+  bool enable_immediate_flush;
 };
 
 class ThreadContextManager
@@ -279,7 +355,7 @@ public:
     if (_new_thread_context_flag.load(std::memory_order_relaxed))
     {
       // if the variable was updated to true, set it to false,
-      // There should not be any race condition here as this is the only place _changed is set to
+      // There should not be any race condition here as this is the only place the flag is set to
       // false, and we will return true anyway
       _new_thread_context_flag.store(false, std::memory_order_relaxed);
       return true;
@@ -290,6 +366,10 @@ public:
   /***/
   void remove_shared_invalidated_thread_context(ThreadContext const* thread_context)
   {
+    // Usually the last owner: destroy it after releasing the lock, because unmapping its queue and
+    // transit buffer would otherwise stall threads registering their first log call.
+    std::shared_ptr<ThreadContext> removed_thread_context;
+
     LockGuard const lock{_spinlock};
 
     // We could use std::find_if, but since this header is included in Logger.h, which is essential
@@ -307,35 +387,64 @@ public:
 
     QUILL_ASSERT(thread_context_it != _thread_contexts.end(),
                  "Attempting to remove a non-existent thread context in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
 
     QUILL_ASSERT(!thread_context_it->get()->is_valid(),
                  "Attempting to remove a valid thread context in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
 
-    QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
-                 "Invalid queue type in ThreadContextManager::unregister_thread_context()");
+    QUILL_ASSERT(
+      thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
+      "Invalid queue type in ThreadContextManager::remove_shared_invalidated_thread_context()");
 
     if (thread_context->has_unbounded_queue_type())
     {
       QUILL_ASSERT(thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty(),
                    "Attempting to remove a thread context with a non-empty unbounded queue in "
-                   "ThreadContextManager::unregister_thread_context()");
+                   "ThreadContextManager::remove_shared_invalidated_thread_context()");
     }
     else if (thread_context->has_bounded_queue_type())
     {
       QUILL_ASSERT(thread_context->get_spsc_queue_union().bounded_spsc_queue.empty(),
                    "Attempting to remove a thread context with a non-empty bounded queue in "
-                   "ThreadContextManager::unregister_thread_context()");
+                   "ThreadContextManager::remove_shared_invalidated_thread_context()");
     }
 
+    removed_thread_context = static_cast<std::shared_ptr<ThreadContext>&&>(*thread_context_it);
     _thread_contexts.erase(thread_context_it);
 
-    // Decrement the counter since we found something to
+    // Decrement the counter since we removed an invalidated context
     QUILL_ASSERT(_invalid_thread_context_count.load(std::memory_order_relaxed) != 0,
                  "_invalid_thread_context_count underflow in "
-                 "ThreadContextManager::unregister_thread_context()");
+                 "ThreadContextManager::remove_shared_invalidated_thread_context()");
     _invalid_thread_context_count.fetch_sub(1, std::memory_order_relaxed);
+  }
+
+  /**
+   * Selects the application's FrontendOptions on first use, or checks them against that choice.
+   * Matching and claiming happen in one step so two threads cannot select different options.
+   * The first claim stands even if the queue or logger it was made for then fails to be created:
+   * mixing FrontendOptions is unsupported, so this only rejects a later, different choice.
+   * @return false if `frontend_options` differ from the FrontendOptions already in use
+   */
+  QUILL_NODISCARD bool claim_frontend_options(FrontendOptionsValues const& frontend_options) noexcept
+  {
+    // The options never change once claimed, so every later check reads them without the lock
+    if (QUILL_LIKELY(_frontend_options_set.load(std::memory_order_acquire)))
+    {
+      return _frontend_options == frontend_options;
+    }
+
+    LockGuard const lock{_spinlock};
+
+    if (!_frontend_options_set.load(std::memory_order_relaxed))
+    {
+      _frontend_options = frontend_options;
+      _frontend_options_set.store(true, std::memory_order_release);
+      return true;
+    }
+
+    return _frontend_options == frontend_options;
   }
 
 private:
@@ -344,34 +453,35 @@ private:
 
 private:
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
+  FrontendOptionsValues _frontend_options{}; /**< Claimed by the first queue or logger */
   Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  std::atomic<bool> _frontend_options_set{false}; /**< _frontend_options is immutable once this is set */
   std::atomic<bool> _new_thread_context_flag{false};
   std::atomic<uint32_t> _invalid_thread_context_count{0};
 };
+
+/**
+ * Every user of a thread's queue reads it as the queue type of its own FrontendOptions.
+ * @throws QuillError if `frontend_options` differ from the ones the application already uses
+ */
+inline void check_frontend_options(FrontendOptionsValues const& frontend_options)
+{
+  if (QUILL_UNLIKELY(!ThreadContextManager::instance().claim_frontend_options(frontend_options)))
+  {
+    QUILL_THROW(
+      QuillError{"FrontendOptions differ from the ones used by the rest of the application. "
+                 "Use one FrontendOptions specialization throughout the application."});
+  }
+}
 
 class ScopedThreadContext
 {
 public:
   /***/
-  ScopedThreadContext(QueueType queue_type, size_t initial_queue_capacity,
-                      size_t unbounded_queue_max_capacity, HugePagesPolicy huge_pages_policy)
-    : _thread_context(std::make_shared<ThreadContext>(
-        queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy))
+  explicit ScopedThreadContext(FrontendOptionsValues const& frontend_options)
+    : _thread_context(_create_thread_context(frontend_options))
   {
-#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
-    // Thread-local flag to track if an instance has been created for this thread.
-    // This ensures that get_local_thread_context() is not called with different template arguments
-    // when using custom FrontendOptions. Having multiple thread contexts in a single thread is fine
-    // and functional but goes against the design principle of maintaining a single thread context
-    // per thread.
-    thread_local bool thread_local_instance_created = false;
-
-    QUILL_ASSERT(!thread_local_instance_created,
-                 R"(ScopedThreadContext can only be instantiated once per thread. It appears you may be combining default FrontendOptions with custom FrontendOptions. Ensure only one set of FrontendOptions is used to maintain a single thread context per thread.)");
-
-    thread_local_instance_created = true;
-#endif
-
+    // One thread context per thread: get_scoped_thread_context_impl() owns the only thread_local.
     ThreadContextManager::instance().register_thread_context(_thread_context);
   }
 
@@ -384,9 +494,9 @@ public:
   {
     // This destructor will get called when the thread that created this wrapper stops
     // we will only invalidate the thread context
-    // The backend thread will empty an invalidated ThreadContext and then remove_file it from
-    // the ThreadContextCollection
-    // There is only exception for the thread who owns the ThreadContextCollection the
+    // The backend thread will empty an invalidated ThreadContext and then remove it from
+    // the ThreadContextManager
+    // There is only exception for the thread who owns the ThreadContextManager the
     // main thread. The thread context of the main thread can get deleted before getting invalidated
     // Count retirement before publishing invalidity: the backend may remove it immediately.
     ThreadContextManager::instance().add_invalid_thread_context();
@@ -402,26 +512,36 @@ public:
   }
 
 private:
+  /** @throws QuillError if `frontend_options` differ from the ones the application already uses */
+  static std::shared_ptr<ThreadContext> _create_thread_context(FrontendOptionsValues const& frontend_options)
+  {
+    check_frontend_options(frontend_options);
+
+    return std::make_shared<ThreadContext>(
+      frontend_options.queue_type, frontend_options.initial_queue_capacity,
+      frontend_options.unbounded_queue_max_capacity, frontend_options.huge_pages_policy);
+  }
+
+private:
   /**<
    * This could be unique_ptr but the thread context of main thread that owns
-   * ThreadContextCollection can be destructed last even after the logger singleton destruction
+   * ThreadContextManager can be destructed last even after the logger singleton destruction
    * so we use shared_ptr */
   std::shared_ptr<ThreadContext> _thread_context;
 };
 
 /**
  * Non-template implementation that owns the thread local context. This ensures that when building
- * with shared libraries, the thread-local context is shared accross all shared libraries
+ * with shared libraries, the thread-local context is shared across all shared libraries
  */
-QUILL_NODISCARD QUILL_ATTRIBUTE_HOT QUILL_EXPORT
+QUILL_NODISCARD QUILL_EXPORT
 #ifndef QUILL_MODULE
   inline
 #endif
-  ThreadContext* get_scoped_thread_context_impl(QueueType queue_type, size_t initial_queue_capacity,
-                                                size_t unbounded_queue_max_capacity, HugePagesPolicy huge_pages_policy)
+  ThreadContext*
+  get_scoped_thread_context_impl(FrontendOptionsValues const& frontend_options)
 {
-  thread_local ScopedThreadContext scoped_thread_context{
-    queue_type, initial_queue_capacity, unbounded_queue_max_capacity, huge_pages_policy};
+  thread_local ScopedThreadContext scoped_thread_context{frontend_options};
 
   return scoped_thread_context.get_thread_context();
 }
@@ -434,9 +554,26 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_local_thread_context()
                 "FrontendOptions::unbounded_queue_max_capacity must be greater than or equal to "
                 "FrontendOptions::initial_queue_capacity");
 
-  return get_scoped_thread_context_impl(
-    TFrontendOptions::queue_type, TFrontendOptions::initial_queue_capacity,
-    TFrontendOptions::unbounded_queue_max_capacity, TFrontendOptions::huge_pages_policy);
+  constexpr FrontendOptionsValues frontend_options = FrontendOptionsValues::of<TFrontendOptions>();
+  return get_scoped_thread_context_impl(frontend_options);
+}
+
+/**
+ * Like get_local_thread_context(), for cold callers such as Frontend::preallocate() that may run
+ * after this thread's queue was created with other FrontendOptions.
+ * @throws QuillError if TFrontendOptions differ from the ones the application already uses
+ */
+template <typename TFrontendOptions>
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD ThreadContext* get_checked_local_thread_context()
+{
+  // A successful claim lasts for the process lifetime, including backend restarts.
+  static bool const checked = []
+  {
+    check_frontend_options(FrontendOptionsValues::of<TFrontendOptions>());
+    return true;
+  }();
+  (void)checked;
+  return get_local_thread_context<TFrontendOptions>();
 }
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)

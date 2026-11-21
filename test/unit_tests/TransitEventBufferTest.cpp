@@ -8,11 +8,33 @@
 #include <ctime>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 TEST_SUITE_BEGIN("TransitEventBuffer");
 
 using namespace quill;
 using namespace quill::detail;
+
+/***/
+TEST_CASE("transit_event_move_keeps_runtime_metadata")
+{
+  static_assert(std::is_nothrow_move_constructible_v<TransitEvent>);
+  static_assert(std::is_nothrow_move_assignable_v<TransitEvent>);
+
+  TransitEvent source;
+  source.ensure_runtime_metadata().set("file.cpp", 7u, "function", "", "runtime {}", LogLevel::Info);
+  source.macro_metadata = &source.extra_data->runtime_metadata->macro_metadata;
+
+  TransitEvent moved_to{std::move(source)};
+  REQUIRE_EQ(moved_to.macro_metadata, &moved_to.extra_data->runtime_metadata->macro_metadata);
+  REQUIRE_STREQ(moved_to.macro_metadata->message_format(), "runtime {}");
+
+  TransitEvent assigned_to;
+  assigned_to = std::move(moved_to);
+  REQUIRE_EQ(assigned_to.macro_metadata, &assigned_to.extra_data->runtime_metadata->macro_metadata);
+  REQUIRE_STREQ(assigned_to.macro_metadata->message_format(), "runtime {}");
+}
 
 /***/
 TEST_CASE("runtime_metadata_truncates_oversized_file_path")
@@ -43,9 +65,7 @@ TEST_CASE("runtime_metadata_reuse_updates_changed_fields")
   REQUIRE_STREQ(runtime_metadata.macro_metadata.message_format(), "value {name}");
   REQUIRE(runtime_metadata.macro_metadata.has_named_args());
 
-  runtime_metadata.has_runtime_metadata = false;
   runtime_metadata.set("first/path.cpp", 42u, "first_function", "first_tag", "value {name}", LogLevel::Info);
-  REQUIRE(runtime_metadata.has_runtime_metadata);
   REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "42");
 
   runtime_metadata.set("second.cpp", 7u, "fn", nullptr, "value {}", LogLevel::Warning);
@@ -177,8 +197,8 @@ TEST_CASE("transit_event_unbounded_buffer")
 /***/
 TEST_CASE("transit_event_large_format_buffer_with_reallocations")
 {
-  // Test with FormatBuffer > 128 bytes (TransitEvent::FormatBuffer stack size is 88)
-  // Use random sizes [20, 512] to trigger various reallocation scenarios
+  // Messages of random sizes [20, 512] fill many blocks of the message arena, while the events
+  // trigger several reallocations of the buffer
   TransitEventBuffer bte{4};
 
   std::vector<std::pair<size_t, std::string>> expected_data;
@@ -187,14 +207,11 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
   // Generate and store events with varying buffer sizes, triggering multiple reallocations
   for (size_t iteration = 0; iteration < 10000; ++iteration)
   {
-    size_t buffer_size = 20 + (std::rand() % 493); // Random size [20, 512]
+    size_t buffer_size = 20 + static_cast<size_t>(std::rand() % 493); // Random size [20, 512]
     std::string large_string(buffer_size, 'A' + static_cast<char>(iteration % 26));
 
     TransitEvent* te = bte.back();
     REQUIRE(te);
-
-    te->formatted_msg->clear();
-    te->formatted_msg->append(large_string.data(), large_string.data() + large_string.size());
 
     // Also store named args with iteration number for validation
     te->extra_data = std::make_unique<TransitEvent::ExtraData>();
@@ -206,13 +223,15 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
     // Call back multiple times for additional testing
     for (size_t j = 0; j < 3; ++j)
     {
-      // Pull same record and verify again
+      // Each call returns the same record and starts its message again
+      bte.back_message().append(large_string.data(), large_string.data() + large_string.size());
+
       TransitEvent* te2 = bte.back();
-      REQUIRE(te2);
-      std::string_view actual_msg(te2->formatted_msg->data(), te2->formatted_msg->size());
-      REQUIRE_EQ(actual_msg, large_string);
+      REQUIRE_EQ(te2, te);
+      REQUIRE_EQ(bte.back_message().size(), 0);
     }
 
+    bte.back_message().append(large_string.data(), large_string.data() + large_string.size());
     bte.push_back();
 
     // Verify the buffer is handling reallocation correctly
@@ -229,8 +248,8 @@ TEST_CASE("transit_event_large_format_buffer_with_reallocations")
       REQUIRE(te);
 
       // Check formatted_msg content and size
-      REQUIRE_EQ(te->formatted_msg->size(), expected_data[i].first);
-      std::string_view actual_msg(te->formatted_msg->data(), te->formatted_msg->size());
+      REQUIRE_EQ(te->formatted_msg.size(), expected_data[i].first);
+      std::string_view actual_msg(te->formatted_msg.data(), te->formatted_msg.size());
       REQUIRE_EQ(actual_msg, expected_data[i].second);
 
       // Verify named_args are intact
@@ -262,8 +281,7 @@ TEST_CASE("transit_event_buffer_shrink_and_regrow")
     TransitEvent* te = bte.back();
     REQUIRE(te);
 
-    te->formatted_msg->clear();
-    te->formatted_msg->append(data.data(), data.data() + data.size());
+    bte.back_message().append(data.data(), data.data() + data.size());
 
     te->extra_data = std::make_unique<TransitEvent::ExtraData>();
     te->extra_data->named_args.clear();
@@ -281,7 +299,7 @@ TEST_CASE("transit_event_buffer_shrink_and_regrow")
   {
     TransitEvent* te = bte.front();
     REQUIRE(te);
-    std::string_view msg(te->formatted_msg->data(), te->formatted_msg->size());
+    std::string_view msg(te->formatted_msg.data(), te->formatted_msg.size());
     REQUIRE_EQ(msg, phase1_data[i]);
     bte.pop_front();
   }
@@ -304,8 +322,7 @@ TEST_CASE("transit_event_buffer_shrink_and_regrow")
     TransitEvent* te = bte.back();
     REQUIRE(te);
 
-    te->formatted_msg->clear();
-    te->formatted_msg->append(large_data.data(), large_data.data() + large_data.size());
+    bte.back_message().append(large_data.data(), large_data.data() + large_data.size());
 
     te->extra_data = std::make_unique<TransitEvent::ExtraData>();
     te->extra_data->named_args.clear();
@@ -323,8 +340,8 @@ TEST_CASE("transit_event_buffer_shrink_and_regrow")
     TransitEvent* te = bte.front();
     REQUIRE(te);
 
-    REQUIRE_EQ(te->formatted_msg->size(), phase4_data[i].second);
-    std::string_view actual(te->formatted_msg->data(), te->formatted_msg->size());
+    REQUIRE_EQ(te->formatted_msg.size(), phase4_data[i].second);
+    std::string_view actual(te->formatted_msg.data(), te->formatted_msg.size());
     REQUIRE_EQ(actual, phase4_data[i].first);
 
     std::string expected_key = "regrow_" + std::to_string(i);
@@ -350,19 +367,18 @@ TEST_CASE("transit_event_buffer_interleaved_operations")
   for (size_t cycle = 0; cycle < 20; ++cycle)
   {
     // Push phase: Add 10-20 events with varying sizes
-    size_t push_count = 10 + (std::rand() % 11);
+    size_t push_count = 10 + static_cast<size_t>(std::rand() % 11);
     for (size_t i = 0; i < push_count; ++i)
     {
-      size_t buffer_size = 50 + (std::rand() % 400); // [50, 449]
+      size_t buffer_size = 50 + static_cast<size_t>(std::rand() % 400); // [50, 449]
       std::string data(buffer_size, 'a' + static_cast<char>((total_operations + i) % 26));
       std::string key = "cycle" + std::to_string(cycle) + "_item" + std::to_string(i);
 
       TransitEvent* te = bte.back();
       REQUIRE(te);
 
-      // Test formatted_msg with heap-allocated buffer
-      te->formatted_msg->clear();
-      te->formatted_msg->append(data.data(), data.data() + data.size());
+      // Test formatted_msg with messages of different sizes
+      bte.back_message().append(data.data(), data.data() + data.size());
 
       // Test extra_data with named_args
       te->extra_data = std::make_unique<TransitEvent::ExtraData>();
@@ -384,8 +400,8 @@ TEST_CASE("transit_event_buffer_interleaved_operations")
       REQUIRE(te);
 
       // Verify formatted_msg content matches
-      REQUIRE_EQ(te->formatted_msg->size(), active_data[0].second);
-      std::string_view actual_msg(te->formatted_msg->data(), te->formatted_msg->size());
+      REQUIRE_EQ(te->formatted_msg.size(), active_data[0].second);
+      std::string_view actual_msg(te->formatted_msg.data(), te->formatted_msg.size());
       REQUIRE_EQ(actual_msg, active_data[0].first);
 
       // Verify named_args are valid
@@ -406,8 +422,8 @@ TEST_CASE("transit_event_buffer_interleaved_operations")
     TransitEvent* te = bte.front();
     REQUIRE(te);
 
-    REQUIRE_EQ(te->formatted_msg->size(), active_data[0].second);
-    std::string_view actual_msg(te->formatted_msg->data(), te->formatted_msg->size());
+    REQUIRE_EQ(te->formatted_msg.size(), active_data[0].second);
+    std::string_view actual_msg(te->formatted_msg.data(), te->formatted_msg.size());
     REQUIRE_EQ(actual_msg, active_data[0].first);
 
     bte.pop_front();
@@ -430,8 +446,7 @@ TEST_CASE("transit_event_buffer_shrink_flag_with_move_semantics")
     TransitEvent* te = bte1.back();
     REQUIRE(te);
     std::string data = "test_" + std::to_string(i);
-    te->formatted_msg->clear();
-    te->formatted_msg->append(data.data(), data.data() + data.size());
+    bte1.back_message().append(data.data(), data.data() + data.size());
     bte1.push_back();
   }
 
@@ -468,8 +483,7 @@ TEST_CASE("transit_event_copy_to_backtrace_scenario")
   REQUIRE(te1);
 
   std::string large_msg(300, 'A');
-  te1->formatted_msg->clear();
-  te1->formatted_msg->append(large_msg.data(), large_msg.data() + large_msg.size());
+  bte.back_message().append(large_msg.data(), large_msg.data() + large_msg.size());
 
   te1->extra_data = std::make_unique<TransitEvent::ExtraData>();
   te1->extra_data->named_args.emplace_back("key1", "value1");
@@ -484,22 +498,20 @@ TEST_CASE("transit_event_copy_to_backtrace_scenario")
   TransitEvent copy_event;
   original->copy_to(copy_event);
 
-  // Verify the copy is independent and correct
-  REQUIRE(copy_event.formatted_msg);
-  REQUIRE_EQ(copy_event.formatted_msg->size(), 300);
-  REQUIRE_EQ(std::string_view(copy_event.formatted_msg->data(), copy_event.formatted_msg->size()), large_msg);
+  // Verify the copy is correct. It refers to the message of the original, which the buffer
+  // stores: BacktraceStorage::store() is what gives a copy a message of its own
+  REQUIRE_EQ(copy_event.formatted_msg.size(), 300);
+  REQUIRE_EQ(std::string_view(copy_event.formatted_msg.data(), copy_event.formatted_msg.size()), large_msg);
+  REQUIRE_EQ(copy_event.formatted_msg.data(), original->formatted_msg.data());
 
   REQUIRE(copy_event.extra_data);
   REQUIRE_EQ(copy_event.extra_data->named_args.size(), 2);
   REQUIRE_EQ(copy_event.extra_data->named_args[0].first, "key1");
   REQUIRE_EQ(copy_event.extra_data->named_args[1].second, "value2");
 
-  // Modify original and verify copy is unaffected
-  std::string modified = "MODIFIED";
-  original->formatted_msg->clear();
-  original->formatted_msg->append(modified.data(), modified.data() + modified.size());
-
-  REQUIRE_EQ(std::string_view(copy_event.formatted_msg->data(), copy_event.formatted_msg->size()), large_msg);
+  // Modify original and verify the extra data of the copy is unaffected
+  original->extra_data->named_args[0].second = "MODIFIED";
+  REQUIRE_EQ(copy_event.extra_data->named_args[0].second, "value1");
 
   bte.pop_front();
   REQUIRE(bte.empty());
@@ -508,20 +520,19 @@ TEST_CASE("transit_event_copy_to_backtrace_scenario")
 /***/
 TEST_CASE("transit_event_formatted_msg_validity_after_expansion")
 {
-  // Test that formatted_msg unique_ptr remains valid after buffer expansion
-  // This tests for potential issues with move semantics and reallocation
+  // Expansion moves the events to new storage. Their messages stay where they are in the
+  // message arena
   TransitEventBuffer bte{2};
+
+  std::vector<std::string> const messages{"test_0", std::string(150, 'Y'), std::string(200, 'X')};
 
   // Fill buffer to capacity to trigger expansion on next back()
   for (size_t i = 0; i < 2; ++i)
   {
     TransitEvent* te = bte.back();
     REQUIRE(te);
-    REQUIRE(te->formatted_msg); // Should always be valid
 
-    std::string data = "test_" + std::to_string(i);
-    te->formatted_msg->clear();
-    te->formatted_msg->append(data.data(), data.data() + data.size());
+    bte.back_message().append(messages[i].data(), messages[i].data() + messages[i].size());
 
     bte.push_back();
   }
@@ -532,12 +543,9 @@ TEST_CASE("transit_event_formatted_msg_validity_after_expansion")
   // Next back() call will trigger expansion
   TransitEvent* te_new = bte.back();
   REQUIRE(te_new);
-  REQUIRE(te_new->formatted_msg);
 
   // Verify we can use it safely
-  te_new->formatted_msg->clear();
-  std::string large_data(200, 'X');
-  te_new->formatted_msg->append(large_data.data(), large_data.data() + large_data.size());
+  bte.back_message().append(messages[2].data(), messages[2].data() + messages[2].size());
 
   bte.push_back();
 
@@ -545,13 +553,12 @@ TEST_CASE("transit_event_formatted_msg_validity_after_expansion")
   REQUIRE_GT(bte.capacity(), 2);
   REQUIRE_EQ(bte.size(), 3);
 
-  // Verify all events are still accessible with valid formatted_msg
-  for (size_t i = 0; i < 3; ++i)
+  // Verify every event kept its message
+  for (std::string const& message : messages)
   {
     TransitEvent* te = bte.front();
     REQUIRE(te);
-    REQUIRE(te->formatted_msg); // Must still be valid
-    REQUIRE_GT(te->formatted_msg->size(), 0);
+    REQUIRE_EQ(std::string_view(te->formatted_msg.data(), te->formatted_msg.size()), message);
     bte.pop_front();
   }
 
@@ -633,24 +640,23 @@ TEST_CASE("transit_event_buffer_stress_test")
     {
       TransitEvent* te = bte.back();
       REQUIRE(te);
-      REQUIRE(te->formatted_msg);
 
       // Populate with large formatted_msg (20 to 8192 bytes) to stress memory
-      size_t msg_size = 20 + (std::rand() % 8173);
-      te->formatted_msg->clear();
-      te->formatted_msg->reserve(msg_size);
+      size_t msg_size = 20 + static_cast<size_t>(std::rand() % 8173);
+      fmtquill::detail::buffer<char>& formatted_msg = bte.back_message();
 
       // Fill with recognizable pattern
       char pattern_char = 'A' + (global_event_id % 26);
       for (size_t i = 0; i < msg_size; ++i)
       {
-        te->formatted_msg->push_back(pattern_char);
+        formatted_msg.push_back(pattern_char);
       }
       te->timestamp = global_event_id;
 
-      REQUIRE_EQ(te->formatted_msg->size(), msg_size);
+      REQUIRE_EQ(formatted_msg.size(), msg_size);
 
       bte.push_back();
+      REQUIRE_EQ(te->formatted_msg.size(), msg_size);
       global_event_id++;
     }
 
@@ -661,7 +667,6 @@ TEST_CASE("transit_event_buffer_stress_test")
     {
       TransitEvent* te = bte.front();
       REQUIRE(te);
-      REQUIRE(te->formatted_msg);
 
       size_t expected_id = (iteration * total_events) + pop_idx;
 
@@ -669,9 +674,9 @@ TEST_CASE("transit_event_buffer_stress_test")
 
       // Verify formatted_msg pattern
       char expected_char = 'A' + (expected_id % 26);
-      for (size_t i = 0; i < te->formatted_msg->size(); ++i)
+      for (size_t i = 0; i < te->formatted_msg.size(); ++i)
       {
-        REQUIRE_EQ((*te->formatted_msg)[i], expected_char);
+        REQUIRE_EQ(te->formatted_msg[i], expected_char);
       }
 
       bte.pop_front();
@@ -691,6 +696,99 @@ TEST_CASE("transit_event_buffer_stress_test")
 
   REQUIRE(bte.empty());
   REQUIRE_EQ(global_event_id, 12800);
+}
+
+/***/
+TEST_CASE("transit_event_buffer_stores_messages_in_event_order")
+{
+  TransitEventBuffer bte{4};
+
+  std::string const first_msg{"first message"};
+  std::string const third_msg{"third message"};
+
+  TransitEvent* first = bte.back();
+  bte.back_message().append(first_msg.data(), first_msg.data() + first_msg.size());
+  bte.push_back();
+  REQUIRE_EQ(first->formatted_msg, first_msg);
+
+  // An event that is pushed without writing a message, such as a flush, has none
+  TransitEvent* second = bte.back();
+  bte.push_back();
+  REQUIRE(second->formatted_msg.empty());
+
+  // A message that was written for an event that is not pushed is dropped by the next back()
+  TransitEvent* third = bte.back();
+  std::string const dropped_msg{"dropped message"};
+  bte.back_message().append(dropped_msg.data(), dropped_msg.data() + dropped_msg.size());
+
+  REQUIRE_EQ(bte.back(), third);
+  bte.back_message().append(third_msg.data(), third_msg.data() + third_msg.size());
+  bte.push_back();
+  REQUIRE_EQ(third->formatted_msg, third_msg);
+
+  // The messages follow each other in memory in the order of their events
+  REQUIRE_EQ(third->formatted_msg.data(), first->formatted_msg.data() + first_msg.size());
+  REQUIRE_EQ(first->formatted_msg, first_msg);
+
+  // Once every event is popped the memory of the messages is used again
+  char const* const first_msg_data = first->formatted_msg.data();
+  bte.pop_front();
+  bte.pop_front();
+  bte.pop_front();
+  REQUIRE(bte.empty());
+
+  TransitEvent* fourth = bte.back();
+  bte.back_message().append(third_msg.data(), third_msg.data() + third_msg.size());
+  bte.push_back();
+  REQUIRE_EQ(fourth->formatted_msg, third_msg);
+  REQUIRE_EQ(fourth->formatted_msg.data(), first_msg_data);
+
+  bte.pop_front();
+  REQUIRE(bte.empty());
+}
+
+/***/
+TEST_CASE("transit_event_buffer_after_front")
+{
+  TransitEventBuffer bte{4};
+  REQUIRE_FALSE(bte.after_front());
+
+  // A single event has no event after it
+  TransitEvent* te = bte.back();
+  te->timestamp = 0;
+  bte.push_back();
+  REQUIRE_FALSE(bte.after_front());
+
+  for (size_t i = 1; i < 4; ++i)
+  {
+    te = bte.back();
+    te->timestamp = i;
+    bte.push_back();
+
+    // It is the second event, however many follow it
+    REQUIRE_EQ(bte.after_front()->timestamp, 1);
+  }
+
+  bte.pop_front();
+  REQUIRE_EQ(bte.after_front()->timestamp, 2);
+
+  // Move the front to the last slot, so that the event after it wraps around to the first slot
+  bte.pop_front();
+  bte.pop_front();
+
+  REQUIRE_EQ(bte.front()->timestamp, 3);
+  REQUIRE_FALSE(bte.after_front());
+
+  te = bte.back();
+  te->timestamp = 4;
+  bte.push_back();
+
+  REQUIRE_EQ(bte.capacity(), 4);
+  REQUIRE_EQ(bte.after_front()->timestamp, 4);
+
+  bte.pop_front();
+  REQUIRE_EQ(bte.front()->timestamp, 4);
+  REQUIRE_FALSE(bte.after_front());
 }
 
 TEST_SUITE_END();

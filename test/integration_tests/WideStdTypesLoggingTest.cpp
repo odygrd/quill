@@ -4,6 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/MemberwiseCodec.h"
 #include "quill/core/Filesystem.h"
 #include "quill/sinks/FileSink.h"
 
@@ -16,6 +17,7 @@
 #include "quill/std/Optional.h"
 #include "quill/std/Pair.h"
 #include "quill/std/Set.h"
+#include "quill/std/Tuple.h"
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 #include "quill/std/Variant.h"
@@ -32,6 +34,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -44,6 +47,31 @@ struct CWideStringComparator
 {
   bool operator()(wchar_t const* a, wchar_t const* b) const { return std::wcscmp(a, b) < 0; }
 };
+
+#if defined(_WIN32)
+/** MemberwiseCodec decodes each member back into its own type, here a tuple holding a wide string */
+struct WideTupleMember
+{
+  std::tuple<int, std::wstring> id_and_name;
+};
+
+template <>
+struct fmtquill::formatter<WideTupleMember>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(WideTupleMember const& value, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "{} {}", std::get<0>(value.id_and_name),
+                               quill::detail::utf8_encode(std::get<1>(value.id_and_name)));
+  }
+};
+
+template <>
+struct quill::Codec<WideTupleMember> : quill::MemberwiseCodec<WideTupleMember, &WideTupleMember::id_and_name>
+{
+};
+#endif
 
 /***/
 TEST_CASE("wide_std_types_logging")
@@ -157,6 +185,16 @@ TEST_CASE("wide_std_types_logging")
 
     std::array<std::optional<std::wstring>, 2> waow = {std::optional<std::wstring>{L"nested"}, std::nullopt};
     LOG_INFO(logger, "waow {}", waow);
+
+    std::tuple<int, std::wstring> wtup{7, L"tuple"};
+    LOG_INFO(logger, "wtup {}", wtup);
+
+    std::variant<int, std::wstring> wvar{std::wstring{L"variant"}};
+    LOG_INFO(logger, "wvar {}", wvar);
+
+    WideTupleMember wtm;
+    wtm.id_and_name = {8, L"member"};
+    LOG_INFO(logger, "wtm {}", wtm);
 
     std::set<std::wstring> sa = {L"test", L"string"};
     LOG_INFO(logger, "sa {}", sa);
@@ -301,6 +339,15 @@ TEST_CASE("wide_std_types_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       waow [optional(\"nested\"), none]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       wtup (7, \"tuple\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       wvar variant(\"variant\")"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       wtm 8 member"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       sa [\"string\", \"test\"]"}));

@@ -138,6 +138,31 @@ public:
   }
 
   /**
+   * Appends raw bytes, packed into as many elements as needed. Used by codecs that snapshot a
+   * value while sizing it and copy the same bytes when encoding.
+   */
+  void append_bytes(void const* bytes, size_t bytes_size)
+  {
+    size_t const count = (bytes_size + sizeof(value_type) - 1u) / sizeof(value_type);
+
+    if (count == 0)
+    {
+      return;
+    }
+
+    if ((_capacity - _size) < count)
+    {
+      size_t const required = _size + count;
+      reserve((required > (_capacity * 2u)) ? required : (_capacity * 2u));
+    }
+
+    value_type* const dest = ((_capacity == N) ? _storage.inline_buffer : _storage.heap_buffer) + _size;
+    dest[count - 1u] = value_type{}; // zero the padding of the last element
+    std::memcpy(dest, bytes, bytes_size);
+    _size += count;
+  }
+
+  /**
    * Access element
    */
   QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
@@ -157,24 +182,9 @@ public:
     }
   }
 
-  /**
-   * Assign value at index
-   */
-  QUILL_ATTRIBUTE_HOT void assign(size_t index, value_type value)
+  QUILL_NODISCARD value_type const* data() const noexcept
   {
-    if (QUILL_UNLIKELY(index >= _size))
-    {
-      QUILL_THROW(QuillError{"index out of bounds"});
-    }
-
-    if (_capacity == N)
-    {
-      _storage.inline_buffer[index] = value;
-    }
-    else
-    {
-      _storage.heap_buffer[index] = value;
-    }
+    return (_capacity == N) ? _storage.inline_buffer : _storage.heap_buffer;
   }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept { return _size; }
@@ -192,14 +202,16 @@ private:
   size_t _capacity{N};
 };
 
-/**
- * A vector that stores sizes for specific operations using `uint32_t` to optimize space.
- * The capacity of 12 is chosen to fit within a full cache line for better performance.
- */
-using SizeCacheVector = InlinedVector<uint32_t, 12>;
-static_assert(sizeof(SizeCacheVector) <= QUILL_CACHE_LINE_SIZE,
-              "SizeCacheVector should not exceed a cache line");
 } // namespace detail
+
+/**
+ * The size cache passed to custom Codec implementations. It stores sizes computed in
+ * compute_encoded_size() for encode() to reuse, using `uint32_t` to save space. The capacity of 12
+ * is chosen to fit within a full cache line for better performance.
+ */
+using SizeCacheVector = detail::InlinedVector<uint32_t, 12>;
+static_assert(sizeof(SizeCacheVector) <= detail::QUILL_CACHE_LINE_SIZE,
+              "SizeCacheVector should not exceed a cache line");
 
 QUILL_END_EXPORT
 

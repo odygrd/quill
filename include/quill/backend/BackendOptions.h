@@ -50,12 +50,11 @@ QUILL_BEGIN_EXPORT
 /**
  * @brief Configuration options for the backend.
  *
- * This struct defines settings for the backend thread
+ * This struct defines settings for the backend thread. It is an aggregate, so in C++20 it can be
+ * initialised with designated initializers, e.g. `BackendOptions{.thread_name = "backend"}`.
  */
 struct BackendOptions
 {
-  BackendOptions() = default;
-
   /**
    * The name assigned to the backend, visible during thread naming queries (e.g.,
    * pthread_getname_np) or in the debugger.
@@ -71,7 +70,9 @@ struct BackendOptions
   bool enable_yield_when_idle = false;
 
   /**
-   * Specifies the duration the backend sleeps if there is no remaining work to process in the queues.
+   * Specifies the duration the backend sleeps if there is no remaining work to process in the
+   * queues. Durations above 24 hours are treated as 24 hours. To sleep until woken, use a long
+   * duration and call Backend::notify().
    */
   std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
 
@@ -228,7 +229,7 @@ struct BackendOptions
    *       because this option uses SetThreadAffinityMask. Leave this empty and use a custom
    *       backend-thread hook if your application needs group-aware affinity.
    */
-  std::vector<uint16_t> cpu_affinity;
+  std::vector<uint16_t> cpu_affinity{};
 
   /**
    * The backend may encounter exceptions that cannot be caught within user threads.
@@ -237,8 +238,8 @@ struct BackendOptions
    * This function sets up a user error notifier to handle backend errors and notifications,
    * such as when the unbounded queue reallocates or when the bounded queue becomes full.
    *
-   * To disable callback notifications, simply leave the function undefined:
-   *   std::function<void(std::string const&)> backend_error_notifier = {};
+   * To disable callback notifications, leave the function empty:
+   *   backend_options.error_notifier = {};
    *
    * Disabling this callback does not suppress Quill's fallback formatting-error entries written
    * to sinks. It only disables the callback notifications themselves.
@@ -311,6 +312,9 @@ struct BackendOptions
    * The check applies only when at least one argument in a log statement is of type string.
    *
    * You can customize this callback to define your own range of printable characters if needed.
+   * The backend calls it once for each of the 256 byte values when it starts and uses the results
+   * as a lookup table, so it must depend only on its argument. A byte for which it throws is
+   * treated as non-printable.
    *
    * To disable this check, you can provide:
    *   std::function<bool(char c)> check_printable_char = {}

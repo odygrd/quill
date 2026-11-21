@@ -1,24 +1,24 @@
 include(CheckCXXSourceCompiles)
 
-# Get Quill version from include/quill/Backend.h and store it as QUILL_VERSION
+# Get Quill version from include/quill/core/Attributes.h and store it as QUILL_VERSION
 function(quill_extract_version)
-    file(READ "${CMAKE_CURRENT_LIST_DIR}/include/quill/Backend.h" file_contents)
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/include/quill/core/Attributes.h" file_contents)
 
-    string(REGEX MATCH "constexpr uint32_t VersionMajor{([0-9]+)}" _ "${file_contents}")
+    string(REGEX MATCH "#define QUILL_VERSION_MAJOR ([0-9]+)" _ "${file_contents}")
     if (NOT CMAKE_MATCH_COUNT EQUAL 1)
-        message(FATAL_ERROR "Failed to extract major version number from quill/Backend.h")
+        message(FATAL_ERROR "Failed to extract major version number from quill/core/Attributes.h")
     endif ()
     set(version_major ${CMAKE_MATCH_1})
 
-    string(REGEX MATCH "constexpr uint32_t VersionMinor{([0-9]+)}" _ "${file_contents}")
+    string(REGEX MATCH "#define QUILL_VERSION_MINOR ([0-9]+)" _ "${file_contents}")
     if (NOT CMAKE_MATCH_COUNT EQUAL 1)
-        message(FATAL_ERROR "Failed to extract minor version number from quill/Backend.h")
+        message(FATAL_ERROR "Failed to extract minor version number from quill/core/Attributes.h")
     endif ()
     set(version_minor ${CMAKE_MATCH_1})
 
-    string(REGEX MATCH "constexpr uint32_t VersionPatch{([0-9]+)}" _ "${file_contents}")
+    string(REGEX MATCH "#define QUILL_VERSION_PATCH ([0-9]+)" _ "${file_contents}")
     if (NOT CMAKE_MATCH_COUNT EQUAL 1)
-        message(FATAL_ERROR "Failed to extract patch version number from quill/Backend.h")
+        message(FATAL_ERROR "Failed to extract patch version number from quill/core/Attributes.h")
     endif ()
     set(version_patch ${CMAKE_MATCH_1})
 
@@ -38,6 +38,12 @@ function(set_common_compile_options target_name)
             # General warnings for Clang, AppleClang, and GNU, but NOT on Windows
             $<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>,$<NOT:$<PLATFORM_ID:Windows>>>:
             -Wall -Wextra -pedantic -Werror -Wredundant-decls -Wfloat-equal
+            -Wshadow -Wsign-conversion
+            >
+
+            # -Wextra-semi is available from GCC 8, but NOT on Windows
+            $<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,8.0>>>,$<NOT:$<PLATFORM_ID:Windows>>>:
+            -Wextra-semi
             >
 
             # GCC-specific hardening and security flags

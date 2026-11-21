@@ -88,15 +88,16 @@ You can extend the library by creating and integrating your own ``Sink`` types. 
 
 This can be useful if you want to direct log output to alternative destinations, such as a database, a network service, or even to write ``Parquet`` files.
 
-A custom sink can override ``write_log()``, ``write_metric()``, or both. The default
-``Sink::write_metric()`` implementation is a no-op, so existing log-only sinks do not need to
-change. If you want to export metrics, implement ``write_metric()`` and bind a logger to that
-sink. See :doc:`Metrics <metrics>` for the metric publishing model and the Prometheus/custom-sink
-examples.
+A custom sink implements ``write_log(LogRecord const&)`` and ``flush_sink(SinkFlushReason)``.
+``LogRecord`` holds the formatted message and statement, the metadata, thread, logger, level,
+named arguments and MDC of the record. Its views are valid only during the call, so copy anything
+the sink keeps. The flush reason distinguishes backend idle flushes, explicit
+``logger->flush_log()`` flushes, and the final flush at backend shutdown.
 
-Custom sinks can also override ``flush_sink(SinkFlushReason)`` in addition to ``flush_sink()``
-when they need to distinguish backend idle flushes, explicit ``logger->flush_log()`` flushes, and
-final backend shutdown flushes.
+To export metrics, also implement ``write_metric(MetricRecord const&)`` and bind a logger to that
+sink. The default ``Sink::write_metric()`` is a no-op, so log-only sinks need not implement it.
+See :doc:`Metrics <metrics>` for the metric publishing model and the Prometheus/custom-sink
+examples.
 
 .. literalinclude:: ../examples/user_defined_sink.cpp
    :language: cpp

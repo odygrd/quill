@@ -6,14 +6,15 @@
 
 #pragma once
 
+#include "quill/backend/MessageArena.h"
 #include "quill/backend/TransitEvent.h"
 #include "quill/bundled/fmt/format.h" // for assert_fail
 #include "quill/core/Attributes.h"
 #include "quill/core/MathUtilities.h"
-#include "quill/core/QuillError.h"
 
 #ifndef QUILL_MODULE
   #include <cstddef>
+  #include <utility>
   #include <vector>
 #endif
 
@@ -25,6 +26,9 @@ namespace detail
 class TransitEventBuffer
 {
 public:
+  /** The formatted messages are stored in blocks of this many bytes */
+  static constexpr size_t message_block_capacity{32u * 1024u};
+
   explicit TransitEventBuffer(size_t initial_capacity)
     : _initial_capacity(next_power_of_two(initial_capacity)), _mask(_initial_capacity - 1u), _storage(_initial_capacity)
   {
@@ -40,7 +44,8 @@ public:
       _reader_pos(other._reader_pos),
       _writer_pos(other._writer_pos),
       _shrink_requested(other._shrink_requested),
-      _storage(std::move(other._storage))
+      _storage(std::move(other._storage)),
+      _message_arena(std::move(other._message_arena))
   {
     other._mask = 0;
     other._reader_pos = 0;
@@ -55,6 +60,7 @@ public:
     {
       _initial_capacity = other._initial_capacity;
       _storage = std::move(other._storage);
+      _message_arena = std::move(other._message_arena);
       _mask = other._mask;
       _reader_pos = other._reader_pos;
       _writer_pos = other._writer_pos;
@@ -77,10 +83,26 @@ public:
     return &_storage[_reader_pos & _mask];
   }
 
-  QUILL_ATTRIBUTE_HOT void pop_front() noexcept { ++_reader_pos; }
+  /** @return the event that follows front(), or nullptr when there is none */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent const* after_front() const noexcept
+  {
+    if (size() < 2)
+    {
+      return nullptr;
+    }
+    return &_storage[(_reader_pos + 1) & _mask];
+  }
+
+  /** Removes front() and releases its formatted message */
+  QUILL_ATTRIBUTE_HOT void pop_front() noexcept
+  {
+    _message_arena.pop_front();
+    ++_reader_pos;
+  }
 
   /**
    * Expands the buffer when full, so it can throw on allocation failure
+   * @return the event that push_back() adds. Its formatted message is written to back_message()
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT TransitEvent* back()
   {
@@ -89,10 +111,28 @@ public:
       // Buffer is full, need to expand
       _expand();
     }
+
+    // The event starts without a message, also when the previous one was written and not added
+    _message_arena.begin_message();
+
     return &_storage[_writer_pos & _mask];
   }
 
-  QUILL_ATTRIBUTE_HOT void push_back() noexcept { ++_writer_pos; }
+  /**
+   * @return the buffer that the formatted message of back() is written to. It is empty after
+   * back(), and the message is stored after the messages of the events that are already buffered
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT fmtquill::detail::buffer<char>& back_message() noexcept
+  {
+    return _message_arena.message();
+  }
+
+  /** Adds back() to the buffer, with the formatted message that was written to back_message() */
+  QUILL_ATTRIBUTE_HOT void push_back() noexcept
+  {
+    _storage[_writer_pos & _mask].formatted_msg = _message_arena.commit_message();
+    ++_writer_pos;
+  }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept
   {
@@ -121,6 +161,7 @@ public:
         _reader_pos = 0;
       }
 
+      _message_arena.reset();
       _shrink_requested = false;
     }
   }
@@ -131,33 +172,22 @@ private:
     size_t const new_capacity = capacity() * 2;
     size_t const current_size = size();
 
+    // This is the only allocation, so a failure throws before any event is moved. The caller
+    // relies on the already-cached events surviving so it can keep processing them
     std::vector<TransitEvent> new_storage;
     new_storage.reserve(new_capacity);
 
     // Move-construct the existing elements into the new storage instead of default-constructing
-    // every slot and move-assigning over it; each default-constructed TransitEvent heap-allocates
-    // a FormatBuffer that the move-assignment would immediately destroy. Since the buffer is
-    // full, this moves all the previous TransitEvents, preserving their order. The reader
-    // position and mask are used to handle the circular buffer's wraparound.
+    // every slot and move-assigning over it. Since the buffer is full, this moves all the previous
+    // TransitEvents, preserving their order. The reader position and mask are used to handle the
+    // circular buffer's wraparound.
     for (size_t i = 0; i < current_size; ++i)
     {
       new_storage.emplace_back(std::move(_storage[(_reader_pos + i) & _mask]));
     }
 
-    // Only the new tail slots are default-constructed. This can throw on allocation failure; the
-    // caller relies on the already-cached events surviving so it can keep processing them, so
-    // move the events back and leave the buffer unchanged before propagating
-    QUILL_TRY { new_storage.resize(new_capacity); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH_ALL()
-    {
-      for (size_t i = 0; i < current_size; ++i)
-      {
-        _storage[(_reader_pos + i) & _mask] = std::move(new_storage[i]);
-      }
-      throw;
-    }
-#endif
+    // Only the new tail slots are default-constructed, which does not allocate
+    new_storage.resize(new_capacity);
 
     _storage = std::move(new_storage);
     _mask = new_capacity - 1;
@@ -175,6 +205,9 @@ private:
   // with _mask being capacity - 1). It is never resized in place; expansion and shrinking
   // replace it with a new vector
   std::vector<TransitEvent> _storage;
+
+  /** The formatted messages of the buffered events, in the order of the events */
+  MessageArena _message_arena{message_block_capacity};
 };
 
 } // namespace detail

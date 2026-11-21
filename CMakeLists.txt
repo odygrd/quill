@@ -108,8 +108,8 @@ if (QUILL_BUILD_TESTS)
             message(WARNING "Valgrind not found")
         endif ()
 
-        # set valgrind params
-        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
+        # Keep test executables' replacement new/delete active for allocation-failure injection.
+        set(MEMORYCHECK_COMMAND_OPTIONS "--tool=memcheck --soname-synonyms=somalloc=nouserintercepts --leak-check=full --leak-resolution=med --show-leak-kinds=all --track-origins=yes --vgdb=no --fair-sched=yes")
 
         # add memcheck test action to ctest
         include(CTest)
@@ -209,6 +209,10 @@ set(HEADER_FILES
         include/quill/backend/BackendWorkerLock.h
         include/quill/backend/BacktraceStorage.h
         include/quill/backend/ManualBackendWorker.h
+        include/quill/backend/MessageArena.h
+        include/quill/backend/NamedArgsFormat.h
+        include/quill/backend/NamedArgsTemplate.h
+        include/quill/backend/NamedArgsTemplateCache.h
         include/quill/backend/PatternFormatter.h
         include/quill/backend/RdtscClock.h
         include/quill/backend/SignalHandler.h
@@ -235,6 +239,7 @@ set(HEADER_FILES
 
         include/quill/core/Attributes.h
         include/quill/core/BoundedSPSCQueue.h
+        include/quill/core/BufferUtilities.h
         include/quill/core/ChronoTimeUtils.h
         include/quill/core/ClockSource.h
         include/quill/core/Common.h
@@ -268,6 +273,8 @@ set(HEADER_FILES
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
         include/quill/sinks/JsonSink.h
+        include/quill/sinks/LogRecord.h
+        include/quill/sinks/MetricRecord.h
         include/quill/sinks/NullSink.h
         include/quill/sinks/metrics/PrometheusSink.h
         include/quill/sinks/RotatingFileSink.h
@@ -310,6 +317,7 @@ set(HEADER_FILES
         include/quill/LogFunctions.h
         include/quill/Logger.h
         include/quill/LogMacros.h
+        include/quill/MemberwiseCodec.h
         include/quill/SimpleSetup.h
         include/quill/StopWatch.h
         include/quill/StringRef.h

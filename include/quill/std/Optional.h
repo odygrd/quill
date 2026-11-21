@@ -22,13 +22,6 @@
   #include <utility>
 #endif
 
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -36,8 +29,7 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<std::optional<T>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::optional<T> const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::optional<T> const& arg)
   {
     size_t total_size{sizeof(bool)};
 
@@ -50,7 +42,7 @@ struct Codec<std::optional<T>>
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<bool>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.has_value());
@@ -71,45 +63,23 @@ struct Codec<std::optional<T>>
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
-                                     std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>)
+    using ReturnType = decltype(detail::decode_element<T>(buffer));
+    bool const has_value = Codec<bool>::decode_arg(buffer);
+    if (has_value)
     {
-      std::optional<std::string> arg{std::nullopt};
+      auto elem = detail::decode_element<T>(buffer);
 
-      bool const has_value = Codec<bool>::decode_arg(buffer);
-      if (has_value)
+      if constexpr (std::is_move_constructible_v<ReturnType>)
       {
-        std::wstring_view const value = Codec<T>::decode_arg(buffer);
-        arg.emplace(detail::utf8_encode(value));
+        return std::optional<ReturnType>{std::move(elem)};
       }
-
-      return arg;
-    }
-    else
-    {
-#endif
-      using ReturnType = decltype(Codec<T>::decode_arg(buffer));
-      bool const has_value = Codec<bool>::decode_arg(buffer);
-      if (has_value)
+      else
       {
-        auto elem = Codec<T>::decode_arg(buffer);
-
-        if constexpr (std::is_move_constructible_v<ReturnType>)
-        {
-          return std::optional<ReturnType>{std::move(elem)};
-        }
-        else
-        {
-          return std::optional<ReturnType>{elem};
-        }
+        return std::optional<ReturnType>{elem};
       }
-
-      return std::optional<ReturnType>{std::nullopt};
-
-#if defined(_WIN32)
     }
-#endif
+
+    return std::optional<ReturnType>{std::nullopt};
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

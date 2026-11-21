@@ -143,14 +143,10 @@ public:
 
     QUILL_TRY { _backend_worker->_poll(); }
 #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH(std::exception const& e)
-    {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier, e.what());
-    }
+    QUILL_CATCH(std::exception const& e) { _backend_worker->_notify_error(e.what()); }
     QUILL_CATCH_ALL()
     {
-      _backend_worker->_notify_error(_backend_worker->_options.error_notifier,
-                                     std::string{"Caught unhandled exception."});
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
     }
 #endif
   }
@@ -163,7 +159,7 @@ public:
    */
   void poll()
   {
-    while (!_backend_worker->_check_frontend_queues_and_cached_transit_events_empty())
+    while (!_queues_and_cached_events_empty())
     {
       poll_one();
     }
@@ -178,7 +174,7 @@ public:
   void poll(std::chrono::microseconds timeout)
   {
     auto const start = std::chrono::steady_clock::now();
-    while (!_backend_worker->_check_frontend_queues_and_cached_transit_events_empty())
+    while (!_queues_and_cached_events_empty())
     {
       poll_one();
 
@@ -195,6 +191,24 @@ public:
   }
 
 private:
+  /**
+   * Checks the queues without letting an exception escape to the caller. Discovering a new
+   * frontend thread allocates; on failure report it and stop this poll, and the next poll retries.
+   */
+  QUILL_NODISCARD bool _queues_and_cached_events_empty()
+  {
+    QUILL_TRY { return _backend_worker->_check_frontend_queues_and_cached_transit_events_empty(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH(std::exception const& e) { _backend_worker->_notify_error(e.what()); }
+    QUILL_CATCH_ALL()
+    {
+      _backend_worker->_notify_error(std::string{"Caught unhandled exception."});
+    }
+#endif
+
+    return true;
+  }
+
   /**
    * The backend only runs its idle work on a poll that finds no cached transit events: flushing
    * the sinks and running their periodic tasks, reporting dropped messages, resyncing the rdtsc

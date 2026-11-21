@@ -18,21 +18,17 @@ class CustomJsonFileSink : public JsonFileSink
 public:
   using JsonFileSink::JsonFileSink;
 
-  void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                 std::string_view thread_id, std::string_view thread_name,
-                 std::string const& process_id, std::string_view logger_name, LogLevel log_level,
-                 std::string_view log_level_description, std::string_view log_level_short_code,
-                 std::vector<std::pair<std::string, std::string>> const* named_args,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& record) override
   {
     _json_message.clear();
 
-    _json_message.append(fmtquill::format(R"({{"logger":"{}","log_level":"{}","message":"{}")", logger_name,
-                                          log_level_description, log_metadata->message_format()));
+    _json_message.append(fmtquill::format(R"({{"logger":"{}","log_level":"{}","message":"{}")",
+                                          record.logger_name, record.log_level_description,
+                                          record.log_metadata->message_format()));
 
-    if (named_args)
+    if (record.named_args)
     {
-      for (auto const& [key, value] : *named_args)
+      for (auto const& [key, value] : *record.named_args)
       {
         _json_message.append(std::string_view{",\""});
         _json_message.append(key);
@@ -44,9 +40,10 @@ public:
 
     _json_message.append(std::string_view{"}\n"});
 
-    FileSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name,
-                        log_level, log_level_description, log_level_short_code, named_args,
-                        std::string_view{}, std::string_view{_json_message.data(), _json_message.size()});
+    LogRecord json_record = record;
+    json_record.log_message = std::string_view{};
+    json_record.log_statement = std::string_view{_json_message.data(), _json_message.size()};
+    FileSink::write_log(json_record);
   }
 
 private:
@@ -136,6 +133,10 @@ TEST_CASE("named_args_edge_cases")
   LOG_INFO(logger, "{amount:.{precision}f} {currency}", 12.345, 2, "USD");
   LOG_INFO(logger, "|{val:{width}.{precision}f}| {unit}", 1.234, 6, 2, "ms");
   LOG_INFO_LIMIT(std::chrono::milliseconds{1}, logger, "{value:{width}} {unit}", 7, 3, "ms");
+  // 19. A named field after an unnamed field with a dynamic width
+  LOG_INFO(logger, "{:{}} {unit}", 7, 3, "ms");
+  // 20. An extra argument whose index placeholder matches a named field
+  LOG_INFO(logger, "{_1}", 31, 42);
 
   logger->flush_log();
   Frontend::remove_logger_blocking(logger);
@@ -145,8 +146,8 @@ TEST_CASE("named_args_edge_cases")
   std::vector<std::string> const text_file_contents = quill::testing::file_contents(text_filename);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_EQ(json_file_contents.size(), 21u);
-  REQUIRE_EQ(text_file_contents.size(), 21u);
+  REQUIRE_EQ(json_file_contents.size(), 23u);
+  REQUIRE_EQ(text_file_contents.size(), 23u);
   REQUIRE_EQ(error_messages.size(), 2u);
 
   // Check the malformed case (1)
@@ -163,8 +164,8 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(quill::testing::file_contains(
     text_file_contents, R"([Could not format log statement. message: "{name}} text")"));
 #else
-  REQUIRE_EQ(json_file_contents.size(), 19u);
-  REQUIRE_EQ(text_file_contents.size(), 19u);
+  REQUIRE_EQ(json_file_contents.size(), 21u);
+  REQUIRE_EQ(text_file_contents.size(), 21u);
 #endif
 
   // Successful cases (2, 4, 5, 6, 7, 8, 9)
@@ -191,8 +192,8 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(quill::testing::file_contains(text_file_contents,
                                         "|     3.142| [val:      3.142, _1: 10, _2: 4]"));
 
-  CHECK(testing::file_contains(text_file_contents,
-                              "12.35 USD [amount: 12.35, _1: 2, currency: USD]"));
+  CHECK(
+    testing::file_contains(text_file_contents, "12.35 USD [amount: 12.35, _1: 2, currency: USD]"));
   CHECK(testing::file_contains(json_file_contents, R"("_1":"6","_2":"2","unit":"ms")"));
   CHECK(testing::file_contains(json_file_contents, R"("_1":"3","unit":"ms","occurred":"1")"));
 
@@ -213,6 +214,14 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(
     quill::testing::file_contains(text_file_contents, "first second [dup: first, dup_1: second]"));
   REQUIRE(quill::testing::file_contains(json_file_contents, R"("dup":"first","dup_1":"second")"));
+
+  // A named field after an unnamed field with a dynamic width (19)
+  REQUIRE(quill::testing::file_contains(text_file_contents, "  7 ms [:   7, _1: 3, unit: ms]"));
+  REQUIRE(quill::testing::file_contains(json_file_contents, R"("":"  7","_1":"3","unit":"ms")"));
+
+  // Extra arguments get a suffixed key instead of repeating a named field's key (20)
+  REQUIRE(quill::testing::file_contains(text_file_contents, "31 [_1: 31, _1_1: 42]"));
+  REQUIRE(quill::testing::file_contains(json_file_contents, R"("message":"{_1}","_1":"31","_1_1":"42")"));
 
   testing::remove_file(json_filename);
   testing::remove_file(text_filename);

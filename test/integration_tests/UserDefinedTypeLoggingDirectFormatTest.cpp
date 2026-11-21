@@ -28,6 +28,8 @@
 #include "quill/std/UnorderedMap.h"
 #include "quill/std/UnorderedSet.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -38,7 +40,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
 
 private:
   template <typename T, typename Char, typename Enable>
@@ -75,7 +77,7 @@ struct quill::Codec<CustomTypeTC> : quill::DirectFormatCodec<CustomTypeTC>
 /***/
 struct CustomTypeTCThrows
 {
-  CustomTypeTCThrows(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTCThrows(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
 
 private:
   template <typename T, typename Char, typename Enable>
@@ -110,18 +112,69 @@ struct quill::Codec<CustomTypeTCThrows> : quill::DirectFormatCodec<CustomTypeTCT
 };
 
 /***/
+// The formatter reads state that changes on every call. A codec that formats twice (once to size
+// the record, once to encode it) would copy bytes of a different length than it reserved.
+// The count lives outside the object because small arguments can reach the codec as a copy.
+struct ChangingFormat
+{
+  uint32_t* calls;
+};
+
+template <>
+struct fmtquill::formatter<ChangingFormat>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::ChangingFormat const& changing, format_context& ctx) const
+  {
+    ++*changing.calls;
+    return fmtquill::format_to(ctx.out(), "calls={}", (*changing.calls == 1) ? 7 : 1000000);
+  }
+};
+
+template <>
+struct quill::Codec<ChangingFormat> : quill::DirectFormatCodec<ChangingFormat>
+{
+};
+
+/***/
+// Formats to more than the initial queue capacity, so the record misses the cached reservation
+// and takes the slow path, which must not format the argument again.
+struct LargeFormat
+{
+  uint32_t* calls;
+};
+
+template <>
+struct fmtquill::formatter<LargeFormat>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::LargeFormat const& large, format_context& ctx) const
+  {
+    ++*large.calls;
+    return std::fill_n(ctx.out(), 256u * 1024u, 'x');
+  }
+};
+
+template <>
+struct quill::Codec<LargeFormat> : quill::DirectFormatCodec<LargeFormat>
+{
+};
+
+/***/
 class CustomTypeCC
 {
 public:
   CustomTypeCC() = default;
 
-  CustomTypeCC(std::string name, std::string surname, uint32_t age)
-    : name(std::move(name)), surname(std::move(surname)), age(age)
+  CustomTypeCC(std::string in_name, std::string in_surname, uint32_t in_age)
+    : name(std::move(in_name)), surname(std::move(in_surname)), age(in_age)
   {
     favorite_colors.push_back("red");
     favorite_colors.push_back("blue");
     favorite_colors.push_back("green");
-  };
+  }
 
   bool operator<(CustomTypeCC const& other) const { return this->age < other.age; }
 
@@ -254,6 +307,20 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
     REQUIRE(throws);
   }
 #endif
+
+  {
+    uint32_t calls{0};
+    ChangingFormat const changing{&calls};
+    LOG_INFO(logger, "ChangingFormat {} end", changing);
+    REQUIRE_EQ(calls, 1u);
+  }
+
+  {
+    uint32_t calls{0};
+    LargeFormat const large{&calls};
+    LOG_INFO(logger, "LargeFormat {}", large);
+    REQUIRE_EQ(calls, 1u);
+  }
 
   {
     CustomTypeTC custom_type_tc{1222, 13.12, 12};
@@ -448,7 +515,10 @@ TEST_CASE("custom_type_defined_type_direct_format_logging")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 28);
+  REQUIRE_EQ(file_contents.size(), 30);
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       ChangingFormat calls=7 end"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       CustomTypeTC Name: 1222, Surname: 13.12, Age: 12"}));

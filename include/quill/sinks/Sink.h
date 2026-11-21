@@ -13,6 +13,8 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 #include "quill/filters/Filter.h"
+#include "quill/sinks/LogRecord.h"
+#include "quill/sinks/MetricRecord.h"
 
 #ifndef QUILL_MODULE
   #include <algorithm>
@@ -36,8 +38,6 @@ class BackendWorker;
 /** Forward Declarations **/
 QUILL_BEGIN_EXPORT
 
-class MacroMetadata;
-class MetricMetadata;
 class PatternFormatter;
 
 QUILL_END_EXPORT
@@ -101,78 +101,65 @@ public:
     // Call the user-overridable name accessor before taking the lock.
     std::string filter_name = filter->get_filter_name();
 
-    // Lock and add this filter to our global collection
-    detail::LockGuard const lock{_global_filters_lock};
+    bool duplicate_name{false};
 
-    // Check if the same filter already exists
-    auto const search_filter_it = std::find_if(_global_filters.cbegin(), _global_filters.cend(),
-                                               [&filter_name](RegisteredFilter const& elem_filter)
-                                               { return elem_filter.filter_name == filter_name; });
+    QUILL_TRY
+    {
+      // Lock and add this filter to our global collection
+      detail::LockGuard const lock{_global_filters_lock};
 
-    if (QUILL_UNLIKELY(search_filter_it != _global_filters.cend()))
+      // Check if the same filter already exists
+      auto const search_filter_it = std::find_if(_global_filters.cbegin(), _global_filters.cend(),
+                                                 [&filter_name](RegisteredFilter const& elem_filter)
+                                                 { return elem_filter.filter_name == filter_name; });
+
+      duplicate_name = (search_filter_it != _global_filters.cend());
+
+      if (!duplicate_name)
+      {
+        _global_filters.emplace_back(std::move(filter_name), std::move(filter));
+
+        // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
+        _new_filter.store(true, std::memory_order_relaxed);
+      }
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // Release the lock before an uncaught rethrow can invoke terminate().
+      throw;
+    }
+#endif
+
+    // Throw after releasing the lock: an uncaught exception terminates without unwinding, and
+    // the backend takes this lock to pick up new filters.
+    if (QUILL_UNLIKELY(duplicate_name))
     {
       QUILL_THROW(QuillError{"Filter with the same name already exists"});
     }
-
-    _global_filters.emplace_back(std::move(filter_name), std::move(filter));
-
-    // Indicate a new filter was added - here relaxed is okay as the spinlock will do acq-rel on destruction
-    _new_filter.store(true, std::memory_order_relaxed);
   }
 
-protected:
   /**
-   * @brief Logs a formatted log message to the sink.
-   * @note Accessor for backend processing.
-   * @param log_metadata Pointer to the macro metadata.
-   * @param log_timestamp Timestamp of the log event.
-   * @param thread_id ID of the thread.
-   * @param thread_name Name of the thread.
-   * @param process_id Process Id
-   * @param logger_name Name of the logger.
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args Vector of key-value pairs of named args
-   * @param log_message The log message.
-   * @param log_statement The log statement.
+   * @brief Writes a formatted log record. Called on the backend thread.
+   * @param record the record; its views are valid only during this call
    */
-  QUILL_ATTRIBUTE_HOT virtual void write_log(
-    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-    std::string_view thread_name, std::string const& process_id, std::string_view logger_name,
-    LogLevel log_level, std::string_view log_level_description, std::string_view log_level_short_code,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view log_message, std::string_view log_statement) = 0;
+  QUILL_ATTRIBUTE_HOT virtual void write_log(LogRecord const& record) = 0;
 
   /**
-   * @brief Publishes a metric sample to the sink.
-   * @note Accessor for backend processing.
+   * @brief Publishes a metric sample. Called on the backend thread.
    *
-   * The default implementation ignores metric events so existing log-only sinks do not need to
+   * The default implementation ignores metric events so log-only sinks do not need to
    * implement metrics support.
    */
-  QUILL_ATTRIBUTE_HOT virtual void write_metric(MetricMetadata const* /* metric_metadata */,
-                                                uint64_t /* log_timestamp */, std::string_view /* thread_id */,
-                                                std::string_view /* thread_name */,
-                                                std::string const& /* process_id */,
-                                                std::string_view /* logger_name */, double /* value */)
-  {
-  }
+  QUILL_ATTRIBUTE_HOT virtual void write_metric(MetricRecord const& /* record */) {}
 
   /**
-   * @brief Flushes the sink, synchronizing the associated sink with its controlled output sequence.
-   */
-  QUILL_ATTRIBUTE_HOT virtual void flush_sink() = 0;
-
-  /**
-   * @brief Flushes the sink with the reason for the backend flush request.
+   * @brief Flushes the sink, synchronizing it with its output. Called on the backend thread.
+   * @param flush_reason why the backend requested the flush
    * @note Shutdown may request another Final flush after draining diagnostics generated by the
    *       first flush. Sinks must remain writable between these requests.
    */
-  QUILL_ATTRIBUTE_HOT virtual void flush_sink(QUILL_MAYBE_UNUSED SinkFlushReason flush_reason)
-  {
-    flush_sink();
-  }
+  QUILL_ATTRIBUTE_HOT virtual void flush_sink(SinkFlushReason flush_reason) = 0;
 
   /**
    * @brief Executes periodic tasks by the backend thread, providing an opportunity for the user
@@ -183,71 +170,39 @@ protected:
    */
   QUILL_ATTRIBUTE_HOT virtual void run_periodic_tasks() {}
 
-  /**
-   * @brief Applies all registered filters to the log record.
-   * @note Called internally by the backend worker thread.
-   * @param log_metadata Pointer to the macro metadata.
-   * @param log_timestamp Timestamp of the log event.
-   * @param thread_id ID of the thread.
-   * @param thread_name Name of the thread.
-   * @param logger_name Name of the logger.
-   * @param log_level Log level of the message.
-   * @param log_message The log message.
-   * @param log_statement The log message.
-   * @return True if the log record passes all filters, false otherwise.
-   */
-  QUILL_NODISCARD bool apply_all_filters(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                         std::string_view thread_id, std::string_view thread_name,
-                                         std::string_view logger_name, LogLevel log_level,
-                                         std::string_view log_message, std::string_view log_statement)
-  {
-    if (log_level < _log_level.load(std::memory_order_relaxed))
-    {
-      return false;
-    }
-
-    return _apply_all_user_filters(log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                                   log_level, log_message, log_statement);
-  }
-
 private:
   friend class detail::BackendWorker;
 
   /** Applies user-defined filters after the sink log-level check has passed. */
-  QUILL_NODISCARD bool _apply_all_user_filters(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                               std::string_view thread_id, std::string_view thread_name,
-                                               std::string_view logger_name, LogLevel log_level,
-                                               std::string_view log_message, std::string_view log_statement)
+  QUILL_NODISCARD bool _apply_all_user_filters(LogRecord const& record)
   {
     // Update our local collection of the filters
-    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)) &&
-        _new_filter.exchange(false, std::memory_order_relaxed))
+    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)))
     {
-      // if there is a new filter we have to update
-      _local_filters.clear();
-
       detail::LockGuard const lock{_global_filters_lock};
+
+      // Reserve first and clear the flag last, so an allocation failure keeps the existing
+      // filters and leaves the refresh pending. add_filter() sets the flag under this lock.
+      _local_filters.reserve(_global_filters.size());
+      _local_filters.clear();
 
       for (auto const& filter : _global_filters)
       {
         _local_filters.push_back(filter.filter.get());
       }
+
+      _new_filter.store(false, std::memory_order_relaxed);
     }
 
-    if (_local_filters.empty())
+    for (Filter* filter : _local_filters)
     {
-      return true;
+      if (!filter->filter(record))
+      {
+        return false;
+      }
     }
-    else
-    {
-      return std::all_of(_local_filters.begin(), _local_filters.end(),
-                         [log_metadata, log_timestamp, thread_id, thread_name, logger_name,
-                          log_level, log_message, log_statement](Filter* filter_elem)
-                         {
-                           return filter_elem->filter(log_metadata, log_timestamp, thread_id, thread_name,
-                                                      logger_name, log_level, log_message, log_statement);
-                         });
-    }
+
+    return true;
   }
 
 private:

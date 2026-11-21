@@ -49,16 +49,8 @@ public:
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
                           char const* message_format, char const* tags, LogLevel log_level,
                           Event event, bool is_rate_limited = false) noexcept
-    : _source_location(source_location),
-      _caller_function(caller_function),
-      _message_format(message_format),
-      _tags(tags),
-      _colon_separator_pos(_calc_colon_separator_pos()),
-      _file_name_pos(_calc_file_name_pos()),
-      _log_level(log_level),
-      _event(event),
-      _is_rate_limited(is_rate_limited),
-      _has_named_args(contains_named_args(message_format))
+    : MacroMetadata(std::string_view{source_location}, caller_function,
+                    std::string_view{message_format}, tags, log_level, event, is_rate_limited)
   {
   }
 
@@ -67,6 +59,17 @@ public:
   QUILL_NODISCARD char const* caller_function() const noexcept { return _caller_function; }
 
   QUILL_NODISCARD char const* message_format() const noexcept { return _message_format; }
+
+  /**
+   * The length of message_format(). It is calculated with the metadata, at compile time for the
+   * logging macros, so that the backend does not measure the format string of every record.
+   *
+   * It is one of the facts that the metadata stores about its strings, like has_named_args() and
+   * the positions of the file name and line. The strings must therefore not change while the
+   * metadata is used: code that builds a MacroMetadata itself, e.g. for Logger::log_statement(),
+   * constructs a new one for another format string instead of writing it to the same buffer.
+   */
+  QUILL_NODISCARD size_t message_format_size() const noexcept { return _message_format_size; }
 
   QUILL_NODISCARD char const* line() const noexcept
   {
@@ -104,108 +107,102 @@ public:
 
   QUILL_NODISCARD bool is_rate_limited() const noexcept { return _is_rate_limited; }
 
-  /***/
+  /**
+   * @return true if a replacement field, including one nested in a format spec such as the
+   * width in "{:{width}}", starts with a name rather than an index or its format spec.
+   */
   QUILL_NODISCARD static constexpr bool contains_named_args(std::string_view fmt) noexcept
   {
-    uint32_t pos{0};
-    bool found_named_arg{false};
+    size_t pos{0};
 
-    // Iterates the format string and checks if any characters are contained inside `{}`
     while (pos < fmt.length())
     {
-      if (fmt[pos] == '{')
+      if (fmt[pos] != '{')
       {
-        ++pos; // consume {
-        if (pos >= fmt.length())
-        {
-          break;
-        }
-
-        // first character after the {
-        auto const fc = fmt[pos];
-        if (fc == '{')
-        {
-          // this means first '{' was escaped, so we ignore both of them
-          ++pos;
-          continue;
-        }
-
-        // else look for the next '}'
-        uint32_t char_cnt{0};
-        while (pos < fmt.length())
-        {
-          if (fmt[pos] == '}')
-          {
-            ++pos; // consume }
-            if (pos >= fmt.length())
-            {
-              break;
-            }
-
-            if (fmt[pos] == '}')
-            {
-              // this means first '}', was escaped ignore it
-              ++pos;
-              ++char_cnt;
-              continue;
-            }
-
-            // we found '{' match, we can break
-            break;
-          }
-
-          ++pos;
-          ++char_cnt;
-        }
-
-        if ((char_cnt != 0) && ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_')))
-        {
-          found_named_arg = true;
-        }
+        ++pos;
         continue;
       }
-      ++pos;
+
+      ++pos; // consume {
+      if (pos >= fmt.length())
+      {
+        break;
+      }
+
+      // first character after the {
+      char const fc = fmt[pos];
+      if (fc == '{')
+      {
+        // this means first '{' was escaped, so we ignore both of them
+        ++pos;
+        continue;
+      }
+
+      // Scan on from the first character instead of skipping to the closing '}', so a nested field
+      // such as the dynamic width in "{:{}} {name}" cannot hide a named field that follows it
+      if ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_'))
+      {
+        return true;
+      }
     }
 
-    return found_named_arg;
+    return false;
   }
 
 private:
-  /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
+  /**
+   * The strings are measured once, here in the views of the public constructor. The macro-free
+   * functions construct the metadata of every record at run time, where measuring a string is a
+   * call to strlen() and the positions below are found from the end of the source location: the
+   * file name and the line follow a path that is usually much longer than both.
+   */
+  constexpr MacroMetadata(std::string_view source_location, char const* caller_function,
+                          std::string_view message_format, char const* tags, LogLevel log_level,
+                          Event event, bool is_rate_limited) noexcept
+    : _source_location(source_location.data()),
+      _caller_function(caller_function),
+      _message_format(message_format.data()),
+      _tags(tags),
+      _message_format_size(static_cast<uint32_t>(message_format.size())),
+      _colon_separator_pos(_calc_colon_separator_pos(source_location)),
+      _file_name_pos(_calc_file_name_pos(source_location)),
+      _log_level(log_level),
+      _event(event),
+      _is_rate_limited(is_rate_limited),
+      _has_named_args(contains_named_args(message_format))
   {
-    char const* source_location = _source_location;
-    char const* file = source_location;
-    while (*source_location)
-    {
-      char cur = *source_location++;
-      if (cur == '/' || cur == detail::PATH_PREFERRED_SEPARATOR)
-      {
-        file = source_location;
-      }
-    }
-    return static_cast<uint16_t>(file - _source_location);
   }
 
-  /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
+  /** @return the position after the last path separator of `str`, 0 without one */
+  QUILL_NODISCARD static constexpr uint16_t _calc_file_name_pos(std::string_view str) noexcept
   {
-    // std::string_view::rfind is only constexpr from C++20
-    size_t length = 0;
-    while (_source_location[length] != '\0')
+    for (size_t i = str.size(); i > 0; --i)
     {
-      ++length;
+      char const cur = str[i - 1];
+
+      // Windows toolchains, and builds hosted on Windows, can spell source paths with either
+      if ((cur == '/') || (cur == '\\'))
+      {
+        return static_cast<uint16_t>(i);
+      }
     }
 
-    for (size_t i = length; i > 0; --i)
+    return 0;
+  }
+
+  /** @return the position of the last ':' of `str`, its length without one */
+  QUILL_NODISCARD static constexpr uint16_t _calc_colon_separator_pos(std::string_view str) noexcept
+  {
+    // std::string_view::rfind is only constexpr from C++20
+    for (size_t i = str.size(); i > 0; --i)
     {
-      if (_source_location[i - 1] == ':')
+      if (str[i - 1] == ':')
       {
         return static_cast<uint16_t>(i - 1);
       }
     }
 
-    return static_cast<uint16_t>(length);
+    return static_cast<uint16_t>(str.size());
   }
 
 private:
@@ -213,6 +210,7 @@ private:
   char const* _caller_function{nullptr};
   char const* _message_format{nullptr};
   char const* _tags{nullptr};
+  uint32_t _message_format_size{0};
   uint16_t _colon_separator_pos{0};
   uint16_t _file_name_pos{0};
   LogLevel _log_level{LogLevel::None};

@@ -4,6 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/filters/Filter.h"
 #include "quill/sinks/FileSink.h"
 
 #include <csignal>
@@ -20,6 +21,19 @@
   #include <unistd.h>
 #endif
 
+#if !defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
+namespace
+{
+class AcceptAllFilter : public quill::Filter
+{
+public:
+  AcceptAllFilter() : quill::Filter("uncaught_manager_exception_filter") {}
+
+  QUILL_NODISCARD bool filter(quill::LogRecord const&) noexcept override { return true; }
+};
+} // namespace
+#endif
+
 TEST_CASE("uncaught_manager_exception_allows_terminate_flush")
 {
 #if defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS) || !defined(QUILL_ENABLE_EXTENSIVE_TESTS) ||   \
@@ -30,7 +44,7 @@ TEST_CASE("uncaught_manager_exception_allows_terminate_flush")
   static constexpr char const* filename = "uncaught_manager_exception.log";
   static constexpr char const* logger_name = "uncaught_manager_exception_logger";
 
-  for (int scenario{0}; scenario < 4; ++scenario)
+  for (int scenario{0}; scenario < 6; ++scenario)
   {
     CAPTURE(scenario);
     pid_t const child = fork();
@@ -52,8 +66,10 @@ TEST_CASE("uncaught_manager_exception_allows_terminate_flush")
       std::set_terminate(
         []()
         {
-          // Both manager lookups and the backend flush must remain usable.
+          // The manager lookups, metric registration and the backend flush, which takes the
+          // filter lock to pick up new filters, must remain usable.
           (void)quill::Frontend::get_sink(filename);
+          (void)quill::Frontend::create_or_get_metric("uncaught_manager_exception_metric", "metric");
           auto* logger = quill::Frontend::get_logger(logger_name);
           LOG_CRITICAL(logger, "uncaught manager exception flushed");
           logger->flush_log();
@@ -79,6 +95,13 @@ TEST_CASE("uncaught_manager_exception_allows_terminate_flush")
             break;
           case 3:
             quill::Frontend::create_sink<quill::FileSink>(filename);
+            break;
+          case 4:
+            sink->add_filter(std::make_unique<AcceptAllFilter>());
+            sink->add_filter(std::make_unique<AcceptAllFilter>());
+            break;
+          case 5:
+            (void)quill::Frontend::get_metric("uncaught_manager_exception_missing_metric");
             break;
           }
         });

@@ -10,10 +10,12 @@
 #include "quill/bundled/fmt/base.h"
 #include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
+#include "quill/sinks/LogRecord.h"
 
 #ifndef QUILL_MODULE
   #include <array>
@@ -23,7 +25,6 @@
   #include <cstdint>
   #include <string>
   #include <string_view>
-  #include <tuple>
   #include <utility>
   #include <vector>
 #endif
@@ -36,17 +37,6 @@ class PatternFormatter
 {
   /** Public classes **/
 public:
-  /**
-   * Stores the precision of the timestamp
-   */
-  enum class TimestampPrecision : uint8_t
-  {
-    None,
-    MilliSeconds,
-    MicroSeconds,
-    NanoSeconds
-  };
-
   enum Attribute : uint8_t
   {
     Time = 0,
@@ -97,12 +87,11 @@ public:
   /***/
   ~PatternFormatter() = default;
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
-    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
-    std::string_view process_id, std::string_view logger, std::string_view log_level_description,
-    std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
-    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg,
-    std::string_view mdc)
+  /**
+   * Formats a log record with this pattern. The record's log_statement is not used.
+   * @return the formatted statement, valid until the next call
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(LogRecord const& record)
   {
     if (_options.format_pattern.empty())
     {
@@ -115,17 +104,18 @@ public:
     // clear out the existing buffer
     _formatted_log_message_buffer.clear();
 
+    std::string_view const log_msg = record.log_message;
+
     if (QUILL_UNLIKELY(log_msg.empty()))
     {
       // Process an empty message
-      return _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                     log_level_short_code, log_statement_metadata, named_args, log_msg, mdc);
+      return _format(record, log_msg);
     }
 
     std::string_view formatted_log_msg;
 
     // Check if we need to handle multi-line formatting
-    if (_options.add_metadata_to_multi_line_logs && (!named_args || named_args->empty()))
+    if (_options.add_metadata_to_multi_line_logs && (!record.named_args || record.named_args->empty()))
     {
       // multi line metadata only supported when named_args are not used
       size_t start = 0;
@@ -138,9 +128,7 @@ public:
         {
           // Handle the last line or a single line without a newline
           formatted_log_msg =
-            _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                    log_level_short_code, log_statement_metadata, named_args,
-                    std::string_view(log_msg.data() + start, log_msg.size() - start), mdc);
+            _format(record, std::string_view(log_msg.data() + start, log_msg.size() - start));
           break;
         }
 
@@ -152,9 +140,7 @@ public:
           line_length++;
         }
 
-        formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                                    log_level_short_code, log_statement_metadata, named_args,
-                                    std::string_view(log_msg.data() + start, line_length), mdc);
+        formatted_log_msg = _format(record, std::string_view(log_msg.data() + start, line_length));
         start = end + 1;
       }
     }
@@ -172,16 +158,51 @@ public:
         log_message_size = log_msg.size() - 1;
       }
 
-      formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
-                                  log_level_description, log_level_short_code, log_statement_metadata,
-                                  named_args, std::string_view{log_msg.data(), log_message_size}, mdc);
+      formatted_log_msg = _format(record, std::string_view{log_msg.data(), log_message_size});
     }
 
     return formatted_log_msg;
   }
 
+  /**
+   * Formats a log statement from its individual fields, see format(LogRecord const&).
+   * @return the formatted statement, valid until the next call
+   */
+  QUILL_NODISCARD std::string_view format(uint64_t timestamp, std::string_view thread_id,
+                                          std::string_view thread_name, std::string_view process_id,
+                                          std::string_view logger, std::string_view log_level_description,
+                                          std::string_view log_level_short_code,
+                                          MacroMetadata const& log_statement_metadata,
+                                          std::vector<std::pair<std::string, std::string>> const* named_args,
+                                          std::string_view log_msg, std::string_view mdc)
+  {
+    LogRecord record;
+    record.log_metadata = &log_statement_metadata;
+    record.log_timestamp = timestamp;
+    record.thread_id = thread_id;
+    record.thread_name = thread_name;
+    record.process_id = process_id;
+    record.logger_name = logger;
+    record.log_level = log_statement_metadata.log_level();
+    record.log_level_description = log_level_description;
+    record.log_level_short_code = log_level_short_code;
+    record.named_args = named_args;
+    record.log_message = log_msg;
+    record.mdc = mdc;
+    return format(record);
+  }
+
   /***/
   QUILL_NODISCARD PatternFormatterOptions const& get_options() const noexcept { return _options; }
+
+  /**
+   * @return empty, or a warning that the timestamp pattern is formatted with strftime() on every
+   * call because it contains a time-of-day specifier that cannot be cached, e.g. `%-H`
+   */
+  QUILL_NODISCARD std::string const& timestamp_pattern_warning() const noexcept
+  {
+    return _timestamp_formatter.warning();
+  }
 
 protected:
   /***/
@@ -251,113 +272,148 @@ private:
     bool has_format_specs{false};
   };
 
-  struct FormatPartParser
+  /** Attribute names, at the same index as the Attribute enum **/
+  static constexpr std::array<std::string_view, Attribute::ATTR_NR_ITEMS> _attribute_names{
+    "time",
+    "file_name",
+    "caller_function",
+    "log_level",
+    "log_level_short_code",
+    "line_number",
+    "logger",
+    "full_path",
+    "thread_id",
+    "thread_name",
+    "process_id",
+    "source_location",
+    "short_source_location",
+    "message",
+    "mdc",
+    "tags",
+    "named_args"};
+
+  /**
+   * Splits the pattern into literal text and %(attribute[:format_spec]) parts.
+   * e.g. "%(time) [%(thread_id)] %(log_level:<12) - " becomes
+   *   {"", Time}, {" [", ThreadId}, {"] ", LogLevel, "<12"} and the trailing literal " - "
+   */
+  void _set_pattern()
   {
-    void on_text(char const* begin, char const* end)
+    std::string pattern = _options.format_pattern;
+
+    if (_options.pattern_suffix != PatternFormatterOptions::NO_SUFFIX)
     {
-      literal_buffer.append(begin, static_cast<size_t>(end - begin));
+      pattern += _options.pattern_suffix;
     }
 
-    int on_arg_id() { return parse_context.next_arg_id(); }
+    size_t literal_begin = 0;
+    size_t pos = 0;
 
-    int on_arg_id(int id)
+    while (pos < pattern.size())
     {
-      parse_context.check_arg_id(id);
-      return id;
+      char const c = pattern[pos];
+      bool const has_next = (pos + 1u) < pattern.size();
+
+      if ((c == '{') || (c == '}'))
+      {
+        // Literal braces can be written directly; the doubled fmt spelling yields one brace
+        _literal_buffer += c;
+        pos += (has_next && (pattern[pos + 1u] == c)) ? 2u : 1u;
+        continue;
+      }
+
+      if ((c != '%') || !has_next || (pattern[pos + 1u] != '('))
+      {
+        _literal_buffer += c;
+        ++pos;
+        continue;
+      }
+
+      size_t const closed_paren_pos = pattern.find(')', pos + 2u);
+
+      if (closed_paren_pos == std::string::npos)
+      {
+        QUILL_THROW(QuillError{"Invalid format pattern"});
+      }
+
+      std::string_view const attr{pattern.data() + pos + 2u, closed_paren_pos - (pos + 2u)};
+      size_t const colon_pos = attr.find(':');
+      std::string_view const attr_name = attr.substr(0, colon_pos);
+
+      size_t attr_index = 0;
+      while ((attr_index < _attribute_names.size()) && (_attribute_names[attr_index] != attr_name))
+      {
+        ++attr_index;
+      }
+
+      if (attr_index == _attribute_names.size())
+      {
+        QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" +
+                               std::string{attr_name} + "\" is invalid"});
+      }
+
+      if (_is_set_in_pattern.test(attr_index))
+      {
+        QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" +
+                               std::string{attr_name} + "\" is used more than once"});
+      }
+
+      _is_set_in_pattern.set(attr_index);
+
+      FormatPart part{
+        literal_begin, _literal_buffer.size() - literal_begin, static_cast<Attribute>(attr_index), {}, false};
+
+      if (colon_pos != std::string_view::npos)
+      {
+        part.specs = _parse_format_specs(attr.substr(colon_pos + 1u));
+        part.has_format_specs = true;
+      }
+
+      _format_parts.push_back(part);
+      literal_begin = _literal_buffer.size();
+      pos = closed_paren_pos + 1u;
     }
 
-    int on_arg_id(fmtquill::string_view id)
-    {
-      parse_context.check_arg_id(id);
-      fmtquill::report_error("argument not found");
-      return -1;
-    }
+    _trailing_literal_pos = literal_begin;
+  }
 
-    void on_replacement_field(int id, char const*) { _add_format_part(id, {}, false); }
+  /***/
+  QUILL_NODISCARD static fmtquill::format_specs _parse_format_specs(std::string_view spec)
+  {
+    fmtquill::detail::dynamic_format_specs<char> specs;
 
-    char const* on_format_specs(int id, char const* begin, char const* end)
+    auto const parse = [&specs, spec]()
     {
-      fmtquill::detail::dynamic_format_specs<char> specs;
-      begin = fmtquill::detail::parse_format_specs(begin, end, specs, parse_context,
-                                                   fmtquill::detail::type::string_type);
+      fmtquill::parse_context<char> parse_context{fmtquill::string_view{spec.data(), spec.size()}};
+      char const* const end = spec.data() + spec.size();
+      char const* const parsed_end = fmtquill::detail::parse_format_specs(
+        spec.data(), end, specs, parse_context, fmtquill::detail::type::string_type);
+
+      if (parsed_end != end)
+      {
+        fmtquill::report_error("invalid format specifier");
+      }
+
       if (specs.dynamic())
       {
         fmtquill::report_error("width/precision is not integer");
       }
-
-      _add_format_part(id, specs, true);
-      return begin;
-    }
-
-    void on_error(char const* message) { fmtquill::report_error(message); }
-
-  private:
-    void _add_format_part(int id, fmtquill::format_specs const& specs, bool has_format_specs)
-    {
-      if ((id < 0) || (static_cast<size_t>(id) >= attribute_by_arg_id.size()) ||
-          (attribute_by_arg_id[static_cast<size_t>(id)] == Attribute::ATTR_NR_ITEMS))
-      {
-        fmtquill::report_error("argument not found");
-      }
-
-      format_parts.push_back(FormatPart{literal_begin, literal_buffer.size() - literal_begin,
-                                        attribute_by_arg_id[static_cast<size_t>(id)], specs, has_format_specs});
-      literal_begin = literal_buffer.size();
-    }
-
-  public:
-    fmtquill::parse_context<char> parse_context;
-    std::array<Attribute, Attribute::ATTR_NR_ITEMS> const& attribute_by_arg_id;
-    std::string& literal_buffer;
-    std::vector<FormatPart>& format_parts;
-    size_t literal_begin{0};
-  };
-
-  void _set_pattern()
-  {
-    // the order we pass the arguments here must match with the order of Attribute enum
-    using namespace fmtquill::literals;
-    std::string fmt_format;
-    std::array<size_t, Attribute::ATTR_NR_ITEMS> order_index;
-    std::tie(fmt_format, order_index) = _generate_fmt_format_string(
-      _is_set_in_pattern, _options.format_pattern, "time"_a = "", "file_name"_a = "",
-      "caller_function"_a = "", "log_level"_a = "", "log_level_short_code"_a = "",
-      "line_number"_a = "", "logger"_a = "", "full_path"_a = "", "thread_id"_a = "",
-      "thread_name"_a = "", "process_id"_a = "", "source_location"_a = "",
-      "short_source_location"_a = "", "message"_a = "", "mdc"_a = "", "tags"_a = "",
-      "named_args"_a = "");
-
-    std::array<Attribute, Attribute::ATTR_NR_ITEMS> attribute_by_arg_id;
-    attribute_by_arg_id.fill(Attribute::ATTR_NR_ITEMS);
-    for (size_t i = 0; i < Attribute::ATTR_NR_ITEMS; ++i)
-    {
-      if (_is_set_in_pattern[i])
-      {
-        attribute_by_arg_id[order_index[i]] = static_cast<Attribute>(i);
-      }
-    }
-
-    auto const parse_pattern = [this, &fmt_format, &attribute_by_arg_id]()
-    {
-      _format_parts.reserve(_is_set_in_pattern.count());
-      FormatPartParser parser{fmtquill::parse_context<char>{fmt_format}, attribute_by_arg_id,
-                              _literal_buffer, _format_parts};
-      fmtquill::detail::parse_format_string<char>(fmt_format, parser);
-      _trailing_literal_pos = parser.literal_begin;
     };
 
 #if defined(QUILL_NO_EXCEPTIONS)
-    parse_pattern();
+    parse();
 #else
     try
     {
-      parse_pattern();
+      parse();
     }
     catch (fmtquill::format_error const& error)
     {
       QUILL_THROW(QuillError{"Invalid format pattern: " + std::string{error.what()}});
     }
 #endif
+
+    return specs;
   }
 
   /***/
@@ -367,273 +423,42 @@ private:
     _attribute_values[I] = arg;
   }
 
-  /***/
-  PatternFormatter::Attribute static _attribute_from_string(std::string const& attribute_name)
-  {
-    if (attribute_name == "time")
-    {
-      return PatternFormatter::Attribute::Time;
-    }
-    if (attribute_name == "file_name")
-    {
-      return PatternFormatter::Attribute::FileName;
-    }
-    if (attribute_name == "caller_function")
-    {
-      return PatternFormatter::Attribute::CallerFunction;
-    }
-    if (attribute_name == "log_level")
-    {
-      return PatternFormatter::Attribute::LogLevel;
-    }
-    if (attribute_name == "log_level_short_code")
-    {
-      return PatternFormatter::Attribute::LogLevelShortCode;
-    }
-    if (attribute_name == "line_number")
-    {
-      return PatternFormatter::Attribute::LineNumber;
-    }
-    if (attribute_name == "logger")
-    {
-      return PatternFormatter::Attribute::Logger;
-    }
-    if (attribute_name == "full_path")
-    {
-      return PatternFormatter::Attribute::FullPath;
-    }
-    if (attribute_name == "thread_id")
-    {
-      return PatternFormatter::Attribute::ThreadId;
-    }
-    if (attribute_name == "thread_name")
-    {
-      return PatternFormatter::Attribute::ThreadName;
-    }
-    if (attribute_name == "process_id")
-    {
-      return PatternFormatter::Attribute::ProcessId;
-    }
-    if (attribute_name == "source_location")
-    {
-      return PatternFormatter::Attribute::SourceLocation;
-    }
-    if (attribute_name == "short_source_location")
-    {
-      return PatternFormatter::Attribute::ShortSourceLocation;
-    }
-    if (attribute_name == "message")
-    {
-      return PatternFormatter::Attribute::Message;
-    }
-    if (attribute_name == "mdc")
-    {
-      return PatternFormatter::Attribute::Mdc;
-    }
-    if (attribute_name == "tags")
-    {
-      return PatternFormatter::Attribute::Tags;
-    }
-    if (attribute_name == "named_args")
-    {
-      return PatternFormatter::Attribute::NamedArgs;
-    }
-
-    QUILL_THROW(QuillError{
-      std::string{"Attribute enum value does not exist for attribute with name " + attribute_name}});
-  }
-
-  /***/
-  template <size_t, size_t>
-  constexpr void _store_named_args(std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>&)
-  {
-  }
-
-  /***/
-  template <size_t Idx, size_t NamedIdx, typename Arg, typename... Args>
-  constexpr void _store_named_args(
-    std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS>& named_args_store,
-    Arg const& arg, Args const&... args)
-  {
-    named_args_store[NamedIdx] = {arg.name, Idx};
-    _store_named_args<Idx + 1, NamedIdx + 1>(named_args_store, args...);
-  }
-
   /**
-   * Convert the pattern to fmt format string and also populate the order index array
-   * e.g. given :
-   *   "%(time) [%(thread_id)] %(file_name):%(line_number) %(log_level:<12) %(logger) - "
-   *
-   * is changed to :
-   *  {} [{}] {}:{} {:<12} {} -
-   *
-   *  with a order index of :
-   *  i: 0 order idx[i] is: 0 - %(time)
-   *  i: 1 order idx[i] is: 2 - %(file_name)
-   *  i: 2 order idx[i] is: 10 - empty
-   *  i: 3 order idx[i] is: 4 - %(log_level)
-   *  i: 4 order idx[i] is: 10 - empty
-   *  i: 5 order idx[i] is: 3 - %(line_number)
-   *  i: 6 order idx[i] is: 5 - %(logger)
-   *  i: 7 order idx[i] is: 10 - empty
-   *  i: 8 order idx[i] is: 1 - %(thread_id)
-   *  i: 9 order idx[i] is: 10 - empty
-   *  i: 10 order idx[i] is: 10 - empty
-   * @tparam Args Args
-   * @param is_set_in_pattern is set in pattern
-   * @param pattern pattern
-   * @param args args
-   * @return process_id pattern
+   * Formats the named arguments as "name: value, name: value". Out of line so that its appends do
+   * not stop the compiler from inlining the ones in _format()
    */
-  template <typename... Args>
-  QUILL_NODISCARD std::pair<std::string, std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS>> _generate_fmt_format_string(
-    std::bitset<PatternFormatter::Attribute::ATTR_NR_ITEMS>& is_set_in_pattern, std::string pattern,
-    Args const&... args)
+  QUILL_NOINLINE std::string_view _format_named_args(std::vector<std::pair<std::string, std::string>> const* named_args)
   {
-    // Attribute enum and the args we are passing here must be in sync
-    static_assert(PatternFormatter::Attribute::ATTR_NR_ITEMS == sizeof...(Args));
+    _formatted_named_args_buffer.clear();
 
-    if (_options.pattern_suffix != PatternFormatterOptions::NO_SUFFIX)
+    if (named_args)
     {
-      pattern += _options.pattern_suffix;
-    }
-
-    std::array<size_t, PatternFormatter::Attribute::ATTR_NR_ITEMS> order_index{};
-    order_index.fill(PatternFormatter::Attribute::ATTR_NR_ITEMS - 1);
-
-    std::array<fmtquill::detail::named_arg_info<char>, PatternFormatter::Attribute::ATTR_NR_ITEMS> named_args{};
-    _store_named_args<0, 0>(named_args, args...);
-    uint8_t arg_idx = 0;
-
-    // Escape any literal '{' or '}' in the pattern so fmt treats them as literal characters.
-    // Otherwise they are parsed as replacement fields, silently swallowing arguments or making
-    // every log statement throw at format time. The attribute placeholders are inserted below,
-    // after this escaping
-    for (size_t brace_pos = 0; (brace_pos = pattern.find_first_of("{}", brace_pos)) != std::string::npos;)
-    {
-      char const brace = pattern[brace_pos];
-      if ((brace_pos + 1u < pattern.size()) && (pattern[brace_pos + 1u] == brace))
+      for (size_t i = 0; i < named_args->size(); ++i)
       {
-        // Preserve the traditional fmt spelling ({{ or }}) for one literal brace.
-        brace_pos += 2u;
-      }
-      else
-      {
-        pattern.insert(brace_pos, 1, brace);
-        brace_pos += 2u;
+        detail::append_to_buffer(_formatted_named_args_buffer, (*named_args)[i].first);
+        detail::append_to_buffer(_formatted_named_args_buffer, std::string_view{": "});
+        detail::append_to_buffer(_formatted_named_args_buffer, (*named_args)[i].second);
+
+        if (i != named_args->size() - 1)
+        {
+          detail::append_to_buffer(_formatted_named_args_buffer, std::string_view{", "});
+        }
       }
     }
 
-    // we will replace all %(....) with {} to construct a string to pass to fmt library
-    size_t arg_identifier_pos = pattern.find_first_of('%');
-    while (arg_identifier_pos != std::string::npos)
-    {
-      if (size_t const open_paren_pos = pattern.find_first_of('(', arg_identifier_pos);
-          open_paren_pos != std::string::npos && (open_paren_pos - arg_identifier_pos) == 1)
-      {
-        // if we found '%(' we have a matching pattern and we now need to get the closed paren
-        size_t const closed_paren_pos = pattern.find_first_of(')', open_paren_pos);
-
-        if (closed_paren_pos == std::string::npos)
-        {
-          QUILL_THROW(QuillError{"Invalid format pattern"});
-        }
-
-        // We have everything, get the substring, this time including '%( )'
-        std::string attr = pattern.substr(arg_identifier_pos, (closed_paren_pos + 1) - arg_identifier_pos);
-
-        // find any user format specifiers
-        size_t const pos = attr.find(':');
-        std::string attr_name;
-
-        if (pos != std::string::npos)
-        {
-          // we found user format specifiers that we want to keep.
-          // e.g. %(short_source_location:<32)
-
-          // Get only the format specifier
-          // e.g. :<32
-          std::string custom_format_specifier = attr.substr(pos);
-          custom_format_specifier.pop_back(); // remove the ")"
-
-          // replace with the pattern with the correct value
-          std::string value;
-          value += "{";
-          value += custom_format_specifier;
-          value += "}";
-
-          // e.g. {:<32}
-          pattern.replace(arg_identifier_pos, attr.length(), value);
-
-          // Get the part that is the named argument
-          // e.g. short_source_location
-          attr_name = attr.substr(2, pos - 2);
-        }
-        else
-        {
-          // Make the replacement.
-          pattern.replace(arg_identifier_pos, attr.length(), "{}");
-
-          // Get the part that is the named argument
-          // e.g. short_source_location
-          attr.pop_back(); // remove the ")"
-
-          attr_name = attr.substr(2, attr.size());
-        }
-
-        // reorder
-        int id = -1;
-
-        for (size_t i = 0; i < PatternFormatter::Attribute::ATTR_NR_ITEMS; ++i)
-        {
-          if (named_args[i].name == attr_name)
-          {
-            id = named_args[i].id;
-            break;
-          }
-        }
-
-        if (id < 0)
-        {
-          QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" + attr_name + "\" is invalid"});
-        }
-
-        // Also set the value as used in the pattern in our bitset for lazy evaluation
-        PatternFormatter::Attribute const attr_enum_value = _attribute_from_string(attr_name);
-        if (is_set_in_pattern.test(attr_enum_value))
-        {
-          QUILL_THROW(QuillError{"Invalid format pattern, attribute with name \"" + attr_name +
-                                 "\" is used more than once"});
-        }
-
-        order_index[static_cast<size_t>(id)] = arg_idx++;
-        is_set_in_pattern.set(attr_enum_value);
-
-        // Look for the next pattern to replace
-        arg_identifier_pos = pattern.find_first_of('%');
-      }
-      else
-      {
-        // search for the next '%'
-        arg_identifier_pos = pattern.find_first_of('%', arg_identifier_pos + 1);
-      }
-    }
-
-    return std::make_pair(pattern, order_index);
+    return std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()};
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT std::string_view _format(uint64_t timestamp, std::string_view thread_id,
-                                               std::string_view thread_name, std::string_view process_id,
-                                               std::string_view logger, std::string_view log_level_description,
-                                               std::string_view log_level_short_code,
-                                               MacroMetadata const& log_statement_metadata,
-                                               std::vector<std::pair<std::string, std::string>> const* named_args,
-                                               std::string_view log_msg, std::string_view mdc)
+  QUILL_ATTRIBUTE_HOT std::string_view _format(LogRecord const& record, std::string_view log_msg)
   {
+    MacroMetadata const& log_statement_metadata = *record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* named_args = record.named_args;
+
     if (_is_set_in_pattern[Attribute::Time])
     {
-      _set_arg_val<Attribute::Time>(_timestamp_formatter.format_timestamp(std::chrono::nanoseconds{timestamp}));
+      _set_arg_val<Attribute::Time>(
+        _timestamp_formatter.format_timestamp(std::chrono::nanoseconds{record.log_timestamp}));
     }
 
     if (_is_set_in_pattern[Attribute::FileName])
@@ -652,12 +477,12 @@ private:
 
     if (_is_set_in_pattern[Attribute::LogLevel])
     {
-      _set_arg_val<Attribute::LogLevel>(log_level_description);
+      _set_arg_val<Attribute::LogLevel>(record.log_level_description);
     }
 
     if (_is_set_in_pattern[Attribute::LogLevelShortCode])
     {
-      _set_arg_val<Attribute::LogLevelShortCode>(log_level_short_code);
+      _set_arg_val<Attribute::LogLevelShortCode>(record.log_level_short_code);
     }
 
     if (_is_set_in_pattern[Attribute::LineNumber])
@@ -667,7 +492,7 @@ private:
 
     if (_is_set_in_pattern[Attribute::Logger])
     {
-      _set_arg_val<Attribute::Logger>(logger);
+      _set_arg_val<Attribute::Logger>(record.logger_name);
     }
 
     if (_is_set_in_pattern[Attribute::FullPath])
@@ -677,17 +502,17 @@ private:
 
     if (_is_set_in_pattern[Attribute::ThreadId])
     {
-      _set_arg_val<Attribute::ThreadId>(thread_id);
+      _set_arg_val<Attribute::ThreadId>(record.thread_id);
     }
 
     if (_is_set_in_pattern[Attribute::ThreadName])
     {
-      _set_arg_val<Attribute::ThreadName>(thread_name);
+      _set_arg_val<Attribute::ThreadName>(record.thread_name);
     }
 
     if (_is_set_in_pattern[Attribute::ProcessId])
     {
-      _set_arg_val<Attribute::ProcessId>(process_id);
+      _set_arg_val<Attribute::ProcessId>(record.process_id);
     }
 
     if (_is_set_in_pattern[Attribute::SourceLocation])
@@ -704,30 +529,12 @@ private:
 
     if (_is_set_in_pattern[Attribute::NamedArgs])
     {
-      _formatted_named_args_buffer.clear();
-
-      if (named_args)
-      {
-        for (size_t i = 0; i < named_args->size(); ++i)
-        {
-          _formatted_named_args_buffer.append((*named_args)[i].first);
-          _formatted_named_args_buffer.append(std::string_view{": "});
-          _formatted_named_args_buffer.append((*named_args)[i].second);
-
-          if (i != named_args->size() - 1)
-          {
-            _formatted_named_args_buffer.append(std::string_view{", "});
-          }
-        }
-      }
-
-      _set_arg_val<Attribute::NamedArgs>(
-        std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()});
+      _set_arg_val<Attribute::NamedArgs>(_format_named_args(named_args));
     }
 
     if (_is_set_in_pattern[Attribute::Mdc])
     {
-      _set_arg_val<Attribute::Mdc>(mdc);
+      _set_arg_val<Attribute::Mdc>(record.mdc);
     }
 
     if (_is_set_in_pattern[Attribute::Tags])
@@ -756,17 +563,14 @@ private:
 
     for (FormatPart const& part : _format_parts)
     {
-      if (part.literal_size != 0)
-      {
-        _formatted_log_message_buffer.append(
-          std::string_view{_literal_buffer.data() + part.literal_pos, part.literal_size});
-      }
+      detail::append_to_buffer(_formatted_log_message_buffer,
+                               std::string_view{_literal_buffer.data() + part.literal_pos, part.literal_size});
 
       std::string_view const value = _attribute_values[part.attribute];
       if (!part.has_format_specs)
       {
         // All pattern attributes are string views, so the common case needs no fmt dispatch.
-        _formatted_log_message_buffer.append(value);
+        detail::append_to_buffer(_formatted_log_message_buffer, value);
       }
       else
       {
@@ -775,8 +579,9 @@ private:
       }
     }
 
-    _formatted_log_message_buffer.append(std::string_view{
-      _literal_buffer.data() + _trailing_literal_pos, _literal_buffer.size() - _trailing_literal_pos});
+    detail::append_to_buffer(_formatted_log_message_buffer,
+                             std::string_view{_literal_buffer.data() + _trailing_literal_pos,
+                                              _literal_buffer.size() - _trailing_literal_pos});
 
     return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
   }

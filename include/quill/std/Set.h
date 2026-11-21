@@ -24,13 +24,6 @@
   #include <vector>
 #endif
 
-#if defined(_WIN32)
-  #ifndef QUILL_MODULE
-    #include <string>
-    #include <string_view>
-  #endif
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -40,7 +33,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
              std::enable_if_t<std::disjunction_v<std::is_same<SetType<Key, Compare, Allocator>, std::set<Key, Compare, Allocator>>,
                                                  std::is_same<SetType<Key, Compare, Allocator>, std::multiset<Key, Compare, Allocator>>>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache,
                                      SetType<Key, Compare, Allocator> const& arg)
   {
     // We need to store the size of the set in the buffer, so we reserve space for it.
@@ -68,7 +61,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.size());
@@ -83,30 +76,23 @@ struct Codec<SetType<Key, Compare, Allocator>,
 
   static auto decode_arg(std::byte*& buffer)
   {
-#if defined(_WIN32)
-    if constexpr (std::conjunction_v<
-                    std::disjunction<std::is_same<SetType<Key, Compare, Allocator>, std::set<Key, Compare, Allocator>>,
-                                     std::is_same<SetType<Key, Compare, Allocator>, std::multiset<Key, Compare, Allocator>>>,
-                    std::disjunction<std::is_same<Key, wchar_t*>, std::is_same<Key, wchar_t const*>,
-                                     std::is_same<Key, std::wstring>, std::is_same<Key, std::wstring_view>>>)
+    if constexpr (detail::is_wide_string_v<Key>)
     {
-      // Read the size of the set
+      // Wide strings decode to UTF-8 std::string. Collect them in a vector to keep the frontend
+      // iteration order, which a container keyed by the converted strings could change.
       size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
-
-      std::vector<std::string> encoded_values;
-      encoded_values.reserve(number_of_elements);
+      std::vector<decltype(detail::decode_element<Key>(buffer))> decoded;
+      decoded.reserve(number_of_elements);
 
       for (size_t i = 0; i < number_of_elements; ++i)
       {
-        std::wstring_view v = Codec<Key>::decode_arg(buffer);
-        encoded_values.emplace_back(detail::utf8_encode(v));
+        decoded.push_back(detail::decode_element<Key>(buffer));
       }
 
-      return encoded_values;
+      return decoded;
     }
     else
     {
-#endif
       using ReturnType = decltype(Codec<Key>::decode_arg(buffer));
       using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
       using ReboundCompare =
@@ -130,9 +116,7 @@ struct Codec<SetType<Key, Compare, Allocator>,
       }
 
       return arg;
-#if defined(_WIN32)
     }
-#endif
   }
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)

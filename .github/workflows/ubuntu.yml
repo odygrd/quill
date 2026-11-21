@@ -140,26 +140,25 @@ jobs:
             sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
             sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
           fi
-          cmake -E make_directory ${{runner.workspace}}/build
+          cmake -E make_directory ${{github.workspace}}/../build
 
       - name: Configure
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         env:
           CXX: ${{matrix.cxx}}
-          CXXFLAGS: ${{matrix.cxxflags}}
         run: |
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} ${{matrix.cmake_options}} \
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
                 -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         run: |
           threads=`nproc`
           cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
       - name: Test
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         run: |
           threads=`nproc`
           ctest --build-config ${{matrix.build_type}} ${{matrix.ctest_options}} --parallel $threads --output-on-failure

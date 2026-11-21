@@ -212,6 +212,41 @@ TEST_CASE("construct")
   }
 }
 
+TEST_CASE("message_format_size")
+{
+  constexpr MacroMetadata macro_metadata{
+    "file.cpp:1", "", "Test fmt {}", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(macro_metadata.message_format_size(), 11u);
+
+  constexpr MacroMetadata empty_format{
+    "file.cpp:1", "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(empty_format.message_format_size(), 0u);
+
+  // The macro-free functions construct the metadata of each record from a runtime format string
+  std::string const runtime_format(300, 'x');
+  MacroMetadata const runtime_metadata{"file.cpp:1",          "",
+                                       runtime_format.data(), nullptr,
+                                       quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(runtime_metadata.message_format_size(), runtime_format.size());
+
+  REQUIRE_EQ(MacroMetadata{}.message_format_size(), 0u);
+}
+
+TEST_CASE("source_location_accepts_both_separators")
+{
+  // MinGW and builds hosted on Windows can spell __FILE__ with either separator
+  constexpr MacroMetadata mixed{
+    "C:\\src\\nested/example.cpp:12", "", "", nullptr, quill::LogLevel::Info,
+    MacroMetadata::Event::Log};
+  REQUIRE_EQ(mixed.file_name(), "example.cpp");
+
+  constexpr MacroMetadata backslashes{
+    "C:\\src\\nested\\example.cpp:12", "", "", nullptr, quill::LogLevel::Info,
+    MacroMetadata::Event::Log};
+  REQUIRE_EQ(backslashes.file_name(), "example.cpp");
+  REQUIRE_STREQ(backslashes.short_source_location(), "example.cpp:12");
+}
+
 TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
 {
   static_assert(MacroMetadata::contains_named_args("{name}"),
@@ -232,6 +267,20 @@ TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
   REQUIRE_EQ(macro_metadata.has_named_args(), true);
 }
 
+TEST_CASE("contains_named_args_looks_past_nested_replacement_fields")
+{
+  static_assert(MacroMetadata::contains_named_args("{:{}} {unit}"),
+                "a named field after a dynamic width should be detected");
+  static_assert(MacroMetadata::contains_named_args("{:.{}f} {unit}"),
+                "a named field after a dynamic precision should be detected");
+  static_assert(MacroMetadata::contains_named_args("{:{width}}"),
+                "a named dynamic width should be detected");
+  static_assert(!MacroMetadata::contains_named_args("{:{}} {}"),
+                "positional fields with a dynamic width are not named");
+  static_assert(!MacroMetadata::contains_named_args("{}}}{{name}}"),
+                "escaped braces around a name should not be detected as named args");
+}
+
 TEST_CASE("empty_source_location_is_handled")
 {
   constexpr MacroMetadata macro_metadata{"",               // source_location
@@ -244,6 +293,33 @@ TEST_CASE("empty_source_location_is_handled")
   REQUIRE_EQ(macro_metadata.full_path(), std::string_view{});
   REQUIRE_EQ(macro_metadata.file_name(), std::string_view{});
   REQUIRE_STREQ(macro_metadata.short_source_location(), "");
+}
+
+TEST_CASE("source_location_is_scanned_from_its_end")
+{
+  // The file name and the line are found from the end of the source location. The macro-free
+  // functions construct the metadata at run time, usually from a long path
+  std::string const long_location = std::string(300, 'd') + "/nested\\file.cpp:1234";
+  MacroMetadata const runtime_metadata{
+    long_location.data(), "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(runtime_metadata.file_name(), "file.cpp");
+  REQUIRE_STREQ(runtime_metadata.line(), "1234");
+  REQUIRE_STREQ(runtime_metadata.short_source_location(), "file.cpp:1234");
+  REQUIRE_EQ(runtime_metadata.full_path().size(), long_location.size() - 5);
+
+  // Without a line the path ends the source location
+  constexpr MacroMetadata no_line{"nested/example.cpp",     "", "", nullptr, quill::LogLevel::Info,
+                                  MacroMetadata::Event::Log};
+  REQUIRE_EQ(no_line.full_path(), "nested/example.cpp");
+  REQUIRE_EQ(no_line.file_name(), "example.cpp");
+  REQUIRE_STREQ(no_line.line(), "");
+
+  // A separator can be the last character of the path
+  constexpr MacroMetadata no_file_name{
+    "nested/:7", "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(no_file_name.full_path(), "nested/");
+  REQUIRE_EQ(no_file_name.file_name(), "");
+  REQUIRE_STREQ(no_file_name.line(), "7");
 }
 
 TEST_SUITE_END();

@@ -7,12 +7,11 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include "quill/core/Common.h"
 #include "quill/core/ClockSource.h"
+#include "quill/core/Common.h"
 
 #ifndef QUILL_MODULE
   #include <cstdint>
-  #include <type_traits>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -22,14 +21,15 @@ QUILL_BEGIN_EXPORT
 /**
  * Frontend options are expressed as a traits type.
  *
- * To override only a subset of options, derive from FrontendOptions and redeclare only the
- * members that change. New members added to FrontendOptions will then be inherited automatically
- * unless the derived type explicitly overrides them.
+ * Custom options must derive from FrontendOptions and redeclare only the members that change.
+ * New members added to FrontendOptions are then inherited automatically unless the derived type
+ * explicitly overrides them.
  *
  * @note FrontendOptions are intended to be an application-wide choice. Mixing different
  *       FrontendImpl<TFrontendOptions> or LoggerImpl<TFrontendOptions> specializations is not a
  *       supported configuration. Use one frontend specialization consistently throughout the
- *       application.
+ *       application. Creating a logger whose FrontendOptions values differ from the existing
+ *       loggers throws QuillError.
  *
  * @code
  * struct CustomFrontendOptions : FrontendOptions
@@ -58,6 +58,8 @@ struct FrontendOptions
    * Each frontend thread has its own queue, which can be configured with various options:
    * - UnboundedBlocking: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then blocks.
    * - UnboundedDropping: Starts with initial_queue_capacity and reallocates up to unbounded_queue_max_capacity, then drops log messages.
+   *   Both unbounded types also block or drop when a reallocation fails, e.g. when out of memory.
+   *   A record larger than the current queue, MDC updates included, is dropped and counted then.
    * - BoundedBlocking: Starts with initial_queue_capacity and never reallocates; blocks when the
    *   limit is reached. A single message larger than the fixed queue capacity cannot fit and fails
    *   instead of blocking forever.
@@ -75,6 +77,8 @@ struct FrontendOptions
   /**
    * Interval for retrying when using BoundedBlocking or UnboundedBlocking.
    * Applicable only when using BoundedBlocking or UnboundedBlocking.
+   * A sleep cannot be shorter than the OS timer granularity, so any non-zero value waits at least
+   * about 50 us on Linux and 1 ms or more on Windows. 0 retries without sleeping.
    */
   static constexpr uint32_t blocking_queue_retry_interval_ns = 800;
 
@@ -93,20 +97,5 @@ struct FrontendOptions
 };
 
 QUILL_END_EXPORT
-
-namespace detail
-{
-template <typename TOptions, typename = void>
-struct FrontendClockType
-{
-  using type = ClockSource;
-};
-
-template <typename TOptions>
-struct FrontendClockType<TOptions, std::void_t<typename TOptions::clock_type>>
-{
-  using type = typename TOptions::clock_type;
-};
-} // namespace detail
 
 QUILL_END_NAMESPACE

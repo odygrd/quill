@@ -70,15 +70,6 @@ namespace detail
  */
 inline constexpr size_t QUILL_CACHE_LINE_SIZE{64u};
 inline constexpr size_t QUILL_CACHE_LINE_ALIGNED{2 * QUILL_CACHE_LINE_SIZE};
-
-// define our own PATH_PREFERRED_SEPARATOR to not include <filesystem>
-#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
-// MSVC on Windows: use backslashes
-inline constexpr char PATH_PREFERRED_SEPARATOR = '\\';
-#else
-// Non-Windows OR Clang on Windows: use forward slashes
-inline constexpr char PATH_PREFERRED_SEPARATOR = '/';
-#endif
 } // namespace detail
 
 QUILL_BEGIN_EXPORT

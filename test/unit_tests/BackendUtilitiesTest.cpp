@@ -1,20 +1,48 @@
 #include "doctest/doctest.h"
 
+#include "quill/Backend.h"
+
 #include "quill/backend/BackendUtilities.h"
 #include "quill/backend/BackendWorker.h"
 #include "quill/backend/BackendWorkerLock.h"
 #include "quill/backend/ThreadUtilities.h"
+#include "quill/backend/Utf8Conv.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/SinkManager.h"
 #include "quill/sinks/FileSink.h"
 
+#include <type_traits>
+
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
+#include <vector>
 
 TEST_SUITE_BEGIN("BackendUtilities");
 
 using namespace quill;
 using namespace quill::detail;
+
+TEST_CASE("backend_options_is_an_aggregate")
+{
+  // Allows designated initializers in C++20
+  static_assert(std::is_aggregate_v<quill::BackendOptions>);
+
+  quill::BackendOptions const options{"custom_backend"};
+  REQUIRE_EQ(options.thread_name, "custom_backend");
+  REQUIRE_EQ(options.sleep_duration, std::chrono::microseconds{100});
+}
+
+TEST_CASE("version_macros_match_version_constants")
+{
+  static_assert(QUILL_VERSION == (QUILL_VERSION_MAJOR * 10000 + QUILL_VERSION_MINOR * 100 + QUILL_VERSION_PATCH));
+  static_assert(quill::Version == QUILL_VERSION);
+  static_assert(quill::VersionMajor == QUILL_VERSION_MAJOR);
+
+  // The inline namespace is named after the major version
+  REQUIRE_EQ(&quill::v14::VersionMajor, &quill::VersionMajor);
+}
 
 TEST_CASE("normalize_file_sink_path_preserves_special_paths")
 {
@@ -117,12 +145,10 @@ TEST_CASE("backend_worker_lock_can_be_reacquired_after_release")
 
 TEST_CASE("get_process_id_matches_current_process")
 {
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
   REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::GetCurrentProcessId()));
-#elif !defined(__CYGWIN__)
-  REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::getpid()));
 #else
-  REQUIRE_EQ(get_process_id(), 0u);
+  REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::getpid()));
 #endif
 }
 
@@ -137,7 +163,7 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
   int selected_cpu = -1;
   for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu)
   {
-    if (CPU_ISSET(cpu, &original_cpuset))
+    if (CPU_ISSET(static_cast<size_t>(cpu), &original_cpuset))
     {
       selected_cpu = cpu;
       break;
@@ -171,6 +197,65 @@ TEST_CASE("set_thread_name_validates_length")
   REQUIRE_EQ(std::string{current_name}, "quill-thread-na");
 #else
   return;
+#endif
+}
+
+TEST_CASE("windows_thread_name_preserves_long_unicode_descriptions")
+{
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
+  HMODULE const kernel{::GetModuleHandleW(L"KernelBase.dll")};
+  if (!kernel || !::GetProcAddress(kernel, "GetThreadDescription") ||
+      !::GetProcAddress(kernel, "SetThreadDescription"))
+  {
+    return;
+  }
+
+  // 262 UTF-16 code units with a surrogate pair across the old 256 unit limit
+  std::string const previous{get_thread_name()};
+  std::string const name{std::string(255, 'a') + "\xf0\x9f\x98\x80" + " tail"};
+  set_thread_name(name.c_str());
+  std::string const actual{get_thread_name()};
+  set_thread_name(previous.c_str());
+
+  REQUIRE_EQ(actual, name);
+#endif
+}
+
+TEST_CASE("utf8_encode_converts_around_the_short_string_buffer_size")
+{
+#if defined(_WIN32)
+  // Arguments are stored unaligned in the queue, so encode from an odd address
+  auto const encode = [](std::wstring const& text)
+  {
+    std::vector<std::byte> storage(text.size() * sizeof(wchar_t) + 1u);
+    std::memcpy(storage.data() + 1, text.data(), text.size() * sizeof(wchar_t));
+    return utf8_encode(storage.data() + 1, text.size());
+  };
+
+  auto const repeat = [](std::string const& text, size_t count)
+  {
+    std::string result;
+    for (size_t i = 0; i < count; ++i)
+    {
+      result += text;
+    }
+    return result;
+  };
+
+  // Up to 64 UTF-16 code units use a stack buffer of three UTF-8 bytes per code unit
+  REQUIRE_EQ(encode(std::wstring(64, L'\u4e2d')), repeat("\xe4\xb8\xad", 64));
+  REQUIRE_EQ(encode(std::wstring(65, L'\u4e2d')), repeat("\xe4\xb8\xad", 65));
+
+  std::wstring emoji;
+  for (size_t i = 0; i < 32; ++i)
+  {
+    emoji += L"\U0001F600";
+  }
+  REQUIRE_EQ(encode(emoji), repeat("\xf0\x9f\x98\x80", 32));
+
+  // A surrogate pair split at the end becomes U+FFFD
+  std::wstring const split_pair{std::wstring(63, L'a') + static_cast<wchar_t>(0xD83D)};
+  REQUIRE_EQ(encode(split_pair), std::string(63, 'a') + "\xef\xbf\xbd");
 #endif
 }
 
@@ -276,6 +361,21 @@ TEST_CASE("timestamp_ordering_grace_period_keeps_a_consistent_scan_cutoff")
   CHECK_FALSE(defer_newer_next_scan);
   CHECK_EQ(older_final_deadline, 0u);
   CHECK_EQ(newer_final_deadline, 0u);
+}
+
+/***/
+TEST_CASE("prefetch_cache_line_accepts_any_address")
+{
+  // A prefetch is a hint that reads nothing and cannot fault, so there is no result to check:
+  // the addresses below are the first and last byte of a buffer, one past its end and nullptr
+  std::vector<char> const buffer(1024, 'x');
+
+  prefetch_cache_line(buffer.data());
+  prefetch_cache_line(buffer.data() + 1023);
+  prefetch_cache_line(buffer.data() + buffer.size());
+  prefetch_cache_line(nullptr);
+
+  CHECK_EQ(buffer.front(), 'x');
 }
 
 TEST_SUITE_END();

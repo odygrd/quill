@@ -21,15 +21,15 @@ using namespace quill;
  */
 struct PollSinkFlushCountingSink final : public quill::Sink
 {
-  void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                 std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                 std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     writes.fetch_add(1, std::memory_order_relaxed);
   }
 
-  void flush_sink() noexcept override { flushes.fetch_add(1, std::memory_order_relaxed); }
+  void flush_sink(SinkFlushReason) noexcept override
+  {
+    flushes.fetch_add(1, std::memory_order_relaxed);
+  }
 
   void run_periodic_tasks() override { periodic_tasks.fetch_add(1, std::memory_order_relaxed); }
 
@@ -77,12 +77,10 @@ TEST_CASE("manual_backend_worker_poll_flushes_sinks")
 
   // The same holds when polling with a timeout and the queues are already drained
   size_t const flushes_before_timeout_poll = sink_ptr->flushes.load(std::memory_order_relaxed);
-  size_t const periodic_tasks_before_timeout_poll =
-    sink_ptr->periodic_tasks.load(std::memory_order_relaxed);
+  size_t const periodic_tasks_before_timeout_poll = sink_ptr->periodic_tasks.load(std::memory_order_relaxed);
   manual_backend_worker->poll(std::chrono::microseconds{50});
   REQUIRE_GT(sink_ptr->flushes.load(std::memory_order_relaxed), flushes_before_timeout_poll);
-  REQUIRE_GT(sink_ptr->periodic_tasks.load(std::memory_order_relaxed),
-               periodic_tasks_before_timeout_poll);
+  REQUIRE_GT(sink_ptr->periodic_tasks.load(std::memory_order_relaxed), periodic_tasks_before_timeout_poll);
 
   Frontend::remove_logger(logger);
   manual_backend_worker->poll();

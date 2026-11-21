@@ -60,8 +60,30 @@ int main()
   auto const start_time = std::chrono::steady_clock::now();
   for (size_t iteration = 0; iteration < total_iterations; ++iteration)
   {
-    LOG_INFO(logger, "Iteration: {} int: {} double: {}", iteration, iteration * 2,
-             static_cast<double>(iteration) / 2);
+    // Cycle between five log statements: an application does not repeat a single one
+    switch (iteration % 5)
+    {
+    case 0:
+      LOG_INFO(logger, "Iteration: {} int: {} double: {}", iteration, iteration * 2,
+               static_cast<double>(iteration) / 2);
+      break;
+    case 1:
+      LOG_INFO(logger, "Order: {} quantity: {} price: {}", iteration, iteration * 2,
+               static_cast<double>(iteration) / 2);
+      break;
+    case 2:
+      LOG_INFO(logger, "Request: {} bytes: {} elapsed: {}", iteration, iteration * 2,
+               static_cast<double>(iteration) / 2);
+      break;
+    case 3:
+      LOG_INFO(logger, "Session: {} sequence: {} latency: {}", iteration, iteration * 2,
+               static_cast<double>(iteration) / 2);
+      break;
+    default:
+      LOG_INFO(logger, "Worker: {} processed: {} load: {}", iteration, iteration * 2,
+               static_cast<double>(iteration) / 2);
+      break;
+    }
   }
 
   // block until all messages are flushed

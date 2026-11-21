@@ -62,8 +62,6 @@ public:
   public:
     Colours() { apply_default_colours(); }
 
-    ~Colours() = default;
-
     /**
      * Sets some default colours for terminal
      */
@@ -90,17 +88,6 @@ public:
     {
       auto const log_lvl = static_cast<uint32_t>(log_level);
       _log_level_colours[log_lvl] = colour;
-      _colours_enabled = true;
-    }
-
-    QUILL_ATTRIBUTE_COLD void set_colours_enabled(bool value) { _colours_enabled = value; }
-
-    /**
-     * @return true if we are in terminal and have also enabled colours
-     */
-    QUILL_NODISCARD bool colours_enabled() const noexcept
-    {
-      return _colour_output_supported && _colours_enabled;
     }
 
     /**
@@ -151,123 +138,12 @@ public:
     static constexpr std::string_view bold_on_red{"\033[1m\033[41m"};
 
   private:
-    friend class ConsoleSink;
-
-    /***/
-    QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _supports_colour_output() noexcept
-    {
-#ifdef _WIN32
-      // On Windows 10 and later, ANSI colors are supported
-      return true;
-#else
-      // Get term from env
-      auto* env_p = std::getenv("TERM");
-
-      if (env_p == nullptr)
-      {
-        return false;
-      }
-
-      static constexpr char const* terms[] = {
-        "ansi",          "color",     "console",        "cygwin",         "gnome",
-        "konsole",       "kterm",     "linux",          "msys",           "putty",
-        "rxvt",          "screen",    "vt100",          "xterm",          "tmux",
-        "terminator",    "alacritty", "gnome-terminal", "xfce4-terminal", "lxterminal",
-        "mate-terminal", "uxterm",    "eterm",          "tilix",          "rxvt-unicode",
-        "kde-konsole"};
-
-      // Loop through each term and check if it's found in env_p
-      for (char const* term : terms)
-      {
-        if (std::strstr(env_p, term) != nullptr)
-        {
-          // term found
-          return true;
-        }
-      }
-
-      // none of the terms are found
-      return false;
-#endif
-    }
-
-    /***/
-    QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _is_terminal_output(FILE* file) noexcept
-    {
-#ifdef _WIN32
-      return _isatty(_fileno(file)) != 0;
-#else
-      return ::isatty(fileno(file)) != 0;
-#endif
-    }
-
-#ifdef _WIN32
-    /***/
-    QUILL_ATTRIBUTE_COLD bool _activate_ansi_support(FILE* file) const noexcept
-    {
-      if (!_colour_output_supported)
-      {
-        return false;
-      }
-
-      // Try to enable ANSI support for Windows console
-      auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file)));
-      if (out_handle == INVALID_HANDLE_VALUE)
-      {
-        return false;
-      }
-
-      DWORD dw_mode = 0;
-      if (!GetConsoleMode(out_handle, &dw_mode))
-      {
-        return false;
-      }
-
-      dw_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-      dw_mode |= ENABLE_PROCESSED_OUTPUT;
-
-      return SetConsoleMode(out_handle, dw_mode) != 0;
-    }
-#endif
-
-    /***/
-    void _configure_colour_support(FILE* file, ColourMode colour_mode) noexcept
-    {
-      if (colour_mode == ColourMode::Always)
-      {
-        _colour_output_supported = true;
-      }
-      else if (colour_mode == ColourMode::Automatic)
-      {
-        _colour_output_supported = _is_terminal_output(file) && _supports_colour_output();
-      }
-      else
-      {
-        _colour_output_supported = false;
-      }
-
-#ifdef _WIN32
-      // Enable ANSI color support on Windows
-      if ((colour_mode == ColourMode::Automatic) && !_activate_ansi_support(file))
-      {
-        _colour_output_supported = false;
-      }
-      else if (colour_mode == ColourMode::Always)
-      {
-        static_cast<void>(_activate_ansi_support(file));
-      }
-#endif
-    }
-
-  private:
     static_assert(static_cast<size_t>(LogLevel::None) < LogLevelCount,
                   "_log_level_colours must be large enough to be indexed by every LogLevel value");
 
     // Owned strings: assign_colour_to_log_level() accepts runtime-built colour codes and the
     // backend reads them later, so storing views into caller-owned storage would dangle
     std::array<std::string, LogLevelCount> _log_level_colours; /**< Colours per log level */
-    bool _colours_enabled{true};
-    bool _colour_output_supported{false};
   };
 
   /**
@@ -334,8 +210,6 @@ public:
   }
 
 private:
-  friend class ConsoleSink;
-
   std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
   std::string _stream = "stdout";
   Colours _colours;
@@ -362,56 +236,31 @@ public:
         QuillError{"Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'"});
     }
 
-    if (_config.colour_mode() == ConsoleSinkConfig::ColourMode::Never)
-    {
-      _config._colours.set_colours_enabled(false);
-    }
-    else
-    {
-      _config._colours._configure_colour_support(_file, _config.colour_mode());
-      _config._colours.set_colours_enabled(true);
-    }
+    _colours_enabled = _use_colours(_file, _config.colour_mode());
   }
 
   ~ConsoleSink() override = default;
 
   /**
    * @brief Write a formatted log message to the stream
-   * @param log_metadata log metadata
-   * @param log_timestamp log timestamp
-   * @param thread_id thread id
-   * @param thread_name thread name
-   * @param process_id Process Id
-   * @param logger_name logger name
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args vector of key-value pairs of named args
-   * @param log_message log message
-   * @param log_statement log statement
+   * @param record the log record
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                     std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name,
-                                     LogLevel log_level, std::string_view log_level_description,
-                                     std::string_view log_level_short_code,
-                                     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                     std::string_view log_message, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (QUILL_UNLIKELY(!_file))
     {
       return;
     }
 
-    if (_config.colours().colours_enabled())
+    if (_colours_enabled)
     {
       // Apply the user callback to the original statement exactly once and determine newline
       // placement from the transformed result.
       std::string transformed_statement;
-      std::string_view statement = log_statement;
+      std::string_view statement = record.log_statement;
       if (_file_event_notifier.before_write)
       {
-        transformed_statement = _file_event_notifier.before_write(log_statement);
+        transformed_statement = _file_event_notifier.before_write(record.log_statement);
         statement = transformed_statement;
       }
 
@@ -426,35 +275,142 @@ public:
         statement.remove_suffix(1);
       }
 
-      // Write colour code
-      std::string_view const colour_code = _config.colours().log_level_colour(log_level);
-      safe_fwrite(colour_code.data(), sizeof(char), colour_code.size(), _file);
-
-      // Write the transformed record directly so before_write is not invoked a second time.
-      _write_statement(statement);
-
-      // Reset colour code
-      safe_fwrite(ConsoleSinkConfig::Colours::reset.data(), sizeof(char),
-                  ConsoleSinkConfig::Colours::reset.size(), _file);
+      // Build the coloured record and write it with one call: on unbuffered streams each write
+      // is a syscall, and separate writes let other output land between colour and reset.
+      std::string_view const colour_code = _config.colours().log_level_colour(record.log_level);
+      _coloured_statement.clear();
+      _coloured_statement.append(colour_code.data(), colour_code.size());
+      _coloured_statement.append(statement.data(), statement.size());
+      _coloured_statement.append(ConsoleSinkConfig::Colours::reset.data(),
+                                 ConsoleSinkConfig::Colours::reset.size());
 
       if (has_trailing_newline)
       {
-        safe_fwrite("\n", sizeof(char), 1, _file);
-        ++_file_size;
+        _coloured_statement.push_back('\n');
       }
+
+      // Write directly so before_write is not invoked a second time.
+      _write_statement(_coloured_statement);
     }
     else
     {
       // Write record to file
-      StreamSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                            logger_name, log_level, log_level_description, log_level_short_code,
-                            named_args, log_message, log_statement);
+      StreamSink::write_log(record);
     }
   }
 
 protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleSinkConfig _config;
+
+private:
+  /** Whether to write colour codes to the stream for the configured colour mode */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _use_colours(FILE* file, ConsoleSinkConfig::ColourMode colour_mode) noexcept
+  {
+    if (colour_mode == ConsoleSinkConfig::ColourMode::Never)
+    {
+      return false;
+    }
+
+#ifdef _WIN32
+    // Enable ANSI colour support on Windows. With ColourMode::Always colours are written even if
+    // the console cannot interpret them
+    bool const ansi_enabled = _activate_ansi_support(file);
+    if (colour_mode == ConsoleSinkConfig::ColourMode::Always)
+    {
+      return true;
+    }
+
+    return ansi_enabled && _is_terminal_output(file) && _supports_colour_output();
+#else
+    if (colour_mode == ConsoleSinkConfig::ColourMode::Always)
+    {
+      return true;
+    }
+
+    return _is_terminal_output(file) && _supports_colour_output();
+#endif
+  }
+
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _supports_colour_output() noexcept
+  {
+#ifdef _WIN32
+    // On Windows 10 and later, ANSI colors are supported
+    return true;
+#else
+    // Get term from env
+    auto* env_p = std::getenv("TERM");
+
+    if (env_p == nullptr)
+    {
+      return false;
+    }
+
+    static constexpr char const* terms[] = {
+      "ansi",           "color",      "console",       "cygwin",     "gnome",     "konsole",
+      "kterm",          "linux",      "msys",          "putty",      "rxvt",      "screen",
+      "vt100",          "xterm",      "tmux",          "terminator", "alacritty", "gnome-terminal",
+      "xfce4-terminal", "lxterminal", "mate-terminal", "uxterm",     "eterm",     "tilix",
+      "rxvt-unicode",   "kde-konsole"};
+
+    // Loop through each term and check if it's found in env_p
+    for (char const* term : terms)
+    {
+      if (std::strstr(env_p, term) != nullptr)
+      {
+        // term found
+        return true;
+      }
+    }
+
+    // none of the terms are found
+    return false;
+#endif
+  }
+
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _is_terminal_output(FILE* file) noexcept
+  {
+#ifdef _WIN32
+    return _isatty(_fileno(file)) != 0;
+#else
+    return ::isatty(fileno(file)) != 0;
+#endif
+  }
+
+#ifdef _WIN32
+  /***/
+  QUILL_ATTRIBUTE_COLD static bool _activate_ansi_support(FILE* file) noexcept
+  {
+    // Try to enable ANSI support for Windows console
+    auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file)));
+    if (out_handle == INVALID_HANDLE_VALUE)
+    {
+      return false;
+    }
+
+    DWORD dw_mode = 0;
+    if (!GetConsoleMode(out_handle, &dw_mode))
+    {
+      return false;
+    }
+
+    dw_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    dw_mode |= ENABLE_PROCESSED_OUTPUT;
+
+    return SetConsoleMode(out_handle, dw_mode) != 0;
+  }
+#endif
+
+  /**
+   * Reused to assemble a coloured record so it is written with one call. Do not replace it with
+   * separate writes for the colour code, record and reset: on unbuffered streams such as stderr
+   * each write is a syscall (four per line instead of one), and on Windows output from other
+   * writers could land between the colour and the reset.
+   */
+  std::string _coloured_statement;
+  bool _colours_enabled{false};
 };
 
 QUILL_END_EXPORT

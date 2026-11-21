@@ -15,7 +15,7 @@ namespace
 {
 // Only the calling thread's next allocation fails; producer allocations are unaffected.
 thread_local bool fail_next_allocation{false};
-}
+} // namespace
 
 // This executable replaces global operator new to simulate a single allocation failure
 // without exhausting memory. Other test executables use their normal allocator.
@@ -49,26 +49,20 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   class CountingSink : public quill::Sink
   {
   public:
-    void write_log(quill::MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                   std::string const&, std::string_view, quill::LogLevel, std::string_view,
-                   std::string_view, std::vector<std::pair<std::string, std::string>> const*,
-                   std::string_view, std::string_view) override
-    {
-      ++writes;
-    }
-    void flush_sink() override {}
+    void write_log(quill::LogRecord const& /* record */) override { ++writes; }
+    void flush_sink(quill::SinkFlushReason) override {}
     size_t writes{0};
   };
 
   size_t errors{0};
   quill::BackendOptions options;
   options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
+  options.wait_for_queues_to_empty_before_exit = false;
   options.error_notifier = [&errors](std::string const&) { ++errors; };
   auto* worker = quill::Backend::acquire_manual_backend_worker();
   worker->init(options);
 
-  auto sink = std::static_pointer_cast<CountingSink>(
-    quill::Frontend::create_or_get_sink<CountingSink>("context_allocation_failure_sink"));
+  auto sink = quill::Frontend::create_or_get_sink<CountingSink>("context_allocation_failure_sink");
   auto* logger = quill::Frontend::create_or_get_logger("context_allocation_failure_logger", sink);
   std::thread producer([logger]() { LOG_INFO(logger, "pending before allocation failure"); });
   producer.join();
@@ -87,6 +81,18 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   worker->poll_one();
   CHECK_EQ(sink->writes, 1u);
   worker->poll();
+
+  // A thread that only creates its queue and exits leaves a retired context with nothing to read
+  std::thread idle_thread([]() { quill::Frontend::preallocate(); });
+  idle_thread.join();
+
+  // Fail the discovery of that context. shutdown() does not poll again when
+  // wait_for_queues_to_empty_before_exit is false, so it must cope with a context whose transit
+  // buffer was never allocated.
+  fail_next_allocation = true;
+  worker->poll_one();
+  CHECK_FALSE(fail_next_allocation);
+
   worker->shutdown();
   quill::Frontend::remove_logger(logger);
 #endif

@@ -19,7 +19,7 @@ using namespace quill;
 /***/
 struct CustomTypeTC
 {
-  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {};
+  CustomTypeTC(int n, double s, uint32_t a) : name(n), surname(s), age(a) {}
 
 private:
   template <typename T, typename Char, typename Enable>
@@ -66,7 +66,8 @@ struct quill::Codec<CustomTypeTC> : quill::DeferredFormatCodec<CustomTypeTC>
 class ArrayNoDefaultType
 {
 public:
-  explicit ArrayNoDefaultType(std::string label, int value) : label(std::move(label)), value(value)
+  explicit ArrayNoDefaultType(std::string in_label, int in_value)
+    : label(std::move(in_label)), value(in_value)
   {
   }
 
@@ -137,6 +138,9 @@ TEST_CASE("std_array_logging")
 
     std::array<int, 2> i = {-123, 1};
     LOG_INFO(logger, "i {}", i);
+
+    std::array<int, 0> const empty_i{};
+    LOG_INFO(logger, "empty_i {}", empty_i);
 
     std::array<long, 2> li = {9876, 1232};
     LOG_INFO(logger, "li {}", li);
@@ -257,6 +261,9 @@ TEST_CASE("std_array_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       i [-123, 1]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       empty_i []"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       li [9876, 1232]"}));

@@ -2202,7 +2202,11 @@ INCLUDE_FILE_PATTERNS  =
 PREDEFINED             =  QUILL_ATTRIBUTE_HOT= \
                           DOXYGEN_SHOULD_SKIP_THIS= \
                           QUILL_NODISCARD= \
-                          QUILL_ATTRIBUTE_COLD=
+                          QUILL_NOINLINE= \
+                          QUILL_MAYBE_UNUSED= \
+                          QUILL_ATTRIBUTE_COLD= \
+                          QUILL_BEGIN_NAMESPACE= \
+                          QUILL_END_NAMESPACE=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then this
 # tag can be used to specify a list of macro names that should be expanded. The

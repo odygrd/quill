@@ -108,8 +108,10 @@ Dynamic Labels
 --------------
 
 ``Logger::publish_dynamic_metric(name, labels, value)`` or ``DYNAMIC_METRIC(...)`` provides optional
-runtime flexibility. It copies names and labels on every call; prefer ``publish_metric(pointer, value)``
-with cached metadata for latency-sensitive hot paths.
+runtime flexibility. It copies names and labels into the queue on every call; prefer
+``publish_metric(pointer, value)`` with cached metadata for latency-sensitive hot paths. Labels can be
+passed inline as ``{{key, value}, ...}``, which does not allocate, or as a
+``std::vector<MetricLabel>``.
 
 .. code-block:: cpp
 
@@ -146,8 +148,7 @@ metric on it as a counter, gauge, histogram, or summary:
 
 .. code-block:: cpp
 
-   auto prom_sink = std::static_pointer_cast<quill::PrometheusSink>(
-     quill::Frontend::create_or_get_sink<quill::PrometheusSink>("prometheus_sink", exposer_config));
+   auto prom_sink = quill::Frontend::create_or_get_sink<quill::PrometheusSink>("prometheus_sink", exposer_config);
 
    prom_sink->register_counter(requests_total, "Total number of handled requests");
    prom_sink->register_histogram(request_latency, "Request latency in seconds",

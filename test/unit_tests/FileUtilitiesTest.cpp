@@ -12,130 +12,33 @@ using namespace quill::detail;
 class FileSinkMock : public quill::FileSink
 {
 public:
-  static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
-  {
-    return quill::FileSink::extract_stem_and_extension(filename);
-  }
-
   static fs::path append_datetime_to_filename(fs::path const& filename,
                                               std::string const& append_filename_format_pattern,
                                               Timezone time_zone = Timezone::LocalTime,
                                               std::chrono::system_clock::time_point timestamp = {})
   {
-    return quill::FileSink::append_datetime_to_filename(filename, append_filename_format_pattern,
-                                                        time_zone, timestamp);
+    return quill::detail::append_datetime_to_filename(filename, append_filename_format_pattern,
+                                                      time_zone, timestamp);
   }
 };
 
 /***/
-TEST_CASE("extract_stem_and_extension")
+TEST_CASE("windows_filename_gmt_timestamp_has_utc_offset_and_zone")
 {
-  {
-    // simple file
-    fs::path fname = "logfile";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.string().data());
-    REQUIRE_STREQ(res.second.data(), "");
-  }
-
-  {
-    // simple directory
-    fs::path fname = "etc";
-    fname /= "eng";
-    fname /= "logfile";
-
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname.string().data());
-    REQUIRE_STREQ(res.second.data(), "");
-  }
-
-  {
-    // no file extension
-    fs::path fname = "logfile.";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), "logfile");
-    REQUIRE_STREQ(res.second.data(), ".");
-  }
-
-  {
-    // no file extension - directory
-    fs::path fname = "etc";
-    fname /= "eng";
-    fname /= "logfile.";
-
-    fs::path fname_expected = "etc";
-    fname_expected /= "eng";
-    fname_expected /= "logfile";
-
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
-    REQUIRE_STREQ(res.second.data(), ".");
-  }
-
-  {
-    // hidden file
-    fs::path fname = ".logfile.";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), ".logfile");
-    REQUIRE_STREQ(res.second.data(), ".");
-  }
-
-#ifndef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
-  {
-    // hidden file - directory
-    fs::path fname = "etc";
-    fname /= "eng";
-    fname /= ".logfile";
-
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-
-    // in gcc 7.3.1 with experimental filesystem this line fails with str1: etc/eng != str2: /etc/eng/.logfile
-    REQUIRE_STREQ(res.first.data(), fname.string().data());
-    REQUIRE_STREQ(res.second.data(), "");
-  }
+#if defined(_WIN32)
+  REQUIRE_EQ(quill::detail::format_datetime_string(1'750'000'000'000'000'000ull, Timezone::GmtTime,
+                                                   "%z %Z %%z %%Z"),
+             "+0000 UTC %z %Z");
 #endif
+}
 
-  {
-    // valid stem and extension
-    fs::path fname = "logfile.log";
-    fs::path fname_expected = "logfile";
-    fs::path extension_expected = ".log";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
-  }
-
-  {
-    // valid stem and extension - directory
-    fs::path fname = "etc";
-    fname /= "eng";
-    fname /= "logfile.log";
-
-    fs::path fname_expected = "etc";
-    fname_expected /= "eng";
-    fname_expected /= "logfile";
-
-    fs::path extension_expected = ".log";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
-  }
-
-  {
-    // valid stem and extension - directory
-    fs::path fname = "/etc";
-    fname /= "eng";
-    fname /= "logfile.log";
-
-    fs::path fname_expected = "/etc";
-    fname_expected /= "eng";
-    fname_expected /= "logfile";
-
-    fs::path extension_expected = ".log";
-    auto const res = FileSinkMock::extract_stem_and_extension(fname);
-    REQUIRE_STREQ(res.first.data(), fname_expected.string().data());
-    REQUIRE_STREQ(res.second.data(), extension_expected.string().data());
-  }
+TEST_CASE("windows_unsupported_filename_timestamp_directive_throws")
+{
+#if defined(_MSC_VER) && !defined(QUILL_NO_EXCEPTIONS)
+  REQUIRE_THROWS_AS((void)quill::detail::format_datetime_string(1'750'000'000'000'000'000ull,
+                                                                Timezone::GmtTime, "%-H"),
+                    QuillError);
+#endif
 }
 
 /***/
@@ -159,8 +62,8 @@ TEST_CASE("append_date_to_filename")
   fs::path const unicode_fname = L"\u65e5\u672c logs/\u65e5\u672c.log";
   fs::path const unicode_expected = L"\u65e5\u672c logs/\u65e5\u672c_20200305.log";
 
-  REQUIRE(FileSinkMock::append_datetime_to_filename(
-            unicode_fname, cfg.append_filename_format_pattern(), Timezone::GmtTime, ts) == unicode_expected);
+  REQUIRE(FileSinkMock::append_datetime_to_filename(unicode_fname, cfg.append_filename_format_pattern(),
+                                                    Timezone::GmtTime, ts) == unicode_expected);
 #endif
 }
 

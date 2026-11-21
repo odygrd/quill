@@ -20,7 +20,7 @@ using namespace quill;
 
 struct PairNoDefaultType
 {
-  explicit PairNoDefaultType(std::string value) : value(std::move(value)) {}
+  explicit PairNoDefaultType(std::string in_value) : value(std::move(in_value)) {}
 
   PairNoDefaultType(PairNoDefaultType const&) = default;
   PairNoDefaultType& operator=(PairNoDefaultType const&) = default;
@@ -168,8 +168,10 @@ TEST_CASE("std_pair_logging")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       map_value_type (\"map_key\", 42)"}));
 
-  CHECK(testing::file_contains(file_contents, "reference_first (PairNoDefault(value: referenced), 7)"));
-  CHECK(testing::file_contains(file_contents, "reference_second (8, PairNoDefault(value: referenced))"));
+  CHECK(
+    testing::file_contains(file_contents, "reference_first (PairNoDefault(value: referenced), 7)"));
+  CHECK(
+    testing::file_contains(file_contents, "reference_second (8, PairNoDefault(value: referenced))"));
   CHECK(testing::file_contains(file_contents, "const_pair (9, PairNoDefault(value: const))"));
 
   testing::remove_file(filename);

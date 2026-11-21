@@ -24,10 +24,12 @@
   #include <cstddef>
   #include <cstdint>
   #include <cstring>
+  #include <initializer_list>
   #include <memory>
   #include <string>
   #include <string_view>
   #include <type_traits>
+  #include <utility>
   #include <vector>
 #endif
 
@@ -87,7 +89,11 @@ class LoggerImpl : public detail::LoggerBase
 {
 public:
   using frontend_options_t = TFrontendOptions;
-  using clock_type = typename detail::FrontendClockType<frontend_options_t>::type;
+
+  static_assert(std::is_base_of_v<FrontendOptions, frontend_options_t>,
+                "Custom frontend options must derive from quill::FrontendOptions");
+
+  using clock_type = typename frontend_options_t::clock_type;
 
   static constexpr bool using_runtime_clock = std::is_same_v<clock_type, ClockSource>;
   using clock_object_t = std::conditional_t<using_runtime_clock, UserClockSource, clock_type>;
@@ -140,8 +146,7 @@ public:
     {
       if (_clock_source != ClockSourceType::Tsc)
       {
-        return _log_statement_noinline<Args...>(
-          macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+        return _log_statement_noinline<Args...>(macro_metadata, 0, 0, static_cast<Args&&>(fmt_args)...);
       }
     }
 
@@ -150,8 +155,8 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      return _log_statement_noinline<Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      return _log_statement_noinline<Args...>(macro_metadata, current_timestamp, 0,
+                                              static_cast<Args&&>(fmt_args)...);
     }
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
@@ -164,8 +169,9 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      return _log_statement_noinline<Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      // Pass the computed size: the size cache already holds this call's encoded arguments
+      return _log_statement_noinline<Args...>(macro_metadata, current_timestamp, total_size,
+                                              static_cast<Args&&>(fmt_args)...);
     }
 
     std::byte* write_buffer = reservation.write_buffer;
@@ -274,7 +280,8 @@ public:
       "metric_source=\"%s\"",
       total_size, static_cast<size_t>(write_buffer - write_begin), metric_metadata->source_location());
 
-    queue.finish_and_commit_write_reservation(reservation.writer_pos + total_size);
+    // Commit through the cached queue pointer to avoid reloading the producer node
+    reservation.bounded_queue->finish_and_commit_write_reservation(reservation.writer_pos + total_size);
     return true;
   }
 
@@ -289,61 +296,22 @@ public:
    */
   bool publish_dynamic_metric(std::string_view metric_name, std::vector<MetricLabel> const& labels, double value)
   {
-    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
-                 "Attempting to log with an invalidated logger");
+    return _publish_dynamic_metric(metric_name, labels, value);
+  }
 
-    if (QUILL_UNLIKELY(metric_name.empty()))
-    {
-      QUILL_THROW(QuillError{"Metric name must not be empty"});
-    }
-
-    static constexpr MacroMetadata macro_metadata{
-      "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::DynamicMetric};
-
-    uint64_t const timestamp = _get_timestamp();
-
-    if (QUILL_UNLIKELY(_thread_context == nullptr))
-    {
-      _thread_context = detail::get_local_thread_context<frontend_options_t>();
-    }
-
-    detail::ThreadContext* const thread_context = _thread_context;
-    auto& size_cache = thread_context->get_conditional_arg_size_cache();
-
-    size_t const label_count = labels.size();
-    size_t total_size = s_header_size;
-    total_size += detail::compute_encoded_size_and_cache_string_lengths(size_cache, metric_name, label_count);
-
-    for (MetricLabel const& label : labels)
-    {
-      total_size +=
-        detail::compute_encoded_size_and_cache_string_lengths(size_cache, label.key, label.value);
-    }
-
-    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
-
-    std::byte* write_buffer = _reserve_queue_space(queue, total_size, &macro_metadata, thread_context);
-
-    if (QUILL_UNLIKELY(write_buffer == nullptr))
-    {
-      return false;
-    }
-
-    uint64_t value_bits;
-    std::memcpy(&value_bits, &value, sizeof(value_bits));
-
-    write_buffer = _encode_header(write_buffer, timestamp, reinterpret_cast<uintptr_t>(&macro_metadata),
-                                  reinterpret_cast<uintptr_t>(this), value_bits);
-
-    detail::encode(write_buffer, size_cache, metric_name, label_count);
-
-    for (MetricLabel const& label : labels)
-    {
-      detail::encode(write_buffer, size_cache, label.key, label.value);
-    }
-
-    queue.finish_and_commit_write(total_size);
-    return true;
+  /**
+   * Publishes a sample with runtime labels given inline, e.g.
+   * `publish_dynamic_metric("requests_total", {{"method", method}, {"status", "200"}}, 1.0)`.
+   * Unlike the std::vector<MetricLabel> overload, this does not allocate on the calling thread.
+   *
+   * @note This function is thread-safe. Input strings may be changed or destroyed after it returns.
+   * @return true if queued, false if dropped by the configured queue policy
+   */
+  bool publish_dynamic_metric(std::string_view metric_name,
+                              std::initializer_list<std::pair<std::string_view, std::string_view>> labels,
+                              double value)
+  {
+    return _publish_dynamic_metric(metric_name, labels, value);
   }
 
   /**
@@ -367,15 +335,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcSet};
 
-    while (!this->log_statement(&macro_metadata, static_cast<Args&&>(args)...))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata, static_cast<Args&&>(args)...);
   }
 
   /**
@@ -392,15 +352,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcErase};
 
-    while (!this->log_statement(&macro_metadata, static_cast<Keys&&>(keys)...))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata, static_cast<Keys&&>(keys)...);
   }
 
   /**
@@ -414,15 +366,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::MdcClear};
 
-    while (!this->log_statement(&macro_metadata))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata);
   }
 
   /**
@@ -583,16 +527,10 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "{}", nullptr, LogLevel::Critical, MacroMetadata::Event::InitBacktrace};
 
-    // we pass this message to the queue and also pass capacity as arg
-    // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement(&macro_metadata, max_capacity))
+    // Pass the capacity as the event argument
+    if (!_enqueue_control_event(&macro_metadata, max_capacity))
     {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
+      return;
     }
 
     // Also store the desired flush log level
@@ -608,16 +546,7 @@ public:
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::FlushBacktrace};
 
-    // We do not want to drop the message if a dropping queue is used
-    while (!this->log_statement(&macro_metadata))
-    {
-      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-      {
-        return;
-      }
-
-      detail::sleep_for_ns(100);
-    }
+    _enqueue_control_event(&macro_metadata);
   }
 
   /**
@@ -628,6 +557,8 @@ public:
    *
    * @param sleep_duration_ns The duration in nanoseconds to sleep between retries when the
    * blocking queue is full, and between checks for the flush completion. Default is 100 nanoseconds.
+   * The first checks yield instead of sleeping. A sleep cannot be shorter than the OS timer
+   * granularity, about 50 us on Linux and 1 ms or more on Windows. 0 always yields.
    *
    * @warning Do not call this function from the destructor of a static object. This may lead to application crashes if the thread-local ThreadContext is destroyed before the static object invoking `flush_log`.
    * @note This function should only be called when the backend worker is running after Backend::start(...)
@@ -637,7 +568,9 @@ public:
    *       then you should ideally avoid calling this function as you can block for long period of times unless
    *       you use another thread that calls Backend::notify()
    */
-  void flush_log(uint32_t sleep_duration_ns = 100)
+  // Not inlined: every log statement reaches this through the immediate-flush check, and inlining
+  // the wait loops there costs each call site a stack frame and saved registers on its hot path.
+  QUILL_NOINLINE void flush_log(uint32_t sleep_duration_ns = 100)
   {
     if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
     {
@@ -654,35 +587,58 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
+    uint32_t attempt{0};
     while (!this->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
-      if (sleep_duration_ns > 0)
+      if constexpr (using_unbounded_queue)
       {
-        detail::sleep_for_ns(sleep_duration_ns);
+        if (_thread_context->last_event_larger_than_queue())
+        {
+          QUILL_THROW(QuillError{"Could not grow the queue to enqueue the flush request"});
+        }
       }
-      else
-      {
-        detail::yield_thread();
-      }
+
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
 
     // The caller thread keeps checking the flag until the backend thread flushes
+    attempt = 0;
     while (!backend_thread_flushed.load())
     {
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
   }
 
 private:
   friend class detail::LoggerManager;
   friend class detail::BackendWorker;
+
+  /**
+   * Enqueues a control event that must not be dropped, retrying while a dropping queue is full.
+   * The backend thread cannot wait for itself to drain the queue, so there a full queue returns
+   * false without enqueuing. So does an event larger than an unbounded queue that could not
+   * grow, which is dropped and counted because retrying could never enqueue it.
+   */
+  template <typename... Args>
+  bool _enqueue_control_event(MacroMetadata const* macro_metadata, Args&&... args)
+  {
+    while (!this->log_statement(macro_metadata, static_cast<Args&&>(args)...))
+    {
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return false;
+      }
+
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
+      {
+        return false;
+      }
+
+      detail::sleep_for_ns(100);
+    }
+
+    return true;
+  }
 
   static_assert(sizeof(detail::FormatArgsDecoder) == sizeof(uintptr_t),
                 "FormatArgsDecoder must fit in uintptr_t for header encoding");
@@ -776,10 +732,12 @@ private:
    * caller can keep them in registers; all other arguments retain their original reference type.
    * With ClockSource, zero requests a non-TSC read. A concrete clock has already supplied its
    * timestamp, including a valid zero.
+   * @param total_size the encoded size computed by the caller, or zero to compute it here.
+   * Computing it twice would run a DirectFormatCodec formatter twice for one log call.
    */
   template <typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
-                                                              uint64_t current_timestamp,
+                                                              uint64_t current_timestamp, size_t total_size,
                                                               detail::slow_path_arg_t<OriginalArgs>... fmt_args)
   {
     if constexpr (using_runtime_clock)
@@ -798,9 +756,12 @@ private:
     detail::ThreadContext* const thread_context = _thread_context;
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_header_size +
-      detail::compute_encoded_size_and_cache_string_lengths(
-                          thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    if (total_size == 0)
+    {
+      total_size = s_header_size +
+        detail::compute_encoded_size_and_cache_string_lengths(
+                     thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    }
 
     std::byte* write_buffer = _reserve_queue_space(queue, total_size, macro_metadata, thread_context);
 
@@ -836,6 +797,84 @@ private:
     reservation.bounded_queue->finish_and_commit_write_reservation(reservation.writer_pos + total_size);
     _flush_after_log_statement_if_needed(macro_metadata);
 
+    return true;
+  }
+
+  QUILL_NODISCARD static std::string_view _label_key(MetricLabel const& label) noexcept
+  {
+    return label.key;
+  }
+  QUILL_NODISCARD static std::string_view _label_value(MetricLabel const& label) noexcept
+  {
+    return label.value;
+  }
+  QUILL_NODISCARD static std::string_view _label_key(std::pair<std::string_view, std::string_view> const& label) noexcept
+  {
+    return label.first;
+  }
+  QUILL_NODISCARD static std::string_view _label_value(std::pair<std::string_view, std::string_view> const& label) noexcept
+  {
+    return label.second;
+  }
+
+  /** Encodes the metric name, label count and each label's key and value after the header. */
+  template <typename TLabels>
+  bool _publish_dynamic_metric(std::string_view metric_name, TLabels const& labels, double value)
+  {
+    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
+                 "Attempting to log with an invalidated logger");
+
+    if (QUILL_UNLIKELY(metric_name.empty()))
+    {
+      QUILL_THROW(QuillError{"Metric name must not be empty"});
+    }
+
+    static constexpr MacroMetadata macro_metadata{
+      "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::DynamicMetric};
+
+    uint64_t const timestamp = _get_timestamp();
+
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
+    {
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    detail::ThreadContext* const thread_context = _thread_context;
+    auto& size_cache = thread_context->get_conditional_arg_size_cache();
+
+    size_t const label_count = labels.size();
+    size_t total_size = s_header_size;
+    total_size += detail::compute_encoded_size_and_cache_string_lengths(size_cache, metric_name, label_count);
+
+    for (auto const& label : labels)
+    {
+      total_size += detail::compute_encoded_size_and_cache_string_lengths(
+        size_cache, _label_key(label), _label_value(label));
+    }
+
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    std::byte* write_buffer = _reserve_queue_space(queue, total_size, &macro_metadata, thread_context);
+
+    if (QUILL_UNLIKELY(write_buffer == nullptr))
+    {
+      return false;
+    }
+
+    uint64_t value_bits;
+    std::memcpy(&value_bits, &value, sizeof(value_bits));
+
+    write_buffer = _encode_header(write_buffer, timestamp, reinterpret_cast<uintptr_t>(&macro_metadata),
+                                  reinterpret_cast<uintptr_t>(this), value_bits);
+
+    detail::encode(write_buffer, size_cache, metric_name, label_count);
+
+    for (auto const& label : labels)
+    {
+      detail::encode(write_buffer, size_cache, _label_key(label), _label_value(label));
+    }
+
+    queue.finish_and_commit_write(total_size);
     return true;
   }
 
@@ -889,6 +928,16 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
+        if constexpr (frontend_options_t::queue_type == QueueType::UnboundedDropping)
+        {
+          if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
+          {
+            // The queue could not grow and the event does not fit in it even when empty. This
+            // includes control events, whose callers would otherwise retry forever.
+            return nullptr;
+          }
+        }
+
         // Not enough space to push: bump the shared failure counter for both log and metric
         // drops so that neither silently disappears. Metrics reuse the existing counter rather
         // than adding a parallel one; the error-notifier message reflects the combined count.
@@ -966,6 +1015,13 @@ private:
           // The backend is the only consumer of this queue, so waiting here would self-deadlock.
           // Do not increment the failure counter: reporting this drop through error_notifier could
           // recursively fill the same queue.
+          return nullptr;
+        }
+
+        if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
+        {
+          // The queue could not grow and the event does not fit in it even when empty, so waiting
+          // for the backend to drain it would never end.
           return nullptr;
         }
 

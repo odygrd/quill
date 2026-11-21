@@ -56,24 +56,24 @@ jobs:
           $CXX --version
 
       - name: Prepare build directory
-        run: mkdir -p ${{ runner.workspace }}/build
+        run: mkdir -p ${{ github.workspace }}/../build
 
       - name: Configure
         shell: bash
         env:
           CXX: icpx
         run: |
-          cd ${{ runner.workspace }}/build
+          cd ${{ github.workspace }}/../build
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=${{ matrix.std }} -DQUILL_BUILD_TESTS=${{ matrix.with_tests }} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
         run: |
-          cd ${{ runner.workspace }}/build
+          cd ${{ github.workspace }}/../build
           cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
 
       - name: Test
         env:
           CTEST_OUTPUT_ON_FAILURE: True
         run: |
-          cd ${{ runner.workspace }}/build
+          cd ${{ github.workspace }}/../build
           ctest --build-config ${{ matrix.build_type }} --parallel $(nproc) --output-on-failure

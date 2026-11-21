@@ -9,29 +9,36 @@ The frontend options provide a flexible way to configure hot path settings at co
 
 Each frontend thread operates with its own queue, which can be configured with one of the following options:
 
-- **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then blocks the calling thread until space becomes available.
-- **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then discards log messages.
+- **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then blocks the calling thread until space becomes available. It also blocks when a reallocation fails, for example when out of memory.
+- **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then discards log messages. It also discards them when a reallocation fails, for example when out of memory.
 - **BoundedBlocking**: Has a fixed capacity and never reallocates. It blocks the calling thread when the limit is reached until space becomes available. A single log record larger than the fixed capacity cannot fit and fails immediately instead of blocking forever.
 - **BoundedDropping**: Has a fixed capacity and never reallocates. It discards log messages when the limit is reached.
 
 Even though each thread has its own queue, a single queue type must be defined for the entire application. By default the `UnboundedBlocking` queue type is used.
 
+When an unbounded queue cannot grow, a record larger than the current queue can never be written
+to it, however long the thread waits, so both unbounded queue types drop it. This includes MDC
+updates, which leave the previous context in effect. The backend reports these drops separately
+through ``BackendOptions::error_notifier``. ``Logger::flush_log()`` and
+``Frontend::remove_logger_blocking()`` throw ``QuillError`` if their request cannot be enqueued for
+this reason. A single record larger than ``unbounded_queue_max_capacity`` still throws ``QuillError``.
+
 Queue capacities are rounded up to the next power of two. ``unbounded_queue_max_capacity`` must be greater than or equal to ``initial_queue_capacity``.
 
-To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
+To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Deriving is required: options types that do not derive from :cpp:struct:`FrontendOptions` are rejected at compile time. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
 
 It is important to consistently use your custom types throughout the application, instead of the default ones.
 
 .. warning::
 
-   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application.
+   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application. Creating a logger whose ``FrontendOptions`` values differ from the existing loggers throws ``QuillError``, and so does passing incompatible option values to ``Backend::start<TFrontendOptions>()`` together with ``SignalHandlerOptions``, because the signal handler logs with that type. On Windows the same check applies to each thread that calls ``quill::init_signal_handler<TFrontendOptions>()``.
 
 Error Notifications
 -------------------
 
 The library provides error notifications through the :cpp:member:`BackendOptions::error_notifier` callback:
 
-- **Unbounded queues**: Notify when queue reallocations occur, and when the configured maximum capacity is reached causing blocking or dropped messages
+- **Unbounded queues**: Notify when queue reallocations occur, and when the configured maximum capacity is reached or a reallocation fails, causing blocking or dropped messages
 - **Bounded queues**: Notify when messages are dropped due to full queues, including a count of dropped messages
 
 These notifications are processed by the backend thread and can help monitor queue behavior in production.
@@ -73,7 +80,7 @@ To completely disable these notifications, set the error notifier to an empty fu
     quill::BackendOptions backend_options;
     backend_options.error_notifier = {};  // Disable notifications
 
-This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output.
+This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output. Builds with exceptions disabled abort instead, see "What happens if my format string is invalid?" in the FAQ.
 
 **Mixed Hot/Cold Path Optimization**
 

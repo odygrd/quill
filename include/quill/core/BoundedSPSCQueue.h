@@ -11,6 +11,7 @@
   #include <cstddef>
   #include <cstdint>
   #include <cstring>
+  #include <new>
   #include <string>
 #endif
 
@@ -18,16 +19,6 @@
   #include <malloc.h>
 #else
   #include <sys/mman.h>
-  #if defined(__linux__)
-    // MAP_HUGE_2MB can be missing from older libc headers; construct it from the kernel ABI
-    // values (page size log2, shifted by MAP_HUGE_SHIFT)
-    #if !defined(MAP_HUGE_SHIFT)
-      #define MAP_HUGE_SHIFT 26
-    #endif
-    #if !defined(MAP_HUGE_2MB)
-      #define MAP_HUGE_2MB (21 << MAP_HUGE_SHIFT)
-    #endif
-  #endif
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -59,29 +50,57 @@ public:
     BoundedSPSCQueueImpl* bounded_queue{nullptr};
   };
 
+  /**
+   * @throws QuillError if the capacity is too large or the storage cannot be allocated
+   */
   QUILL_ATTRIBUTE_HOT explicit BoundedSPSCQueueImpl(integer_type capacity,
                                                     HugePagesPolicy huge_pages_policy = HugePagesPolicy::Never,
                                                     integer_type reader_store_percent = 5)
-    : _capacity(_validate_capacity(capacity)),
+    : BoundedSPSCQueueImpl(std::nothrow, _validate_capacity(capacity), huge_pages_policy, reader_store_percent)
+  {
+    if (QUILL_UNLIKELY(!has_storage()))
+    {
+      int const error = errno;
+      QUILL_THROW(QuillError{std::string{"Failed to allocate the queue storage. errno: "} + std::to_string(error)});
+    }
+
+    // Pre-fault the logical queue region. The queue never reads bytes it has not written, so this
+    // only moves page faults out of the logging path. The second half is scratch space for
+    // records that cross the ring boundary.
+    std::memset(_storage, 0, static_cast<size_t>(_capacity));
+  }
+
+  /**
+   * Constructs the queue without throwing, to grow an unbounded queue inside a log call.
+   * If the capacity is too large or the allocation fails, has_storage() returns false and the
+   * queue must not be used. Unlike the throwing constructor it does not pre-fault the memory,
+   * which would stall that log call for a time proportional to the capacity.
+   */
+  BoundedSPSCQueueImpl(std::nothrow_t, integer_type capacity, HugePagesPolicy huge_pages_policy,
+                       integer_type reader_store_percent = 5) noexcept
+    : _capacity(static_cast<integer_type>(next_power_of_two(static_cast<size_t>(capacity)))),
       _mask(_capacity - 1),
       _bytes_per_batch(static_cast<integer_type>(
         (static_cast<double>(_capacity) * static_cast<double>(reader_store_percent)) / 100.0)),
-      _storage(static_cast<std::byte*>(_alloc_aligned(
-        2u * static_cast<size_t>(_capacity), QUILL_CACHE_LINE_ALIGNED, huge_pages_policy))),
       _huge_pages_policy(huge_pages_policy)
   {
-    // Initialise and pre-fault the logical queue region. The second half is scratch space for
-    // records that cross the ring boundary and is written before it is read.
-    std::memset(_storage, 0, static_cast<size_t>(_capacity));
+    if (!_is_supported_capacity(next_power_of_two(static_cast<size_t>(capacity))))
+    {
+      return;
+    }
 
-    _atomic_writer_pos.store(0);
-    _atomic_reader_pos.store(0);
+    _storage = _allocate_storage(2u * static_cast<size_t>(_capacity), huge_pages_policy, _mapped_size);
+
+    if (!_storage)
+    {
+      return;
+    }
 
     // reader_pos starts at 0, so cached value is 0 + capacity
     _reader_pos_cache_plus_capacity = _capacity;
   }
 
-  ~BoundedSPSCQueueImpl() { _free_aligned(_storage); }
+  ~BoundedSPSCQueueImpl() { _free_storage(_storage, _mapped_size); }
 
   /**
    * Deleted
@@ -116,7 +135,7 @@ public:
       return WriteReservation{nullptr, writer_pos, this};
     }
 
-    // _storage is never null after construction; hint lets the compiler
+    // A queue that is written to has storage, see has_storage(); the hint lets the compiler
     // eliminate a redundant null-check on the computed write pointer.
     QUILL_ASSUME(_storage != nullptr);
 
@@ -200,40 +219,14 @@ public:
 
   QUILL_NODISCARD HugePagesPolicy huge_pages_policy() const noexcept { return _huge_pages_policy; }
 
+  /** @return false if a std::nothrow constructed queue could not allocate its storage */
+  QUILL_NODISCARD bool has_storage() const noexcept { return _storage != nullptr; }
+
 private:
-  /**
-   * align a pointer to the given alignment
-   * @param pointer a pointer the object
-   * @param alignment a pointer the object
-   * @return an aligned pointer for the given object
-   */
-  QUILL_NODISCARD static std::byte* _align_pointer(void* pointer, size_t alignment) noexcept
+  /** Checks a power-of-two capacity fits the position type and the doubled byte allocation. */
+  QUILL_NODISCARD static constexpr bool _is_supported_capacity(size_t rounded_capacity) noexcept
   {
-    QUILL_ASSERT(is_power_of_two(alignment),
-                 "alignment must be a power of two in BoundedSPSCQueue::_align_pointer()");
-    return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
-                                        ~(alignment - 1ul));
-  }
-
-  /**
-   * Aligned alloc
-   * @param size number of bytes to allocate. An integral multiple of alignment
-   * @param alignment specifies the alignment. Must be a valid alignment supported by the implementation.
-   * @param huge_pages_policy allocate huge pages, only supported on linux
-   * @return On success, returns the pointer to the beginning of newly allocated memory.
-   * To avoid a memory leak, the returned pointer must be deallocated with _free_aligned().
-   * @throws QuillError on failure
-   */
-
-  /**
-   * Validate the requested capacity before any allocation happens. Called from the member
-   * initialiser list so that a bad argument throws before mmap/aligned_malloc leaks memory.
-   */
-  static integer_type _validate_capacity(QUILL_MAYBE_UNUSED integer_type capacity)
-  {
-    size_t const rounded_capacity = next_power_of_two(static_cast<size_t>(capacity));
-
-    constexpr auto max_integer_capacity = []() constexpr
+    constexpr size_t max_integer_capacity = []() constexpr
     {
       // avoid including limits
       if constexpr (sizeof(integer_type) >= sizeof(size_t))
@@ -258,18 +251,24 @@ private:
       }
     }();
 
-    if (QUILL_UNLIKELY(rounded_capacity > max_integer_capacity))
-    {
-      QUILL_THROW(QuillError{"BoundedSPSCQueue capacity exceeds the queue position type"});
-    }
-
     // The logical capacity is tracked as integer_type, but the backing allocation is byte-sized:
-    // two mirrored queue regions plus POSIX alignment metadata. Validate the allocation size in
-    // size_t before multiplying by two, otherwise an extreme capacity can wrap to a tiny mmap.
-    constexpr size_t metadata_size{2u * sizeof(size_t)};
-    constexpr size_t max_rounded_capacity = (SIZE_MAX - metadata_size - QUILL_CACHE_LINE_ALIGNED) / 2u;
+    // two mirrored queue regions, rounded up to whole huge pages when requested. Validate in size_t
+    // before multiplying by two, otherwise an extreme capacity can wrap to a tiny mmap.
+    constexpr size_t huge_page_size{2u * 1024u * 1024u};
+    constexpr size_t max_rounded_capacity = (SIZE_MAX - huge_page_size) / 2u;
 
-    if (QUILL_UNLIKELY(rounded_capacity > max_rounded_capacity))
+    return (rounded_capacity <= max_integer_capacity) && (rounded_capacity <= max_rounded_capacity);
+  }
+
+  /**
+   * Validate the requested capacity before any allocation happens.
+   * @throws QuillError if the capacity is not supported
+   */
+  static integer_type _validate_capacity(integer_type capacity)
+  {
+    size_t const rounded_capacity = next_power_of_two(static_cast<size_t>(capacity));
+
+    if (QUILL_UNLIKELY(!_is_supported_capacity(rounded_capacity)))
     {
       QUILL_THROW(QuillError{"BoundedSPSCQueue capacity is too large"});
     }
@@ -277,91 +276,67 @@ private:
     return static_cast<integer_type>(rounded_capacity);
   }
 
-  QUILL_NODISCARD static void* _alloc_aligned(size_t size, size_t alignment,
-                                              QUILL_MAYBE_UNUSED HugePagesPolicy huge_pages_policy)
+  /**
+   * Allocates the queue storage without throwing. mmap returns page-aligned memory, which
+   * satisfies QUILL_CACHE_LINE_ALIGNED, so the mapping is used directly at its exact size.
+   * @param size the bytes of both mirrored halves of the queue
+   * @param mapped_size set to the length to release with _free_storage()
+   * @return the storage, or nullptr with errno set on failure
+   */
+  QUILL_NODISCARD static std::byte* _allocate_storage(size_t size, QUILL_MAYBE_UNUSED HugePagesPolicy huge_pages_policy,
+                                                      size_t& mapped_size) noexcept
   {
+    mapped_size = size;
+
 #if defined(_WIN32)
-    void* p = _aligned_malloc(size, alignment);
-
-    if (!p)
-    {
-      QUILL_THROW(QuillError{std::string{"_alloc_aligned failed with error message errno: "} +
-                             std::to_string(errno)});
-    }
-
-    return p;
+    return static_cast<std::byte*>(_aligned_malloc(size, QUILL_CACHE_LINE_ALIGNED));
 #else
-    // Calculate the total size including the metadata and alignment
-    constexpr size_t metadata_size{2u * sizeof(size_t)};
-    size_t total_size{size + metadata_size + alignment};
-
-    // Allocate the memory
-    int flags = MAP_PRIVATE | MAP_ANONYMOUS;
+    int const flags = MAP_PRIVATE | MAP_ANONYMOUS;
 
   #if defined(__linux__)
     if (huge_pages_policy != HugePagesPolicy::Never)
     {
-      // Request 2 MiB pages explicitly so the page size is known. The rounding cannot
-      // overflow: _validate_capacity() caps the capacity well below SIZE_MAX / 2
+      // Request 2 MiB pages explicitly so the page size is known. MAP_HUGE_2MB can be missing
+      // from older libc headers, so build it from the kernel ABI (log2 of the page size << 26).
       constexpr size_t huge_page_size{2u * 1024u * 1024u};
-      total_size = ((total_size + huge_page_size - 1u) / huge_page_size) * huge_page_size;
-      flags |= MAP_HUGETLB | MAP_HUGE_2MB;
+      constexpr int map_huge_2mb{21 << 26};
+      size_t const huge_pages_size = ((size + huge_page_size - 1u) / huge_page_size) * huge_page_size;
+
+      void* const mem = ::mmap(nullptr, huge_pages_size, PROT_READ | PROT_WRITE,
+                               flags | MAP_HUGETLB | map_huge_2mb, -1, 0);
+
+      if (mem != MAP_FAILED)
+      {
+        mapped_size = huge_pages_size;
+        return static_cast<std::byte*>(mem);
+      }
+
+      if (huge_pages_policy == HugePagesPolicy::Always)
+      {
+        return nullptr;
+      }
+
+      // HugePagesPolicy::Try falls back to normal pages
     }
   #endif
 
-    void* mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
-
-  #if defined(__linux__)
-    if ((mem == MAP_FAILED) && (huge_pages_policy == HugePagesPolicy::Try))
-    {
-      // we tried but failed allocating huge pages, try normal pages instead. Normal pages do
-      // not need the huge-page-size rounding of the length
-      flags &= ~(MAP_HUGETLB | MAP_HUGE_2MB);
-      total_size = size + metadata_size + alignment;
-      mem = ::mmap(nullptr, total_size, PROT_READ | PROT_WRITE, flags, -1, 0);
-    }
-  #endif
-
-    if (mem == MAP_FAILED)
-    {
-      QUILL_THROW(QuillError{std::string{"mmap failed. errno: "} + std::to_string(errno) +
-                             " error: " + std::strerror(errno)});
-    }
-
-    // Calculate the aligned address after the metadata
-    std::byte* aligned_address = _align_pointer(static_cast<std::byte*>(mem) + metadata_size, alignment);
-
-    // Calculate the offset from the original memory location
-    auto const offset = static_cast<size_t>(aligned_address - static_cast<std::byte*>(mem));
-
-    // Store the size and offset information in the metadata
-    std::memcpy(aligned_address - sizeof(size_t), &total_size, sizeof(total_size));
-    std::memcpy(aligned_address - (2u * sizeof(size_t)), &offset, sizeof(offset));
-
-    return aligned_address;
+    void* const mem = ::mmap(nullptr, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+    return (mem == MAP_FAILED) ? nullptr : static_cast<std::byte*>(mem);
 #endif
   }
 
-  /**
-   * Free aligned memory allocated with _alloc_aligned
-   * @param ptr address to aligned memory
-   */
-  void static _free_aligned(void* ptr) noexcept
+  /** Releases storage from _allocate_storage() */
+  static void _free_storage(std::byte* storage, QUILL_MAYBE_UNUSED size_t mapped_size) noexcept
   {
+    if (!storage)
+    {
+      return;
+    }
+
 #if defined(_WIN32)
-    _aligned_free(ptr);
+    _aligned_free(storage);
 #else
-    // Retrieve the size and offset information from the metadata
-    size_t offset;
-    std::memcpy(&offset, static_cast<std::byte*>(ptr) - (2u * sizeof(size_t)), sizeof(offset));
-
-    size_t total_size;
-    std::memcpy(&total_size, static_cast<std::byte*>(ptr) - sizeof(size_t), sizeof(total_size));
-
-    // Calculate the original memory block address
-    void* mem = static_cast<std::byte*>(ptr) - offset;
-
-    ::munmap(mem, total_size);
+    ::munmap(storage, mapped_size);
 #endif
   }
 
@@ -369,7 +344,8 @@ private:
   integer_type const _capacity;
   integer_type const _mask;
   integer_type const _bytes_per_batch;
-  std::byte* const _storage{nullptr};
+  std::byte* _storage{nullptr};
+  size_t _mapped_size{0}; /**< Length to munmap(); only needed when the queue is destroyed */
   HugePagesPolicy const _huge_pages_policy;
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<integer_type> _atomic_writer_pos{0};

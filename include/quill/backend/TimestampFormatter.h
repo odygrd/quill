@@ -9,6 +9,7 @@
 #include "quill/backend/StringFromTime.h"
 #include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
 
@@ -17,6 +18,7 @@
   #include <chrono>
   #include <cstddef>
   #include <cstdint>
+  #include <cstring>
   #include <string>
   #include <string_view>
   #include <utility>
@@ -95,19 +97,21 @@ public:
       specifier_begin = search_qns;
     }
 
+    std::string uncached_specifier;
+
     if (specifier_begin == std::string::npos)
     {
       // If no additional specifier was found then we can simply store the whole format string
       QUILL_ASSERT(_additional_format_specifier == AdditionalSpecifier::None,
                    "Unexpected specifier state in TimestampFormatter constructor, should be None "
                    "when no specifier found");
-      _strftime_part_1.init(_time_format, _timestamp_timezone);
+      uncached_specifier = _strftime_part_1.init(_time_format, _timestamp_timezone);
     }
     else
     {
       // We now the index where the specifier begins so copy everything until there from beginning
       std::string const format_part_1 = _time_format.substr(0, specifier_begin);
-      _strftime_part_1.init(format_part_1, _timestamp_timezone);
+      uncached_specifier = _strftime_part_1.init(format_part_1, _timestamp_timezone);
 
       // Now copy the remaining format string, ignoring the specifier
       size_t const specifier_end = specifier_begin + specifier_length;
@@ -116,9 +120,22 @@ public:
 
       if (!format_part_2.empty())
       {
-        _strftime_part_2.init(format_part_2, _timestamp_timezone);
+        std::string part_2_uncached_specifier = _strftime_part_2.init(format_part_2, _timestamp_timezone);
         _has_format_part_2 = true;
+
+        if (uncached_specifier.empty())
+        {
+          uncached_specifier = std::move(part_2_uncached_specifier);
+        }
       }
+    }
+
+    if (!uncached_specifier.empty())
+    {
+      _warning = "Timestamp pattern \"" + _time_format + "\" contains `" + uncached_specifier +
+        "`, which the cached timestamp formatter cannot update, so every timestamp is formatted "
+        "with strftime() instead. Use plain specifiers such as %H, %M and %S to keep the faster "
+        "cached formatting";
     }
   }
 
@@ -134,7 +151,7 @@ public:
     _formatted_date.clear();
 
     // 1. we always format part 1
-    _formatted_date.append(_strftime_part_1.format_timestamp(timestamp_secs));
+    append_to_buffer(_formatted_date, _strftime_part_1.format_timestamp(timestamp_secs));
 
     // 2. We add any special ms/us/ns specifier if any
     // Note: assumes timestamp_ns >= 0 (post-epoch). Pre-epoch timestamps are not supported.
@@ -142,37 +159,21 @@ public:
 
     if (_additional_format_specifier == AdditionalSpecifier::Qms)
     {
-      uint32_t const extracted_ms = extracted_ns / 1'000'000;
-
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_ms);
+      _append_fractional_seconds(extracted_ns / 1'000'000, 3);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qus)
     {
-      uint32_t const extracted_us = extracted_ns / 1'000;
-
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_us);
+      _append_fractional_seconds(extracted_ns / 1'000, 6);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qns)
     {
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000000000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_ns);
+      _append_fractional_seconds(extracted_ns, 9);
     }
 
     // 3. format part 2 after fractional seconds - if any
     if (_has_format_part_2)
     {
-      _formatted_date.append(_strftime_part_2.format_timestamp(timestamp_secs));
+      append_to_buffer(_formatted_date, _strftime_part_2.format_timestamp(timestamp_secs));
     }
 
     return std::string_view{_formatted_date.data(), _formatted_date.size()};
@@ -184,31 +185,33 @@ public:
   /***/
   QUILL_NODISCARD Timezone timestamp_timezone() const noexcept { return _timestamp_timezone; }
 
+  /**
+   * @return empty, or a warning that the pattern is formatted with strftime() on every call
+   */
+  QUILL_NODISCARD std::string const& warning() const noexcept { return _warning; }
+
 private:
-  /***/
-  void _write_fractional_seconds(uint32_t extracted_fractional_seconds)
+  /**
+   * Appends the `digits` lowest decimal digits of `fractional_seconds`, zero padded. Writing two
+   * digits per division halves the chain of dependent divisions compared to one digit at a time.
+   */
+  void _append_fractional_seconds(uint32_t fractional_seconds, uint32_t digits)
   {
-    uint32_t digits = 0;
-    switch (_additional_format_specifier)
+    size_t const begin = _formatted_date.size();
+    _formatted_date.try_resize(begin + digits);
+    char* write_pos = _formatted_date.data() + begin + digits;
+
+    while (digits >= 2)
     {
-    case AdditionalSpecifier::Qms:
-      digits = 3;
-      break;
-    case AdditionalSpecifier::Qus:
-      digits = 6;
-      break;
-    case AdditionalSpecifier::Qns:
-      digits = 9;
-      break;
-    default:
-      return;
+      write_pos -= 2;
+      std::memcpy(write_pos, fmtquill::detail::digits2(fractional_seconds % 100), 2);
+      fractional_seconds /= 100;
+      digits -= 2;
     }
 
-    char* write_pos = _formatted_date.data() + _formatted_date.size();
-    for (uint32_t i = 0; i < digits; ++i)
+    if (digits != 0)
     {
-      *--write_pos = static_cast<char>('0' + (extracted_fractional_seconds % 10));
-      extracted_fractional_seconds /= 10;
+      *--write_pos = static_cast<char>('0' + (fractional_seconds % 10));
     }
   }
 
@@ -220,6 +223,7 @@ private:
   static constexpr size_t specifier_length = 4u;
 
   std::string _time_format;
+  std::string _warning;
   fmtquill::basic_memory_buffer<char, 32> _formatted_date;
 
   /** Strftime cache for both parts of the string */

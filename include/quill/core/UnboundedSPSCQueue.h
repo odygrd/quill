@@ -16,6 +16,7 @@
   #include <atomic>
   #include <cstddef>
   #include <cstdint>
+  #include <new>
   #include <string>
 #endif
 
@@ -39,7 +40,7 @@ namespace detail
  * When the internal circular buffer becomes full a new one will be created and the production
  * will continue in the new buffer.
  *
- * Consumption is wait free. If not data is available a special value is returned. If a new
+ * Consumption is wait free. If no data is available a special value is returned. If a new
  * buffer is created from the producer the consumer first consumes everything in the old
  * buffer and then moves to the new buffer.
  */
@@ -58,6 +59,12 @@ private:
      */
     explicit Node(size_t bounded_queue_capacity, HugePagesPolicy huge_pages_policy)
       : bounded_queue(bounded_queue_capacity, huge_pages_policy)
+    {
+    }
+
+    /** Constructs without throwing; check bounded_queue.has_storage() before using the node */
+    Node(std::nothrow_t, size_t bounded_queue_capacity, HugePagesPolicy huge_pages_policy) noexcept
+      : bounded_queue(std::nothrow, bounded_queue_capacity, huge_pages_policy)
     {
     }
 
@@ -207,7 +214,8 @@ public:
 
   /**
    * Prepare to read from the buffer
-   * @return first: pointer to buffer or nullptr, second: a pair of new_capacity, previous_capacity if an allocation
+   * @return the read position or nullptr, and the previous and new capacity when the reader moved
+   * to a newly allocated node
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ReadResult prepare_read()
   {
@@ -305,11 +313,21 @@ private:
       return nullptr;
     }
 
+    // We failed to reserve because the queue was full, create a new node with a new queue.
+    // Growing must not throw from the log call: on failure (out of memory, huge pages
+    // unavailable) keep using the current node and block or drop as at the maximum capacity.
+    // The std::nothrow node is also not pre-faulted, which would stall this log call.
+    Node* const next_node =
+      new (std::nothrow) Node{std::nothrow, capacity, _producer->bounded_queue.huge_pages_policy()};
+
+    if (QUILL_UNLIKELY(!next_node || !next_node->bounded_queue.has_storage()))
+    {
+      delete next_node;
+      return nullptr;
+    }
+
     // commit previous write to the old queue before switching
     _producer->bounded_queue.commit_write();
-
-    // We failed to reserve because the queue was full, create a new node with a new queue
-    auto const next_node = new Node{capacity, _producer->bounded_queue.huge_pages_policy()};
 
     // store the new node pointer as next in the current node
     _producer->next.store(next_node, std::memory_order_release);
@@ -317,7 +335,7 @@ private:
     // producer is now using the next node
     _producer = next_node;
 
-    // reserve again, this time we know we will always succeed, cast to void* to ignore
+    // reserve again, this time we know we will always succeed
     std::byte* const write_pos = _producer->bounded_queue.prepare_write(nbytes);
 
     QUILL_ASSERT(

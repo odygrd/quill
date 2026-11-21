@@ -25,6 +25,7 @@
   #include <initializer_list>
   #include <memory>
   #include <string>
+  #include <type_traits>
   #include <vector>
 #endif
 
@@ -45,15 +46,14 @@ public:
    *
    * Although optional, it is recommended to invoke this function during the thread initialization
    * phase before the first log message.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   QUILL_ATTRIBUTE_COLD static void preallocate()
   {
-    auto const volatile spsc_queue_capacity = detail::get_local_thread_context<TFrontendOptions>()
-                                                ->template get_spsc_queue<TFrontendOptions::queue_type>()
-                                                .capacity();
-
-    // On windows and c++17, QUILL_MAYBE_UNUSED won't work
-    (void)spsc_queue_capacity;
+    // Creating the thread context allocates its queue. Nothing is read from the queue here: when
+    // this thread has logged before, the backend may be reading it and freeing its older nodes.
+    (void)detail::get_checked_local_thread_context<TFrontendOptions>();
   }
 
   /**
@@ -72,12 +72,14 @@ public:
    *          associated with the calling thread, so it is important that the appropriate thread invokes it.
    *
    * @param capacity The desired new capacity for the thread-local SPSC queue.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   static void shrink_thread_local_queue(size_t capacity)
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      detail::get_local_thread_context<TFrontendOptions>()
+      detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .shrink(capacity);
     }
@@ -97,18 +99,20 @@ public:
    *       is invoking this function to check its own queue.
    *
    * @return The current capacity of the thread-local SPSC queue.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    */
   QUILL_NODISCARD static size_t get_thread_local_queue_capacity()
   {
     if constexpr (logger_t::using_unbounded_queue)
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .producer_capacity();
     }
     else
     {
-      return detail::get_local_thread_context<TFrontendOptions>()
+      return detail::get_checked_local_thread_context<TFrontendOptions>()
         ->template get_spsc_queue<TFrontendOptions::queue_type>()
         .capacity();
     }
@@ -119,13 +123,31 @@ public:
    *
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
-   * @return std::shared_ptr<Sink> A shared pointer to the created sink.
+   * @return A shared pointer to the created sink.
    * @throws QuillError if a sink with the same name already exists.
    */
   template <typename TSink, typename... Args>
-  static std::shared_ptr<Sink> create_sink(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<TSink> create_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
+  }
+
+  /**
+   * @brief Creates a new file sink for the specified path.
+   *
+   * Use this overload for a path that a std::string sink name cannot spell. On Windows a
+   * std::string name is decoded with the active code page, while a path built from a wide
+   * string keeps every character.
+   *
+   * @param file_path The path of the file.
+   * @param args The arguments to pass to the sink constructor after the path.
+   * @return A shared pointer to the created sink.
+   * @throws QuillError if a sink for the same file already exists.
+   */
+  template <typename TSink, typename TPath, typename... Args, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  static std::shared_ptr<TSink> create_sink(TPath const& file_path, Args&&... args)
+  {
+    return detail::SinkManager::instance().create_file_sink<TSink>(file_path, static_cast<Args&&>(args)...);
   }
 
   /**
@@ -133,7 +155,7 @@ public:
    *
    * @param sink_name The name of the sink.
    * @param args The arguments to pass to the sink constructor.
-   * @return std::shared_ptr<Sink> A shared pointer to the created or retrieved sink.
+   * @return A shared pointer to the created or retrieved sink.
    * @note If a compatible sink with the specified name already exists, it is returned and the
    *       provided constructor arguments are ignored.
    * @throws QuillError if a sink with the same name exists with an incompatible type and RTTI is
@@ -143,13 +165,40 @@ public:
    *          each sink name only with the same type, or with a compatible base type.
    */
   template <typename TSink, typename... Args>
-  static std::shared_ptr<Sink> create_or_get_sink(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<TSink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_or_get_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
   }
 
   /**
+   * @brief Creates a new file sink or retrieves the existing one for the specified path.
+   *
+   * Use this overload for a path that a std::string sink name cannot spell. On Windows a
+   * std::string name is decoded with the active code page, while a path built from a wide
+   * string keeps every character. A sink created through either overload is found through the
+   * other when both name the same file.
+   *
+   * @param file_path The path of the file.
+   * @param args The arguments to pass to the sink constructor after the path.
+   * @return A shared pointer to the created or retrieved sink.
+   * @note If a compatible sink for the file already exists, it is returned and the provided
+   *       constructor arguments are ignored.
+   * @throws QuillError if a sink for the same file exists with an incompatible type and RTTI is
+   *         enabled.
+   */
+  template <typename TSink, typename TPath, typename... Args, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  static std::shared_ptr<TSink> create_or_get_sink(TPath const& file_path, Args&&... args)
+  {
+    return detail::SinkManager::instance().create_or_get_file_sink<TSink>(
+      file_path, static_cast<Args&&>(args)...);
+  }
+
+  /**
    * @brief Retrieves an existing sink with the specified name.
+   *
+   * For a file sink whose path goes through a symlink that was later retargeted, this may return
+   * a previously registered sink, or no sink, depending on the spelling. Use create_or_get_sink()
+   * to get the sink of the file the path resolves to now.
    *
    * @param sink_name The name of the sink.
    * @return std::shared_ptr<Sink> A shared pointer to the retrieved sink.
@@ -216,7 +265,8 @@ public:
    *              A non-default frontend clock_type requires a matching user-clock reference.
    *
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
@@ -239,7 +289,8 @@ public:
    * @param clock ClockSource::tsc(), ClockSource::system(), or ClockSource::custom(clock).
    *              A non-default frontend clock_type requires a matching user-clock reference.
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
@@ -259,15 +310,15 @@ public:
    * @param clock ClockSource::tsc(), ClockSource::system(), or ClockSource::custom(clock).
    *              A non-default frontend clock_type requires a matching user-clock reference.
    * @return Logger* A pointer to the created logger.
-   * @throws QuillError if a logger with the same name already exists or is pending removal.
+   * @throws QuillError if a logger with the same name already exists or is pending removal, or if
+   * TFrontendOptions differ from the FrontendOptions of existing queues or loggers.
    */
   static logger_t* create_logger(std::string const& logger_name,
                                  std::initializer_list<std::shared_ptr<Sink>> sinks,
                                  PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
                                  clock_source_t clock = ClockSource::tsc())
   {
-    return create_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
-                         pattern_formatter_options, clock);
+    return create_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks}, pattern_formatter_options, clock);
   }
 
   /**
@@ -285,6 +336,8 @@ public:
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
    *
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, std::shared_ptr<Sink> sink,
@@ -312,12 +365,13 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  static logger_t* create_or_get_logger(
-    std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-    PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
-    clock_source_t clock = ClockSource::tsc())
+  static logger_t* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
+                                        PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                        clock_source_t clock = ClockSource::tsc())
   {
     return _cast_to_logger(detail::LoggerManager::instance().create_or_get_logger<logger_t>(
       logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
@@ -337,12 +391,14 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return Logger* A pointer to the created or retrieved logger.
    */
-  static logger_t* create_or_get_logger(
-    std::string const& logger_name, std::initializer_list<std::shared_ptr<Sink>> sinks,
-    PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
-    clock_source_t clock = ClockSource::tsc())
+  static logger_t* create_or_get_logger(std::string const& logger_name,
+                                        std::initializer_list<std::shared_ptr<Sink>> sinks,
+                                        PatternFormatterOptions const& pattern_formatter_options = PatternFormatterOptions{},
+                                        clock_source_t clock = ClockSource::tsc())
   {
     return create_or_get_logger(logger_name, std::vector<std::shared_ptr<Sink>>{sinks},
                                 pattern_formatter_options, clock);
@@ -361,13 +417,14 @@ public:
    * @note Recreating a logger with the same name while a previous logger is still pending
    *       asynchronous removal will throw `QuillError`. Use remove_logger_blocking() when you
    *       need synchronous removal before recreating a logger.
+   * @throws QuillError if TFrontendOptions differ from the FrontendOptions of existing queues or
+   * loggers
    * @return A pointer to the logger instance, either newly created or retrieved.
    */
   static logger_t* create_or_get_logger(std::string const& logger_name, detail::LoggerBase* source_logger = nullptr)
   {
-    detail::LoggerBase* logger_base =
-      detail::LoggerManager::instance().create_or_get_logger<logger_t>(
-        logger_name, source_logger ? _cast_to_logger(source_logger) : nullptr);
+    detail::LoggerBase* logger_base = detail::LoggerManager::instance().create_or_get_logger<logger_t>(
+      logger_name, source_logger ? _cast_to_logger(source_logger) : nullptr);
 
     if (QUILL_UNLIKELY(!logger_base))
     {
@@ -420,7 +477,8 @@ public:
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.
-   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries
+   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries, after a few
+   * yields. A sleep cannot be shorter than the OS timer granularity. 0 always yields.
    */
   static void remove_logger_blocking(logger_t* logger, uint32_t sleep_duration_ns = 100)
   {
@@ -441,33 +499,29 @@ public:
     std::atomic<bool> logger_removal_complete{false};
     std::atomic<bool>* logger_removal_complete_ptr = &logger_removal_complete;
 
-    while (!logger->log_statement(
-      &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr), logger->get_logger_name()))
+    // We do not want to drop the message if a dropping queue is used
+    uint32_t attempt{0};
+    while (!logger->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr),
+                                  logger->get_logger_name()))
     {
-      // We do not want to drop the message if a dropping queue is used
-      if (sleep_duration_ns > 0)
+      if constexpr (logger_t::using_unbounded_queue)
       {
-        detail::sleep_for_ns(sleep_duration_ns);
+        if (detail::get_local_thread_context<TFrontendOptions>()->last_event_larger_than_queue())
+        {
+          QUILL_THROW(QuillError{"Could not grow the queue to enqueue the logger removal request"});
+        }
       }
-      else
-      {
-        detail::yield_thread();
-      }
+
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
 
     detail::LoggerManager::instance().remove_logger(logger);
 
+    // The caller thread keeps checking the flag until the logger is removed
+    attempt = 0;
     while (!logger_removal_complete.load())
     {
-      // The caller thread keeps checking the flag until the logger is removed
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
   }
 
@@ -489,7 +543,7 @@ public:
   }
 
   /**
-   * @brief Retrieves a map of all registered valid loggers.
+   * @brief Retrieves all registered valid loggers.
    * @note If `remove_logger()` is called from this or another thread, the return value
    *       of this function will become invalid.
    * @return A vector containing all registered loggers.
