@@ -25,6 +25,7 @@
 
 #include "quill/core/Attributes.h"
 #include "quill/core/BoundedSPSCQueue.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/ChronoTimeUtils.h"
 #include "quill/core/Codec.h"
 #include "quill/core/Common.h"
@@ -372,6 +373,7 @@ public:
     _active_thread_contexts_cache = {};
     _active_sinks_cache = {};
     _named_args_format_template = {};
+    _named_arg_value_buffer = fmtquill::memory_buffer{};
     _format_args_store = DynamicFormatArgStore{};
     _dynamic_metric_labels = {};
   }
@@ -2156,11 +2158,16 @@ private:
     }
   }
 
-  /** Formats each named-arg value individually using the corresponding argument tail. */
+  /**
+   * Formats each named-arg value individually using the corresponding argument tail.
+   * @param value_buffer scratch buffer that each value is formatted into before it is copied into
+   * its string, which keeps the capacity of both
+   */
   static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>> const& orig_arg_names,
                                           std::vector<std::pair<std::string, std::string>>& named_args,
                                           DynamicFormatArgStore const& format_args_store,
-                                          BackendOptions const& options, std::array<bool, 256> const& printable_chars)
+                                          BackendOptions const& options, std::array<bool, 256> const& printable_chars,
+                                          fmtquill::memory_buffer& value_buffer)
   {
     for (size_t i = 0; i < named_args.size(); ++i)
     {
@@ -2169,20 +2176,28 @@ private:
         break;
       }
 
-      std::string format_string{"{}"};
+      fmtquill::format_args const format_args{format_args_store.data() + static_cast<std::ptrdiff_t>(i),
+                                              format_args_store.size() - static_cast<int>(i)};
+      value_buffer.clear();
 
       // orig_arg_names[i].second stores the normalized format syntax, for example ":.2f" or ":{}".
       if ((i < orig_arg_names.size()) && !orig_arg_names[i].second.empty())
       {
-        format_string = "{";
-        format_string += orig_arg_names[i].second;
-        format_string += "}";
+        fmtquill::basic_memory_buffer<char, 64> field_format;
+        field_format.push_back('{');
+        append_to_buffer(field_format, orig_arg_names[i].second);
+        field_format.push_back('}');
+
+        fmtquill::detail::vformat_to(
+          value_buffer, fmtquill::string_view{field_format.data(), field_format.size()}, format_args);
+      }
+      else
+      {
+        // What vformat_to() does for "{}"
+        format_args.get(0).visit(fmtquill::detail::default_arg_formatter<char>{fmtquill::appender{value_buffer}});
       }
 
-      fmtquill::vformat_to(std::back_inserter(named_args[i].second), format_string,
-                           fmtquill::basic_format_args<fmtquill::format_context>{
-                             format_args_store.data() + static_cast<std::ptrdiff_t>(i),
-                             format_args_store.size() - static_cast<int>(i)});
+      named_args[i].second.assign(value_buffer.data(), value_buffer.size());
 
       if (options.check_printable_char && format_args_store.has_string_related_type())
       {
@@ -2236,7 +2251,8 @@ private:
     // Then populate all the values of each arg
     QUILL_TRY
     {
-      _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options, _printable_chars);
+      _format_and_split_arguments(arg_names, *named_args, _format_args_store, _options,
+                                  _printable_chars, _named_arg_value_buffer);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const&)
@@ -2416,8 +2432,9 @@ private:
   std::vector<std::string> _mdc_keys;                           /** MDC erase scratch storage */
   std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
   std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
-  std::string _named_args_format_template; /** to avoid allocation each time **/
-  std::string _process_id;                 /** Id of the current running process **/
+  std::string _named_args_format_template;         /** to avoid allocation each time **/
+  fmtquill::memory_buffer _named_arg_value_buffer; /** Each named-arg value is formatted here first */
+  std::string _process_id;                         /** Id of the current running process **/
   std::string _last_error_notification;
   std::chrono::steady_clock::time_point _last_rdtsc_resync_time;
   std::chrono::steady_clock::time_point _last_sink_flush_time;
