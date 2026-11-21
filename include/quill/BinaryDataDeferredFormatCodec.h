@@ -134,12 +134,12 @@ struct BinaryDataDeferredFormatCodec
   static_assert(std::is_same_v<BinaryData<typename T::ValueType>, T>,
                 "BinaryDataDeferredFormatCodec can only be used with BinaryData");
 
-  static size_t compute_encoded_size(detail::SizeCacheVector&, T const& arg)
+  static size_t compute_encoded_size(SizeCacheVector&, T const& arg)
   {
     return sizeof(uint32_t) + arg._size;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, T const& arg)
+  static void encode(std::byte*& buffer, SizeCacheVector const&, uint32_t&, T const& arg)
   {
     std::byte* buf_ptr = buffer;
 

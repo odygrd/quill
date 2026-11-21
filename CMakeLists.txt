@@ -312,6 +312,7 @@ set(HEADER_FILES
         include/quill/LogFunctions.h
         include/quill/Logger.h
         include/quill/LogMacros.h
+        include/quill/MemberwiseCodec.h
         include/quill/SimpleSetup.h
         include/quill/StopWatch.h
         include/quill/StringRef.h

@@ -73,8 +73,7 @@ QUILL_BEGIN_EXPORT
 template <>
 struct Codec<std::error_code>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::error_code const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::error_code const& arg)
   {
     size_t total_size = Codec<int>::compute_encoded_size(conditional_arg_size_cache, arg.value());
 
@@ -92,7 +91,7 @@ struct Codec<std::error_code>
     return total_size;
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, std::error_code const& arg)
   {
     Codec<int>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, arg.value());

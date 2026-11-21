@@ -51,8 +51,7 @@ private:
   }
 
 public:
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache,
-                                     std::pair<T1, T2> const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::pair<T1, T2> const& arg)
   {
     // Explicitly separate the calls to ensure the order of evaluation is maintained,
     // as the compiler may evaluate the expressions in a different order, leading to side effects.
@@ -62,7 +61,7 @@ public:
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
     if constexpr (std::is_rvalue_reference_v<Arg&&>)

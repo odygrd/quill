@@ -141,8 +141,7 @@ template <>
 struct quill::Codec<RvalueEncoded> : quill::DeferredFormatCodec<RvalueEncoded>
 {
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& size_cache,
-                     uint32_t& size_cache_index, Arg&& arg)
+  static void encode(std::byte*& buffer, SizeCacheVector const& size_cache, uint32_t& size_cache_index, Arg&& arg)
   {
     static_assert(std::is_rvalue_reference_v<Arg&&>,
                   "The cold log path must preserve the argument's rvalue category");

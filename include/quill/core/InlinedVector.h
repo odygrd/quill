@@ -222,14 +222,16 @@ private:
   size_t _capacity{N};
 };
 
-/**
- * A vector that stores sizes for specific operations using `uint32_t` to optimize space.
- * The capacity of 12 is chosen to fit within a full cache line for better performance.
- */
-using SizeCacheVector = InlinedVector<uint32_t, 12>;
-static_assert(sizeof(SizeCacheVector) <= QUILL_CACHE_LINE_SIZE,
-              "SizeCacheVector should not exceed a cache line");
 } // namespace detail
+
+/**
+ * The size cache passed to custom Codec implementations. It stores sizes computed in
+ * compute_encoded_size() for encode() to reuse, using `uint32_t` to save space. The capacity of 12
+ * is chosen to fit within a full cache line for better performance.
+ */
+using SizeCacheVector = detail::InlinedVector<uint32_t, 12>;
+static_assert(sizeof(SizeCacheVector) <= detail::QUILL_CACHE_LINE_SIZE,
+              "SizeCacheVector should not exceed a cache line");
 
 QUILL_END_EXPORT
 

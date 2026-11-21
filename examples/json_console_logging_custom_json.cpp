@@ -14,10 +14,11 @@ class MyJsonConsoleSink : public quill::JsonConsoleSink
 {
   void generate_json_message(quill::LogRecord const& record, char const* message_format) override
   {
-    // format json as desired
-    _json_message.append(fmtquill::format(R"({{"timestamp":"{}","log_level":"{}","message":"{}")",
-                                          std::to_string(record.log_timestamp),
-                                          record.log_level_description, message_format));
+    // format json as desired; escape any text that can contain quotes, backslashes or control characters
+    _json_message.append(fmtquill::format(R"({{"timestamp":"{}","log_level":"{}","message":")",
+                                          std::to_string(record.log_timestamp), record.log_level_description));
+    append_json_escaped(_json_message, message_format);
+    _json_message.append(std::string_view{"\""});
 
     // add log statement arguments as key-values to the json
     if (record.named_args)
@@ -25,9 +26,9 @@ class MyJsonConsoleSink : public quill::JsonConsoleSink
       for (auto const& [key, value] : *record.named_args)
       {
         _json_message.append(std::string_view{",\""});
-        _json_message.append(key);
+        append_json_escaped(_json_message, key);
         _json_message.append(std::string_view{"\":\""});
-        _json_message.append(value);
+        append_json_escaped(_json_message, value);
         _json_message.append(std::string_view{"\""});
       }
     }

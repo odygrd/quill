@@ -34,7 +34,7 @@ struct Codec<T,
              std::enable_if_t<std::disjunction_v<std::is_same<T, wchar_t*>, std::is_same<T, wchar_t const*>,
                                                  std::is_same<T, std::wstring>, std::is_same<T, std::wstring_view>>>>
 {
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
   {
     size_t len;
 
@@ -69,7 +69,7 @@ struct Codec<T,
     return sizeof(uint32_t) + (static_cast<size_t>(len_u32) * sizeof(wchar_t));
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, T const& arg) noexcept
   {
     // The wide string size in bytes

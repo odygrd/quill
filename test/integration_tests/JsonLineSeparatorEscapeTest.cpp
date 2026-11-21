@@ -23,7 +23,7 @@ TEST_CASE("json_line_separator_escape")
 
   BackendOptions bo;
   // Disable the default printable-char sanitizer so the raw UTF-8 bytes reach
-  // the JSON sink and we can verify _append_json_escaped() handles them.
+  // the JSON sink and we can verify append_json_escaped() handles them.
   bo.check_printable_char = {};
   Backend::start(bo);
 
