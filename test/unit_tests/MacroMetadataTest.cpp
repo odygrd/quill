@@ -212,6 +212,26 @@ TEST_CASE("construct")
   }
 }
 
+TEST_CASE("message_format_size")
+{
+  constexpr MacroMetadata macro_metadata{
+    "file.cpp:1", "", "Test fmt {}", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(macro_metadata.message_format_size(), 11u);
+
+  constexpr MacroMetadata empty_format{
+    "file.cpp:1", "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(empty_format.message_format_size(), 0u);
+
+  // The macro-free functions construct the metadata of each record from a runtime format string
+  std::string const runtime_format(300, 'x');
+  MacroMetadata const runtime_metadata{"file.cpp:1",          "",
+                                       runtime_format.data(), nullptr,
+                                       quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(runtime_metadata.message_format_size(), runtime_format.size());
+
+  REQUIRE_EQ(MacroMetadata{}.message_format_size(), 0u);
+}
+
 TEST_CASE("source_location_accepts_both_separators")
 {
   // MinGW and builds hosted on Windows can spell __FILE__ with either separator
