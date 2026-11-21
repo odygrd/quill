@@ -71,7 +71,9 @@ struct BackendOptions
   bool enable_yield_when_idle = false;
 
   /**
-   * Specifies the duration the backend sleeps if there is no remaining work to process in the queues.
+   * Specifies the duration the backend sleeps if there is no remaining work to process in the
+   * queues. Durations above 24 hours are treated as 24 hours. To sleep until woken, use a long
+   * duration and call Backend::notify().
    */
   std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
 
