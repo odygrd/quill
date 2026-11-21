@@ -248,6 +248,9 @@
   of dropping samples or failing every publish.
 - `RotatingFileSinkConfig::set_rotation_time_daily()` no longer switches the configuration to daily
   rotation when it throws for an invalid time.
+- On Windows, `Frontend::create_or_get_sink<FileSink>()` returns the existing sink for another
+  spelling of the same file, such as `app.log.` or, in MinGW builds, a directory differing only in
+  letter case, instead of opening the file again, which could truncate it in `w` mode.
 - Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.
 

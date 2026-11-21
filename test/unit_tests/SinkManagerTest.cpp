@@ -316,6 +316,69 @@ TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")
 }
 
 /***/
+TEST_CASE("file_sink_windows_factory_accepts_a_unicode_parent")
+{
+#if defined(_WIN32)
+  fs::path const previous{fs::current_path()};
+  fs::path const directory{previous / L"sink_manager_unicode_\u4e2d\U0001f680"};
+  fs::create_directories(directory);
+
+  struct RestoreDirectory
+  {
+    fs::path previous;
+    ~RestoreDirectory()
+    {
+      std::error_code ec;
+      fs::current_path(previous, ec);
+    }
+  };
+
+  {
+    RestoreDirectory const restore{previous};
+    fs::current_path(directory);
+    auto& manager = SinkManager::instance();
+    auto sink = manager.create_or_get_sink<FileSink>("ascii.log");
+    REQUIRE(fs::equivalent(sink->get_filename(), directory / "ascii.log"));
+    REQUIRE_EQ(manager.get_sink("ascii.log"), sink);
+  }
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+  fs::remove(directory / "ascii.log");
+  fs::remove(directory);
+#endif
+}
+
+/***/
+TEST_CASE("file_sink_windows_ids_do_not_match_ansi_names")
+{
+#if defined(_WIN32)
+  if (::GetACP() != 1252)
+  {
+    return;
+  }
+
+  fs::path const directory{"sink_manager_windows_encoding"};
+  fs::path const first{directory / L"\u00c3\u2030.LOG"};
+  fs::path const second{directory / L"\u00e9.log"};
+
+  {
+    auto& manager = SinkManager::instance();
+    auto first_sink = manager.create_or_get_sink<FileSink>(first.string());
+    auto second_sink = manager.create_or_get_sink<FileSink>(second.string());
+    REQUIRE_NE(first_sink, second_sink);
+    REQUIRE(fs::exists(first));
+    REQUIRE(fs::exists(second));
+    REQUIRE_EQ(manager.get_sink(fs::absolute(first).string()), first_sink);
+    REQUIRE_EQ(manager.get_sink(fs::absolute(second).string()), second_sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 2u);
+  fs::remove(first);
+  fs::remove(second);
+  fs::remove(directory);
+#endif
+}
+
+/***/
 TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
 {
 #if defined(_WIN32)
@@ -366,6 +429,85 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
   }
 
   REQUIRE(fs::remove(directory));
+#endif
+}
+
+/***/
+TEST_CASE("file_sink_windows_parent_case_aliases_return_same_sink")
+{
+#if defined(_WIN32)
+  fs::path const root{"sink_manager_parent_case_alias_test"};
+  fs::path const filename{root / "aliasParent" / "alias.log"};
+  fs::path const alias_filename{root / "ALIASPARENT" / "alias.log"};
+  fs::create_directories(filename.parent_path());
+
+  // Only a case-insensitive directory, the default, resolves the other spelling of its name
+  if (!fs::exists(alias_filename.parent_path()))
+  {
+    fs::remove_all(root);
+    return;
+  }
+
+  FileSinkConfig config;
+  config.set_open_mode('w');
+
+  {
+    auto file_sink = SinkManager::instance().create_or_get_sink<FileSink>(filename.string(), config);
+    file_sink->write_log(LogRecord{
+      nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+    file_sink->flush_sink(SinkFlushReason::Explicit);
+
+    // Another sink would open the file again and truncate it in 'w' mode
+    REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(alias_filename.string(), config), file_sink);
+    REQUIRE_EQ(SinkManager::instance().get_sink(alias_filename.string()), file_sink);
+    REQUIRE_EQ(fs::file_size(filename), 10u);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+  fs::remove_all(root);
+#endif
+}
+
+/***/
+TEST_CASE("file_sink_windows_trailing_dot_alias_does_not_reopen_the_file")
+{
+#if defined(_WIN32)
+  fs::path const directory{"sink_manager_trailing_dot"};
+  fs::path const filename{directory / "ordinary.log"};
+  fs::path const alias{directory / "ordinary.log. "};
+  fs::path extended;
+
+  {
+    auto& manager = SinkManager::instance();
+    FileSinkConfig config;
+    config.set_open_mode('w');
+    auto sink = manager.create_or_get_sink<FileSink>(filename.string(), config);
+    LogRecord record;
+    record.log_statement = "sentinel";
+    sink->write_log(record);
+    sink->flush_sink(SinkFlushReason::Explicit);
+
+    REQUIRE_EQ(manager.create_or_get_sink<FileSink>(alias.string(), config), sink);
+    REQUIRE_EQ(manager.get_sink(alias.string()), sink);
+    REQUIRE_EQ(fs::file_size(filename), record.log_statement.size());
+
+    auto const absolute = fs::absolute(filename).native();
+    if (absolute.size() > 2 && absolute[1] == L':')
+    {
+      extended = fs::path{L"\\\\?\\" + absolute + L"."};
+      auto distinct_sink = manager.create_or_get_sink<FileSink>(extended.string(), config);
+      REQUIRE_NE(distinct_sink, sink);
+      REQUIRE_EQ(fs::file_size(filename), record.log_statement.size());
+    }
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), extended.empty() ? 1u : 2u);
+  if (!extended.empty())
+  {
+    fs::remove(extended);
+  }
+  fs::remove(filename);
+  fs::remove(directory);
 #endif
 }
 
@@ -584,6 +726,30 @@ TEST_CASE("create_or_get_sink_rejects_incompatible_existing_type")
   REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
   std::remove(filename.data());
 #endif
+}
+
+/***/
+class StringLvalueFileSink : public FileSink
+{
+public:
+  // A file sink without an fs::path constructor receives its name as a std::string lvalue
+  explicit StringLvalueFileSink(std::string const& filename) : FileSink{filename} {}
+  explicit StringLvalueFileSink(std::string&&) = delete;
+};
+
+/***/
+TEST_CASE("file_sink_with_string_lvalue_constructor_can_be_created")
+{
+  std::string const filename{"file_sink_with_string_lvalue_constructor.log"};
+
+  {
+    std::shared_ptr<StringLvalueFileSink> const sink =
+      SinkManager::instance().create_or_get_sink<StringLvalueFileSink>(filename);
+    REQUIRE(sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+  REQUIRE(fs::remove(filename));
 }
 
 TEST_SUITE_END();
