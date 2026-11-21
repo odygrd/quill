@@ -18,6 +18,7 @@
 #ifndef QUILL_MODULE
   #include <algorithm>
   #include <atomic>
+  #include <cstdint>
   #include <cstdlib>
   #include <initializer_list>
   #include <memory>
@@ -334,6 +335,16 @@ public:
     return _has_invalidated_loggers.load(std::memory_order_acquire);
   }
 
+  /**
+   * @return an id that no other call returned, for callers that generate logger names, e.g.
+   * CsvWriter. The LoggerManager is shared by every shared library of an application, so the ids
+   * are unique across them, which the ids of a counter defined in a header are not.
+   */
+  QUILL_NODISCARD uint64_t next_unique_logger_id() noexcept
+  {
+    return _next_unique_logger_id.fetch_add(1, std::memory_order_relaxed);
+  }
+
   QUILL_ATTRIBUTE_COLD void parse_log_level_from_env()
   {
     constexpr char const* field = "QUILL_LOG_LEVEL";
@@ -474,6 +485,7 @@ private:
 
 private:
   std::vector<std::unique_ptr<LoggerBase>> _loggers;
+  std::atomic<uint64_t> _next_unique_logger_id{0};
   std::optional<LogLevel> _env_log_level;
   mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};

@@ -15,7 +15,7 @@
 #include "quill/sinks/StreamSink.h"
 
 #ifndef QUILL_MODULE
-  #include <atomic>
+  #include <cstdint>
   #include <cstdio>
   #include <cstring>
   #include <memory>
@@ -324,12 +324,14 @@ private:
 
   static std::string _make_logger_name(std::string const& base_name)
   {
-    uint64_t const logger_id = _next_logger_id.fetch_add(1, std::memory_order_relaxed);
+    // Every CsvWriter specialization, in every shared library of the application, draws its id
+    // from one counter, so writers with different schemas on the same file get different logger
+    // names and closing one cannot remove the logger of another.
+    uint64_t const logger_id = detail::LoggerManager::instance().next_unique_logger_id();
     return _logger_name_prefix + base_name + "_" + std::to_string(logger_id);
   }
 
   static inline std::string _logger_name_prefix{"__csv__"};
-  static inline std::atomic<uint64_t> _next_logger_id{0};
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };
