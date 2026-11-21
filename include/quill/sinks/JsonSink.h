@@ -8,6 +8,7 @@
 
 #include "quill/bundled/fmt/base.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Filesystem.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"
@@ -58,7 +59,7 @@ public:
 
       _json_message.clear();
       generate_json_message(record, message_format);
-      _json_message.append(std::string_view{"}\n"});
+      append_to_buffer(_json_message, std::string_view{"}\n"});
     }
 
     _json_message_ready = false;
@@ -83,32 +84,33 @@ public:
     MacroMetadata const* const log_metadata = record.log_metadata;
     std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
 
-    _json_message.append(std::string_view{"{\"timestamp\":\""});
+    append_to_buffer(_json_message, std::string_view{"{\"timestamp\":\""});
     char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1u];
     auto const timestamp_result =
       std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), record.log_timestamp);
-    _json_message.append(std::string_view{
-      timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
-    _json_message.append(std::string_view{"\",\"file_name\":\""});
+    append_to_buffer(
+      _json_message,
+      std::string_view{timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
+    append_to_buffer(_json_message, std::string_view{"\",\"file_name\":\""});
     append_json_escaped(_json_message, log_metadata->file_name());
-    _json_message.append(std::string_view{"\",\"line\":\""});
+    append_to_buffer(_json_message, std::string_view{"\",\"line\":\""});
     append_json_escaped(_json_message, log_metadata->line());
-    _json_message.append(std::string_view{"\",\"thread_id\":\""});
+    append_to_buffer(_json_message, std::string_view{"\",\"thread_id\":\""});
     append_json_escaped(_json_message, record.thread_id);
-    _json_message.append(std::string_view{"\",\"logger\":\""});
+    append_to_buffer(_json_message, std::string_view{"\",\"logger\":\""});
     append_json_escaped(_json_message, record.logger_name);
-    _json_message.append(std::string_view{"\",\"log_level\":\""});
+    append_to_buffer(_json_message, std::string_view{"\",\"log_level\":\""});
     append_json_escaped(_json_message, record.log_level_description);
-    _json_message.append(std::string_view{"\",\"message\":\""});
+    append_to_buffer(_json_message, std::string_view{"\",\"message\":\""});
     append_json_escaped(_json_message, message_format);
-    _json_message.append(std::string_view{"\""});
+    append_to_buffer(_json_message, std::string_view{"\""});
 
     // Add args as key-values
     if (named_args)
     {
       for (auto const& [key, value] : *named_args)
       {
-        _json_message.append(std::string_view{",\""});
+        append_to_buffer(_json_message, std::string_view{",\""});
 
         if (_is_reserved_json_key(key))
         {
@@ -140,9 +142,9 @@ public:
           append_json_escaped(_json_message, key);
         }
 
-        _json_message.append(std::string_view{"\":\""});
+        append_to_buffer(_json_message, std::string_view{"\":\""});
         append_json_escaped(_json_message, value);
-        _json_message.append(std::string_view{"\""});
+        append_to_buffer(_json_message, std::string_view{"\""});
       }
     }
   }
@@ -155,7 +157,7 @@ protected:
     char const* const message_format = _normalized_message_format(record);
     generate_json_message(record, message_format);
 
-    _json_message.append(std::string_view{"}\n"});
+    append_to_buffer(_json_message, std::string_view{"}\n"});
     _json_message_ready = true;
     return _json_message.size();
   }
@@ -228,31 +230,42 @@ protected:
     size_t const size = value.size();
     char const* const data = value.data();
 
+    // Bytes that need no escape, nearly all of them, are appended in runs rather than one by one
+    size_t run_begin = 0;
+
     for (size_t i = 0; i < size; ++i)
     {
       unsigned char const c = static_cast<unsigned char>(data[i]);
+
+      if (QUILL_LIKELY((c >= 0x20) && (c != '"') && (c != '\\') && (c != 0xE2)))
+      {
+        continue;
+      }
+
+      std::string_view escaped;
+
       switch (c)
       {
       case '"':
-        out.append(std::string_view{"\\\""});
+        escaped = std::string_view{"\\\""};
         break;
       case '\\':
-        out.append(std::string_view{"\\\\"});
+        escaped = std::string_view{"\\\\"};
         break;
       case '\b':
-        out.append(std::string_view{"\\b"});
+        escaped = std::string_view{"\\b"};
         break;
       case '\f':
-        out.append(std::string_view{"\\f"});
+        escaped = std::string_view{"\\f"};
         break;
       case '\n':
-        out.append(std::string_view{"\\n"});
+        escaped = std::string_view{"\\n"};
         break;
       case '\r':
-        out.append(std::string_view{"\\r"});
+        escaped = std::string_view{"\\r"};
         break;
       case '\t':
-        out.append(std::string_view{"\\t"});
+        escaped = std::string_view{"\\t"};
         break;
       // U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are valid JSON characters
       // but they break some JavaScript consumers that treat JSON as JS source. Escape the
@@ -261,27 +274,30 @@ protected:
         if (i + 2 < size && static_cast<unsigned char>(data[i + 1]) == 0x80 &&
             (static_cast<unsigned char>(data[i + 2]) == 0xA8 || static_cast<unsigned char>(data[i + 2]) == 0xA9))
         {
-          out.append(static_cast<unsigned char>(data[i + 2]) == 0xA8 ? std::string_view{"\\u2028"}
-                                                                     : std::string_view{"\\u2029"});
-          i += 2;
-        }
-        else
-        {
-          out.push_back(static_cast<char>(c));
+          escaped = static_cast<unsigned char>(data[i + 2]) == 0xA8 ? std::string_view{"\\u2028"}
+                                                                    : std::string_view{"\\u2029"};
         }
         break;
       default:
-        if (c < 0x20)
-        {
-          out.append(std::string_view{control_escape_table[c], 6});
-        }
-        else
-        {
-          out.push_back(static_cast<char>(c));
-        }
+        escaped = std::string_view{control_escape_table[c], 6};
         break;
       }
+
+      if (escaped.empty())
+      {
+        // 0xE2 that does not start a line or paragraph separator stays in the run
+        continue;
+      }
+
+      append_to_buffer(out, std::string_view{data + run_begin, i - run_begin});
+      append_to_buffer(out, escaped);
+
+      // A separator escapes three bytes
+      i += (c == 0xE2) ? 2u : 0u;
+      run_begin = i + 1;
     }
+
+    append_to_buffer(out, std::string_view{data + run_begin, size - run_begin});
   }
 
   fmtquill::memory_buffer _json_message;
