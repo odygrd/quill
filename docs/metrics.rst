@@ -108,8 +108,10 @@ Dynamic Labels
 --------------
 
 ``Logger::publish_dynamic_metric(name, labels, value)`` or ``DYNAMIC_METRIC(...)`` provides optional
-runtime flexibility. It copies names and labels on every call; prefer ``publish_metric(pointer, value)``
-with cached metadata for latency-sensitive hot paths.
+runtime flexibility. It copies names and labels into the queue on every call; prefer
+``publish_metric(pointer, value)`` with cached metadata for latency-sensitive hot paths. Labels can be
+passed inline as ``{{key, value}, ...}``, which does not allocate, or as a
+``std::vector<MetricLabel>``.
 
 .. code-block:: cpp
 
