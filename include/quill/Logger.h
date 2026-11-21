@@ -89,7 +89,11 @@ class LoggerImpl : public detail::LoggerBase
 {
 public:
   using frontend_options_t = TFrontendOptions;
-  using clock_type = typename detail::FrontendClockType<frontend_options_t>::type;
+
+  static_assert(std::is_base_of_v<FrontendOptions, frontend_options_t>,
+                "Custom frontend options must derive from quill::FrontendOptions");
+
+  using clock_type = typename frontend_options_t::clock_type;
 
   static constexpr bool using_runtime_clock = std::is_same_v<clock_type, ClockSource>;
   using clock_object_t = std::conditional_t<using_runtime_clock, UserClockSource, clock_type>;
