@@ -12,19 +12,59 @@
 
 using namespace quill;
 
-#if !defined(_WIN32)
 namespace
 {
+#if defined(_WIN32)
+int original_filter_calls{0};
+LPTOP_LEVEL_EXCEPTION_FILTER filter_replaced_by_application{nullptr};
+
+LONG WINAPI original_filter(EXCEPTION_POINTERS*)
+{
+  ++original_filter_calls;
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
+// Forwards to the filter it replaced, as crash reporters commonly do
+LONG WINAPI application_filter(EXCEPTION_POINTERS* exception_pointers)
+{
+  return filter_replaced_by_application(exception_pointers);
+}
+#else
 void user_sigterm_handler(int, siginfo_t*, void*) {}
 void user_sigalrm_handler(int) {}
-} // namespace
 #endif
+} // namespace
 
 /***/
 TEST_CASE("backend_stop_restores_signal_handlers_installed_before_start")
 {
 #if defined(_WIN32)
-  return;
+  auto const previous = ::SetUnhandledExceptionFilter(original_filter);
+  Backend::start<FrontendOptions>(BackendOptions{}, SignalHandlerOptions{});
+  Backend::stop();
+  CHECK_EQ(::SetUnhandledExceptionFilter(original_filter), &original_filter);
+
+  // A filter the application installs after start() stays installed. Through Quill's filter it
+  // still reaches the original one, after stop() and after a restart, without forwarding in a loop
+  EXCEPTION_RECORD exception_record{};
+  exception_record.ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
+  EXCEPTION_POINTERS exception_pointers{&exception_record, nullptr};
+
+  Backend::start<FrontendOptions>(BackendOptions{}, SignalHandlerOptions{});
+  filter_replaced_by_application = ::SetUnhandledExceptionFilter(application_filter);
+  Backend::stop();
+
+  CHECK_EQ(::SetUnhandledExceptionFilter(application_filter), &application_filter);
+  CHECK_EQ(application_filter(&exception_pointers), EXCEPTION_CONTINUE_SEARCH);
+  CHECK_EQ(original_filter_calls, 1);
+
+  Backend::start<FrontendOptions>(BackendOptions{}, SignalHandlerOptions{});
+  CHECK_EQ(::SetUnhandledExceptionFilter(application_filter), &application_filter);
+  CHECK_EQ(application_filter(&exception_pointers), EXCEPTION_CONTINUE_SEARCH);
+  CHECK_EQ(original_filter_calls, 2);
+  Backend::stop();
+
+  REQUIRE_EQ(::SetUnhandledExceptionFilter(previous), &application_filter);
 #else
   // A handler installed by the application with sigaction() flags std::signal() cannot express
   struct sigaction user_action
