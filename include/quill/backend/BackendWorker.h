@@ -403,6 +403,13 @@ public:
   }
 
 private:
+  /** check_printable_char() evaluated once for each byte value */
+  struct PrintableChars
+  {
+    std::array<bool, 256> printable{};
+    bool printable_ascii{false}; /**< every byte from ' ' to '~' is printable */
+  };
+
   /** Runs `fn`, reporting an exception through error_notifier instead of propagating it */
   template <typename TFunction>
   void _run_guarded(TFunction&& fn)
@@ -636,19 +643,25 @@ private:
     // std::function for every character of every formatted message.
     if (_options.check_printable_char)
     {
-      for (size_t c = 0; c < _printable_chars.size(); ++c)
+      for (size_t c = 0; c < _printable_chars.printable.size(); ++c)
       {
         // A predicate that throws for a byte marks it non-printable instead of terminating here,
         // in the backend startup, for a byte the application may never log
-        _printable_chars[c] = false;
+        _printable_chars.printable[c] = false;
         QUILL_TRY
         {
-          _printable_chars[c] =
+          _printable_chars.printable[c] =
             _options.check_printable_char(static_cast<char>(static_cast<unsigned char>(c)));
         }
 #if !defined(QUILL_NO_EXCEPTIONS)
         QUILL_CATCH_ALL() {}
 #endif
+      }
+
+      _printable_chars.printable_ascii = true;
+      for (size_t c = ' '; c <= '~'; ++c)
+      {
+        _printable_chars.printable_ascii &= _printable_chars.printable[c];
       }
     }
 
@@ -2144,7 +2157,7 @@ private:
   static void _format_and_split_arguments(std::vector<std::pair<std::string, std::string>> const& orig_arg_names,
                                           std::vector<std::pair<std::string, std::string>>& named_args,
                                           DynamicFormatArgStore const& format_args_store,
-                                          BackendOptions const& options, std::array<bool, 256> const& printable_chars,
+                                          BackendOptions const& options, PrintableChars const& printable_chars,
                                           fmtquill::memory_buffer& value_buffer)
   {
     for (size_t i = 0; i < named_args.size(); ++i)
@@ -2340,46 +2353,78 @@ private:
     transit_event->macro_metadata = &transit_event->extra_data->runtime_metadata.macro_metadata;
   }
 
-  template <typename TFormattedMsg>
-  static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, std::array<bool, 256> const& printable_chars)
+  /** @return true if `text` has a byte that is not printable */
+  QUILL_NODISCARD static bool _contains_non_printable_char(std::string_view text,
+                                                           PrintableChars const& printable_chars) noexcept
   {
-    auto const is_printable = [&printable_chars](char c)
-    { return printable_chars[static_cast<unsigned char>(c)]; };
+    size_t pos = 0;
 
-    // check for non-printable characters in the formatted_msg
-    bool contains_non_printable_char{false};
-
-    for (char c : formatted_msg)
+    if (printable_chars.printable_ascii)
     {
-      if (!is_printable(c))
+      // Check 8 bytes at a time. The high bit of a byte of `outside` is set for a byte below ' ' or
+      // above '~', e.g. a new line. A borrow or a carry only comes from such a byte, so it cannot
+      // hide one, and only words that contain one are looked up byte by byte.
+      constexpr uint64_t ones{0x0101010101010101ull};
+      constexpr uint64_t high_bits{0x8080808080808080ull};
+
+      for (; (pos + sizeof(uint64_t)) <= text.size(); pos += sizeof(uint64_t))
       {
-        contains_non_printable_char = true;
-        break;
+        uint64_t word;
+        std::memcpy(&word, text.data() + pos, sizeof(word));
+
+        uint64_t const outside = ((word - (ones * ' ')) & ~word) | (word + ones) | word;
+
+        if (QUILL_UNLIKELY((outside & high_bits) != 0))
+        {
+          for (size_t i = pos; i < (pos + sizeof(uint64_t)); ++i)
+          {
+            if (!printable_chars.printable[static_cast<unsigned char>(text[i])])
+            {
+              return true;
+            }
+          }
+        }
       }
     }
 
-    if (contains_non_printable_char)
+    for (; pos < text.size(); ++pos)
     {
-      // in this rare event we will replace the non-printable chars with their hex values
-      std::string const formatted_msg_copy = {formatted_msg.data(), formatted_msg.size()};
-      formatted_msg.clear();
-
-      for (char c : formatted_msg_copy)
+      if (!printable_chars.printable[static_cast<unsigned char>(text[pos])])
       {
-        if (is_printable(c))
-        {
-          formatted_msg.push_back(c);
-        }
-        else
-        {
-          // convert non-printable character to hex
-          unsigned char const byte = static_cast<unsigned char>(c);
-          constexpr char hex[] = "0123456789ABCDEF";
-          formatted_msg.push_back('\\');
-          formatted_msg.push_back('x');
-          formatted_msg.push_back(hex[(byte >> 4) & 0xF]);
-          formatted_msg.push_back(hex[byte & 0xF]);
-        }
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  template <typename TFormattedMsg>
+  static void sanitize_non_printable_chars(TFormattedMsg& formatted_msg, PrintableChars const& printable_chars)
+  {
+    if (!_contains_non_printable_char(std::string_view{formatted_msg.data(), formatted_msg.size()}, printable_chars))
+    {
+      return;
+    }
+
+    // in this rare event we will replace the non-printable chars with their hex values
+    std::string const formatted_msg_copy = {formatted_msg.data(), formatted_msg.size()};
+    formatted_msg.clear();
+
+    for (char c : formatted_msg_copy)
+    {
+      if (printable_chars.printable[static_cast<unsigned char>(c)])
+      {
+        formatted_msg.push_back(c);
+      }
+      else
+      {
+        // convert non-printable character to hex
+        unsigned char const byte = static_cast<unsigned char>(c);
+        constexpr char hex[] = "0123456789ABCDEF";
+        formatted_msg.push_back('\\');
+        formatted_msg.push_back('x');
+        formatted_msg.push_back(hex[(byte >> 4) & 0xF]);
+        formatted_msg.push_back(hex[byte & 0xF]);
       }
     }
   }
@@ -2396,7 +2441,7 @@ private:
   SinkManager& _sink_manager = SinkManager::instance();
   LoggerManager& _logger_manager = LoggerManager::instance();
   BackendOptions _options;
-  std::array<bool, 256> _printable_chars{}; /**< check_printable_char() result per byte value */
+  PrintableChars _printable_chars; /**< check_printable_char() result per byte value */
   uint64_t _last_output_timestamp{0};
   std::thread _worker_thread;
 
