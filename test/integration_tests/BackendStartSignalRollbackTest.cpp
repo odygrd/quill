@@ -37,7 +37,6 @@ struct SignalStateRestorer
 
     auto& ctx = detail::SignalHandlerContext::instance();
     std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-    ctx.registered_signal_handlers.clear();
     ctx.previous_signal_handlers.clear();
   }
 
@@ -61,7 +60,7 @@ struct SignalStateRestorer
 
     auto& ctx = detail::SignalHandlerContext::instance();
     std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-    ctx.registered_signal_handlers.clear();
+    ctx.previous_signal_handlers.clear();
   }
 
   struct sigaction original_sigterm_action{};

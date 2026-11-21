@@ -210,9 +210,10 @@ public:
   /**
    * Stops the backend thread.
    *
-   * @note On POSIX systems, when the built-in signal handler is enabled, this restores the
-   * Quill-managed signals to their default dispositions. It does not restore any previously
-   * installed user handlers.
+   * @note When the built-in signal handler is enabled, this reinstalls the handlers the
+   * Quill-managed signals had before Backend::start(). On Windows the CRT keeps SIGSEGV, SIGILL
+   * and SIGFPE handlers per thread, while Quill saves the handlers found by the first thread that
+   * installed its own. This restores those saved handlers on the calling thread only.
    * @note Concurrent calls to start() and stop() from different threads are not supported.
    * @note This function must not be called from backend-thread callbacks because it joins the
    *       backend worker thread.
@@ -237,7 +238,7 @@ public:
       fn();
     }
 #endif
-    detail::deinit_signal_handler();
+    detail::restore_signal_handlers();
   }
 
   /**
