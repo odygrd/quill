@@ -988,14 +988,8 @@ private:
         }
 
         // Same inode: an alias spelling of the same name, unless it is another hard link
-        fs::path const canonical_candidate = fs::canonical(candidate_filename, ec);
-        if (ec)
-        {
-          continue;
-        }
-
-        fs::path const canonical_alias = fs::canonical(alias, ec);
-        if (!ec && (canonical_alias == canonical_candidate))
+        fs::path const canonical_candidate = detail::get_canonical_path(candidate_filename);
+        if (!canonical_candidate.empty() && (detail::get_canonical_path(alias) == canonical_candidate))
         {
           candidate_name = alias.filename().native();
           break;

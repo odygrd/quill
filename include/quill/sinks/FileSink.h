@@ -325,6 +325,75 @@ QUILL_NODISCARD inline fs::path get_updated_filename_with_appended_datetime(
 
   return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
 }
+
+#if defined(_WIN32)
+/** Closes a Windows handle unless it was released */
+struct OpenedHandleGuard
+{
+  ~OpenedHandleGuard()
+  {
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+      ::CloseHandle(handle);
+    }
+  }
+
+  QUILL_NODISCARD HANDLE release() noexcept
+  {
+    HANDLE const released_handle = handle;
+    handle = INVALID_HANDLE_VALUE;
+    return released_handle;
+  }
+
+  HANDLE handle{INVALID_HANDLE_VALUE};
+};
+
+/**
+ * The path of an open file or directory in extended-length form, spelled as the filesystem stores
+ * it, e.g. with the stored case of each name. Empty if the filesystem cannot report it.
+ */
+QUILL_NODISCARD inline fs::path get_final_path(HANDLE handle)
+{
+  constexpr DWORD flags{FILE_NAME_NORMALIZED | VOLUME_NAME_DOS};
+  std::wstring final_path(MAX_PATH, L'\0');
+  DWORD length =
+    ::GetFinalPathNameByHandleW(handle, final_path.data(), static_cast<DWORD>(final_path.size()), flags);
+
+  if (length >= final_path.size())
+  {
+    // The buffer is too small, and the length is the size it needs, including the terminator
+    final_path.resize(length);
+    length =
+      ::GetFinalPathNameByHandleW(handle, final_path.data(), static_cast<DWORD>(final_path.size()), flags);
+  }
+
+  if ((length == 0) || (length >= final_path.size()))
+  {
+    return fs::path{};
+  }
+
+  final_path.resize(length);
+  return fs::path{final_path};
+}
+#endif
+
+/**
+ * fs::canonical() of an existing path, spelled as the filesystem stores it with every standard
+ * library: MinGW's fs::canonical() keeps the requested case of each name. On Windows the result
+ * is in extended-length form. Empty on failure.
+ */
+QUILL_NODISCARD inline fs::path get_canonical_path(fs::path const& path)
+{
+#if defined(_WIN32)
+  OpenedHandleGuard const file{::CreateFileW(
+    path.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr)};
+  return (file.handle == INVALID_HANDLE_VALUE) ? fs::path{} : get_final_path(file.handle);
+#else
+  std::error_code ec;
+  return fs::canonical(path, ec);
+#endif
+}
 } // namespace detail
 
 /*
@@ -345,15 +414,15 @@ class FileSink : public StreamSink
 private:
   friend class detail::SinkManager;
 
-  static std::string _file_sink_id(std::string const& normalized_name)
+  static std::string _file_sink_id(fs::path const& normalized_path)
   {
-    fs::path path{normalized_name};
-    if (path.is_absolute())
+    fs::path path{normalized_path};
+    if (path.is_absolute() || detail::is_extended_windows_path(path))
     {
-      HANDLE const directory = ::CreateFileW(path.parent_path().c_str(), FILE_READ_ATTRIBUTES,
-                                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                             nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-      if (directory == INVALID_HANDLE_VALUE)
+      detail::OpenedHandleGuard const directory{::CreateFileW(
+        path.parent_path().c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr)};
+      if (directory.handle == INVALID_HANDLE_VALUE)
       {
         QUILL_THROW(QuillError{"Cannot inspect file sink directory. GetLastError: " +
                                std::to_string(::GetLastError())});
@@ -362,14 +431,22 @@ private:
       // FileCaseSensitiveInfo (23) has a single ULONG flag; older SDKs omit the declarations.
       DWORD flags{0};
       bool const queried =
-        ::GetFileInformationByHandleEx(directory, static_cast<FILE_INFO_BY_HANDLE_CLASS>(23),
+        ::GetFileInformationByHandleEx(directory.handle, static_cast<FILE_INFO_BY_HANDLE_CLASS>(23),
                                        &flags, sizeof(flags)) != 0;
       DWORD const error = queried ? ERROR_SUCCESS : ::GetLastError();
-      ::CloseHandle(directory);
       if (!queried && error != ERROR_INVALID_PARAMETER && error != ERROR_NOT_SUPPORTED && error != ERROR_INVALID_FUNCTION)
       {
         QUILL_THROW(QuillError{"Cannot query file sink directory case sensitivity. GetLastError: " +
                                std::to_string(error)});
+      }
+
+      // Spell the directory as the filesystem stores it, so that its case aliases share the key:
+      // MinGW's fs::canonical() keeps the requested case in the normalized path. A filesystem
+      // that cannot report the stored path keeps the normalized spelling.
+      fs::path const stored_directory = detail::get_final_path(directory.handle);
+      if (!stored_directory.empty())
+      {
+        path = stored_directory / path.filename();
       }
 
       if ((flags & 1u) == 0)
@@ -398,46 +475,15 @@ private:
 
       // Ordinary and extended paths share a registry key; the actual I/O path is unchanged.
       // Keep the prefix for trailing dots/spaces, whose filename meaning depends on it.
-      std::wstring const native = path.native();
-      if ((native.back() != L'.') && (native.back() != L' '))
+      wchar_t const last_char = path.native().back();
+      if ((last_char != L'.') && (last_char != L' '))
       {
-        if (native.compare(0, 8, L"\\\\?\\UNC\\") == 0)
-        {
-          path = L"\\\\" + native.substr(8);
-        }
-        else if ((native.compare(0, 4, L"\\\\?\\") == 0) && (native.size() > 6) &&
-                 (native[5] == L':') && (native[6] == L'\\'))
-        {
-          path = native.substr(4);
-        }
+        path = detail::to_ordinary_windows_path(path);
       }
-
-      auto const utf8 = path.u8string();
-      return std::string{reinterpret_cast<char const*>(utf8.data()), utf8.size()};
     }
 
-    return normalized_name;
+    return detail::file_sink_path_string(path);
   }
-
-  struct OpenedHandleGuard
-  {
-    ~OpenedHandleGuard()
-    {
-      if (handle != INVALID_HANDLE_VALUE)
-      {
-        ::CloseHandle(handle);
-      }
-    }
-
-    QUILL_NODISCARD HANDLE release() noexcept
-    {
-      HANDLE const released_handle = handle;
-      handle = INVALID_HANDLE_VALUE;
-      return released_handle;
-    }
-
-    HANDLE handle{INVALID_HANDLE_VALUE};
-  };
 
 public:
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
@@ -580,7 +626,7 @@ protected:
     constexpr int max_attempts{3};
     constexpr uint64_t retry_delay_ns{200ull * 1'000'000ull};
     DWORD const creation_disposition = (!mode.empty() && (mode[0] == 'w')) ? CREATE_ALWAYS : OPEN_ALWAYS;
-    OpenedHandleGuard opened_handle_guard;
+    detail::OpenedHandleGuard opened_handle_guard;
 
     for (int attempt{1};; ++attempt)
     {
@@ -599,8 +645,8 @@ protected:
       if (!is_transient || (attempt == max_attempts))
       {
         QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempt) +
-                               " attempt(s), path: " + filename.string() + " mode: " + mode +
-                               " GetLastError: " + std::to_string(last_error)});
+                               " attempt(s), path: " + detail::file_sink_path_string(filename) +
+                               " mode: " + mode + " GetLastError: " + std::to_string(last_error)});
       }
 
       detail::sleep_for_ns(retry_delay_ns);

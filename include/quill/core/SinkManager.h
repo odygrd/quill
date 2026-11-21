@@ -37,19 +37,39 @@ namespace detail
 class SinkManager
 {
 private:
-  using FileSinkIdFunction = std::string (*)(std::string const&);
+  using FileSinkIdFunction = std::string (*)(fs::path const&);
+
+  // Windows file keys are UTF-8. Opaque sink names may use any encoding.
+  struct SinkId
+  {
+    bool operator<(SinkId const& other) const noexcept
+    {
+      return (is_windows_file == other.is_windows_file) ? (value < other.value)
+                                                        : (is_windows_file < other.is_windows_file);
+    }
+
+    bool operator==(SinkId const& other) const noexcept
+    {
+      return (is_windows_file == other.is_windows_file) && (value == other.value);
+    }
+
+    bool operator!=(SinkId const& other) const noexcept { return !(*this == other); }
+
+    std::string value;
+    bool is_windows_file{false};
+  };
 
   struct SinkInfo
   {
-    SinkInfo(std::string sid, std::string name, std::weak_ptr<Sink> sptr, FileSinkIdFunction id_function)
-      : sink_id(static_cast<std::string&&>(sid)),
+    SinkInfo(SinkId sid, std::string name, std::weak_ptr<Sink> sptr, FileSinkIdFunction id_function)
+      : sink_id(static_cast<SinkId&&>(sid)),
         sink_name(static_cast<std::string&&>(name)),
         sink_ptr(static_cast<std::weak_ptr<Sink>&&>(sptr)),
         file_sink_id(id_function)
     {
     }
 
-    std::string sink_id;
+    SinkId sink_id;
     std::string sink_name;
     std::weak_ptr<Sink> sink_ptr;
     FileSinkIdFunction file_sink_id{nullptr};
@@ -75,7 +95,7 @@ public:
     {
       LockGuard const lock{_spinlock};
 
-      std::shared_ptr<Sink> sink = _find_sink(sink_name);
+      std::shared_ptr<Sink> sink = _find_sink({sink_name, false}, sink_name);
       if (sink)
       {
         return sink;
@@ -104,18 +124,26 @@ public:
     if (file_sink_id)
     {
       std::string error;
-      std::string normalized_sink_name =
-        detail::try_normalize_file_sink_path(fs::path{sink_name}, false, error).string();
-
-      if (error.empty() && !normalized_sink_name.empty())
+      fs::path const requested_path{sink_name};
+      if (_use_separate_file_ids() && requested_path.is_absolute())
       {
-        normalized_sink_name = file_sink_id(normalized_sink_name);
-
-        if (normalized_sink_name != sink_name)
+        // Preserve exact-name lookups of a Windows file sink while its path cannot be
+        // normalized, e.g. because its directory is temporarily inaccessible
+        std::string const name = detail::file_sink_path_string(requested_path);
+        LockGuard const lock{_spinlock};
+        sink = _find_sink_by_name(name, true);
+        if (sink)
         {
-          LockGuard const lock{_spinlock};
-          sink = _find_sink(normalized_sink_name);
+          return sink;
         }
+      }
+
+      fs::path const path = detail::try_normalize_file_sink_path(requested_path, false, error);
+      if (error.empty() && !path.empty())
+      {
+        SinkId const id{file_sink_id(path), _use_separate_file_ids()};
+        LockGuard const lock{_spinlock};
+        sink = id.is_windows_file ? _find_sink_by_id(id) : _find_sink(id, id.value);
       }
     }
 
@@ -136,12 +164,14 @@ public:
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
-    std::string const normalized_name = _normalized_sink_name<TSink>(sink_name);
+    fs::path const path = _normalized_file_path<TSink>(sink_name);
+    SinkId const name_id =
+      _make_sink_id<TSink>(path.empty() ? sink_name : detail::file_sink_path_string(path));
     bool id_only{false};
-    std::string const sink_id = _sink_id<TSink>(normalized_name, id_only);
+    SinkId const sink_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, id_only));
 
-    (void)_reserve_sink_id_for_creation(sink_name, sink_id, normalized_name, id_only, false);
-    return _create_reserved_sink<TSink>(sink_id, normalized_name, static_cast<Args&&>(args)...);
+    (void)_reserve_sink_id_for_creation(sink_name, sink_id, name_id, id_only, false);
+    return _create_reserved_sink<TSink>(sink_id, name_id, path, static_cast<Args&&>(args)...);
   }
 
   /**
@@ -157,12 +187,13 @@ public:
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
-    std::string const normalized_name = _normalized_sink_name<TSink>(sink_name);
+    fs::path const path = _normalized_file_path<TSink>(sink_name);
+    SinkId const name_id =
+      _make_sink_id<TSink>(path.empty() ? sink_name : detail::file_sink_path_string(path));
     bool id_only{false};
-    std::string const sink_id = _sink_id<TSink>(normalized_name, id_only);
+    SinkId const sink_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, id_only));
 
-    std::shared_ptr<Sink> sink =
-      _reserve_sink_id_for_creation(sink_name, sink_id, normalized_name, id_only, true);
+    std::shared_ptr<Sink> sink = _reserve_sink_id_for_creation(sink_name, sink_id, name_id, id_only, true);
 
 #if QUILL_USE_RTTI
     if (QUILL_UNLIKELY(sink && (dynamic_cast<TSink*>(sink.get()) == nullptr)))
@@ -178,7 +209,7 @@ public:
       return _downcast_sink<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
     }
 
-    return _create_reserved_sink<TSink>(sink_id, normalized_name, static_cast<Args&&>(args)...);
+    return _create_reserved_sink<TSink>(sink_id, name_id, path, static_cast<Args&&>(args)...);
   }
 
   /***/
@@ -206,11 +237,27 @@ public:
   }
 
 private:
+  static constexpr bool _use_separate_file_ids() noexcept
+  {
+#if defined(_WIN32)
+    return true;
+#else
+    return false;
+#endif
+  }
+
   template <typename TSink>
-  static std::string _sink_id(std::string const& normalized_name)
+  static SinkId _make_sink_id(std::string id)
+  {
+    return {static_cast<std::string&&>(id),
+            _use_separate_file_ids() && _file_sink_id_function<TSink>() != nullptr};
+  }
+
+  template <typename TSink>
+  static std::string _sink_id(fs::path const& path, std::string const& normalized_name)
   {
     auto const file_sink_id = _file_sink_id_function<TSink>();
-    return file_sink_id ? file_sink_id(normalized_name) : normalized_name;
+    return file_sink_id ? file_sink_id(path) : normalized_name;
   }
 
   template <typename TSink, typename TFileSink = FileSink>
@@ -230,18 +277,17 @@ private:
     }
   }
 
-  static std::string _canonical_file_sink_id(std::string const& normalized_name)
+  static std::string _canonical_file_sink_id(fs::path const& path)
   {
     // Resolve existing file aliases for lookup without changing the configured I/O path.
-    fs::path const path{normalized_name};
     if (!path.is_absolute())
     {
-      return normalized_name;
+      return path.string();
     }
 
     std::error_code ec;
     fs::path const canonical_path = fs::canonical(path, ec);
-    return ec ? normalized_name : canonical_path.string();
+    return ec ? path.string() : canonical_path.string();
   }
 
   /**
@@ -251,14 +297,13 @@ private:
    * On Windows the id does not depend on whether the file exists, so it is never resolved.
    */
   template <typename TSink>
-  static std::string _sink_id(std::string const& normalized_name, bool& resolved)
+  static std::string _sink_id(fs::path const& path, std::string const& normalized_name, bool& resolved)
   {
     resolved = false;
 
 #if !defined(_WIN32)
     if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
     {
-      fs::path const path{normalized_name};
       if (path.is_absolute())
       {
         std::error_code ec;
@@ -274,19 +319,19 @@ private:
     }
 #endif
 
-    return _sink_id<TSink>(normalized_name);
+    return _sink_id<TSink>(path, normalized_name);
   }
 
   template <typename TSink>
-  static std::string _normalized_sink_name(std::string const& sink_name)
+  static fs::path _normalized_file_path(std::string const& sink_name)
   {
     if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
     {
-      return detail::normalize_file_sink_path(fs::path{sink_name}).string();
+      return detail::normalize_file_sink_path(fs::path{sink_name});
     }
     else
     {
-      return sink_name;
+      return {};
     }
   }
 
@@ -300,8 +345,7 @@ private:
    * the file is opened.
    */
   QUILL_NODISCARD std::shared_ptr<Sink> _reserve_sink_id_for_creation(std::string const& sink_name,
-                                                                      std::string const& sink_id,
-                                                                      std::string const& normalized_name,
+                                                                      SinkId const& sink_id, SinkId const& name_id,
                                                                       bool id_only, bool return_existing)
   {
     while (true)
@@ -313,7 +357,8 @@ private:
         // An existing file is found by its id only: the configured name may belong to the sink of
         // another file, e.g. one a symlink pointed to before it was retargeted or replaced. A path
         // that does not resolve yet also matches the configured name of a sink created through it.
-        std::shared_ptr<Sink> sink = id_only ? _find_sink_by_id(sink_id) : _find_sink(sink_id);
+        std::shared_ptr<Sink> sink =
+          id_only ? _find_sink_by_id(sink_id) : _find_sink(sink_id, name_id.value);
 
         if (sink)
         {
@@ -330,7 +375,7 @@ private:
         }
 
         // Reserve the id, then construct outside the lock because file sinks can run user callbacks.
-        if (_try_mark_sink_pending(sink_id, normalized_name))
+        if (_try_mark_sink_pending(sink_id, name_id))
         {
           return nullptr;
         }
@@ -382,37 +427,46 @@ private:
   }
 
   template <typename TSink, typename... Args>
-  std::shared_ptr<TSink> _create_reserved_sink(std::string const& reserved_id,
-                                               std::string const& normalized_name, Args&&... args)
+  std::shared_ptr<TSink> _create_reserved_sink(SinkId const& reserved_id, SinkId const& name_id,
+                                               fs::path const& path, Args&&... args)
   {
     std::shared_ptr<TSink> sink;
-    std::string published_id;
+    SinkId published_id;
     QUILL_TRY
     {
-      sink = _create_sink_instance<TSink>(normalized_name, static_cast<Args&&>(args)...);
+      sink = _create_sink_instance<TSink>(path, static_cast<Args&&>(args)...);
 
       // Opening the file may have created a symlink's target, so recompute the id now.
-      published_id = _sink_id<TSink>(normalized_name);
+      published_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value));
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      _remove_pending_sink(reserved_id, normalized_name);
+      _remove_pending_sink(reserved_id, name_id);
       throw;
     }
 #endif
 
-    _publish_created_sink(reserved_id, published_id, normalized_name, sink, _file_sink_id_function<TSink>());
+    _publish_created_sink(reserved_id, published_id, name_id, sink, _file_sink_id_function<TSink>());
     return sink;
   }
 
   template <typename TSink, typename... Args>
-  static std::shared_ptr<TSink> _create_sink_instance(std::string const& sink_name, Args&&... args)
+  static std::shared_ptr<TSink> _create_sink_instance(QUILL_MAYBE_UNUSED fs::path const& path, Args&&... args)
   {
     if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
     {
-      // File sinks take the (normalized) filename as their first constructor argument
-      return std::make_shared<TSink>(sink_name, static_cast<Args&&>(args)...);
+      if constexpr (std::is_constructible_v<TSink, fs::path const&, Args...>)
+      {
+        return std::make_shared<TSink>(path, static_cast<Args&&>(args)...);
+      }
+      else
+      {
+        // Preserve support for custom file sinks with narrow-string constructors. Pass an lvalue,
+        // since such a constructor may take std::string const& and delete the rvalue overload.
+        std::string const name = path.string();
+        return std::make_shared<TSink>(name, static_cast<Args&&>(args)...);
+      }
     }
     else
     {
@@ -420,40 +474,39 @@ private:
     }
   }
 
-  void _publish_created_sink(std::string const& reserved_id, std::string const& sink_id,
-                             std::string const& normalized_name, std::shared_ptr<Sink> const& sink,
-                             FileSinkIdFunction file_sink_id)
+  void _publish_created_sink(SinkId const& reserved_id, SinkId const& sink_id, SinkId const& name_id,
+                             std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
     QUILL_TRY
     {
       LockGuard const lock{_spinlock};
-      _insert_sink(sink_id, normalized_name, sink, file_sink_id);
+      _insert_sink(sink_id, name_id.value, sink, file_sink_id);
       _erase_pending_sink(reserved_id);
-      _erase_pending_sink(normalized_name);
+      _erase_pending_sink(name_id);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      _remove_pending_sink(reserved_id, normalized_name);
+      _remove_pending_sink(reserved_id, name_id);
       throw;
     }
 #endif
   }
 
-  void _remove_pending_sink(std::string const& reserved_id, std::string const& normalized_name) noexcept
+  void _remove_pending_sink(SinkId const& reserved_id, SinkId const& name_id) noexcept
   {
     LockGuard const lock{_spinlock};
     _erase_pending_sink(reserved_id);
-    _erase_pending_sink(normalized_name);
+    _erase_pending_sink(name_id);
   }
 
   /***/
-  void _insert_sink(std::string const& sink_id, std::string const& sink_name,
+  void _insert_sink(SinkId const& sink_id, std::string const& sink_name,
                     std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
     auto search_it =
       std::lower_bound(_sinks.begin(), _sinks.end(), sink_id,
-                       [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
+                       [](SinkInfo const& elem, SinkId const& b) { return elem.sink_id < b; });
 
     if (search_it != _sinks.end() && search_it->sink_id == sink_id && search_it->sink_ptr.expired())
     {
@@ -466,15 +519,15 @@ private:
     _sinks.insert(search_it, SinkInfo{sink_id, sink_name, sink, file_sink_id});
   }
 
-  QUILL_NODISCARD bool _is_sink_pending(std::string const& key) const noexcept
+  QUILL_NODISCARD bool _is_sink_pending(SinkId const& key) const noexcept
   {
     auto const search_it = std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), key);
     return (search_it != _pending_sink_ids.end()) && (*search_it == key);
   }
 
-  QUILL_NODISCARD bool _try_mark_sink_pending(std::string const& sink_id, std::string const& normalized_name)
+  QUILL_NODISCARD bool _try_mark_sink_pending(SinkId const& sink_id, SinkId const& name_id)
   {
-    if (_is_sink_pending(sink_id) || _is_sink_pending(normalized_name))
+    if (_is_sink_pending(sink_id) || _is_sink_pending(name_id))
     {
       return false;
     }
@@ -482,12 +535,12 @@ private:
     _pending_sink_ids.insert(
       std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), sink_id), sink_id);
 
-    if (normalized_name != sink_id)
+    if (name_id != sink_id)
     {
       QUILL_TRY
       {
         _pending_sink_ids.insert(
-          std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), normalized_name), normalized_name);
+          std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), name_id), name_id);
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
@@ -501,22 +554,22 @@ private:
     return true;
   }
 
-  void _erase_pending_sink(std::string const& sink_name) noexcept
+  void _erase_pending_sink(SinkId const& id) noexcept
   {
-    auto search_it = std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), sink_name);
+    auto search_it = std::lower_bound(_pending_sink_ids.begin(), _pending_sink_ids.end(), id);
 
-    if (search_it != _pending_sink_ids.end() && *search_it == sink_name)
+    if (search_it != _pending_sink_ids.end() && *search_it == id)
     {
       _pending_sink_ids.erase(search_it);
     }
   }
 
   /***/
-  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_id(std::string const& sink_id) const noexcept
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_id(SinkId const& sink_id) const noexcept
   {
     auto search_it =
       std::lower_bound(_sinks.begin(), _sinks.end(), sink_id,
-                       [](SinkInfo const& elem, std::string const& b) { return elem.sink_id < b; });
+                       [](SinkInfo const& elem, SinkId const& b) { return elem.sink_id < b; });
 
     if (search_it != std::end(_sinks) && search_it->sink_id == sink_id)
     {
@@ -527,28 +580,32 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink(std::string const& target) const noexcept
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink(SinkId const& id, std::string const& name) const noexcept
   {
-    std::shared_ptr<Sink> sink = _find_sink_by_id(target);
+    std::shared_ptr<Sink> sink = _find_sink_by_id(id);
 
-    // Preserve exact-name lookups when filesystem normalization is temporarily unavailable.
-    if (!sink)
+    return sink ? sink : _find_sink_by_name(name, id.is_windows_file);
+  }
+
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_name(std::string const& name, bool is_windows_file) const noexcept
+  {
+    for (auto const& entry : _sinks)
     {
-      for (auto const& entry : _sinks)
+      if (entry.sink_id.is_windows_file == is_windows_file && entry.sink_name == name)
       {
-        if (entry.sink_name == target)
+        if (auto sink = entry.sink_ptr.lock())
         {
-          return entry.sink_ptr.lock();
+          return sink;
         }
       }
     }
 
-    return sink;
+    return nullptr;
   }
 
 private:
   std::vector<SinkInfo> _sinks;
-  std::vector<std::string> _pending_sink_ids;
+  std::vector<SinkId> _pending_sink_ids;
   mutable Spinlock _spinlock;
 };
 } // namespace detail
