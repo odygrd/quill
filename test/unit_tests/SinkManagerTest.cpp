@@ -348,6 +348,41 @@ TEST_CASE("file_sink_windows_factory_accepts_a_unicode_parent")
 }
 
 /***/
+TEST_CASE("file_sink_path_and_name_overloads_share_sinks")
+{
+  // Cyrillic characters, which most Windows ANSI code pages cannot encode
+#if defined(_WIN32)
+  fs::path const directory{L"sink_manager_path_overload_\u041a\u0443\u0437\u044c\u043c\u0430"};
+#else
+  fs::path const directory{
+    "sink_manager_path_overload_\xd0\x9a\xd1\x83\xd0\xb7\xd1\x8c\xd0\xbc\xd0\xb0"};
+#endif
+  fs::path const unicode_file{directory / "unicode.log"};
+  fs::path const ascii_file{"sink_manager_path_overload_ascii.log"};
+
+  {
+    auto& manager = SinkManager::instance();
+    auto unicode_sink = manager.create_or_get_file_sink<FileSink>(unicode_file);
+    REQUIRE(fs::equivalent(unicode_sink->get_filename(), unicode_file));
+    REQUIRE_EQ(manager.create_or_get_file_sink<FileSink>(fs::absolute(unicode_file)), unicode_sink);
+
+    // A path and a narrow name that spell the same file share one sink
+    auto ascii_sink = manager.create_file_sink<FileSink>(ascii_file);
+    REQUIRE_EQ(manager.create_or_get_sink<FileSink>(ascii_file.string()), ascii_sink);
+    REQUIRE_EQ(manager.get_sink(ascii_file.string()), ascii_sink);
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+    REQUIRE_THROWS_AS((void)manager.create_file_sink<FileSink>(unicode_file), QuillError);
+#endif
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 2u);
+  fs::remove(unicode_file);
+  fs::remove(ascii_file);
+  fs::remove(directory);
+}
+
+/***/
 TEST_CASE("file_sink_windows_ids_do_not_match_ansi_names")
 {
 #if defined(_WIN32)
@@ -746,6 +781,7 @@ TEST_CASE("file_sink_with_string_lvalue_constructor_can_be_created")
     std::shared_ptr<StringLvalueFileSink> const sink =
       SinkManager::instance().create_or_get_sink<StringLvalueFileSink>(filename);
     REQUIRE(sink);
+    REQUIRE_EQ(SinkManager::instance().create_or_get_file_sink<StringLvalueFileSink>(fs::path{filename}), sink);
   }
 
   REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);

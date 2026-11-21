@@ -25,6 +25,7 @@
   #include <initializer_list>
   #include <memory>
   #include <string>
+  #include <type_traits>
   #include <vector>
 #endif
 
@@ -132,6 +133,24 @@ public:
   }
 
   /**
+   * @brief Creates a new file sink for the specified path.
+   *
+   * Use this overload for a path that a std::string sink name cannot spell. On Windows a
+   * std::string name is decoded with the active code page, while a path built from a wide
+   * string keeps every character.
+   *
+   * @param file_path The path of the file.
+   * @param args The arguments to pass to the sink constructor after the path.
+   * @return A shared pointer to the created sink.
+   * @throws QuillError if a sink for the same file already exists.
+   */
+  template <typename TSink, typename TPath, typename... Args, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  static std::shared_ptr<TSink> create_sink(TPath const& file_path, Args&&... args)
+  {
+    return detail::SinkManager::instance().create_file_sink<TSink>(file_path, static_cast<Args&&>(args)...);
+  }
+
+  /**
    * @brief Creates a new sink or retrieves an existing one with the specified name.
    *
    * @param sink_name The name of the sink.
@@ -149,6 +168,29 @@ public:
   static std::shared_ptr<TSink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
     return detail::SinkManager::instance().create_or_get_sink<TSink>(sink_name, static_cast<Args&&>(args)...);
+  }
+
+  /**
+   * @brief Creates a new file sink or retrieves the existing one for the specified path.
+   *
+   * Use this overload for a path that a std::string sink name cannot spell. On Windows a
+   * std::string name is decoded with the active code page, while a path built from a wide
+   * string keeps every character. A sink created through either overload is found through the
+   * other when both name the same file.
+   *
+   * @param file_path The path of the file.
+   * @param args The arguments to pass to the sink constructor after the path.
+   * @return A shared pointer to the created or retrieved sink.
+   * @note If a compatible sink for the file already exists, it is returned and the provided
+   *       constructor arguments are ignored.
+   * @throws QuillError if a sink for the same file exists with an incompatible type and RTTI is
+   *         enabled.
+   */
+  template <typename TSink, typename TPath, typename... Args, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  static std::shared_ptr<TSink> create_or_get_sink(TPath const& file_path, Args&&... args)
+  {
+    return detail::SinkManager::instance().create_or_get_file_sink<TSink>(
+      file_path, static_cast<Args&&>(args)...);
   }
 
   /**

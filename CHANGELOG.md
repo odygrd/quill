@@ -253,6 +253,9 @@
   letter case, instead of opening the file again, which could truncate it in `w` mode.
 - MSVC builds report a formatting error for a timestamp or file name pattern with a specifier the C
   runtime does not support, such as `%-H`, instead of terminating the process.
+- Added `std::filesystem::path` overloads of `Frontend::create_sink<TSink>()` and
+  `Frontend::create_or_get_sink<TSink>()` for file sinks, so Windows applications can log to paths
+  with characters outside the active code page. ([#354](https://github.com/odygrd/quill/issues/354))
 - Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.
 

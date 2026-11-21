@@ -22,6 +22,14 @@ The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The 
 
 Each file can only have a single instance of `FileSink`.
 
+On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
+characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
+
+.. code-block:: cpp
+
+    auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
+      std::filesystem::path{L"C:\\logs\\\u65e5\u8a8c.log"}, quill::FileSinkConfig{});
+
 .. note::
 
    When using :cpp:class:`FileEventNotifier` with :cpp:class:`FileSink`, the callback handle type is
