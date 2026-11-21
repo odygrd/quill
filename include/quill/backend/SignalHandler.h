@@ -283,6 +283,8 @@ public:
   std::atomic<LPTOP_LEVEL_EXCEPTION_FILTER> previous_exception_filter{nullptr};
   void (*exception_handler_deinit_callback)() = nullptr;
   bool console_ctrl_handler_installed{false};
+  // An application filter replaced Quill's before stop() and stays installed
+  bool exception_filter_replaced{false};
 #endif
 
 private:
@@ -583,6 +585,47 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   return EXCEPTION_CONTINUE_SEARCH;
 }
 
+/**
+ * Installs Quill's exception filter. Once an application filter has replaced it, Quill's filter is
+ * only reached when an application filter forwards to it: installing it on top again could make
+ * the two forward to each other.
+ */
+template <typename TFrontendOptions>
+void install_exception_filter(SignalHandlerContext& ctx) noexcept
+{
+  if (!ctx.exception_filter_replaced)
+  {
+    ctx.previous_exception_filter.store(::SetUnhandledExceptionFilter(on_exception<TFrontendOptions>));
+  }
+}
+
+/**
+ * Restores Quill's predecessor. A filter the application installed after Quill's stays installed,
+ * and Quill's filter keeps forwarding to its predecessor in case that filter forwards to it.
+ */
+template <typename TFrontendOptions>
+void restore_exception_filter(SignalHandlerContext& ctx) noexcept
+{
+  if (ctx.exception_filter_replaced)
+  {
+    return;
+  }
+
+  // Win32 exposes a swap but no compare-and-exchange. The application must serialize
+  // filter installation with Quill's start and stop operations.
+  LPTOP_LEVEL_EXCEPTION_FILTER const previous = ctx.previous_exception_filter.load();
+  LPTOP_LEVEL_EXCEPTION_FILTER const current = ::SetUnhandledExceptionFilter(previous);
+
+  if ((current == &on_exception<TFrontendOptions>) || (current == previous))
+  {
+    ctx.previous_exception_filter.store(nullptr);
+    return;
+  }
+
+  ::SetUnhandledExceptionFilter(current);
+  ctx.exception_filter_replaced = true;
+}
+
 /***/
 template <typename TFrontendOptions>
 void deinit_exception_handler()
@@ -596,8 +639,7 @@ void deinit_exception_handler()
     ctx.console_ctrl_handler_installed = false;
   }
 
-  SetUnhandledExceptionFilter(ctx.previous_exception_filter.load());
-  ctx.previous_exception_filter.store(nullptr);
+  restore_exception_filter<TFrontendOptions>(ctx);
   ctx.exception_handler_deinit_callback = nullptr;
 }
 
@@ -609,12 +651,11 @@ void init_exception_handler()
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
   ctx.exception_handler_deinit_callback = nullptr;
-  ctx.previous_exception_filter.store(SetUnhandledExceptionFilter(on_exception<TFrontendOptions>));
+  install_exception_filter<TFrontendOptions>(ctx);
 
   if (!SetConsoleCtrlHandler(on_console_signal<TFrontendOptions>, TRUE))
   {
-    SetUnhandledExceptionFilter(ctx.previous_exception_filter.load());
-    ctx.previous_exception_filter.store(nullptr);
+    restore_exception_filter<TFrontendOptions>(ctx);
     QUILL_THROW(QuillError{"Failed to call SetConsoleCtrlHandler"});
   }
 

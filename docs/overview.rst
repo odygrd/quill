@@ -119,6 +119,12 @@ On Windows, ``Backend::start()`` installs structured exception handling and a pr
 console control handler. CRT signal handlers are thread-specific; call
 ``quill::init_signal_handler<FrontendOptions>()`` on each frontend/user thread that needs CRT
 signal handling. Do not install the CRT signal handler on the backend worker thread.
+When installing an application exception filter, serialize the installation with
+``Backend::start()`` and ``Backend::stop()``. If the application replaces Quill's
+filter while the backend is running, ``Backend::stop()`` keeps the replacement installed
+and later ``Backend::start()`` calls do not install Quill's filter over it. Quill's filter
+then runs only when the application's filter forwards to it, and it still forwards to the
+filter installed before Quill's.
 
 Log Messages Timestamp Order
 ----------------------------
