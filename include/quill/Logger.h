@@ -374,6 +374,11 @@ public:
         return;
       }
 
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -399,6 +404,11 @@ public:
         return;
       }
 
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
   }
@@ -417,6 +427,11 @@ public:
     while (!this->log_statement(&macro_metadata))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
       {
         return;
       }
@@ -592,6 +607,11 @@ public:
         return;
       }
 
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
+      {
+        return;
+      }
+
       detail::sleep_for_ns(100);
     }
 
@@ -612,6 +632,11 @@ public:
     while (!this->log_statement(&macro_metadata))
     {
       if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        return;
+      }
+
+      if (QUILL_UNLIKELY(_thread_context->last_event_larger_than_queue()))
       {
         return;
       }
@@ -656,6 +681,14 @@ public:
     // We do not want to drop the message if a dropping queue is used
     while (!this->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
+      if constexpr (using_unbounded_queue)
+      {
+        if (_thread_context->last_event_larger_than_queue())
+        {
+          QUILL_THROW(QuillError{"Could not grow the queue to enqueue the flush request"});
+        }
+      }
+
       if (sleep_duration_ns > 0)
       {
         detail::sleep_for_ns(sleep_duration_ns);
@@ -889,6 +922,16 @@ private:
     {
       if (QUILL_UNLIKELY(write_buffer == nullptr))
       {
+        if constexpr (frontend_options_t::queue_type == QueueType::UnboundedDropping)
+        {
+          if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
+          {
+            // The queue could not grow and the event does not fit in it even when empty. This
+            // includes control events, whose callers would otherwise retry forever.
+            return nullptr;
+          }
+        }
+
         // Not enough space to push: bump the shared failure counter for both log and metric
         // drops so that neither silently disappears. Metrics reuse the existing counter rather
         // than adding a parallel one; the error-notifier message reflects the combined count.
@@ -966,6 +1009,13 @@ private:
           // The backend is the only consumer of this queue, so waiting here would self-deadlock.
           // Do not increment the failure counter: reporting this drop through error_notifier could
           // recursively fill the same queue.
+          return nullptr;
+        }
+
+        if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
+        {
+          // The queue could not grow and the event does not fit in it even when empty, so waiting
+          // for the backend to drain it would never end.
           return nullptr;
         }
 

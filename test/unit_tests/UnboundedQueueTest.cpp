@@ -105,6 +105,26 @@ TEST_CASE("unbounded_queue_allocation_exceeds_limit")
   REQUIRE_EQ(buffer.producer_capacity(), 1024);
 }
 
+TEST_CASE("unbounded_queue_failed_growth_returns_nullptr")
+{
+  if constexpr (sizeof(size_t) >= 8)
+  {
+    // The next node needs 2^47 bytes of address space (twice its capacity), which no process can
+    // map. Growth must fail like reaching the maximum capacity instead of throwing.
+    UnboundedSPSCQueue buffer{1024, size_t{1} << 62u};
+    size_t const message_size = (size_t{1} << 45u) + 1u;
+
+    REQUIRE_EQ(buffer.prepare_write(message_size), nullptr);
+    REQUIRE_EQ(buffer.producer_capacity(), 1024);
+
+    // The current node is still usable
+    std::byte* write_buffer = buffer.prepare_write(64);
+    REQUIRE_NE(write_buffer, nullptr);
+    buffer.finish_and_commit_write(64);
+    REQUIRE_FALSE(buffer.empty());
+  }
+}
+
 TEST_CASE("unbounded_queue_read_write_multithreaded_plain_ints")
 {
   UnboundedSPSCQueue buffer{1024, quill::FrontendOptions::unbounded_queue_max_capacity};
