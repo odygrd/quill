@@ -546,12 +546,45 @@ private:
       }
     }
 
+    // A backup at the greatest index cannot take the next one: one more would name a file that
+    // the sink does not write, and the one after that wraps to the active file. It stays where it
+    // is, and so does the backup below it, which would be renamed over it, and so on down the run
+    // of backups that ends at the greatest index. They stay tracked, as the oldest backups.
+    bool const renames_every_backup =
+      _config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index;
+
+    auto const takes_next_index = [renames_every_backup, &datetime_suffix](FileInfo const& file_info)
+    { return renames_every_backup || (file_info.date_time == datetime_suffix); };
+
+    uint32_t first_kept_index = max_backup_index + 1u;
+
+    for (uint32_t index = max_backup_index; index > 0; --index)
+    {
+      bool const is_tracked =
+        std::any_of(_created_files.begin(), _created_files.end(),
+                    [&takes_next_index, index](FileInfo const& file_info)
+                    { return takes_next_index(file_info) && (file_info.index == index); });
+
+      if (!is_tracked)
+      {
+        break;
+      }
+
+      first_kept_index = index;
+    }
+
     // We need to rotate the files and rename them with an index.
     // Track completed renames so we can undo them if a later rename fails.
     std::vector<RenameRecord> completed_renames;
 
     for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
     {
+      if (takes_next_index(*it) && (it->index >= first_kept_index))
+      {
+        // One of the backups that stay where they are
+        continue;
+      }
+
       // Create each existing filename on disk with the existing index.
       // when the index is 0 we want to rename the latest file
       fs::path existing_file;
@@ -846,6 +879,9 @@ private:
 
   using NativeFilenameView = std::basic_string_view<fs::path::value_type>;
 
+  /** The greatest index of a backup, so that the index of a rotated backup never wraps to zero */
+  static constexpr uint32_t max_backup_index{(std::numeric_limits<uint32_t>::max)() - 1u};
+
   // Date suffixes contain only validated ASCII digits and an optional underscore.
   static void _assign_date_suffix(std::string& result, NativeFilenameView suffix)
   {
@@ -878,6 +914,21 @@ private:
 
     parsed_value = static_cast<uint32_t>(parsed);
     return true;
+  }
+
+  /**
+   * Parses the index of a backup filename as the sink writes it: a number from 1 to
+   * max_backup_index, without leading zeros. The newest backup has no index in its name, so e.g.
+   * "app.0.log" and "app.01.log" are not backups of "app.log".
+   */
+  QUILL_NODISCARD static bool _parse_index(NativeFilenameView value, uint32_t& parsed_value) noexcept
+  {
+    if (value.empty() || (value.front() == '0'))
+    {
+      return false;
+    }
+
+    return _parse_uint32(value, parsed_value) && (parsed_value <= max_backup_index);
   }
 
   /**
@@ -1025,7 +1076,7 @@ private:
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index)
     {
       parsed_file_info.date_time.clear();
-      return _parse_uint32(suffix, parsed_file_info.index);
+      return _parse_index(suffix, parsed_file_info.index);
     }
 
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
@@ -1046,7 +1097,7 @@ private:
           date_part = suffix.substr(separator_pos + 1);
 
           uint32_t date_part_value{0};
-          if (_parse_uint32(index_part, parsed_file_info.index) && (date_part.size() == 8u) &&
+          if (_parse_index(index_part, parsed_file_info.index) && (date_part.size() == 8u) &&
               _parse_uint32(date_part, date_part_value))
           {
             _assign_date_suffix(parsed_file_info.date_time, date_part);
@@ -1071,7 +1122,7 @@ private:
       }
 
       NativeFilenameView const index_part = suffix.substr(separator_pos + 1);
-      return _parse_uint32(index_part, parsed_file_info.index);
+      return _parse_index(index_part, parsed_file_info.index);
     }
 
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
@@ -1096,7 +1147,7 @@ private:
           NativeFilenameView const index_part = suffix.substr(0, separator_pos);
           date_time_part = suffix.substr(separator_pos + 1);
 
-          if (_parse_uint32(index_part, parsed_file_info.index) && (date_time_part.size() == 15u) &&
+          if (_parse_index(index_part, parsed_file_info.index) && (date_time_part.size() == 15u) &&
               (date_time_part[8] == '_') && _parse_uint32(date_time_part.substr(0, 8), date_part_value) &&
               _parse_uint32(date_time_part.substr(9), time_part_value))
           {
@@ -1122,7 +1173,7 @@ private:
       }
 
       NativeFilenameView const index_part = suffix.substr(separator_pos + 1);
-      return _parse_uint32(index_part, parsed_file_info.index);
+      return _parse_index(index_part, parsed_file_info.index);
     }
 
     return false;

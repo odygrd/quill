@@ -4891,6 +4891,253 @@ TEST_CASE("rotating_file_sink_date_scheme_rotates_after_backups_are_removed_exte
 }
 
 /***/
+TEST_CASE("rotating_file_sink_index_append_ignores_files_with_an_index_it_does_not_write")
+{
+  fs::path const filename = "rotating_file_sink_index_append_stray_index.log";
+  fs::path const backup_1 = "rotating_file_sink_index_append_stray_index.1.log";
+  fs::path const backup_2 = "rotating_file_sink_index_append_stray_index.2.log";
+  fs::path const backup_3 = "rotating_file_sink_index_append_stray_index.3.log";
+
+  // The sink numbers its backups from 1 without leading zeros, so these are not its backups, e.g.
+  // files that another tool wrote next to the log file
+  fs::path const stray_zero = "rotating_file_sink_index_append_stray_index.0.log";
+  fs::path const stray_zero_padded = "rotating_file_sink_index_append_stray_index.01.log";
+  fs::path const stray_max = "rotating_file_sink_index_append_stray_index.4294967295.log";
+
+  // A backup with the greatest index that the sink writes. It cannot take the next index, which
+  // is the name of stray_max, and the one after that wraps to the name of the log file
+  fs::path const backup_max = "rotating_file_sink_index_append_stray_index.4294967294.log";
+
+  // The backup below it cannot take the next index either, as that file stays, and a backup
+  // further down stops when it reaches them
+  fs::path const backup_below_max = "rotating_file_sink_index_append_stray_index.4294967293.log";
+  fs::path const backup_high = "rotating_file_sink_index_append_stray_index.4294967291.log";
+  fs::path const backup_high_rotated = "rotating_file_sink_index_append_stray_index.4294967292.log";
+
+  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded,
+                               stray_max, backup_max, backup_below_max, backup_high, backup_high_rotated})
+  {
+    testing::remove_file(file);
+  }
+
+  // The files of a previous run and the stray files
+  testing::create_file(filename, "Previous_run");
+  testing::create_file(backup_1, "Previous_backup");
+  testing::create_file(stray_zero, "Stray_zero");
+  testing::create_file(stray_zero_padded, "Stray_zero_padded");
+  testing::create_file(stray_max, "Stray_max");
+  testing::create_file(backup_max, "Backup_max");
+  testing::create_file(backup_below_max, "Backup_below_max");
+  testing::create_file(backup_high, "Backup_high");
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('a');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    // Each record fills more than half of the size limit, so every record after the first rotates
+    auto write_record = [&rfh](std::string const& msg)
+    {
+      std::string formatted_log_statement{msg};
+      formatted_log_statement.append(600, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(LogRecord{nullptr,
+                              0,
+                              std::string_view{},
+                              std::string_view{},
+                              std::string{},
+                              std::string_view{},
+                              LogLevel::Info,
+                              "INFO",
+                              "I",
+                              nullptr,
+                              "",
+                              formatted_log_statement,
+                              {}});
+    };
+
+    for (size_t i = 0; i < 3; ++i)
+    {
+      write_record("Record_" + std::to_string(i));
+    }
+  }
+
+  // The sink rotated twice
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE(testing::file_contains(file_contents, "Record_2"));
+
+  std::vector<std::string> const backup_1_contents = testing::file_contents(backup_1);
+  REQUIRE_EQ(backup_1_contents.size(), 1);
+  REQUIRE(testing::file_contains(backup_1_contents, "Record_1"));
+
+  std::vector<std::string> const backup_2_contents = testing::file_contents(backup_2);
+  REQUIRE(testing::file_contains(backup_2_contents, "Previous_run"));
+  REQUIRE(testing::file_contains(backup_2_contents, "Record_0"));
+
+  REQUIRE(testing::file_contains(testing::file_contents(backup_3), "Previous_backup"));
+
+  // and left the stray files as they were
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero), "Stray_zero"));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero_padded), "Stray_zero_padded"));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_max), "Stray_max"));
+  REQUIRE(testing::file_contains(testing::file_contents(backup_max), "Backup_max"));
+
+  // The backups at the greatest indexes are where they were. The first rotation renamed the one
+  // further down to the index below them, and the second rotation left it there
+  REQUIRE(testing::file_contains(testing::file_contents(backup_below_max), "Backup_below_max"));
+  REQUIRE(testing::file_contains(testing::file_contents(backup_high_rotated), "Backup_high"));
+  REQUIRE_FALSE(fs::exists(backup_high));
+
+  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded,
+                               stray_max, backup_max, backup_below_max, backup_high, backup_high_rotated})
+  {
+    testing::remove_file(file);
+  }
+}
+
+/***/
+TEST_CASE("rotating_file_sink_index_clean_up_keeps_files_with_an_index_it_does_not_write")
+{
+  fs::path const filename = "rotating_file_sink_index_clean_up_stray_index.log";
+  fs::path const backup_1 = "rotating_file_sink_index_clean_up_stray_index.1.log";
+  fs::path const stray_zero = "rotating_file_sink_index_clean_up_stray_index.0.log";
+  fs::path const stray_zero_padded = "rotating_file_sink_index_clean_up_stray_index.01.log";
+  fs::path const stray_max = "rotating_file_sink_index_clean_up_stray_index.4294967295.log";
+
+  testing::create_file(filename, "Previous_run");
+  testing::create_file(backup_1, "Previous_backup");
+  testing::create_file(stray_zero, "Stray_zero");
+  testing::create_file(stray_zero_padded, "Stray_zero_padded");
+  testing::create_file(stray_max, "Stray_max");
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_remove_old_files(true);
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('w');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+  }
+
+  // The backup of the previous run is removed, the files that the sink does not write are kept
+  REQUIRE_FALSE(fs::exists(backup_1));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero), "Stray_zero"));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero_padded), "Stray_zero_padded"));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_max), "Stray_max"));
+
+  for (fs::path const& file : {filename, stray_zero, stray_zero_padded, stray_max})
+  {
+    testing::remove_file(file);
+  }
+}
+
+/***/
+TEST_CASE("rotating_file_sink_date_append_ignores_files_with_an_index_it_does_not_write")
+{
+  // 2023-06-12 at midnight GMT
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+
+  fs::path const filename = "rotating_file_sink_date_append_stray_index.log";
+  fs::path const backup_20230612 = "rotating_file_sink_date_append_stray_index.20230612.log";
+  fs::path const backup_20230612_1 = "rotating_file_sink_date_append_stray_index.20230612.1.log";
+  fs::path const backup_20230612_2 = "rotating_file_sink_date_append_stray_index.20230612.2.log";
+
+  // The first backup of a date has no index and the next ones are numbered from 1
+  fs::path const stray_zero = "rotating_file_sink_date_append_stray_index.20230612.0.log";
+  fs::path const stray_zero_padded = "rotating_file_sink_date_append_stray_index.20230612.01.log";
+
+  for (fs::path const& file :
+       {filename, backup_20230612, backup_20230612_1, backup_20230612_2, stray_zero, stray_zero_padded})
+  {
+    testing::remove_file(file);
+  }
+
+  // The files of a previous run and the stray files
+  testing::create_file(filename, "Previous_run");
+  testing::create_file(backup_20230612, "Previous_backup");
+  testing::create_file(stray_zero, "Stray_zero");
+  testing::create_file(stray_zero_padded, "Stray_zero_padded");
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(1024);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // Each record fills more than half of the size limit, so every record after the first rotates
+    auto write_record = [&rfh](std::string const& msg, uint64_t timestamp)
+    {
+      std::string formatted_log_statement{msg};
+      formatted_log_statement.append(600, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(LogRecord{nullptr,
+                              timestamp,
+                              std::string_view{},
+                              std::string_view{},
+                              std::string{},
+                              std::string_view{},
+                              LogLevel::Info,
+                              "INFO",
+                              "I",
+                              nullptr,
+                              "",
+                              formatted_log_statement,
+                              {}});
+    };
+
+    for (size_t i = 0; i < 3; ++i)
+    {
+      write_record("Record_" + std::to_string(i), timestamp_20230612);
+    }
+  }
+
+  // The sink rotated twice
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE(testing::file_contains(file_contents, "Record_2"));
+
+  std::vector<std::string> const backup_contents = testing::file_contents(backup_20230612);
+  REQUIRE_EQ(backup_contents.size(), 1);
+  REQUIRE(testing::file_contains(backup_contents, "Record_1"));
+
+  std::vector<std::string> const backup_1_contents = testing::file_contents(backup_20230612_1);
+  REQUIRE(testing::file_contains(backup_1_contents, "Previous_run"));
+  REQUIRE(testing::file_contains(backup_1_contents, "Record_0"));
+
+  REQUIRE(testing::file_contains(testing::file_contents(backup_20230612_2), "Previous_backup"));
+
+  // and left the stray files as they were
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero), "Stray_zero"));
+  REQUIRE(testing::file_contains(testing::file_contents(stray_zero_padded), "Stray_zero_padded"));
+
+  for (fs::path const& file :
+       {filename, backup_20230612, backup_20230612_1, backup_20230612_2, stray_zero, stray_zero_padded})
+  {
+    testing::remove_file(file);
+  }
+}
+
+/***/
 TEST_CASE("rotating_file_sink_at_backup_limit_rotates_after_backup_is_removed_externally")
 {
   fs::path const filename = "rotating_file_sink_backup_limit_removed_externally.log";
