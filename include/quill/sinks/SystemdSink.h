@@ -139,15 +139,10 @@ public:
   /**
    * @brief Writes a formatted log message to the stream
    */
-  void write_log(MacroMetadata const* log_metadata, uint64_t /* log_timestamp */,
-                 std::string_view thread_id, std::string_view /* thread_name */,
-                 std::string const& /* process_id */, std::string_view logger_name, LogLevel log_level,
-                 std::string_view /* log_level_description */, std::string_view /* log_level_short_code */,
-                 std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-                 std::string_view log_message, std::string_view log_statement) override
+  void write_log(LogRecord const& record) override
   {
     // Choose between formatted log statement or raw log message
-    std::string_view message = _config.should_format_message() ? log_statement : log_message;
+    std::string_view message = _config.should_format_message() ? record.log_statement : record.log_message;
     size_t message_length = message.size();
 
     // Ensure the length does not exceed the maximum int value
@@ -156,19 +151,20 @@ public:
       message_length = static_cast<size_t>((std::numeric_limits<int>::max)());
     }
 
-    std::string_view identifier = _config.identifier().empty() ? logger_name : _config.identifier();
+    std::string_view identifier = _config.identifier().empty() ? record.logger_name : _config.identifier();
 
     // Note: function call inside '()' to avoid macro expansion
     int err =
       (sd_journal_send)("MESSAGE=%.*s", static_cast<int>(message_length), message.data(),
-                        "PRIORITY=%d", _config.get_systemd_level(log_level), "TID=%.*s",
-                        static_cast<int>(thread_id.size()), thread_id.data(),
+                        "PRIORITY=%d", _config.get_systemd_level(record.log_level), "TID=%.*s",
+                        static_cast<int>(record.thread_id.size()), record.thread_id.data(),
                         "SYSLOG_IDENTIFIER=%.*s", static_cast<int>(identifier.size()), identifier.data(),
-                        "CODE_FILE=%.*s", static_cast<int>(log_metadata->file_name().size()),
-                        log_metadata->file_name().data(), "CODE_LINE=%.*s",
-                        static_cast<int>(strlen(log_metadata->line())), log_metadata->line(),
-                        "CODE_FUNC=%.*s", static_cast<int>(strlen(log_metadata->caller_function())),
-                        log_metadata->caller_function(), nullptr);
+                        "CODE_FILE=%.*s", static_cast<int>(record.log_metadata->file_name().size()),
+                        record.log_metadata->file_name().data(), "CODE_LINE=%.*s",
+                        static_cast<int>(strlen(record.log_metadata->line())),
+                        record.log_metadata->line(), "CODE_FUNC=%.*s",
+                        static_cast<int>(strlen(record.log_metadata->caller_function())),
+                        record.log_metadata->caller_function(), nullptr);
 
     if (QUILL_UNLIKELY(err != 0))
     {
@@ -177,7 +173,7 @@ public:
   }
 
   /***/
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
 private:
   SystemdSinkConfig _config;

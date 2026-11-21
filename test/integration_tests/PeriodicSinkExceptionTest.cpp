@@ -16,13 +16,9 @@ class PeriodicTaskSink final : public Sink
 public:
   explicit PeriodicTaskSink(bool should_throw) : _should_throw(should_throw) {}
 
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
-  {
-  }
+  void write_log(LogRecord const& /* record */) override {}
 
-  void flush_sink() override {}
+  void flush_sink(SinkFlushReason) override {}
 
   void run_periodic_tasks() override
   {

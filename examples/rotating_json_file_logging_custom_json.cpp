@@ -24,17 +24,10 @@ class CustomJsonSink : public quill::RotatingJsonFileSink
 public:
   using quill::RotatingJsonFileSink::RotatingJsonFileSink;
 
-  void generate_json_message(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                             std::string_view thread_id, std::string_view /** thread_name **/,
-                             std::string const& /** process_id **/, std::string_view logger_name,
-                             quill::LogLevel /** log_level **/, std::string_view log_level_description,
-                             std::string_view /** log_level_short_code **/,
-                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                             std::string_view /** log_message **/,
-                             std::string_view /** log_statement **/, char const* message_format) override
+  void generate_json_message(quill::LogRecord const& record, char const* message_format) override
   {
     // e.g. custom time formatting
-    std::time_t log_timestamp_seconds = log_timestamp / 1'000'000'000;
+    std::time_t log_timestamp_seconds = record.log_timestamp / 1'000'000'000;
 
     // Convert to localtime
     std::tm* tm = std::localtime(&log_timestamp_seconds);
@@ -46,13 +39,13 @@ public:
     // format json as desired
     _json_message.append(fmtquill::format(
       R"({{"timestamp":"{}","file_name":"{}","line":"{}","thread_id":"{}","logger":"{}","log_level":"{}","message":"{}")",
-      formatted_time, log_metadata->file_name(), log_metadata->line(), thread_id, logger_name,
-      log_level_description, message_format));
+      formatted_time, record.log_metadata->file_name(), record.log_metadata->line(),
+      record.thread_id, record.logger_name, record.log_level_description, message_format));
 
     // add log statement arguments as key-values to the json
-    if (named_args)
+    if (record.named_args)
     {
-      for (auto const& [key, value] : *named_args)
+      for (auto const& [key, value] : *record.named_args)
       {
         _json_message.append(std::string_view{",\""});
         _json_message.append(key);

@@ -24,17 +24,10 @@ class RecordingJsonSink : public JsonFileSink
 public:
   using JsonFileSink::JsonFileSink;
 
-  void generate_json_message(MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
-                             std::string_view /* thread_id */, std::string_view /* thread_name */,
-                             std::string const& /* process_id */, std::string_view /* logger_name */,
-                             LogLevel /* log_level */, std::string_view /* log_level_description */,
-                             std::string_view /* log_level_short_code */,
-                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                             std::string_view message, std::string_view /* log_statement */,
-                             char const* /* message_format */) override
+  void generate_json_message(LogRecord const& record, char const* /* message_format */) override
   {
-    bool const has_args_marker = (message.find("has_named_args=true") != std::string_view::npos);
-    bool const named_args_non_null = (named_args != nullptr);
+    bool const has_args_marker = (record.log_message.find("has_named_args=true") != std::string_view::npos);
+    bool const named_args_non_null = (record.named_args != nullptr);
 
     if (has_args_marker && !named_args_non_null)
     {
@@ -45,7 +38,7 @@ public:
       stale_named_args_when_none.fetch_add(1, std::memory_order_relaxed);
     }
 
-    _json_message.append(fmtquill::format(R"({{"message":"{}","has_args":"{}"}})", message,
+    _json_message.append(fmtquill::format(R"({{"message":"{}","has_args":"{}"}})", record.log_message,
                                           named_args_non_null ? "true" : "false"));
   }
 

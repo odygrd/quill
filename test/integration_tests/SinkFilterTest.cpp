@@ -17,13 +17,9 @@ class FileFilterA : public Filter
 public:
   FileFilterA() : Filter("FileFilterA") {}
 
-  QUILL_NODISCARD bool filter(quill::MacroMetadata const* log_metadata,
-                              uint64_t /** log_timestamp **/, std::string_view /** thread_id **/,
-                              std::string_view /** thread_name **/, std::string_view /** logger_name **/,
-                              quill::LogLevel /** log_level **/, std::string_view /** log_message **/,
-                              std::string_view /** log_statement **/) noexcept override
+  QUILL_NODISCARD bool filter(LogRecord const& record) noexcept override
   {
-    if (log_metadata->log_level() < LogLevel::Warning)
+    if (record.log_metadata->log_level() < LogLevel::Warning)
     {
       return true;
     }
@@ -36,12 +32,9 @@ class FileFilterB : public Filter
 public:
   FileFilterB() : Filter("FileFilterB") {}
 
-  bool filter(quill::MacroMetadata const* log_metadata, uint64_t /** log_timestamp **/,
-              std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-              std::string_view /** logger_name **/, quill::LogLevel /** log_level **/,
-              std::string_view /** log_message **/, std::string_view /** log_statement **/) noexcept override
+  bool filter(LogRecord const& record) noexcept override
   {
-    if (log_metadata->log_level() >= LogLevel::Warning)
+    if (record.log_metadata->log_level() >= LogLevel::Warning)
     {
       return true;
     }

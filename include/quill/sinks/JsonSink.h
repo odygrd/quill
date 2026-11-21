@@ -46,48 +46,26 @@ public:
   ~JsonSink() override = default;
 
   /**
-   * @brief Logs a formatted log message to the sink.
-   * @note Accessor for backend processing.
-   * @param log_metadata Pointer to the macro metadata.
-   * @param log_timestamp Timestamp of the log event.
-   * @param thread_id ID of the thread.
-   * @param thread_name Name of the thread.
-   * @param process_id Process Id
-   * @param logger_name Name of the logger.
-   * @param log_level Log level of the message.
-   * @param log_level_description Description of the log level.
-   * @param log_level_short_code Short code representing the log level.
-   * @param named_args Vector of key-value pairs of named args
-   * @param log_message log message
-   * @param log_statement log statement
+   * @brief Writes the record as a JSON line.
+   * @param record the log record
    */
-  QUILL_ATTRIBUTE_HOT void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                     std::string_view thread_id, std::string_view thread_name,
-                                     std::string const& process_id, std::string_view logger_name,
-                                     LogLevel log_level, std::string_view log_level_description,
-                                     std::string_view log_level_short_code,
-                                     std::vector<std::pair<std::string, std::string>> const* named_args,
-                                     std::string_view log_message, std::string_view log_statement) override
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
     if (!_json_message_ready)
     {
-      char const* const message_format =
-        _normalized_message_format(log_metadata, named_args, log_message);
+      char const* const message_format = _normalized_message_format(record);
 
       _json_message.clear();
-
-      generate_json_message(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                            logger_name, log_level, log_level_description, log_level_short_code,
-                            named_args, log_message, log_statement, message_format);
-
+      generate_json_message(record, message_format);
       _json_message.append(std::string_view{"}\n"});
     }
 
     _json_message_ready = false;
 
-    base_type::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id, logger_name, log_level,
-                         log_level_description, log_level_short_code, named_args, std::string_view{},
-                         std::string_view{_json_message.data(), _json_message.size()});
+    LogRecord json_record = record;
+    json_record.log_message = std::string_view{};
+    json_record.log_statement = std::string_view{_json_message.data(), _json_message.size()};
+    base_type::write_log(json_record);
   }
 
   /**
@@ -99,18 +77,15 @@ public:
    * It is designed to be customizable by overriding in derived classes. Users can provide their own
    * implementation to generate a log message in a custom format or to include additional fields.
    */
-  QUILL_ATTRIBUTE_HOT virtual void generate_json_message(
-    MacroMetadata const* log_metadata, uint64_t log_timestamp, std::string_view thread_id,
-    std::string_view /** thread_name **/, std::string const& /** process_id **/,
-    std::string_view logger_name, LogLevel /** log_level **/,
-    std::string_view log_level_description, std::string_view /** log_level_short_code **/,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view /** log_message **/, std::string_view /** log_statement **/, char const* message_format)
+  QUILL_ATTRIBUTE_HOT virtual void generate_json_message(LogRecord const& record, char const* message_format)
   {
+    MacroMetadata const* const log_metadata = record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
+
     _json_message.append(std::string_view{"{\"timestamp\":\""});
     char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1u];
     auto const timestamp_result =
-      std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), log_timestamp);
+      std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), record.log_timestamp);
     _json_message.append(std::string_view{
       timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
     _json_message.append(std::string_view{"\",\"file_name\":\""});
@@ -118,11 +93,11 @@ public:
     _json_message.append(std::string_view{"\",\"line\":\""});
     _append_json_escaped(_json_message, log_metadata->line());
     _json_message.append(std::string_view{"\",\"thread_id\":\""});
-    _append_json_escaped(_json_message, thread_id);
+    _append_json_escaped(_json_message, record.thread_id);
     _json_message.append(std::string_view{"\",\"logger\":\""});
-    _append_json_escaped(_json_message, logger_name);
+    _append_json_escaped(_json_message, record.logger_name);
     _json_message.append(std::string_view{"\",\"log_level\":\""});
-    _append_json_escaped(_json_message, log_level_description);
+    _append_json_escaped(_json_message, record.log_level_description);
     _json_message.append(std::string_view{"\",\"message\":\""});
     _append_json_escaped(_json_message, message_format);
     _json_message.append(std::string_view{"\""});
@@ -172,22 +147,12 @@ public:
   }
 
 protected:
-  QUILL_NODISCARD size_t estimate_write_size(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                                             std::string_view thread_id, std::string_view thread_name,
-                                             std::string const& process_id, std::string_view logger_name,
-                                             LogLevel log_level, std::string_view log_level_description,
-                                             std::string_view log_level_short_code,
-                                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                                             std::string_view log_message, std::string_view log_statement) override
+  QUILL_NODISCARD size_t estimate_write_size(LogRecord const& record) override
   {
     _json_message.clear();
 
-    char const* const message_format =
-      _normalized_message_format(log_metadata, named_args, log_message);
-
-    generate_json_message(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                          logger_name, log_level, log_level_description, log_level_short_code,
-                          named_args, log_message, log_statement, message_format);
+    char const* const message_format = _normalized_message_format(record);
+    generate_json_message(record, message_format);
 
     _json_message.append(std::string_view{"}\n"});
     _json_message_ready = true;
@@ -196,11 +161,12 @@ protected:
 
   void discard_write_estimate() noexcept { _json_message_ready = false; }
 
-  QUILL_NODISCARD char const* _normalized_message_format(
-    MacroMetadata const* log_metadata,
-    std::vector<std::pair<std::string, std::string>> const* named_args,
-    std::string_view log_message)
+  QUILL_NODISCARD char const* _normalized_message_format(LogRecord const& record)
   {
+    MacroMetadata const* const log_metadata = record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
+    std::string_view const log_message = record.log_message;
+
     char const* const message_format = log_metadata->message_format();
     if (!log_metadata->is_rate_limited() && (strchr(message_format, '\n') == nullptr))
     {

@@ -12,8 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
-#include <vector>
 
 namespace
 {
@@ -22,35 +22,29 @@ class VerboseJsonFileSink : public quill::JsonFileSink
 public:
   using quill::JsonFileSink::JsonFileSink;
 
-  void generate_json_message(quill::MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                             std::string_view thread_id, std::string_view, std::string const&,
-                             std::string_view logger_name, quill::LogLevel,
-                             std::string_view log_level_description, std::string_view,
-                             std::vector<std::pair<std::string, std::string>> const* named_args,
-                             std::string_view log_message, std::string_view log_statement,
-                             char const* message_format) override
+  void generate_json_message(quill::LogRecord const& record, char const* message_format) override
   {
     this->_json_message.append(std::string_view{"{\"timestamp\":\""});
-    _append_json_escaped(this->_json_message, std::to_string(log_timestamp));
+    _append_json_escaped(this->_json_message, std::to_string(record.log_timestamp));
     this->_json_message.append(std::string_view{"\",\"thread_id\":\""});
-    _append_json_escaped(this->_json_message, thread_id);
+    _append_json_escaped(this->_json_message, record.thread_id);
     this->_json_message.append(std::string_view{"\",\"logger\":\""});
-    _append_json_escaped(this->_json_message, logger_name);
+    _append_json_escaped(this->_json_message, record.logger_name);
     this->_json_message.append(std::string_view{"\",\"level\":\""});
-    _append_json_escaped(this->_json_message, log_level_description);
+    _append_json_escaped(this->_json_message, record.log_level_description);
     this->_json_message.append(std::string_view{"\",\"format\":\""});
     _append_json_escaped(this->_json_message, message_format);
     this->_json_message.append(std::string_view{"\",\"statement\":\""});
-    _append_json_escaped(this->_json_message, log_statement);
+    _append_json_escaped(this->_json_message, record.log_statement);
     this->_json_message.append(std::string_view{"\",\"message\":\""});
-    _append_json_escaped(this->_json_message, log_message);
+    _append_json_escaped(this->_json_message, record.log_message);
     this->_json_message.append(std::string_view{"\",\"file\":\""});
-    _append_json_escaped(this->_json_message, log_metadata->file_name());
+    _append_json_escaped(this->_json_message, record.log_metadata->file_name());
     this->_json_message.append(std::string_view{"\""});
 
-    if (named_args)
+    if (record.named_args)
     {
-      for (auto const& [key, value] : *named_args)
+      for (auto const& [key, value] : *record.named_args)
       {
         this->_json_message.append(std::string_view{",\""});
         _append_json_escaped(this->_json_message, key);

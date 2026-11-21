@@ -22,11 +22,7 @@ class AlwaysPassFilter : public Filter
 public:
   explicit AlwaysPassFilter(std::string filter_name) : Filter(std::move(filter_name)) {}
 
-  QUILL_NODISCARD bool filter(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                              std::string_view, LogLevel, std::string_view, std::string_view) noexcept override
-  {
-    return true;
-  }
+  QUILL_NODISCARD bool filter(LogRecord const& /* record */) noexcept override { return true; }
 };
 
 class ReentrantNameFilter : public AlwaysPassFilter

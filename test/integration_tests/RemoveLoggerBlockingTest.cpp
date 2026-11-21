@@ -27,13 +27,7 @@ class RemovalFlushErrorSink final : public Sink
 public:
   explicit RemovalFlushErrorSink(std::string error) : _error(std::move(error)) {}
 
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
-  {
-  }
-
-  void flush_sink() override {}
+  void write_log(LogRecord const& /* record */) override {}
 
   void flush_sink(SinkFlushReason reason) override
   {
