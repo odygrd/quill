@@ -605,8 +605,12 @@ TEST_CASE("pattern_formatter_source_location_prefix")
   }
 
   {
-    po.source_location_path_strip_prefix =
-      repo_root.filename().string() + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+    char const source_path_separator{'\\'};
+#else
+    char const source_path_separator{'/'};
+#endif
+    po.source_location_path_strip_prefix = repo_root.filename().string() + source_path_separator;
     PatternFormatter pattern_formatter{po};
 
     auto const& formatted_buffer =
@@ -766,7 +770,12 @@ TEST_CASE("process_source_location_path")
     char const* path = "/home/user/quill/test/unit_tests/file.cpp";
 #endif
 
-    std::string prefix = std::string{"quill"} + static_cast<char>(detail::PATH_PREFERRED_SEPARATOR);
+#if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
+    char const source_path_separator{'\\'};
+#else
+    char const source_path_separator{'/'};
+#endif
+    std::string prefix = std::string{"quill"} + source_path_separator;
     bool remove_relative = false;
 
     auto result = formatter.process_source_location_path(path, prefix, remove_relative);

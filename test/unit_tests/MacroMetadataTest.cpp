@@ -212,6 +212,21 @@ TEST_CASE("construct")
   }
 }
 
+TEST_CASE("source_location_accepts_both_separators")
+{
+  // MinGW and builds hosted on Windows can spell __FILE__ with either separator
+  constexpr MacroMetadata mixed{
+    "C:\\src\\nested/example.cpp:12", "", "", nullptr, quill::LogLevel::Info,
+    MacroMetadata::Event::Log};
+  REQUIRE_EQ(mixed.file_name(), "example.cpp");
+
+  constexpr MacroMetadata backslashes{
+    "C:\\src\\nested\\example.cpp:12", "", "", nullptr, quill::LogLevel::Info,
+    MacroMetadata::Event::Log};
+  REQUIRE_EQ(backslashes.file_name(), "example.cpp");
+  REQUIRE_STREQ(backslashes.short_source_location(), "example.cpp:12");
+}
+
 TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
 {
   static_assert(MacroMetadata::contains_named_args("{name}"),
