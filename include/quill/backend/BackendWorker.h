@@ -1272,7 +1272,6 @@ private:
         value.clear();
       }
       transit_event->extra_data->mdc.clear();
-      transit_event->extra_data->runtime_metadata.has_runtime_metadata = false;
     }
 
     // Note: event_payload is reset only in the Flush and Metric branches of _process_transit_event
@@ -2346,11 +2345,11 @@ private:
     auto const line = Codec<uint32_t>::decode_arg(read_pos);
     auto const log_level = Codec<LogLevel>::decode_arg(read_pos);
 
-    transit_event->ensure_extra_data();
-    transit_event->extra_data->runtime_metadata.set(file, line, function, tags, fmt, log_level);
+    TransitEvent::RuntimeMetadata& runtime_metadata = transit_event->ensure_runtime_metadata();
+    runtime_metadata.set(file, line, function, tags, fmt, log_level);
 
     // point to the runtime metadata
-    transit_event->macro_metadata = &transit_event->extra_data->runtime_metadata.macro_metadata;
+    transit_event->macro_metadata = &runtime_metadata.macro_metadata;
   }
 
   /** @return true if `text` has a byte that is not printable */

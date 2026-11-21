@@ -38,6 +38,8 @@ struct TransitEvent
 {
   using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
 
+  struct RuntimeMetadata;
+
   /***/
   TransitEvent() = default;
 
@@ -74,10 +76,10 @@ struct TransitEvent
     {
       other.extra_data = std::make_unique<ExtraData>(*extra_data);
 
-      if (other.extra_data->runtime_metadata.has_runtime_metadata)
+      if (extra_data->runtime_metadata && (macro_metadata == &extra_data->runtime_metadata->macro_metadata))
       {
         // then point macro_metadata to the correct object
-        other.macro_metadata = &other.extra_data->runtime_metadata.macro_metadata;
+        other.macro_metadata = &other.extra_data->runtime_metadata->macro_metadata;
       }
     }
   }
@@ -116,6 +118,19 @@ struct TransitEvent
     }
 
     extra_data = std::make_unique<ExtraData>();
+  }
+
+  /** @return the runtime metadata of this event, allocated for the first event of this slot that has one */
+  QUILL_ATTRIBUTE_HOT RuntimeMetadata& ensure_runtime_metadata()
+  {
+    ensure_extra_data();
+
+    if (!extra_data->runtime_metadata)
+    {
+      extra_data->runtime_metadata = std::make_unique<RuntimeMetadata>();
+    }
+
+    return *extra_data->runtime_metadata;
   }
 
   QUILL_ATTRIBUTE_HOT void set_flush_flag(std::atomic<bool>* flush_flag_ptr) noexcept
@@ -166,9 +181,13 @@ struct TransitEvent
           (fmt == _safe_string(in_fmt)) && (function_name == _safe_string(function)) &&
           (tags == _safe_string(in_tags)) && _source_location_matches(file, line))
       {
-        has_runtime_metadata = true;
         return;
       }
+
+      // Before any member changes, in case an assignment throws: the record is then decoded
+      // again, and that call must not find the half-updated members equal to its arguments and
+      // keep a macro_metadata that still describes the old ones
+      macro_metadata = MacroMetadata{};
 
       fmt.assign(_safe_string(in_fmt));
       line_number = line;
@@ -179,7 +198,6 @@ struct TransitEvent
       macro_metadata =
         MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
                       tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log);
-      has_runtime_metadata = true;
     }
 
     RuntimeMetadata(RuntimeMetadata const& other)
@@ -190,8 +208,7 @@ struct TransitEvent
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
                        tags.empty() ? nullptr : tags.data(), other.macro_metadata.log_level(),
                        MacroMetadata::Event::Log),
-        line_number(other.line_number),
-        has_runtime_metadata(other.has_runtime_metadata)
+        line_number(other.line_number)
     {
       // Recreate macro_metadata to point to our own strings
     }
@@ -205,7 +222,6 @@ struct TransitEvent
         function_name = other.function_name;
         tags = other.tags;
         line_number = other.line_number;
-        has_runtime_metadata = other.has_runtime_metadata;
 
         // Recreate macro_metadata to point to our own strings
         macro_metadata = MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
@@ -224,7 +240,6 @@ struct TransitEvent
     std::string tags;
     MacroMetadata macro_metadata;
     uint32_t line_number{0};
-    bool has_runtime_metadata{false};
 
   private:
     QUILL_NODISCARD static char const* _safe_string(char const* value) noexcept
@@ -283,11 +298,27 @@ struct TransitEvent
 
   struct ExtraData
   {
+    ExtraData() = default;
+
+    ExtraData(ExtraData const& other)
+      : named_args(other.named_args),
+        mdc(other.mdc),
+        runtime_metadata(other.runtime_metadata ? std::make_unique<RuntimeMetadata>(*other.runtime_metadata) : nullptr)
+    {
+    }
+
+    ExtraData& operator=(ExtraData const& other) = delete;
+
     // Additional fields that are used for some features as a separate structure to keep
     // TransitEvent size smaller for the main scenarios
     std::vector<std::pair<std::string, std::string>> named_args;
     std::string mdc;
-    RuntimeMetadata runtime_metadata;
+
+    /**
+     * Allocated by ensure_runtime_metadata(), so the extra data of the other events, e.g. with
+     * named args, takes 64 bytes instead of several cache lines
+     */
+    std::unique_ptr<RuntimeMetadata> runtime_metadata;
   };
 
   uint64_t timestamp{0};
