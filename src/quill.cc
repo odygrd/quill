@@ -129,6 +129,7 @@ module;
   #endif
   #include <sys/file.h>
   #include <sys/mman.h>
+  #include <sys/stat.h>
   #if QUILL_HAS_INCLUDE(<sys/syscall.h>)
     #include <sys/syscall.h>
   #endif
