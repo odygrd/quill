@@ -63,10 +63,10 @@ jobs:
           sudo rm -rf /var/lib/apt/lists/*
           echo "Disk after cleanup:"
           df -h
-          cmake -E make_directory ${{runner.workspace}}/build
+          cmake -E make_directory ${{github.workspace}}/../build
 
       - name: Configure
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         env:
           CXX: clang++-19
         run: |
@@ -75,13 +75,13 @@ jobs:
                 -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         run: |
           threads=`nproc`
           cmake --build . --config Release --parallel $threads
 
       - name: Run fuzzer ${{ matrix.fuzzer }}
-        working-directory: ${{runner.workspace}}
+        working-directory: ${{github.workspace}}/..
         run: |
           python3 quill/fuzz/run_fuzzers.py \
             --duration 480 \
