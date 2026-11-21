@@ -14,6 +14,7 @@
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/PatternFormatterOptions.h"
 #include "quill/core/QuillError.h"
+#include "quill/sinks/LogRecord.h"
 
 #ifndef QUILL_MODULE
   #include <array>
@@ -85,12 +86,11 @@ public:
   /***/
   ~PatternFormatter() = default;
 
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(
-    uint64_t timestamp, std::string_view thread_id, std::string_view thread_name,
-    std::string_view process_id, std::string_view logger, std::string_view log_level_description,
-    std::string_view log_level_short_code, MacroMetadata const& log_statement_metadata,
-    std::vector<std::pair<std::string, std::string>> const* named_args, std::string_view log_msg,
-    std::string_view mdc)
+  /**
+   * Formats a log record with this pattern. The record's log_statement is not used.
+   * @return the formatted statement, valid until the next call
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::string_view format(LogRecord const& record)
   {
     if (_options.format_pattern.empty())
     {
@@ -103,17 +103,18 @@ public:
     // clear out the existing buffer
     _formatted_log_message_buffer.clear();
 
+    std::string_view const log_msg = record.log_message;
+
     if (QUILL_UNLIKELY(log_msg.empty()))
     {
       // Process an empty message
-      return _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                     log_level_short_code, log_statement_metadata, named_args, log_msg, mdc);
+      return _format(record, log_msg);
     }
 
     std::string_view formatted_log_msg;
 
     // Check if we need to handle multi-line formatting
-    if (_options.add_metadata_to_multi_line_logs && (!named_args || named_args->empty()))
+    if (_options.add_metadata_to_multi_line_logs && (!record.named_args || record.named_args->empty()))
     {
       // multi line metadata only supported when named_args are not used
       size_t start = 0;
@@ -126,9 +127,7 @@ public:
         {
           // Handle the last line or a single line without a newline
           formatted_log_msg =
-            _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                    log_level_short_code, log_statement_metadata, named_args,
-                    std::string_view(log_msg.data() + start, log_msg.size() - start), mdc);
+            _format(record, std::string_view(log_msg.data() + start, log_msg.size() - start));
           break;
         }
 
@@ -140,9 +139,7 @@ public:
           line_length++;
         }
 
-        formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger, log_level_description,
-                                    log_level_short_code, log_statement_metadata, named_args,
-                                    std::string_view(log_msg.data() + start, line_length), mdc);
+        formatted_log_msg = _format(record, std::string_view(log_msg.data() + start, line_length));
         start = end + 1;
       }
     }
@@ -160,12 +157,38 @@ public:
         log_message_size = log_msg.size() - 1;
       }
 
-      formatted_log_msg = _format(timestamp, thread_id, thread_name, process_id, logger,
-                                  log_level_description, log_level_short_code, log_statement_metadata,
-                                  named_args, std::string_view{log_msg.data(), log_message_size}, mdc);
+      formatted_log_msg = _format(record, std::string_view{log_msg.data(), log_message_size});
     }
 
     return formatted_log_msg;
+  }
+
+  /**
+   * Formats a log statement from its individual fields, see format(LogRecord const&).
+   * @return the formatted statement, valid until the next call
+   */
+  QUILL_NODISCARD std::string_view format(uint64_t timestamp, std::string_view thread_id,
+                                          std::string_view thread_name, std::string_view process_id,
+                                          std::string_view logger, std::string_view log_level_description,
+                                          std::string_view log_level_short_code,
+                                          MacroMetadata const& log_statement_metadata,
+                                          std::vector<std::pair<std::string, std::string>> const* named_args,
+                                          std::string_view log_msg, std::string_view mdc)
+  {
+    LogRecord record;
+    record.log_metadata = &log_statement_metadata;
+    record.log_timestamp = timestamp;
+    record.thread_id = thread_id;
+    record.thread_name = thread_name;
+    record.process_id = process_id;
+    record.logger_name = logger;
+    record.log_level = log_statement_metadata.log_level();
+    record.log_level_description = log_level_description;
+    record.log_level_short_code = log_level_short_code;
+    record.named_args = named_args;
+    record.log_message = log_msg;
+    record.mdc = mdc;
+    return format(record);
   }
 
   /***/
@@ -400,17 +423,15 @@ private:
   }
 
   /***/
-  QUILL_ATTRIBUTE_HOT std::string_view _format(uint64_t timestamp, std::string_view thread_id,
-                                               std::string_view thread_name, std::string_view process_id,
-                                               std::string_view logger, std::string_view log_level_description,
-                                               std::string_view log_level_short_code,
-                                               MacroMetadata const& log_statement_metadata,
-                                               std::vector<std::pair<std::string, std::string>> const* named_args,
-                                               std::string_view log_msg, std::string_view mdc)
+  QUILL_ATTRIBUTE_HOT std::string_view _format(LogRecord const& record, std::string_view log_msg)
   {
+    MacroMetadata const& log_statement_metadata = *record.log_metadata;
+    std::vector<std::pair<std::string, std::string>> const* named_args = record.named_args;
+
     if (_is_set_in_pattern[Attribute::Time])
     {
-      _set_arg_val<Attribute::Time>(_timestamp_formatter.format_timestamp(std::chrono::nanoseconds{timestamp}));
+      _set_arg_val<Attribute::Time>(
+        _timestamp_formatter.format_timestamp(std::chrono::nanoseconds{record.log_timestamp}));
     }
 
     if (_is_set_in_pattern[Attribute::FileName])
@@ -429,12 +450,12 @@ private:
 
     if (_is_set_in_pattern[Attribute::LogLevel])
     {
-      _set_arg_val<Attribute::LogLevel>(log_level_description);
+      _set_arg_val<Attribute::LogLevel>(record.log_level_description);
     }
 
     if (_is_set_in_pattern[Attribute::LogLevelShortCode])
     {
-      _set_arg_val<Attribute::LogLevelShortCode>(log_level_short_code);
+      _set_arg_val<Attribute::LogLevelShortCode>(record.log_level_short_code);
     }
 
     if (_is_set_in_pattern[Attribute::LineNumber])
@@ -444,7 +465,7 @@ private:
 
     if (_is_set_in_pattern[Attribute::Logger])
     {
-      _set_arg_val<Attribute::Logger>(logger);
+      _set_arg_val<Attribute::Logger>(record.logger_name);
     }
 
     if (_is_set_in_pattern[Attribute::FullPath])
@@ -454,17 +475,17 @@ private:
 
     if (_is_set_in_pattern[Attribute::ThreadId])
     {
-      _set_arg_val<Attribute::ThreadId>(thread_id);
+      _set_arg_val<Attribute::ThreadId>(record.thread_id);
     }
 
     if (_is_set_in_pattern[Attribute::ThreadName])
     {
-      _set_arg_val<Attribute::ThreadName>(thread_name);
+      _set_arg_val<Attribute::ThreadName>(record.thread_name);
     }
 
     if (_is_set_in_pattern[Attribute::ProcessId])
     {
-      _set_arg_val<Attribute::ProcessId>(process_id);
+      _set_arg_val<Attribute::ProcessId>(record.process_id);
     }
 
     if (_is_set_in_pattern[Attribute::SourceLocation])
@@ -504,7 +525,7 @@ private:
 
     if (_is_set_in_pattern[Attribute::Mdc])
     {
-      _set_arg_val<Attribute::Mdc>(mdc);
+      _set_arg_val<Attribute::Mdc>(record.mdc);
     }
 
     if (_is_set_in_pattern[Attribute::Tags])

@@ -49,6 +49,13 @@ QUILL_END_EXPORT
 
 namespace detail
 {
+/** Out of line so that log_level_to_string() stays small enough to inline */
+[[noreturn]] QUILL_ATTRIBUTE_COLD QUILL_NOINLINE inline void throw_invalid_log_level(uint32_t log_level)
+{
+  std::string const error_msg = "Invalid log level value \"" + std::to_string(log_level) + "\"";
+  QUILL_THROW(QuillError{error_msg});
+}
+
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view log_level_to_string(LogLevel log_level,
                                                                                 std::string const* log_levels_strings,
                                                                                 size_t log_levels_strings_size)
@@ -57,8 +64,7 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline std::string_view log_level_to_string(
 
   if (QUILL_UNLIKELY(log_lvl >= static_cast<uint32_t>(log_levels_strings_size)))
   {
-    std::string const error_msg = "Invalid log level value \"" + std::to_string(log_lvl) + "\"";
-    QUILL_THROW(QuillError{error_msg});
+    throw_invalid_log_level(log_lvl);
   }
 
   return log_levels_strings[log_lvl];

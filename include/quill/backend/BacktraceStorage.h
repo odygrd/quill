@@ -66,7 +66,7 @@ public:
   }
 
   /***/
-  void process(std::function<void(TransitEvent const&, std::string_view thread_id, std::string_view thread_name)> const& callback)
+  void process(std::function<void(TransitEvent const&, std::string const& thread_id, std::string const& thread_name)> const& callback)
   {
     // we found stored messages for this logger
     size_t index = _index;
