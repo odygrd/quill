@@ -125,12 +125,6 @@ public:
     CivetCallbacks const* callbacks{nullptr};
   };
 
-  struct Options
-  {
-    Registry::InsertBehavior insert_behavior{Registry::InsertBehavior::Merge};
-    std::optional<ExposerConfiguration> exposer;
-  };
-
   /**
    * A single quantile target for a summary metric.
    *
