@@ -10,6 +10,7 @@
 #include "quill/bundled/fmt/base.h"
 #include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
 #include "quill/core/PatternFormatterOptions.h"
@@ -422,6 +423,32 @@ private:
     _attribute_values[I] = arg;
   }
 
+  /**
+   * Formats the named arguments as "name: value, name: value". Out of line so that its appends do
+   * not stop the compiler from inlining the ones in _format()
+   */
+  QUILL_NOINLINE std::string_view _format_named_args(std::vector<std::pair<std::string, std::string>> const* named_args)
+  {
+    _formatted_named_args_buffer.clear();
+
+    if (named_args)
+    {
+      for (size_t i = 0; i < named_args->size(); ++i)
+      {
+        detail::append_to_buffer(_formatted_named_args_buffer, (*named_args)[i].first);
+        detail::append_to_buffer(_formatted_named_args_buffer, std::string_view{": "});
+        detail::append_to_buffer(_formatted_named_args_buffer, (*named_args)[i].second);
+
+        if (i != named_args->size() - 1)
+        {
+          detail::append_to_buffer(_formatted_named_args_buffer, std::string_view{", "});
+        }
+      }
+    }
+
+    return std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()};
+  }
+
   /***/
   QUILL_ATTRIBUTE_HOT std::string_view _format(LogRecord const& record, std::string_view log_msg)
   {
@@ -502,25 +529,7 @@ private:
 
     if (_is_set_in_pattern[Attribute::NamedArgs])
     {
-      _formatted_named_args_buffer.clear();
-
-      if (named_args)
-      {
-        for (size_t i = 0; i < named_args->size(); ++i)
-        {
-          _formatted_named_args_buffer.append((*named_args)[i].first);
-          _formatted_named_args_buffer.append(std::string_view{": "});
-          _formatted_named_args_buffer.append((*named_args)[i].second);
-
-          if (i != named_args->size() - 1)
-          {
-            _formatted_named_args_buffer.append(std::string_view{", "});
-          }
-        }
-      }
-
-      _set_arg_val<Attribute::NamedArgs>(
-        std::string_view{_formatted_named_args_buffer.data(), _formatted_named_args_buffer.size()});
+      _set_arg_val<Attribute::NamedArgs>(_format_named_args(named_args));
     }
 
     if (_is_set_in_pattern[Attribute::Mdc])
@@ -554,17 +563,14 @@ private:
 
     for (FormatPart const& part : _format_parts)
     {
-      if (part.literal_size != 0)
-      {
-        _formatted_log_message_buffer.append(
-          std::string_view{_literal_buffer.data() + part.literal_pos, part.literal_size});
-      }
+      detail::append_to_buffer(_formatted_log_message_buffer,
+                               std::string_view{_literal_buffer.data() + part.literal_pos, part.literal_size});
 
       std::string_view const value = _attribute_values[part.attribute];
       if (!part.has_format_specs)
       {
         // All pattern attributes are string views, so the common case needs no fmt dispatch.
-        _formatted_log_message_buffer.append(value);
+        detail::append_to_buffer(_formatted_log_message_buffer, value);
       }
       else
       {
@@ -573,8 +579,9 @@ private:
       }
     }
 
-    _formatted_log_message_buffer.append(std::string_view{
-      _literal_buffer.data() + _trailing_literal_pos, _literal_buffer.size() - _trailing_literal_pos});
+    detail::append_to_buffer(_formatted_log_message_buffer,
+                             std::string_view{_literal_buffer.data() + _trailing_literal_pos,
+                                              _literal_buffer.size() - _trailing_literal_pos});
 
     return std::string_view{_formatted_log_message_buffer.data(), _formatted_log_message_buffer.size()};
   }
