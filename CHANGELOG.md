@@ -123,6 +123,10 @@
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 - Reduced overhead for System/User clocks.
+- Improved backend worker throughput: about 20% more log statements per second with `FileSink` and
+  a typical pattern, 75% more with `JsonFileSink`, and twice as many with `JsonFileSink` and named
+  arguments.
+- Added `PatternFormatter::format(LogRecord const&)` for custom sinks that format records.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
