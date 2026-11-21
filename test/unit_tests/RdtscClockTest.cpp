@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <limits>
 #include <thread>
 
 TEST_SUITE_BEGIN("RdtscClock");
@@ -164,6 +165,34 @@ TEST_CASE("reconfigure_is_safe_with_concurrent_readers")
   reader_two.join();
 
   REQUIRE_EQ(zero_timestamps.load(std::memory_order_relaxed), 0u);
+}
+
+TEST_CASE("failed_idle_resync_does_not_lengthen_resync_interval")
+{
+#if !defined(__x86_64__) && !defined(_M_X64) && !defined(__i386__) && !defined(_M_IX86)
+  // Only the x86 TSC is guaranteed to advance while the wall clock is read. Coarser counters, such
+  // as the 24 MHz ARM generic timer, can return the same value twice and meet a zero lag budget.
+  return;
+#else
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{500}};
+  int64_t const interval = tsc_clock.resync_interval_ticks();
+
+  // A zero lag budget can never be met, so every attempt fails
+  REQUIRE_FALSE(tsc_clock.try_resync(0));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval);
+
+  // The logging path backs off instead, so it does not retry on every call
+  REQUIRE_FALSE(tsc_clock.resync(0));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval * 2);
+
+  // The idle resync never changes the logging path's interval, even when it succeeds
+  REQUIRE(tsc_clock.resync_when_idle());
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval * 2);
+
+  // A successful logging-path resync restores the configured interval
+  REQUIRE(tsc_clock.resync(std::numeric_limits<uint32_t>::max()));
+  REQUIRE_EQ(tsc_clock.resync_interval_ticks(), interval);
+#endif
 }
 
 TEST_CASE("time_since_epoch_uses_resynced_slot")
