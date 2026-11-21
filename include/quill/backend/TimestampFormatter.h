@@ -17,6 +17,7 @@
   #include <chrono>
   #include <cstddef>
   #include <cstdint>
+  #include <cstring>
   #include <string>
   #include <string_view>
   #include <utility>
@@ -157,31 +158,15 @@ public:
 
     if (_additional_format_specifier == AdditionalSpecifier::Qms)
     {
-      uint32_t const extracted_ms = extracted_ns / 1'000'000;
-
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_ms);
+      _append_fractional_seconds(extracted_ns / 1'000'000, 3);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qus)
     {
-      uint32_t const extracted_us = extracted_ns / 1'000;
-
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_us);
+      _append_fractional_seconds(extracted_ns / 1'000, 6);
     }
     else if (_additional_format_specifier == AdditionalSpecifier::Qns)
     {
-      // Add as many zeros as the extracted_fractional_seconds_length
-      static constexpr std::string_view zeros{"000000000"};
-      _formatted_date.append(zeros);
-
-      _write_fractional_seconds(extracted_ns);
+      _append_fractional_seconds(extracted_ns, 9);
     }
 
     // 3. format part 2 after fractional seconds - if any
@@ -205,30 +190,27 @@ public:
   QUILL_NODISCARD std::string const& warning() const noexcept { return _warning; }
 
 private:
-  /***/
-  void _write_fractional_seconds(uint32_t extracted_fractional_seconds)
+  /**
+   * Appends the `digits` lowest decimal digits of `fractional_seconds`, zero padded. Writing two
+   * digits per division halves the chain of dependent divisions compared to one digit at a time.
+   */
+  void _append_fractional_seconds(uint32_t fractional_seconds, uint32_t digits)
   {
-    uint32_t digits = 0;
-    switch (_additional_format_specifier)
+    size_t const begin = _formatted_date.size();
+    _formatted_date.try_resize(begin + digits);
+    char* write_pos = _formatted_date.data() + begin + digits;
+
+    while (digits >= 2)
     {
-    case AdditionalSpecifier::Qms:
-      digits = 3;
-      break;
-    case AdditionalSpecifier::Qus:
-      digits = 6;
-      break;
-    case AdditionalSpecifier::Qns:
-      digits = 9;
-      break;
-    default:
-      return;
+      write_pos -= 2;
+      std::memcpy(write_pos, fmtquill::detail::digits2(fractional_seconds % 100), 2);
+      fractional_seconds /= 100;
+      digits -= 2;
     }
 
-    char* write_pos = _formatted_date.data() + _formatted_date.size();
-    for (uint32_t i = 0; i < digits; ++i)
+    if (digits != 0)
     {
-      *--write_pos = static_cast<char>('0' + (extracted_fractional_seconds % 10));
-      extracted_fractional_seconds /= 10;
+      *--write_pos = static_cast<char>('0' + (fractional_seconds % 10));
     }
   }
 
