@@ -80,7 +80,7 @@ TEST_CASE("extract_stem_and_extension")
     REQUIRE_STREQ(res.second.data(), ".");
   }
 
-#ifndef QUILL_HAS_EXPERIMENTAL_FILESYSTEM
+#if !QUILL_HAS_EXPERIMENTAL_FILESYSTEM
   {
     // hidden file - directory
     fs::path fname = "etc";
