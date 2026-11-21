@@ -67,3 +67,10 @@ jobs:
 
       - name: Build
         run: cmake --build build/optional-sinks --parallel
+
+      - name: Run the Prometheus program
+        # It creates no exposer and only updates the in-process registry. It checks what a rejected
+        # registration leaves behind: samples of its labels must reach the series later created by
+        # their family, a corrected retry must succeed, a family the application registered
+        # directly must keep its samples, and a corrected family registration must take effect
+        run: build/optional-sinks/quill_prometheus_sink_compile_test
