@@ -168,10 +168,9 @@ public:
    * consecutive `fsync` operations but does not guarantee that `fsync` will be called exactly
    * at that interval.
    *
-   * For example, if some messages are flushed to the log and `fsync` is skipped because it
-   * was previously called, and no further messages are written to the file, `fsync` will not
-   * be called even if the minimum interval has passed. This is because the previous call was
-   * skipped due to the interval, and no new messages necessitate another `fsync` call.
+   * An `fsync` skipped because of the interval is performed by a later flush once the interval
+   * has elapsed, even if no further messages are written, and by the final flush when the
+   * backend stops.
    *
    * This feature is intended to mitigate concerns about frequent `fsync` calls potentially causing
    * disk wear.
@@ -355,6 +354,8 @@ private:
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
+  bool _fsync_pending{false};    /**< An fsync was skipped because of minimum_fsync_interval */
+  bool _force_next_fsync{false}; /**< Set during the final flush so a pending fsync is not skipped */
 };
 
 /**
@@ -474,7 +475,23 @@ public:
     }
   }
 
-  ~FileSink() override { _close_file_noexcept(); }
+  ~FileSink() override
+  {
+    _fsync_pending_noexcept();
+    _close_file_noexcept();
+  }
+
+  /**
+   * The final flush also performs an fsync deferred by minimum_fsync_interval. Forwards to
+   * flush_sink() so overrides of it keep working; it takes no reason, so the final flush is
+   * passed to fsync_file() through _force_next_fsync.
+   */
+  QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason flush_reason) override
+  {
+    _force_next_fsync = (flush_reason == SinkFlushReason::Final);
+    flush_sink();
+    _force_next_fsync = false;
+  }
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
@@ -485,6 +502,12 @@ public:
 
     if (!_write_occurred)
     {
+      // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
+      if (_fsync_pending && _config.fsync_enabled())
+      {
+        fsync_file();
+      }
+
       return;
     }
 
@@ -701,6 +724,28 @@ protected:
     }
   }
 
+  /**
+   * Writes buffered records and syncs the open file, for a sink destroyed without a final flush,
+   * e.g. when its last logger is removed. Only the existing handle is used: unlike flush_sink(),
+   * this never reopens or recreates the file at its path.
+   */
+  void _fsync_pending_noexcept() noexcept
+  {
+    if (!_config.fsync_enabled() || !is_open() || (!_fsync_pending && !_write_occurred))
+    {
+      return;
+    }
+
+    QUILL_TRY
+    {
+      _flush_native_write_buffer();
+      fsync_file(true);
+    }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+  #endif
+  }
+
   void _close_file_noexcept() noexcept
   {
     QUILL_TRY { close_file(); }
@@ -723,15 +768,15 @@ protected:
       return;
     }
 
-    std::chrono::steady_clock::time_point fsync_timestamp{};
+    // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
+    bool const ignore_interval = force_fsync || _force_next_fsync;
+    auto const now = std::chrono::steady_clock::now();
 
-    if (!force_fsync)
+    if (!ignore_interval && _is_within_minimum_fsync_interval(now))
     {
-      fsync_timestamp = std::chrono::steady_clock::now();
-      if ((fsync_timestamp - _last_fsync_timestamp) < _config.minimum_fsync_interval())
-      {
-        return;
-      }
+      // Deferred: a later flush performs it once the interval has elapsed, or the final flush
+      _fsync_pending = true;
+      return;
     }
 
     if (!::FlushFileBuffers(_native_file_handle))
@@ -741,10 +786,21 @@ protected:
                              std::to_string(::GetLastError())});
     }
 
-    if (!force_fsync)
+    _fsync_pending = false;
+
+    if (!ignore_interval)
     {
-      _last_fsync_timestamp = fsync_timestamp;
+      _last_fsync_timestamp = now;
     }
+  }
+
+  /** True if the previous fsync was less than minimum_fsync_interval before `now` */
+  QUILL_NODISCARD bool _is_within_minimum_fsync_interval(std::chrono::steady_clock::time_point now) const noexcept
+  {
+    // Before the first fsync there is no interval to wait for. Measuring from the clock's epoch
+    // would defer the first fsync whenever the system has been up for less than the interval
+    bool const fsynced_before = (_last_fsync_timestamp != std::chrono::steady_clock::time_point{});
+    return fsynced_before && ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval());
   }
 
   QUILL_NODISCARD bool is_open() const noexcept
@@ -829,7 +885,23 @@ public:
     }
   }
 
-  ~FileSink() override { _close_file_noexcept(); }
+  ~FileSink() override
+  {
+    _fsync_pending_noexcept();
+    _close_file_noexcept();
+  }
+
+  /**
+   * The final flush also performs an fsync deferred by minimum_fsync_interval. Forwards to
+   * flush_sink() so overrides of it keep working; it takes no reason, so the final flush is
+   * passed to fsync_file() through _force_next_fsync.
+   */
+  QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason flush_reason) override
+  {
+    _force_next_fsync = (flush_reason == SinkFlushReason::Final);
+    flush_sink();
+    _force_next_fsync = false;
+  }
 
   QUILL_ATTRIBUTE_HOT void flush_sink() override
   {
@@ -838,8 +910,19 @@ public:
       _reopen_file();
     }
 
-    if (!_write_occurred || !_file)
+    if (!_file)
     {
+      return;
+    }
+
+    if (!_write_occurred)
+    {
+      // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
+      if (_fsync_pending && _config.fsync_enabled())
+      {
+        fsync_file();
+      }
+
       return;
     }
 
@@ -1053,6 +1136,28 @@ protected:
     }
   }
 
+  /**
+   * Writes buffered records and syncs the open file, for a sink destroyed without a final flush,
+   * e.g. when its last logger is removed. Only the existing handle is used: unlike flush_sink(),
+   * this never reopens or recreates the file at its path.
+   */
+  void _fsync_pending_noexcept() noexcept
+  {
+    if (!_config.fsync_enabled() || !is_open() || (!_fsync_pending && !_write_occurred))
+    {
+      return;
+    }
+
+    QUILL_TRY
+    {
+      StreamSink::flush_sink();
+      fsync_file(true);
+    }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+  #endif
+  }
+
   void _close_file_noexcept() noexcept
   {
     QUILL_TRY { close_file(); }
@@ -1068,15 +1173,15 @@ protected:
       return;
     }
 
-    std::chrono::steady_clock::time_point fsync_timestamp{};
+    // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
+    bool const ignore_interval = force_fsync || _force_next_fsync;
+    auto const now = std::chrono::steady_clock::now();
 
-    if (!force_fsync)
+    if (!ignore_interval && _is_within_minimum_fsync_interval(now))
     {
-      fsync_timestamp = std::chrono::steady_clock::now();
-      if ((fsync_timestamp - _last_fsync_timestamp) < _config.minimum_fsync_interval())
-      {
-        return;
-      }
+      // Deferred: a later flush performs it once the interval has elapsed, or the final flush
+      _fsync_pending = true;
+      return;
     }
 
     // Retry on EINTR — a signal delivered during fsync() causes it to fail transiently.
@@ -1094,10 +1199,21 @@ protected:
                              " error: " + std::strerror(saved_errno)});
     }
 
-    if (!force_fsync)
+    _fsync_pending = false;
+
+    if (!ignore_interval)
     {
-      _last_fsync_timestamp = fsync_timestamp;
+      _last_fsync_timestamp = now;
     }
+  }
+
+  /** True if the previous fsync was less than minimum_fsync_interval before `now` */
+  QUILL_NODISCARD bool _is_within_minimum_fsync_interval(std::chrono::steady_clock::time_point now) const noexcept
+  {
+    // Before the first fsync there is no interval to wait for. Measuring from the clock's epoch
+    // would defer the first fsync whenever the system has been up for less than the interval
+    bool const fsynced_before = (_last_fsync_timestamp != std::chrono::steady_clock::time_point{});
+    return fsynced_before && ((now - _last_fsync_timestamp) < _config.minimum_fsync_interval());
   }
 
   QUILL_NODISCARD bool is_open() const noexcept { return _file != nullptr; }
@@ -1126,6 +1242,8 @@ private:
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
+  bool _fsync_pending{false};    /**< An fsync was skipped because of minimum_fsync_interval */
+  bool _force_next_fsync{false}; /**< Set during the final flush so a pending fsync is not skipped */
   std::unique_ptr<char[]> _write_buffer;
 };
 #endif
