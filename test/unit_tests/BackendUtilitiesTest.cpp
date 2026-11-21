@@ -363,4 +363,19 @@ TEST_CASE("timestamp_ordering_grace_period_keeps_a_consistent_scan_cutoff")
   CHECK_EQ(newer_final_deadline, 0u);
 }
 
+/***/
+TEST_CASE("prefetch_cache_line_accepts_any_address")
+{
+  // A prefetch is a hint that reads nothing and cannot fault, so there is no result to check:
+  // the addresses below are the first and last byte of a buffer, one past its end and nullptr
+  std::vector<char> const buffer(1024, 'x');
+
+  prefetch_cache_line(buffer.data());
+  prefetch_cache_line(buffer.data() + 1023);
+  prefetch_cache_line(buffer.data() + buffer.size());
+  prefetch_cache_line(nullptr);
+
+  CHECK_EQ(buffer.front(), 'x');
+}
+
 TEST_SUITE_END();

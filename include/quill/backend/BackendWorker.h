@@ -1273,6 +1273,18 @@ private:
       "transit_event is nullptr in BackendWorker::_process_lowest_timestamp_transit_event() when "
       "transit_buffer is set");
 
+    // The event that follows is usually processed next. Its named arguments, its MDC and the
+    // metadata of a macro-free record are in allocations of their own, anywhere in memory, and
+    // with thousands of events buffered reading them is a cache miss, so start loading them
+    // while this event is formatted and written. An event without them has nothing to load: the
+    // metadata of a logging macro is static, and its message follows this one in memory.
+    TransitEvent const* const next_event = thread_context->_transit_event_buffer->after_front();
+    if (next_event && next_event->extra_data)
+    {
+      prefetch_cache_line(reinterpret_cast<char const*>(next_event->extra_data.get()));
+      prefetch_cache_line(reinterpret_cast<char const*>(next_event->macro_metadata));
+    }
+
     std::atomic<bool>* flush_flag{nullptr};
 
     _run_guarded([&]() { _process_transit_event(*thread_context, *transit_event, flush_flag); });
