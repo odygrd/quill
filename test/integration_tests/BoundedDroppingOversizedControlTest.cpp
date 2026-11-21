@@ -9,14 +9,13 @@
 #include <string>
 #include <thread>
 
-namespace
-{
+// Not in an unnamed namespace: without exceptions the test returns early and does not use the
+// options, and clang then reports the constants of a type with internal linkage as unused
 struct BoundedControlOptions : quill::FrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedDropping;
   static constexpr size_t initial_queue_capacity = 4096;
 };
-} // namespace
 
 TEST_CASE("bounded_dropping_oversized_control")
 {

@@ -11,8 +11,8 @@
 
 using namespace quill;
 
-namespace
-{
+// Not in an unnamed namespace: without exceptions the test returns early and does not use the
+// options, and clang then reports the constants of a type with internal linkage as unused
 struct SmallBoundedBlockingFrontendOptions : quill::FrontendOptions
 {
   static constexpr quill::QueueType queue_type = quill::QueueType::BoundedBlocking;
@@ -21,11 +21,12 @@ struct SmallBoundedBlockingFrontendOptions : quill::FrontendOptions
 
 using SmallBoundedBlockingFrontend = FrontendImpl<SmallBoundedBlockingFrontendOptions>;
 using SmallBoundedBlockingLogger = LoggerImpl<SmallBoundedBlockingFrontendOptions>;
-} // namespace
 
-#if !defined(QUILL_NO_EXCEPTIONS)
 TEST_CASE("bounded_blocking_oversized_message_throws")
 {
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
   static std::string const logger_name = "bounded_blocking_oversized_message_logger";
 
   Backend::start();
@@ -52,5 +53,5 @@ TEST_CASE("bounded_blocking_oversized_message_throws")
   Backend::stop();
 
   REQUIRE(oversized_message_threw);
-}
 #endif
+}
