@@ -233,15 +233,10 @@ protected:
     // Bytes that need no escape, nearly all of them, are appended in runs rather than one by one
     size_t run_begin = 0;
 
-    for (size_t i = 0; i < size; ++i)
+    for (size_t i = _find_json_escape_candidate(data, 0, size); i < size;
+         i = _find_json_escape_candidate(data, i, size))
     {
       unsigned char const c = static_cast<unsigned char>(data[i]);
-
-      if (QUILL_LIKELY((c >= 0x20) && (c != '"') && (c != '\\') && (c != 0xE2)))
-      {
-        continue;
-      }
-
       std::string_view escaped;
 
       switch (c)
@@ -286,6 +281,7 @@ protected:
       if (escaped.empty())
       {
         // 0xE2 that does not start a line or paragraph separator stays in the run
+        ++i;
         continue;
       }
 
@@ -293,11 +289,55 @@ protected:
       append_to_buffer(out, escaped);
 
       // A separator escapes three bytes
-      i += (c == 0xE2) ? 2u : 0u;
-      run_begin = i + 1;
+      i += (c == 0xE2) ? 3u : 1u;
+      run_begin = i;
     }
 
     append_to_buffer(out, std::string_view{data + run_begin, size - run_begin});
+  }
+
+  /**
+   * @return the position of the first byte from `pos` that may need an escape: a control
+   * character, '"', '\\', or 0xE2, which starts U+2028 and U+2029. `size` if there is none
+   */
+  QUILL_NODISCARD static size_t _find_json_escape_candidate(char const* data, size_t pos, size_t size) noexcept
+  {
+    // Check 8 bytes at a time. The high bit of a byte of `candidates` is set for a byte below 0x20
+    // and for a byte equal to one of the others, and bytes above such a byte can be set as well
+    // by a borrow, so the bytes of a word with a candidate are checked one by one below
+    constexpr uint64_t ones{0x0101010101010101ull};
+    constexpr uint64_t high_bits{0x8080808080808080ull};
+
+    for (; (pos + sizeof(uint64_t)) <= size; pos += sizeof(uint64_t))
+    {
+      uint64_t word;
+      std::memcpy(&word, data + pos, sizeof(word));
+
+      // Bytes equal to '"', '\\' or 0xE2 are zero in these
+      uint64_t const quote = word ^ (ones * '"');
+      uint64_t const backslash = word ^ (ones * '\\');
+      uint64_t const separator = word ^ (ones * 0xE2u);
+
+      uint64_t const candidates = ((word - (ones * 0x20u)) & ~word) | ((quote - ones) & ~quote) |
+        ((backslash - ones) & ~backslash) | ((separator - ones) & ~separator);
+
+      if ((candidates & high_bits) != 0)
+      {
+        break;
+      }
+    }
+
+    for (; pos < size; ++pos)
+    {
+      unsigned char const c = static_cast<unsigned char>(data[pos]);
+
+      if ((c < 0x20) || (c == '"') || (c == '\\') || (c == 0xE2))
+      {
+        return pos;
+      }
+    }
+
+    return size;
   }
 
   fmtquill::memory_buffer _json_message;
