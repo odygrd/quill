@@ -106,11 +106,6 @@ public:
   }
 
   /**
-   * This function sets the logger's validity flag to false, indicating that the logger is no longer valid.
-   */
-  void mark_invalid() { _valid.store(false, std::memory_order_release); }
-
-  /**
    * @brief Checks if the logger is valid.
    * @return True if the logger is valid, false otherwise.
    */
@@ -199,6 +194,9 @@ public:
 protected:
   friend class BackendWorker;
   friend class LoggerManager;
+
+  /** Marks the logger as removed. Called by LoggerManager when the logger is removed */
+  void mark_invalid() noexcept { _valid.store(false, std::memory_order_release); }
 
   /***/
   static void set_current_thread_is_backend_thread(bool value) noexcept
