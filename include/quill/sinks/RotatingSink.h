@@ -781,6 +781,17 @@ private:
           continue;
         }
 
+        // Only a file is a backup: a directory with the name of one must not be renamed. Checked
+        // after the name, so that the unrelated entries of the directory are not looked up. The
+        // directory entry of the experimental filesystem has no is_regular_file().
+        std::error_code status_ec;
+        fs::file_status const entry_status = entry.status(status_ec);
+
+        if (status_ec || !fs::is_regular_file(entry_status))
+        {
+          continue;
+        }
+
         recovered_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
       }
 
