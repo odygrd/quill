@@ -1322,8 +1322,7 @@ private:
       if (transit_event.log_level() != LogLevel::Backtrace)
       {
         _ensure_monotonic_output_timestamp(transit_event);
-        _dispatch_transit_event_to_sinks(transit_event, thread_context.thread_id(),
-                                         thread_context.thread_name());
+        _dispatch_transit_event_to_sinks(transit_event, thread_context._thread_id, thread_context._thread_name);
 
         // We also need to check the severity of the log message here against the backtrace
         // Check if we should also flush the backtrace messages:
@@ -1336,7 +1335,7 @@ private:
           if (transit_event.logger_base->_backtrace_storage)
           {
             transit_event.logger_base->_backtrace_storage->process(
-              [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
+              [this](TransitEvent const& te, std::string const& thread_id, std::string const& thread_name)
               { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
           }
         }
@@ -1380,7 +1379,7 @@ private:
       {
         // process all records in backtrace for this logger and log them
         transit_event.logger_base->_backtrace_storage->process(
-          [this](TransitEvent const& te, std::string_view thread_id, std::string_view thread_name)
+          [this](TransitEvent const& te, std::string const& thread_id, std::string const& thread_name)
           { _dispatch_transit_event_to_sinks(te, thread_id, thread_name); });
       }
     }
@@ -1442,7 +1441,8 @@ private:
    * Dispatches a transit event
    */
   QUILL_ATTRIBUTE_HOT void _dispatch_transit_event_to_sinks(TransitEvent const& transit_event,
-                                                            std::string_view thread_id, std::string_view thread_name)
+                                                            std::string const& thread_id,
+                                                            std::string const& thread_name)
   {
     // First check to see if we should init the pattern formatter on a new Logger
     // Look up to see if we have the formatter and if not create it
@@ -1476,18 +1476,27 @@ private:
                  "pattern_formatter is nullptr in BackendWorker::_process_transit_event(), should "
                  "have been created earlier");
 
-    // proceed after ensuring a pattern formatter exists
-    std::string_view const log_level_description =
-      log_level_to_string(transit_event.log_level(), _options.log_level_descriptions.data(),
-                          _options.log_level_descriptions.size());
+    // Fill the reused record; only log_statement differs per sink. A local record would be
+    // zero-filled first on every call, and copying string views passed in registers into it went
+    // through the stack and stalled on store forwarding.
+    LogRecord& record = _log_record;
+    record.log_metadata = transit_event.macro_metadata;
+    record.log_timestamp = transit_event.timestamp;
+    record.thread_id = thread_id;
+    record.thread_name = thread_name;
+    record.process_id = _process_id;
+    record.logger_name = transit_event.logger_base->_logger_name;
+    record.log_level = transit_event.log_level();
+    record.log_level_description = log_level_to_string(
+      record.log_level, _options.log_level_descriptions.data(), _options.log_level_descriptions.size());
+    record.log_level_short_code = log_level_to_string(
+      record.log_level, _options.log_level_short_codes.data(), _options.log_level_short_codes.size());
+    record.named_args = transit_event.get_named_args();
+    record.log_message =
+      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
+    record.mdc = transit_event.mdc();
 
-    std::string_view const log_level_short_code =
-      log_level_to_string(transit_event.log_level(), _options.log_level_short_codes.data(),
-                          _options.log_level_short_codes.size());
-
-    _write_log_statement(
-      transit_event, thread_id, thread_name, log_level_description, log_level_short_code,
-      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()});
+    _write_log_statement(*transit_event.logger_base, record);
   }
 
   /**
@@ -1521,35 +1530,14 @@ private:
   /**
    * Formats and writes the log statement to each sink
    */
-  QUILL_ATTRIBUTE_HOT void _write_log_statement(TransitEvent const& transit_event,
-                                                std::string_view const& thread_id,
-                                                std::string_view const& thread_name,
-                                                std::string_view const& log_level_description,
-                                                std::string_view const& log_level_short_code,
-                                                std::string_view const& log_message)
+  QUILL_ATTRIBUTE_HOT void _write_log_statement(LoggerBase const& logger_base, LogRecord& record)
   {
     std::string_view default_log_statement;
-    LogLevel const log_level = transit_event.log_level();
-
-    // log_statement is set per sink, since a sink can override the pattern
-    LogRecord record{transit_event.macro_metadata,
-                     transit_event.timestamp,
-                     thread_id,
-                     thread_name,
-                     _process_id,
-                     transit_event.logger_base->_logger_name,
-                     log_level,
-                     log_level_description,
-                     log_level_short_code,
-                     transit_event.get_named_args(),
-                     log_message,
-                     std::string_view{},
-                     transit_event.mdc()};
 
     // Process each sink with the appropriate formatting and filtering
-    for (auto& sink : transit_event.logger_base->_sinks)
+    for (auto& sink : logger_base._sinks)
     {
-      if (QUILL_UNLIKELY(log_level < sink->_log_level.load(std::memory_order_relaxed)))
+      if (QUILL_UNLIKELY(record.log_level < sink->_log_level.load(std::memory_order_relaxed)))
       {
         continue;
       }
@@ -1557,8 +1545,6 @@ private:
       _run_guarded(
         [&]()
         {
-          std::string_view log_to_write;
-
           // Determine which formatted log to use
           if (!sink->_override_pattern_formatter_options)
           {
@@ -1566,14 +1552,10 @@ private:
             {
               // Use the default formatted log statement, here by checking empty() we try to format
               // once even for multiple sinks
-              default_log_statement = transit_event.logger_base->_pattern_formatter->format(
-                transit_event.timestamp, thread_id, thread_name, _process_id,
-                transit_event.logger_base->_logger_name, log_level_description,
-                log_level_short_code, *transit_event.macro_metadata, transit_event.get_named_args(),
-                log_message, transit_event.mdc());
+              default_log_statement = logger_base._pattern_formatter->format(record);
             }
 
-            log_to_write = default_log_statement;
+            record.log_statement = default_log_statement;
           }
           else
           {
@@ -1588,14 +1570,8 @@ private:
             }
 
             // Use the sink's override formatter
-            log_to_write = sink->_override_pattern_formatter->format(
-              transit_event.timestamp, thread_id, thread_name, _process_id,
-              transit_event.logger_base->_logger_name, log_level_description, log_level_short_code,
-              *transit_event.macro_metadata, transit_event.get_named_args(), log_message,
-              transit_event.mdc());
+            record.log_statement = sink->_override_pattern_formatter->format(record);
           }
-
-          record.log_statement = log_to_write;
 
           // Apply filters now that we have the formatted log
           if (sink->_apply_all_user_filters(record))
@@ -2431,6 +2407,7 @@ private:
   std::thread _worker_thread;
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
+  LogRecord _log_record; /** The record passed to the sinks, refilled for each log statement */
   std::vector<MetricLabel> _dynamic_metric_labels; /** Runtime metric label scratch storage */
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
