@@ -441,7 +441,8 @@ public:
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.
-   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries
+   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries, after a few
+   * yields. A sleep cannot be shorter than the OS timer granularity. 0 always yields.
    */
   static void remove_logger_blocking(logger_t* logger, uint32_t sleep_duration_ns = 100)
   {
@@ -462,6 +463,8 @@ public:
     std::atomic<bool> logger_removal_complete{false};
     std::atomic<bool>* logger_removal_complete_ptr = &logger_removal_complete;
 
+    // We do not want to drop the message if a dropping queue is used
+    uint32_t attempt{0};
     while (!logger->log_statement(
       &macro_metadata, reinterpret_cast<uintptr_t>(logger_removal_complete_ptr), logger->get_logger_name()))
     {
@@ -473,30 +476,16 @@ public:
         }
       }
 
-      // We do not want to drop the message if a dropping queue is used
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
 
     detail::LoggerManager::instance().remove_logger(logger);
 
+    // The caller thread keeps checking the flag until the logger is removed
+    attempt = 0;
     while (!logger_removal_complete.load())
     {
-      // The caller thread keeps checking the flag until the logger is removed
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
   }
 
