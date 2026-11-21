@@ -1,5 +1,7 @@
 #include "doctest/doctest.h"
 
+#include <cstring>
+
 #include "quill/core/Common.h"
 #include "quill/core/InlinedVector.h"
 
@@ -305,6 +307,26 @@ TEST_CASE("clear_and_reuse_with_heap")
   {
     REQUIRE_EQ(vec[i], 100 + i);
   }
+}
+
+TEST_CASE("append_bytes_packs_and_grows")
+{
+  InlinedVector<uint32_t, 2> vec;
+  vec.push_back(5);
+
+  // 9 bytes take 3 elements and move the vector to the heap
+  char const bytes[] = "abcdefghi";
+  vec.append_bytes(bytes, 9);
+  REQUIRE_EQ(vec.size(), 4);
+  REQUIRE_EQ(vec[0], 5u);
+  REQUIRE_EQ(std::memcmp(vec.data() + 1, bytes, 9), 0);
+
+  // the unused bytes of the last element are zeroed
+  char const zeros[3] = {};
+  REQUIRE_EQ(std::memcmp(reinterpret_cast<char const*>(vec.data() + 1) + 9, zeros, 3), 0);
+
+  vec.append_bytes(bytes, 0);
+  REQUIRE_EQ(vec.size(), 4);
 }
 
 TEST_CASE("zero_value_storage")
