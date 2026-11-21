@@ -162,16 +162,8 @@ public:
   template <typename TSink, typename... Args>
   std::shared_ptr<TSink> create_sink(std::string const& sink_name, Args&&... args)
   {
-    static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
-
-    fs::path const path = _normalized_file_path<TSink>(sink_name);
-    SinkId const name_id =
-      _make_sink_id<TSink>(path.empty() ? sink_name : detail::file_sink_path_string(path));
-    bool id_only{false};
-    SinkId const sink_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, id_only));
-
-    (void)_reserve_sink_id_for_creation(sink_name, sink_id, name_id, id_only, false);
-    return _create_reserved_sink<TSink>(sink_id, name_id, path, static_cast<Args&&>(args)...);
+    return _create_sink<ExistingSink::Reject, TSink>(
+      sink_name, _normalized_file_path<TSink>(sink_name), static_cast<Args&&>(args)...);
   }
 
   /**
@@ -185,31 +177,36 @@ public:
   template <typename TSink, typename... Args>
   std::shared_ptr<TSink> create_or_get_sink(std::string const& sink_name, Args&&... args)
   {
-    static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
+    return _create_sink<ExistingSink::Return, TSink>(
+      sink_name, _normalized_file_path<TSink>(sink_name), static_cast<Args&&>(args)...);
+  }
 
-    fs::path const path = _normalized_file_path<TSink>(sink_name);
-    SinkId const name_id =
-      _make_sink_id<TSink>(path.empty() ? sink_name : detail::file_sink_path_string(path));
-    bool id_only{false};
-    SinkId const sink_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, id_only));
+  /**
+   * @brief create_sink() for a file sink given by path. On Windows a path can hold characters
+   * that a narrow sink name, decoded with the active code page, cannot.
+   */
+  template <typename TSink, typename... Args>
+  std::shared_ptr<TSink> create_file_sink(fs::path const& file_path, Args&&... args)
+  {
+    static_assert(_is_file_sink<TSink>, "TSink must derive from FileSink");
 
-    std::shared_ptr<Sink> sink = _reserve_sink_id_for_creation(sink_name, sink_id, name_id, id_only, true);
+    fs::path const path = detail::normalize_file_sink_path(file_path);
+    return _create_sink<ExistingSink::Reject, TSink>(detail::file_sink_path_string(path), path,
+                                                     static_cast<Args&&>(args)...);
+  }
 
-#if QUILL_USE_RTTI
-    if (QUILL_UNLIKELY(sink && (dynamic_cast<TSink*>(sink.get()) == nullptr)))
-    {
-      // Callers cast the returned sink to the requested type, so returning a sink of an
-      // incompatible type would be undefined behaviour
-      QUILL_THROW(QuillError{"A sink named \"" + sink_name + "\" already exists with an incompatible type"});
-    }
-#endif
+  /**
+   * @brief create_or_get_sink() for a file sink given by path. On Windows a path can hold
+   * characters that a narrow sink name, decoded with the active code page, cannot.
+   */
+  template <typename TSink, typename... Args>
+  std::shared_ptr<TSink> create_or_get_file_sink(fs::path const& file_path, Args&&... args)
+  {
+    static_assert(_is_file_sink<TSink>, "TSink must derive from FileSink");
 
-    if (sink)
-    {
-      return _downcast_sink<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
-    }
-
-    return _create_reserved_sink<TSink>(sink_id, name_id, path, static_cast<Args&&>(args)...);
+    fs::path const path = detail::normalize_file_sink_path(file_path);
+    return _create_sink<ExistingSink::Return, TSink>(detail::file_sink_path_string(path), path,
+                                                     static_cast<Args&&>(args)...);
   }
 
   /***/
@@ -246,11 +243,15 @@ private:
 #endif
   }
 
+  /** FileSink and the sinks derived from it are registered by their file */
+  template <typename TSink>
+  static constexpr bool _is_file_sink{
+    std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>};
+
   template <typename TSink>
   static SinkId _make_sink_id(std::string id)
   {
-    return {static_cast<std::string&&>(id),
-            _use_separate_file_ids() && _file_sink_id_function<TSink>() != nullptr};
+    return {static_cast<std::string&&>(id), _use_separate_file_ids() && _is_file_sink<TSink>};
   }
 
   template <typename TSink>
@@ -263,7 +264,7 @@ private:
   template <typename TSink, typename TFileSink = FileSink>
   static FileSinkIdFunction _file_sink_id_function()
   {
-    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    if constexpr (_is_file_sink<TSink>)
     {
 #if defined(_WIN32)
       return &TFileSink::_file_sink_id;
@@ -302,7 +303,7 @@ private:
     resolved = false;
 
 #if !defined(_WIN32)
-    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    if constexpr (_is_file_sink<TSink>)
     {
       if (path.is_absolute())
       {
@@ -325,7 +326,7 @@ private:
   template <typename TSink>
   static fs::path _normalized_file_path(std::string const& sink_name)
   {
-    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    if constexpr (_is_file_sink<TSink>)
     {
       return detail::normalize_file_sink_path(fs::path{sink_name});
     }
@@ -337,6 +338,50 @@ private:
 
   SinkManager() = default;
   ~SinkManager() = default;
+
+  enum class ExistingSink
+  {
+    Reject,
+    Return
+  };
+
+  /**
+   * Creates a sink. `path` is the normalized path of a file sink and empty for any other sink.
+   * `sink_name` names the sink in errors. An existing sink is returned only with
+   * ExistingSink::Return, so that create_sink() does not need RTTI to downcast it.
+   */
+  template <ExistingSink existing, typename TSink, typename... Args>
+  std::shared_ptr<TSink> _create_sink(std::string const& sink_name, fs::path const& path, Args&&... args)
+  {
+    static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
+
+    SinkId const name_id =
+      _make_sink_id<TSink>(path.empty() ? sink_name : detail::file_sink_path_string(path));
+    bool id_only{false};
+    SinkId const sink_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, id_only));
+
+    std::shared_ptr<Sink> sink = _reserve_sink_id_for_creation(sink_name, sink_id, name_id, id_only,
+                                                               existing == ExistingSink::Return);
+
+    if constexpr (existing == ExistingSink::Return)
+    {
+      if (sink)
+      {
+#if QUILL_USE_RTTI
+        if (QUILL_UNLIKELY(dynamic_cast<TSink*>(sink.get()) == nullptr))
+        {
+          // Callers cast the returned sink to the requested type, so returning a sink of an
+          // incompatible type would be undefined behaviour
+          QUILL_THROW(QuillError{"A sink named \"" + sink_name + "\" already exists with an incompatible type"});
+        }
+#endif
+
+        return _downcast_sink<TSink>(static_cast<std::shared_ptr<Sink>&&>(sink));
+      }
+    }
+
+    return _create_reserved_sink<TSink>(sink_id, name_id, path, static_cast<Args&&>(args)...);
+  }
 
   /**
    * A file sink id depends on whether its file exists: a symlink resolves to its target only once
@@ -454,7 +499,7 @@ private:
   template <typename TSink, typename... Args>
   static std::shared_ptr<TSink> _create_sink_instance(QUILL_MAYBE_UNUSED fs::path const& path, Args&&... args)
   {
-    if constexpr (std::disjunction_v<std::is_same<FileSink, TSink>, std::is_base_of<FileSink, TSink>>)
+    if constexpr (_is_file_sink<TSink>)
     {
       if constexpr (std::is_constructible_v<TSink, fs::path const&, Args...>)
       {
