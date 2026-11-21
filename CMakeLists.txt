@@ -210,6 +210,8 @@ set(HEADER_FILES
         include/quill/backend/BacktraceStorage.h
         include/quill/backend/ManualBackendWorker.h
         include/quill/backend/NamedArgsFormat.h
+        include/quill/backend/NamedArgsTemplate.h
+        include/quill/backend/NamedArgsTemplateCache.h
         include/quill/backend/PatternFormatter.h
         include/quill/backend/RdtscClock.h
         include/quill/backend/SignalHandler.h

@@ -17,6 +17,7 @@
 #include "quill/backend/BackendWorkerLock.h"
 #include "quill/backend/BacktraceStorage.h"
 #include "quill/backend/NamedArgsFormat.h"
+#include "quill/backend/NamedArgsTemplateCache.h"
 #include "quill/backend/PatternFormatter.h"
 #include "quill/backend/RdtscClock.h"
 #include "quill/backend/ThreadUtilities.h"
@@ -367,12 +368,11 @@ public:
     // survive restarts; only the worker's own scratch state is freed here. The worker thread
     // has already joined above so these members are not concurrently accessed. Reassigning
     // from a fresh empty instance both clears the contents and releases any reserved capacity.
-    _named_args_templates = {};
     _logger_removal_flags = {};
     _removed_loggers = {};
     _active_thread_contexts_cache = {};
     _active_sinks_cache = {};
-    _named_args_format_template = {};
+    _named_args_template_cache.clear();
     _named_arg_value_buffer = fmtquill::memory_buffer{};
     _format_args_store = DynamicFormatArgStore{};
     _dynamic_metric_labels = {};
@@ -1103,8 +1103,8 @@ private:
           else if (runtime_metadata_event)
           {
             // Runtime metadata format strings are user generated and can be unique per call;
-            // caching them would grow _named_args_templates without bound for the lifetime of
-            // the backend, so process them without caching
+            // caching them would grow the cache without bound for the lifetime of the backend, so
+            // process them without caching
             auto const [message_format, arg_names] =
               process_named_args_format_message(transit_event->macro_metadata->message_format());
 
@@ -1113,35 +1113,13 @@ private:
           }
           else
           {
-            // using the message_format as key for lookups
-            _named_args_format_template.assign(transit_event->macro_metadata->message_format());
+            // The format string of a log statement stays at its address, so its rewrite is found
+            // by that address, without copying and hashing the format string of every message
+            NamedArgsTemplate const& named_args_template =
+              _named_args_template_cache.get(transit_event->macro_metadata->message_format());
 
-            if (auto const search = _named_args_templates.find(_named_args_format_template);
-                search != std::cend(_named_args_templates))
-            {
-              // process named args message when we already have parsed the format message once,
-              // and we have the names of each arg cached
-              auto const& [message_format, arg_names] = search->second;
-
-              _populate_formatted_log_message(transit_event, message_format.data());
-              _populate_formatted_named_args(transit_event, arg_names);
-            }
-            else
-            {
-              // process named args log when the message format is processed for the first time
-              // parse name of each arg and stored them to our lookup map
-              auto const [res_it, inserted] = _named_args_templates.try_emplace(
-                _named_args_format_template,
-                process_named_args_format_message(transit_event->macro_metadata->message_format()));
-
-              auto const& [message_format, arg_names] = res_it->second;
-
-              // suppress unused warnings
-              (void)inserted;
-
-              _populate_formatted_log_message(transit_event, message_format.data());
-              _populate_formatted_named_args(transit_event, arg_names);
-            }
+            _populate_formatted_log_message(transit_event, named_args_template.format().data());
+            _populate_formatted_named_args(transit_event, named_args_template.arg_names());
           }
 
           _set_transit_event_mdc(*thread_context, transit_event);
@@ -2424,15 +2402,14 @@ private:
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */
   LogRecord _log_record; /** The record passed to the sinks, refilled for each log statement */
-  std::vector<MetricLabel> _dynamic_metric_labels; /** Runtime metric label scratch storage */
+  NamedArgsTemplateCache _named_args_template_cache; /** Named-args format strings, rewritten once */
+  std::vector<MetricLabel> _dynamic_metric_labels;   /** Runtime metric label scratch storage */
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::vector<std::pair<std::string, std::string>> _mdc_fields; /** MDC set scratch storage */
   std::vector<std::string> _mdc_keys;                           /** MDC erase scratch storage */
-  std::unordered_map<std::string, std::pair<std::string, std::vector<std::pair<std::string, std::string>>>> _named_args_templates; /** Avoid re-formating the same named args log template each time */
   std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */
-  std::string _named_args_format_template;         /** to avoid allocation each time **/
   fmtquill::memory_buffer _named_arg_value_buffer; /** Each named-arg value is formatted here first */
   std::string _process_id;                         /** Id of the current running process **/
   std::string _last_error_notification;
