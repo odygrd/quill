@@ -26,11 +26,11 @@ QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
 
-/** Version Info - When updating VersionMajor please also update the namespace in Attributes.h **/
-inline constexpr uint32_t VersionMajor{14};
-inline constexpr uint32_t VersionMinor{0};
-inline constexpr uint32_t VersionPatch{0};
-inline constexpr uint32_t Version{VersionMajor * 10000 + VersionMinor * 100 + VersionPatch};
+/** Version Info, set by QUILL_VERSION_MAJOR, QUILL_VERSION_MINOR and QUILL_VERSION_PATCH in Attributes.h **/
+inline constexpr uint32_t VersionMajor{QUILL_VERSION_MAJOR};
+inline constexpr uint32_t VersionMinor{QUILL_VERSION_MINOR};
+inline constexpr uint32_t VersionPatch{QUILL_VERSION_PATCH};
+inline constexpr uint32_t Version{QUILL_VERSION};
 
 class Backend
 {
