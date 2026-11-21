@@ -86,7 +86,7 @@ TEST_CASE("runtime_metadata_is_set_again_after_an_allocation_failure")
   runtime_metadata.set(file, first_line, "main", nullptr, "first {}", LogLevel::Info);
   REQUIRE_FALSE(runtime_metadata.macro_metadata.has_named_args());
 
-  // The format string and the line number are replaced before the source location fails to grow
+  // The format string is replaced before the source location fails to grow
   bool failed{false};
   fail_next_allocation = true;
 
@@ -102,8 +102,8 @@ TEST_CASE("runtime_metadata_is_set_again_after_an_allocation_failure")
   fail_next_allocation = false;
   REQUIRE(failed);
 
-  // The backend decodes the record again. The members that the failed call replaced equal the
-  // arguments, which used to keep the macro_metadata of the first call
+  // The backend decodes the record again with the same arguments. The members that the failed
+  // call replaced equal them, and the metadata must still be built for them
   runtime_metadata.set(file, second_line, "main", nullptr, "second {name}", LogLevel::Info);
   REQUIRE_EQ(std::string{runtime_metadata.macro_metadata.message_format()}, "second {name}");
   REQUIRE(runtime_metadata.macro_metadata.has_named_args());

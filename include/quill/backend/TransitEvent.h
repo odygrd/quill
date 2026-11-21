@@ -177,20 +177,9 @@ struct TransitEvent
     QUILL_ATTRIBUTE_HOT void set(char const* file, uint32_t line, char const* function,
                                  char const* in_tags, char const* in_fmt, LogLevel log_level)
     {
-      if ((macro_metadata.event() == MacroMetadata::Event::Log) && (macro_metadata.log_level() == log_level) &&
-          (fmt == _safe_string(in_fmt)) && (function_name == _safe_string(function)) &&
-          (tags == _safe_string(in_tags)) && _source_location_matches(file, line))
-      {
-        return;
-      }
-
-      // Before any member changes, in case an assignment throws: the record is then decoded
-      // again, and that call must not find the half-updated members equal to its arguments and
-      // keep a macro_metadata that still describes the old ones
-      macro_metadata = MacroMetadata{};
-
+      // Not skipped when the slot already holds the same metadata: an application interleaves
+      // many log statements, so a slot rarely gets the same one twice in a row
       fmt.assign(_safe_string(in_fmt));
-      line_number = line;
       _set_source_location(file, line);
       function_name.assign(_safe_string(function));
       tags.assign(_safe_string(in_tags));
@@ -207,8 +196,7 @@ struct TransitEvent
         tags(other.tags),
         macro_metadata(source_location.data(), function_name.data(), fmt.data(),
                        tags.empty() ? nullptr : tags.data(), other.macro_metadata.log_level(),
-                       MacroMetadata::Event::Log),
-        line_number(other.line_number)
+                       MacroMetadata::Event::Log)
     {
       // Recreate macro_metadata to point to our own strings
     }
@@ -221,7 +209,6 @@ struct TransitEvent
         source_location = other.source_location;
         function_name = other.function_name;
         tags = other.tags;
-        line_number = other.line_number;
 
         // Recreate macro_metadata to point to our own strings
         macro_metadata = MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
@@ -239,34 +226,11 @@ struct TransitEvent
     std::string function_name;
     std::string tags;
     MacroMetadata macro_metadata;
-    uint32_t line_number{0};
 
   private:
     QUILL_NODISCARD static char const* _safe_string(char const* value) noexcept
     {
       return value ? value : "";
-    }
-
-    QUILL_NODISCARD bool _source_location_matches(char const* file, uint32_t line) const noexcept
-    {
-      if (!file || (file[0] == '\0' && line == 0))
-      {
-        return source_location.empty();
-      }
-
-      if (line_number != line)
-      {
-        return false;
-      }
-
-      std::string_view file_path{file};
-      constexpr size_t max_file_path_length{(std::numeric_limits<uint16_t>::max)()};
-      if (QUILL_UNLIKELY(file_path.size() > max_file_path_length))
-      {
-        file_path.remove_prefix(file_path.size() - max_file_path_length);
-      }
-
-      return macro_metadata.full_path() == file_path;
     }
 
     void _set_source_location(char const* file, uint32_t line)
