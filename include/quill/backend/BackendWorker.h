@@ -957,7 +957,7 @@ private:
       if (QUILL_UNLIKELY(!_rdtsc_clock.load(std::memory_order_relaxed)))
       {
         // Lazy initialization of rdtsc clock on the backend thread only if the user decides to use
-        // it. The clock requires a few seconds to init as it is taking samples first.
+        // it. Calibrating the tick rate the first time takes about 10 ms.
         if (!_rdtsc_clock_owner)
         {
           _rdtsc_clock_owner = std::make_unique<RdtscClock>(_options.rdtsc_resync_interval);
