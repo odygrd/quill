@@ -654,6 +654,8 @@ public:
    *
    * @param sleep_duration_ns The duration in nanoseconds to sleep between retries when the
    * blocking queue is full, and between checks for the flush completion. Default is 100 nanoseconds.
+   * The first checks yield instead of sleeping. A sleep cannot be shorter than the OS timer
+   * granularity, about 50 us on Linux and 1 ms or more on Windows. 0 always yields.
    *
    * @warning Do not call this function from the destructor of a static object. This may lead to application crashes if the thread-local ThreadContext is destroyed before the static object invoking `flush_log`.
    * @note This function should only be called when the backend worker is running after Backend::start(...)
@@ -663,7 +665,9 @@ public:
    *       then you should ideally avoid calling this function as you can block for long period of times unless
    *       you use another thread that calls Backend::notify()
    */
-  void flush_log(uint32_t sleep_duration_ns = 100)
+  // Not inlined: every log statement reaches this through the immediate-flush check, and inlining
+  // the wait loops there costs each call site a stack frame and saved registers on its hot path.
+  QUILL_NOINLINE void flush_log(uint32_t sleep_duration_ns = 100)
   {
     if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
     {
@@ -680,6 +684,7 @@ public:
     std::atomic<bool>* backend_thread_flushed_ptr = &backend_thread_flushed;
 
     // We do not want to drop the message if a dropping queue is used
+    uint32_t attempt{0};
     while (!this->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if constexpr (using_unbounded_queue)
@@ -690,27 +695,14 @@ public:
         }
       }
 
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
 
     // The caller thread keeps checking the flag until the backend thread flushes
+    attempt = 0;
     while (!backend_thread_flushed.load())
     {
-      if (sleep_duration_ns > 0)
-      {
-        detail::sleep_for_ns(sleep_duration_ns);
-      }
-      else
-      {
-        detail::yield_thread();
-      }
+      detail::backoff_wait(attempt, sleep_duration_ns);
     }
   }
 
