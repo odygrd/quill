@@ -578,13 +578,18 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    constexpr int max_retries = 3;
-    constexpr int retry_delay_ms = 200;
+    // Retry only while another process holds the file, e.g. an antivirus scan. Other errors such
+    // as a missing directory are not transient and must not stall the backend thread.
+    constexpr int max_attempts = 3;
+    constexpr uint64_t retry_delay_ns = 200ull * 1'000'000ull;
     OpenedHandleGuard opened_handle_guard;
     DWORD last_error = 0;
+    int attempts = 0;
 
-    for (int attempt = 0; attempt < max_retries; ++attempt)
+    while (attempts < max_attempts)
     {
+      ++attempts;
+
       DWORD creation_disposition = OPEN_ALWAYS;
       if (!mode.empty() && mode[0] == 'w')
       {
@@ -609,22 +614,23 @@ protected:
         }
       }
 
-      if (opened_handle_guard.handle != INVALID_HANDLE_VALUE)
+      bool const is_transient = (last_error == ERROR_SHARING_VIOLATION) || (last_error == ERROR_LOCK_VIOLATION);
+      if ((opened_handle_guard.handle != INVALID_HANDLE_VALUE) || !is_transient)
       {
         break;
       }
 
-      if (attempt < max_retries - 1)
+      if (attempts < max_attempts)
       {
-        detail::sleep_for_ns(static_cast<uint64_t>(retry_delay_ms) * 1'000'000ull);
+        detail::sleep_for_ns(retry_delay_ns);
       }
     }
 
     if (opened_handle_guard.handle == INVALID_HANDLE_VALUE)
     {
-      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} +
-                             std::to_string(max_retries) + " attempts, path: " + filename.string() +
-                             " mode: " + mode + " GetLastError: " + std::to_string(last_error)});
+      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempts) +
+                             " attempt(s), path: " + filename.string() + " mode: " + mode +
+                             " GetLastError: " + std::to_string(last_error)});
     }
 
     _native_write_buffer_cap = _native_write_buffer_capacity();
@@ -951,49 +957,38 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    constexpr int max_retries = 3;
-    constexpr int retry_delay_ms = 200;
     std::unique_ptr<char[]> write_buffer;
     OpenedFileGuard opened_file_guard;
 
-    for (int attempt = 0; attempt < max_retries; ++attempt)
+    int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
+    flags |= (!mode.empty() && mode[0] == 'w') ? O_TRUNC : O_APPEND;
+
+    // Retry only on EINTR. Other errors such as a missing directory are not transient, and
+    // sleeping between attempts would stall the backend thread on every recovery attempt.
+    int fd{-1};
+    do
     {
-      int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
-      flags |= (!mode.empty() && mode[0] == 'w') ? O_TRUNC : O_APPEND;
+      // Let the process umask decide the permissions, as fopen() does.
+      fd = ::open(filename.string().data(), flags, 0666);
+    } while (fd == -1 && errno == EINTR);
 
-      // Retry on EINTR — a signal delivered during open() causes it to fail transiently.
-      int fd{-1};
-      do
+    if (fd != -1)
+    {
+      opened_file_guard.file = ::fdopen(fd, mode.data());
+      if (!opened_file_guard.file)
       {
-        // Let the process umask decide the permissions, as fopen() does.
-        fd = ::open(filename.string().data(), flags, 0666);
-      } while (fd == -1 && errno == EINTR);
-
-      if (fd != -1)
-      {
-        opened_file_guard.file = ::fdopen(fd, mode.data());
-        if (!opened_file_guard.file)
-        {
-          ::close(fd);
-        }
-      }
-
-      if (opened_file_guard.file)
-      {
-        break;
-      }
-
-      if (attempt < max_retries - 1)
-      {
-        detail::sleep_for_ns(static_cast<uint64_t>(retry_delay_ms) * 1'000'000ull);
+        int const fdopen_errno = errno;
+        ::close(fd);
+        errno = fdopen_errno;
       }
     }
 
     if (!opened_file_guard.file)
     {
-      QUILL_THROW(QuillError{std::string{"fopen failed after "} + std::to_string(max_retries) +
-                             " attempts, path: " + filename.string() + " mode: " + mode +
-                             " errno: " + std::to_string(errno) + " error: " + std::strerror(errno)});
+      // Building the message can change errno
+      int const open_errno = errno;
+      QUILL_THROW(QuillError{std::string{"fopen failed, path: "} + filename.string() + " mode: " + mode +
+                             " errno: " + std::to_string(open_errno) + " error: " + std::strerror(open_errno)});
     }
 
     if (_config.write_buffer_size() != 0)
