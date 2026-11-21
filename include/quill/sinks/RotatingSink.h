@@ -421,7 +421,7 @@ private:
   /***/
   void _size_rotation(size_t log_msg_size, uint64_t record_timestamp_ns)
   {
-    size_t const max_file_size = _config.rotation_max_file_size();
+    uint64_t const max_file_size = _config.rotation_max_file_size();
     if ((this->_file_size > max_file_size) || (log_msg_size > (max_file_size - this->_file_size)))
     {
       _rotate_files(record_timestamp_ns);
@@ -779,16 +779,16 @@ private:
   }
 
   /** Size of the open file from its handle, which, unlike the path, needs no fsync to be current. */
-  QUILL_NODISCARD size_t _get_open_file_size() const noexcept
+  QUILL_NODISCARD uint64_t _get_open_file_size() const noexcept
   {
 #if defined(_WIN32)
     LARGE_INTEGER size{};
-    return ::GetFileSizeEx(this->_native_file_handle, &size) ? static_cast<size_t>(size.QuadPart) : 0;
+    return ::GetFileSizeEx(this->_native_file_handle, &size) ? static_cast<uint64_t>(size.QuadPart) : 0;
 #else
     struct stat file_stat
     {
     };
-    return (::fstat(fileno(this->_file), &file_stat) == 0) ? static_cast<size_t>(file_stat.st_size) : 0;
+    return (::fstat(fileno(this->_file), &file_stat) == 0) ? static_cast<uint64_t>(file_stat.st_size) : 0;
 #endif
   }
 
@@ -822,15 +822,11 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static size_t _get_file_size(fs::path const& filename)
+  QUILL_NODISCARD static uint64_t _get_file_size(fs::path const& filename)
   {
     std::error_code ec;
-    auto const size = fs::file_size(filename, ec);
-    if (ec)
-    {
-      return 0;
-    }
-    return static_cast<size_t>(size);
+    uint64_t const size = fs::file_size(filename, ec);
+    return ec ? 0 : size;
   }
 
   struct ParsedRotatedFileInfo

@@ -12,7 +12,9 @@
 #include <stdexcept>
 #include <string>
 
-#if !defined(_WIN32)
+#if defined(_WIN32)
+  #include <winioctl.h>
+#else
   #include <sys/stat.h>
 #endif
 
@@ -3871,6 +3873,47 @@ TEST_CASE("rotating_file_sink_date_append_mode")
     fs::path final_backup_file = final_cleanup_pattern + "." + std::to_string(i) + ".log";
     testing::remove_file(final_backup_file);
   }
+}
+
+/***/
+TEST_CASE("rotating_file_sink_preserves_four_gib_at_startup")
+{
+  // Only a 32-bit build, where size_t is 32 bits, would misread this file size
+#if defined(_WIN32)
+  fs::path const filename{"rotating_file_sink_four_gib.log"};
+  fs::path const backup{"rotating_file_sink_four_gib.1.log"};
+  constexpr uint64_t file_size{1ull << 32};
+  HANDLE const file{::CreateFileW(filename.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                  FILE_ATTRIBUTE_NORMAL, nullptr)};
+  REQUIRE(file != INVALID_HANDLE_VALUE);
+
+  DWORD returned{0};
+  LARGE_INTEGER end{};
+  end.QuadPart = static_cast<LONGLONG>(file_size);
+  bool const sparse{::DeviceIoControl(file, FSCTL_SET_SPARSE, nullptr, 0, nullptr, 0, &returned, nullptr) != 0};
+  bool const resized{sparse && ::SetFilePointerEx(file, end, nullptr, FILE_BEGIN) && ::SetEndOfFile(file)};
+  ::CloseHandle(file);
+  if (!sparse)
+  {
+    // Avoid allocating 4 GiB on a filesystem without sparse files.
+    fs::remove(filename);
+    return;
+  }
+  REQUIRE(resized);
+
+  RotatingFileSinkConfig config;
+  config.set_open_mode('w');
+  config.set_rotation_max_file_size(1024);
+  config.set_rotation_on_creation(true);
+  {
+    RotatingFileSink sink{filename, config};
+    REQUIRE_EQ(fs::file_size(backup), file_size);
+    REQUIRE_EQ(fs::file_size(filename), 0u);
+  }
+
+  fs::remove(filename);
+  fs::remove(backup);
+#endif
 }
 
 /***/
