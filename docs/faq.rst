@@ -94,6 +94,12 @@ If the format string is malformed:
 
 If ``BackendOptions::error_notifier`` is set to ``{}``, those callback notifications are disabled, but the fallback log entry is still written to the sink output.
 
+This fallback relies on C++ exceptions. In a build with exceptions disabled (``-fno-exceptions``
+with ``QUILL_NO_EXCEPTIONS``), ``fmt`` cannot report the error and the backend calls ``abort()``
+on a format string that is malformed or does not match its arguments, including a string literal.
+Check the format strings of such builds before deploying them, and do not log format strings
+supplied at runtime.
+
 Logging Different Types
 ------------------------
 

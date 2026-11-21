@@ -80,7 +80,7 @@ To completely disable these notifications, set the error notifier to an empty fu
     quill::BackendOptions backend_options;
     backend_options.error_notifier = {};  // Disable notifications
 
-This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output.
+This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output. Builds with exceptions disabled abort instead, see "What happens if my format string is invalid?" in the FAQ.
 
 **Mixed Hot/Cold Path Optimization**
 
