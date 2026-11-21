@@ -294,8 +294,10 @@ public:
    * in managing the backend worker outside the provided mechanisms.
    *
    * Important notes:
-   *   - Do not use this to run the library in a single threaded application. This will lead to inefficiencies.
-   *     The design of this logging library assumes that the backend worker operates in a separate thread from the frontend threads that issue log statements.
+   *   - It can drive the backend from a thread the application already has, even its only thread,
+   *     by calling `poll_one()`. The frontend queues are designed for a producer and a consumer on
+   *     different threads, so running both on one thread works but pays for synchronization it
+   *     does not need. Prefer `Backend::start()` when it fits the threading model.
    *   - The thread running the `ManualBackendWorker` can log, but it must not use backend-waiting
    *     flush paths from that same thread. See `ManualBackendWorker` for the manual-backend
    *     threading contract.
@@ -305,14 +307,15 @@ public:
    *     and task pools. In that mode, worker operations may run on different threads but must never
    *     overlap, and the caller must provide a happens-before relationship between successive calls.
    *     See `ManualBackendWorker` for the reduced backend-thread checks in that mode.
-   *   - Call `ManualBackendWorker::shutdown()` explicitly after polling has finished. Do not rely on
-   *     the `ManualBackendWorker` destructor for shutdown ordering.
+   *   - Call `ManualBackendWorker::shutdown()` explicitly after polling has finished. It drains the
+   *     pending messages first unless `BackendOptions::wait_for_queues_to_empty_before_exit` is
+   *     false. Do not rely on the `ManualBackendWorker` destructor for shutdown ordering.
    *   - The built-in signal handler is not set up with `ManualBackendWorker`. If signal handling is
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
    *     See the `start<FrontendOptions>(BackendOptions, SignalHandlerOptions)` implementation for guidance on how to do this.
    *     Signal-handler logging and flushing are not supported when thread migration is enabled.
-   *   - The following options are not supported when using `ManualBackendWorker`: `cpu_affinity`,
-   *     `thread_name`, `sleep_duration`, and `enable_yield_when_idle`.
+   *   - `cpu_affinity` and `thread_name` are ignored, and `init()` forces `sleep_duration = 0` and
+   *     `enable_yield_when_idle = false`, so polling never sleeps or yields the calling thread.
    *   - Avoid performing very heavy tasks in your custom thread. Significant delays in calling `poll()`
    *     can lead to the SPSC queues of the frontend threads becoming full. When this happens, the
    *     frontend threads may need to allocate additional memory on the hot path.

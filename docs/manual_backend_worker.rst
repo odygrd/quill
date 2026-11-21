@@ -20,7 +20,7 @@ The default and recommended mode assigns the manual backend worker to one dedica
 2. Call :cpp:func:`Backend::acquire_manual_backend_worker()` exactly once for the process.
 3. Call ``init()`` on that same thread.
 4. Periodically call ``poll()`` or ``poll(timeout)`` on that same thread.
-5. Before the thread exits, call ``poll()`` one last time to drain pending log messages, then call ``shutdown()`` on that same thread.
+5. Before the thread exits, call ``shutdown()`` on that same thread. It drains pending log messages first unless ``BackendOptions::wait_for_queues_to_empty_before_exit`` is false.
 
 Example
 -------
@@ -43,6 +43,8 @@ Important Rules
   enabled, the implicit flush is skipped for log calls from the manual backend thread.
 - ``Backend::acquire_manual_backend_worker()`` is mutually exclusive with :cpp:func:`Backend::start()`. You can only choose one model per process.
 - The built-in signal handler setup is not performed for ``ManualBackendWorker``.
+- ``BackendOptions::cpu_affinity`` and ``BackendOptions::thread_name`` are ignored, since Quill does
+  not create the thread.
 
 Thread Migration
 ----------------
