@@ -36,8 +36,6 @@ class LoggerBase;
 /***/
 struct TransitEvent
 {
-  using FormatBuffer = fmtquill::basic_memory_buffer<char, 88>;
-
   struct RuntimeMetadata;
 
   /***/
@@ -59,18 +57,18 @@ struct TransitEvent
   TransitEvent(TransitEvent&& other) noexcept = default;
   TransitEvent& operator=(TransitEvent&& other) noexcept = default;
 
-  /***/
+  /**
+   * Copies the event to `other`, except for its formatted message: `other` refers to the message
+   * of this event, which is released with this event. A copy that is kept for longer needs a
+   * message of its own, see BacktraceStorage::store().
+   */
   void copy_to(TransitEvent& other) const
   {
     other.timestamp = timestamp;
     other.macro_metadata = macro_metadata;
     other.logger_base = logger_base;
+    other.formatted_msg = formatted_msg;
     other.event_payload = event_payload;
-
-    // manually copy the fmt::buffer
-    other.formatted_msg->clear();
-    other.formatted_msg->reserve(formatted_msg->size());
-    other.formatted_msg->append(*formatted_msg);
 
     if (extra_data)
     {
@@ -288,7 +286,12 @@ struct TransitEvent
   uint64_t timestamp{0};
   MacroMetadata const* macro_metadata{nullptr};
   LoggerBase* logger_base{nullptr};
-  std::unique_ptr<FormatBuffer> formatted_msg{std::make_unique<FormatBuffer>()}; /** buffer for message **/
+
+  /**
+   * The formatted message. An event does not own it: it is stored in the MessageArena of the
+   * TransitEventBuffer or BacktraceStorage that holds the event, and released with the event.
+   */
+  std::string_view formatted_msg;
   std::unique_ptr<ExtraData> extra_data; /** A unique ptr to save space as these fields not always used */
   std::variant<std::monostate, std::atomic<bool>*, double> event_payload{
     std::monostate{}}; /** This is only used in the case of Event::Flush or Event::Metric **/

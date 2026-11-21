@@ -6,11 +6,15 @@
 
 #pragma once
 
+#include "quill/backend/MessageArena.h"
 #include "quill/backend/TransitEvent.h"
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
+#include "quill/bundled/fmt/base.h"
+
 #ifndef QUILL_MODULE
+  #include <cstddef>
   #include <cstdint>
   #include <functional>
   #include <string>
@@ -33,25 +37,36 @@ class BacktraceStorage
 public:
   BacktraceStorage() = default;
 
-  /***/
-  void store(TransitEvent transit_event, std::string_view const& thread_id, std::string_view const& thread_name)
+  /**
+   * Stores a copy of the event and of its formatted message, as the transit event and the memory
+   * of its message are reused. When the storage is full the copy replaces the oldest stored event.
+   */
+  void store(TransitEvent const& transit_event, std::string_view const& thread_id, std::string_view const& thread_name)
   {
     if (_capacity == 0)
     {
       return;
     }
 
+    StoredTransitEvent stored{std::string{thread_id}, std::string{thread_name}, TransitEvent{}};
+    transit_event.copy_to(stored.transit_event);
+
+    fmtquill::detail::buffer<char>& formatted_msg = _message_arena.begin_message();
+    formatted_msg.append(transit_event.formatted_msg.data(),
+                         transit_event.formatted_msg.data() + transit_event.formatted_msg.size());
+    stored.transit_event.formatted_msg = _message_arena.commit_message();
+
     if (_stored_events.size() < _capacity)
     {
-      // We are still growing the vector to max capacity
-      _stored_events.emplace_back(std::string{thread_id}, std::string{thread_name}, std::move(transit_event));
+      // We are still growing the vector to max capacity, which set_capacity() has reserved
+      _stored_events.push_back(std::move(stored));
     }
     else
     {
-      // Store the object in the vector, replacing the previous
-      StoredTransitEvent& ste = _stored_events[_index];
-
-      ste = StoredTransitEvent{std::string{thread_id}, std::string{thread_name}, std::move(transit_event)};
+      // Store the object in the vector, replacing the oldest one, whose message is the oldest
+      // of the arena
+      _message_arena.pop_front();
+      _stored_events[_index] = std::move(stored);
 
       // Update the index wrapping around the vector capacity
       if (_index < _capacity - 1)
@@ -99,15 +114,13 @@ public:
       // Clear before propagating, otherwise the records dispatched before the failure would be
       // written again by the next flush. The remaining records are dropped and the error is
       // reported through the backend error notifier
-      _stored_events.clear();
-      _index = 0;
+      _clear();
       throw;
     }
 #endif
 
     // finally, clean all messages
-    _stored_events.clear();
-    _index = 0;
+    _clear();
   }
 
   /***/
@@ -115,14 +128,23 @@ public:
   {
     if (_capacity != capacity)
     {
+      // Reserved first: when it throws the storage is unchanged, and setting the capacity again
+      // reserves again. store() relies on the reservation, as it adds an event after its message.
+      _stored_events.reserve(capacity);
+      _clear();
       _capacity = capacity;
-      _index = 0;
-      _stored_events.clear();
-      _stored_events.reserve(_capacity);
     }
   }
 
 private:
+  /** Removes the stored events and frees the memory of their messages */
+  void _clear() noexcept
+  {
+    _stored_events.clear();
+    _message_arena.reset();
+    _index = 0;
+  }
+
   struct StoredTransitEvent
   {
     StoredTransitEvent(std::string stored_thread_id, std::string stored_thread_name, TransitEvent event)
@@ -142,9 +164,15 @@ private:
   };
 
 private:
+  /** The formatted messages are stored in blocks of this many bytes */
+  static constexpr size_t message_block_capacity{4u * 1024u};
+
   uint32_t _capacity{0};
   uint32_t _index{0};
   std::vector<StoredTransitEvent> _stored_events;
+
+  /** The formatted messages of the stored events, from the oldest event to the newest */
+  MessageArena _message_arena{message_block_capacity};
 };
 } // namespace detail
 

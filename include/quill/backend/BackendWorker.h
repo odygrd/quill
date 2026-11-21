@@ -921,10 +921,6 @@ private:
       transit_event,
       "transit_event is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
 
-    QUILL_ASSERT(
-      transit_event->formatted_msg,
-      "formatted_msg is nullptr in BackendWorker::_populate_transit_event_from_frontend_queue()");
-
     static_assert(sizeof(FormatArgsDecoder) == sizeof(uintptr_t),
                   "FormatArgsDecoder must fit in uintptr_t for packed header decoding");
     static_assert(sizeof(uintptr_t) <= sizeof(uint64_t),
@@ -1112,9 +1108,14 @@ private:
 
           MacroMetadata const& macro_metadata = *transit_event->macro_metadata;
 
+          // The message is formatted where it is kept, after the messages of the buffered events
+          fmtquill::detail::buffer<char>& formatted_msg =
+            thread_context->_transit_event_buffer->back_message();
+
           if (!macro_metadata.has_named_args())
           {
-            _populate_formatted_log_message(transit_event, macro_metadata.message_format(), nullptr);
+            _populate_formatted_log_message(transit_event, formatted_msg,
+                                            macro_metadata.message_format(), nullptr);
           }
           else if (runtime_metadata_event)
           {
@@ -1125,7 +1126,7 @@ private:
               process_named_args_format_message(macro_metadata.message_format());
 
             (void)_populate_formatted_named_args(transit_event, arg_names);
-            _populate_formatted_log_message(transit_event, message_format, nullptr);
+            _populate_formatted_log_message(transit_event, formatted_msg, message_format, nullptr);
             _sanitize_named_arg_values(transit_event);
           }
           else
@@ -1139,7 +1140,7 @@ private:
               _populate_formatted_named_args(transit_event, named_args_template.arg_names());
 
             _populate_formatted_log_message(
-              transit_event, named_args_template.format(),
+              transit_event, formatted_msg, named_args_template.format(),
               (has_all_values && named_args_template.can_build_from_values()) ? &named_args_template : nullptr);
 
             _sanitize_named_arg_values(transit_event);
@@ -1347,13 +1348,10 @@ private:
         if (transit_event.logger_base->_backtrace_storage)
         {
           // this is a backtrace log and we will store the transit event
-          // we need to pass a copy of transit_event here and not move the existing
+          // the storage keeps a copy of transit_event and not the existing
           // the transit events are reused
-          TransitEvent transit_event_copy;
-          transit_event.copy_to(transit_event_copy);
-
           transit_event.logger_base->_backtrace_storage->store(
-            std::move(transit_event_copy), thread_context.thread_id(), thread_context.thread_name());
+            transit_event, thread_context.thread_id(), thread_context.thread_name());
         }
         else
         {
@@ -1372,8 +1370,8 @@ private:
         transit_event.logger_base->_backtrace_storage = std::make_shared<BacktraceStorage>();
       }
 
-      transit_event.logger_base->_backtrace_storage->set_capacity(static_cast<uint32_t>(std::stoul(
-        std::string{transit_event.formatted_msg->begin(), transit_event.formatted_msg->end()})));
+      transit_event.logger_base->_backtrace_storage->set_capacity(
+        static_cast<uint32_t>(std::stoul(std::string{transit_event.formatted_msg})));
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::FlushBacktrace)
     {
@@ -1494,8 +1492,7 @@ private:
     record.log_level_short_code = log_level_to_string(
       record.log_level, _options.log_level_short_codes.data(), _options.log_level_short_codes.size());
     record.named_args = transit_event.get_named_args();
-    record.log_message =
-      std::string_view{transit_event.formatted_msg->data(), transit_event.formatted_msg->size()};
+    record.log_message = transit_event.formatted_msg;
     record.mdc = transit_event.mdc();
 
     _write_log_statement(*transit_event.logger_base, record);
@@ -2297,15 +2294,18 @@ private:
   }
 
   /**
+   * @param transit_event the event of the message
+   * @param formatted_msg the buffer that the message is written to
    * @param message_format the format string, with positional fields
    * @param named_args_template when not nullptr, the message is built from the values of the
    * event's named arguments instead of formatting the arguments again
    */
   QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event,
+                                                           fmtquill::detail::buffer<char>& formatted_msg,
                                                            fmtquill::string_view message_format,
                                                            NamedArgsTemplate const* named_args_template)
   {
-    transit_event->formatted_msg->clear();
+    formatted_msg.clear();
 
     bool const is_rate_limited = transit_event->macro_metadata->is_rate_limited();
     QUILL_ASSERT(!is_rate_limited || (_format_args_store.size() > 0),
@@ -2316,24 +2316,23 @@ private:
     {
       if (named_args_template)
       {
-        named_args_template->build_from_values(*transit_event->formatted_msg,
-                                               transit_event->extra_data->named_args);
+        named_args_template->build_from_values(formatted_msg, transit_event->extra_data->named_args);
       }
       else
       {
-        fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), message_format,
+        fmtquill::vformat_to(std::back_inserter(formatted_msg), message_format,
                              fmtquill::basic_format_args<fmtquill::format_context>{
                                _format_args_store.data(), user_arg_count});
       }
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
       {
-        sanitize_non_printable_chars(*transit_event->formatted_msg, _printable_chars);
+        sanitize_non_printable_chars(formatted_msg, _printable_chars);
       }
 
       if (is_rate_limited)
       {
-        fmtquill::vformat_to(std::back_inserter(*transit_event->formatted_msg), " ({}x)",
+        fmtquill::vformat_to(std::back_inserter(formatted_msg), " ({}x)",
                              fmtquill::basic_format_args<fmtquill::format_context>{
                                _format_args_store.data() + user_arg_count, 1});
       }
@@ -2341,24 +2340,24 @@ private:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      transit_event->formatted_msg->clear();
+      formatted_msg.clear();
       std::string const error =
         fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
                          transit_event->macro_metadata->message_format(),
                          transit_event->macro_metadata->short_source_location(), e.what());
 
-      transit_event->formatted_msg->append(error);
+      formatted_msg.append(error.data(), error.data() + error.size());
       _notify_error(error);
     }
     QUILL_CATCH_ALL()
     {
-      transit_event->formatted_msg->clear();
+      formatted_msg.clear();
       std::string const error = fmtquill::format(
         R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
         transit_event->macro_metadata->message_format(),
         transit_event->macro_metadata->short_source_location(), "Caught unhandled exception.");
 
-      transit_event->formatted_msg->append(error);
+      formatted_msg.append(error.data(), error.data() + error.size());
       _notify_error(error);
     }
 #endif
