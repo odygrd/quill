@@ -344,6 +344,10 @@ TEST_CASE("parse_log_level_from_env")
   }
   REQUIRE(exception_thrown);
 
+  std::string const oversized_level(128, 'x');
+  set_env("QUILL_LOG_LEVEL", oversized_level.c_str());
+  REQUIRE_THROWS_AS(lm.parse_log_level_from_env(), quill::QuillError);
+
   // "backtrace" parses as a LogLevel but is internal-only; it must be rejected here with the
   // environment variable named in the error, instead of set_log_level() throwing later after
   // the logger has already been registered
