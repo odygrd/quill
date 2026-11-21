@@ -4,10 +4,16 @@
 #include "quill/core/BoundedSPSCQueue.h"
 #include "quill/core/QuillError.h"
 
+#include <cstddef>
 #include <cstring>
 #include <limits>
 #include <thread>
 #include <vector>
+
+#if defined(__linux__)
+  #include <sys/mman.h>
+  #include <unistd.h>
+#endif
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)
   #pragma warning(push)
@@ -189,6 +195,36 @@ TEST_CASE("oversized_capacity_throws_before_allocating")
   REQUIRE_THROWS_AS(BoundedSPSCQueue{oversized_capacity}, quill::QuillError);
 }
 #endif
+
+/***/
+TEST_CASE("bounded_queue_prefaults_the_start_of_its_scratch_space")
+{
+#if !defined(__linux__)
+  return;
+#else
+  // A record that crosses the ring boundary is written to the scratch space after the logical
+  // queue region. The first one must not have to fault the page of that space in
+  constexpr size_t capacity{64u * 1024u};
+  BoundedSPSCQueue buffer{capacity};
+
+  std::byte* const storage = buffer.prepare_write(8u);
+  REQUIRE(storage);
+
+  long const page_size = ::sysconf(_SC_PAGESIZE);
+  REQUIRE_GT(page_size, 0);
+
+  // The last page of the logical queue region
+  unsigned char resident{0};
+  REQUIRE_EQ(
+    ::mincore(storage + capacity - static_cast<size_t>(page_size), static_cast<size_t>(page_size), &resident), 0);
+  REQUIRE_EQ(resident & 1u, 1u);
+
+  // The first page of the scratch space
+  resident = 0;
+  REQUIRE_EQ(::mincore(storage + capacity, static_cast<size_t>(page_size), &resident), 0);
+  REQUIRE_EQ(resident & 1u, 1u);
+#endif
+}
 
 TEST_SUITE_END();
 
