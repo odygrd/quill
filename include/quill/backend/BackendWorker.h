@@ -856,6 +856,14 @@ private:
     return thread_context->_transit_event_buffer->size();
   }
 
+  /** Reads word `index` of a record header: timestamp, metadata, logger and decoder or value */
+  QUILL_NODISCARD static uint64_t _load_header_word(std::byte const* header, size_t index) noexcept
+  {
+    uint64_t word;
+    std::memcpy(&word, header + (index * sizeof(uint64_t)), sizeof(word));
+    return word;
+  }
+
   /***/
   QUILL_ATTRIBUTE_HOT bool _populate_transit_event_from_frontend_queue(std::byte*& read_pos,
                                                                        ThreadContext* thread_context,
@@ -906,14 +914,17 @@ private:
     static_assert(sizeof(uintptr_t) <= sizeof(uint64_t),
                   "Packed header decoding requires pointers to fit in 64 bits");
 
-    uint64_t header_words[4];
-    std::memcpy(header_words, read_pos, sizeof(header_words));
-    read_pos += sizeof(header_words);
+    // Load each header word straight from the queue. Copying the header to a local array first
+    // made GCC reload the middle words from the stack with one wider load, which stalls on store
+    // forwarding.
+    std::byte const* const header = read_pos;
+    read_pos += header_size;
 
-    transit_event->timestamp = header_words[0];
+    transit_event->timestamp = _load_header_word(header, 0);
     transit_event->macro_metadata =
-      reinterpret_cast<MacroMetadata const*>(static_cast<uintptr_t>(header_words[1]));
-    transit_event->logger_base = reinterpret_cast<LoggerBase*>(static_cast<uintptr_t>(header_words[2]));
+      reinterpret_cast<MacroMetadata const*>(static_cast<uintptr_t>(_load_header_word(header, 1)));
+    transit_event->logger_base =
+      reinterpret_cast<LoggerBase*>(static_cast<uintptr_t>(_load_header_word(header, 2)));
 
     QUILL_ASSERT(transit_event->logger_base,
                  "transit_event->logger_base is nullptr after memcpy from queue");
@@ -1057,7 +1068,7 @@ private:
 
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Metric)
     {
-      uintptr_t const decoder_bits = static_cast<uintptr_t>(header_words[3]);
+      uintptr_t const decoder_bits = static_cast<uintptr_t>(_load_header_word(header, 3));
       FormatArgsDecoder format_args_decoder;
       std::memcpy(&format_args_decoder, &decoder_bits, sizeof(format_args_decoder));
 
@@ -1163,8 +1174,9 @@ private:
     }
     else
     {
+      uint64_t const metric_value_bits = _load_header_word(header, 3);
       double metric_value;
-      std::memcpy(&metric_value, &header_words[3], sizeof(metric_value));
+      std::memcpy(&metric_value, &metric_value_bits, sizeof(metric_value));
       transit_event->set_metric_value(metric_value);
     }
 
@@ -2404,6 +2416,9 @@ private:
 
 private:
   friend class quill::ManualBackendWorker;
+
+  /** Every queue record starts with four 64-bit words, see LoggerImpl::_encode_header() */
+  static constexpr size_t header_size{4 * sizeof(uint64_t)};
 
   std::unique_ptr<RdtscClock> _rdtsc_clock_owner;
   std::unique_ptr<BackendWorkerLock> _backend_worker_lock;
