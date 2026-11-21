@@ -134,6 +134,12 @@ public:
           // SinkManager, and LoggerManager through BackendWorker member references.
           (void)detail::MetricManager::instance();
 
+          // Set before installing the handlers, which read the timeout
+          auto& signal_handler_context = detail::SignalHandlerContext::instance();
+          signal_handler_context.logger_name = signal_handler_options.logger_name;
+          signal_handler_context.excluded_logger_substrings = signal_handler_options.excluded_logger_substrings;
+          signal_handler_context.signal_handler_timeout_seconds.store(signal_handler_options.timeout_seconds);
+
 #if defined(_WIN32)
           detail::init_exception_handler<TFrontendOptions>();
           exception_handler_initialized = true;
@@ -149,11 +155,6 @@ public:
           detail::init_signal_handler<TFrontendOptions>(signal_handler_options.catchable_signals);
           signal_handler_initialized = true;
 #endif
-
-          auto& signal_handler_context = detail::SignalHandlerContext::instance();
-          signal_handler_context.logger_name = signal_handler_options.logger_name;
-          signal_handler_context.excluded_logger_substrings = signal_handler_options.excluded_logger_substrings;
-          signal_handler_context.signal_handler_timeout_seconds.store(signal_handler_options.timeout_seconds);
 
           // Run the backend worker thread, we wait here until the thread enters the main loop
           detail::BackendManager::instance().start_backend_thread(backend_options);
@@ -348,7 +349,8 @@ public:
     (void)detail::MetricManager::instance();
 
     std::call_once(
-      detail::BackendManager::instance().get_start_once_flag(), [&manual_backend_worker]() mutable
+      detail::BackendManager::instance().get_start_once_flag(),
+      [&manual_backend_worker]() mutable
       { manual_backend_worker = detail::BackendManager::instance().get_manual_backend_worker(); });
 
     if (!manual_backend_worker)

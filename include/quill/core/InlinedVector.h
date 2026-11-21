@@ -182,26 +182,6 @@ public:
     }
   }
 
-  /**
-   * Assign value at index
-   */
-  QUILL_ATTRIBUTE_HOT void assign(size_t index, value_type value)
-  {
-    if (QUILL_UNLIKELY(index >= _size))
-    {
-      QUILL_THROW(QuillError{"index out of bounds"});
-    }
-
-    if (_capacity == N)
-    {
-      _storage.inline_buffer[index] = value;
-    }
-    else
-    {
-      _storage.heap_buffer[index] = value;
-    }
-  }
-
   QUILL_NODISCARD value_type const* data() const noexcept
   {
     return (_capacity == N) ? _storage.inline_buffer : _storage.heap_buffer;

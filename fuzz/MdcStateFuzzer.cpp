@@ -160,7 +160,8 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
     }
     case 2:
     {
-      state.clear();
+      // The backend handles MdcClear by discarding the state; the next set builds a fresh one
+      state = quill::detail::BackendMdcState{pattern};
       reference.clear();
       require(state.empty());
       require(state.formatted_mdc().empty());

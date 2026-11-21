@@ -121,7 +121,8 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
     fs::create_symlink(leaf_name, symlink_path, ec);
     if (!ec)
     {
-      REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config), file_sink);
+      REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), overwrite_config),
+                 file_sink);
       REQUIRE_EQ(SinkManager::instance().get_sink(symlink_path.string()), file_sink);
       REQUIRE(fs::remove(symlink_path));
     }
@@ -134,11 +135,13 @@ TEST_CASE("file_sink_equivalent_paths_return_same_sink")
       if (fs::exists(alias_path))
       {
         REQUIRE(fs::equivalent(canonical_path, alias_path));
-        REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(alias_path.string(), overwrite_config), file_sink);
+        REQUIRE_EQ(SinkManager::instance().create_or_get_sink<FileSink>(alias_path.string(), overwrite_config),
+                   file_sink);
         REQUIRE_EQ(SinkManager::instance().get_sink(alias_path.string()), file_sink);
-#if !defined(QUILL_NO_EXCEPTIONS)
-        REQUIRE_THROWS_AS(SinkManager::instance().create_sink<FileSink>(alias_path.string(), overwrite_config), QuillError);
-#endif
+  #if !defined(QUILL_NO_EXCEPTIONS)
+        REQUIRE_THROWS_AS(
+          SinkManager::instance().create_sink<FileSink>(alias_path.string(), overwrite_config), QuillError);
+  #endif
       }
     }
 #endif
@@ -319,8 +322,7 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
   fs::path const directory{"sink_manager_case_alias_test"};
   fs::create_directories(directory);
 
-  for (FilenameAppendOption const append_option :
-       {FilenameAppendOption::None, FilenameAppendOption::StartDate})
+  for (FilenameAppendOption const append_option : {FilenameAppendOption::None, FilenameAppendOption::StartDate})
   {
     FileSinkConfig config;
     config.set_open_mode('w');
@@ -330,8 +332,8 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
     fs::path distinct_case_filename;
     uint32_t expected_cleanup_count{1};
     {
-      auto file_sink = std::static_pointer_cast<FileSink>(
-        SinkManager::instance().create_or_get_sink<FileSink>((directory / "case_alias.log").string(), config));
+      auto file_sink = SinkManager::instance().create_or_get_sink<FileSink>(
+        (directory / "case_alias.log").string(), config);
       actual_filename = file_sink->get_filename();
       file_sink->write_log(LogRecord{
         nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
@@ -349,7 +351,7 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
 
       if (!aliases)
       {
-        distinct_case_filename = std::static_pointer_cast<FileSink>(case_sink)->get_filename();
+        distinct_case_filename = case_sink->get_filename();
         ++expected_cleanup_count;
       }
     }
@@ -375,13 +377,12 @@ TEST_CASE("file_sink_windows_extended_path_aliases_return_same_sink")
   fs::path const ordinary_path = directory / "prefix_alias.log";
   std::wstring const ordinary_name = ordinary_path.native();
   fs::path const extended_path{ordinary_name.compare(0, 2, L"\\\\") == 0
-                                ? L"\\\\?\\UNC\\" + ordinary_name.substr(2)
-                                : L"\\\\?\\" + ordinary_name};
+                                 ? L"\\\\?\\UNC\\" + ordinary_name.substr(2)
+                                 : L"\\\\?\\" + ordinary_name};
 
   for (bool const extended_first : {false, true})
   {
-    for (FilenameAppendOption const append_option :
-         {FilenameAppendOption::None, FilenameAppendOption::StartDate})
+    for (FilenameAppendOption const append_option : {FilenameAppendOption::None, FilenameAppendOption::StartDate})
     {
       FileSinkConfig config;
       config.set_open_mode('w');
@@ -389,9 +390,8 @@ TEST_CASE("file_sink_windows_extended_path_aliases_return_same_sink")
       fs::path actual_filename;
 
       {
-        auto file_sink = std::static_pointer_cast<FileSink>(
-          SinkManager::instance().create_or_get_sink<FileSink>(
-            (extended_first ? extended_path : ordinary_path).string(), config));
+        auto file_sink = SinkManager::instance().create_or_get_sink<FileSink>(
+          (extended_first ? extended_path : ordinary_path).string(), config);
         actual_filename = file_sink->get_filename();
         file_sink->write_log(LogRecord{
           nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});

@@ -94,7 +94,8 @@ TEST_CASE("mdc_logging")
   REQUIRE(quill::testing::file_contains(file_contents, "[logger_b] worker cleared"));
   REQUIRE(
     quill::testing::file_contains(file_contents, "[logger_a] main still there <request_id = 11>"));
-  REQUIRE(quill::testing::file_contains(file_contents, "[logger_a] main after restart [request_id: 11]"));
+  REQUIRE(
+    quill::testing::file_contains(file_contents, "[logger_a] main after restart [request_id: 11]"));
   REQUIRE(quill::testing::file_contains(
     file_contents, "[logger_b] main updated after restart [request_id: 11, user: bob]"));
   REQUIRE(quill::testing::file_contains(file_contents, "[logger_b] main cleared"));

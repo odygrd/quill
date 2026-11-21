@@ -365,9 +365,8 @@ TEST_CASE("open_extended_length_filename")
 {
 #if defined(_WIN32)
   auto const absolute_root = fs::absolute("file_sink_extended_path_test").native();
-  fs::path const root{absolute_root.compare(0, 2, L"\\\\") == 0
-                       ? L"\\\\?\\UNC\\" + absolute_root.substr(2)
-                       : L"\\\\?\\" + absolute_root};
+  fs::path const root{absolute_root.compare(0, 2, L"\\\\") == 0 ? L"\\\\?\\UNC\\" + absolute_root.substr(2)
+                                                                : L"\\\\?\\" + absolute_root};
   std::vector<fs::path> directories{root};
   while (directories.back().native().size() <= MAX_PATH)
   {
@@ -881,12 +880,12 @@ TEST_CASE("windows_destructor_closes_handle_after_write_failure")
     auto sink = std::make_unique<FileSinkTestHarness>(filename, config);
     HANDLE const sink_handle = sink->file_handle();
     HandleGuard lock_file{::CreateFileW(filename.c_str(), GENERIC_READ | GENERIC_WRITE,
-                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                       nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr)};
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr)};
     REQUIRE_NE(lock_file.handle, INVALID_HANDLE_VALUE);
     OVERLAPPED range{};
-    REQUIRE(::LockFileEx(lock_file.handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
-                         0, 4096, 0, &range));
+    REQUIRE(::LockFileEx(lock_file.handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0,
+                         4096, 0, &range));
     sink->write_log(LogRecord{
       nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "", "buffered\n", {}});
     sink.reset(); // Flushing fails because another handle holds the byte-range lock.

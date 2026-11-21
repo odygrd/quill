@@ -235,86 +235,86 @@ TEST_CASE("loglevel_to_short_code")
 }
 
 /***/
-TEST_CASE("loglevel_from_string")
+TEST_CASE("log_level_from_string")
 {
   {
     std::string log_level{"None"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::None);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::None);
   }
 
   {
     std::string log_level{"Backtrace"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Backtrace);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Backtrace);
   }
 
   {
     std::string log_level{"Critical"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Critical);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Critical);
   }
 
   {
     std::string log_level{"Error"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Error);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Error);
   }
 
   {
     std::string log_level{"Warning"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Warning);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Warning);
   }
 
   {
     std::string log_level{"Notice"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Notice);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Notice);
   }
 
   {
     std::string log_level{"Info"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Info);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Info);
   }
 
   {
     std::string log_level{"Debug"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Debug);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Debug);
   }
 
   {
     std::string log_level{"TraceL1"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL1);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL1);
   }
 
   {
     std::string log_level{"TraceL2"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL2);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL2);
   }
 
   {
     std::string log_level{"TraceL3"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL3);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL3);
   }
 
   {
     std::string log_level{"Trace_L1"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL1);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL1);
   }
 
   {
     std::string log_level{"Trace_L2"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL2);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL2);
   }
 
   {
     std::string log_level{"Trace_L3"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::TraceL3);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::TraceL3);
   }
 
   {
     std::string log_level{"Warn"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Warning);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Warning);
   }
 
   {
     std::string log_level{"Err"};
-    REQUIRE_EQ(loglevel_from_string(log_level), LogLevel::Error);
+    REQUIRE_EQ(log_level_from_string(log_level), LogLevel::Error);
   }
 
   {
@@ -322,7 +322,7 @@ TEST_CASE("loglevel_from_string")
     std::string log_level{"dummy"};
     auto func = [log_level]()
     {
-      auto res = loglevel_from_string(log_level);
+      auto res = log_level_from_string(log_level);
       return res;
     };
     REQUIRE_THROWS_AS(func(), quill::QuillError);

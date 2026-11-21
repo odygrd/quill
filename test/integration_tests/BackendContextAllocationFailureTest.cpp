@@ -15,7 +15,7 @@ namespace
 {
 // Only the calling thread's next allocation fails; producer allocations are unaffected.
 thread_local bool fail_next_allocation{false};
-}
+} // namespace
 
 // This executable replaces global operator new to simulate a single allocation failure
 // without exhausting memory. Other test executables use their normal allocator.
@@ -62,8 +62,7 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   auto* worker = quill::Backend::acquire_manual_backend_worker();
   worker->init(options);
 
-  auto sink = std::static_pointer_cast<CountingSink>(
-    quill::Frontend::create_or_get_sink<CountingSink>("context_allocation_failure_sink"));
+  auto sink = quill::Frontend::create_or_get_sink<CountingSink>("context_allocation_failure_sink");
   auto* logger = quill::Frontend::create_or_get_logger("context_allocation_failure_logger", sink);
   std::thread producer([logger]() { LOG_INFO(logger, "pending before allocation failure"); });
   producer.join();

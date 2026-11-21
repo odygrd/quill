@@ -14,7 +14,6 @@
 
 #ifndef QUILL_MODULE
   #include <array>
-  #include <chrono>
   #include <cstdint>
   #include <cstdlib>
   #include <ctime>
@@ -625,12 +624,9 @@ protected:
       time_info.tm_sec = 59; // we add 1 second later
     }
 
-    // convert back to time since epoch
-    std::chrono::system_clock::time_point const next_midnight =
-      std::chrono::system_clock::from_time_t(detail::timegm(&time_info));
-
-    // returns seconds since epoch of the next midnight.
-    return std::chrono::duration_cast<std::chrono::seconds>(next_midnight.time_since_epoch()).count() + 1;
+    // Seconds since epoch of the next noon or midnight. A system_clock time_point would overflow
+    // here for timestamps after the year 2262
+    return detail::timegm(&time_info) + 1;
   }
 
   /***/

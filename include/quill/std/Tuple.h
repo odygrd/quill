@@ -65,7 +65,8 @@ public:
     std::apply(
       [&total_size, &conditional_arg_size_cache](auto const&... elems)
       {
-        ((total_size += Codec<detail::remove_cvref_t<decltype(elems)>>::compute_encoded_size(conditional_arg_size_cache, elems)),
+        ((total_size += Codec<detail::remove_cvref_t<decltype(elems)>>::compute_encoded_size(
+            conditional_arg_size_cache, elems)),
          ...);
       },
       arg);
@@ -82,8 +83,8 @@ public:
       std::apply(
         [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto&&... elems)
         {
-          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(
-             buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, std::forward<decltype(elems)>(elems))),
+          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                                                                   std::forward<decltype(elems)>(elems))),
            ...);
         },
         std::move(arg));
@@ -93,8 +94,8 @@ public:
       std::apply(
         [&conditional_arg_size_cache, &conditional_arg_size_cache_index, &buffer](auto const&... elems)
         {
-          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(buffer, conditional_arg_size_cache,
-                                                         conditional_arg_size_cache_index, elems)),
+          ((Codec<detail::remove_cvref_t<decltype(elems)>>::encode(
+             buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elems)),
            ...);
         },
         arg);

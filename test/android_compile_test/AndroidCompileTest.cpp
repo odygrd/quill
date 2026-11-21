@@ -14,12 +14,11 @@ int main()
   sink_config.set_tag("quill_android_compile_test");
   sink_config.set_format_message(true);
 
-  auto android_sink = quill::Frontend::create_or_get_sink<quill::AndroidSink>(
-    "android_sink", std::move(sink_config));
+  auto android_sink =
+    quill::Frontend::create_or_get_sink<quill::AndroidSink>("android_sink", std::move(sink_config));
 
   quill::Logger* logger = quill::Frontend::create_or_get_logger(
-    "android_logger", std::move(android_sink), quill::PatternFormatterOptions{},
-    quill::ClockSource::system());
+    "android_logger", std::move(android_sink), quill::PatternFormatterOptions{}, quill::ClockSource::system());
 
   LOG_INFO(logger, "Android compile test {}", 1);
 

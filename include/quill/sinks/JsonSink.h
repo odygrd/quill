@@ -17,6 +17,7 @@
 #include "quill/bundled/fmt/format.h"
 
 #ifndef QUILL_MODULE
+  #include <algorithm>
   #include <charconv>
   #include <chrono>
   #include <cstdint>
@@ -199,10 +200,7 @@ protected:
     }
 
     // Keep the JSON message template on one line.
-    for (size_t pos = 0; (pos = _format.find('\n', pos)) != std::string::npos; ++pos)
-    {
-      _format.replace(pos, 1, " ");
-    }
+    std::replace(_format.begin(), _format.end(), '\n', ' ');
 
     return _format.data();
   }

@@ -7,8 +7,8 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
-#include "quill/core/Common.h"
 #include "quill/core/ClockSource.h"
+#include "quill/core/Common.h"
 
 #ifndef QUILL_MODULE
   #include <cstdint>

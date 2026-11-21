@@ -275,8 +275,8 @@ protected:
   struct BaseTimeTsc
   {
     BaseTimeTsc() = default;
-    std::atomic<int64_t> base_time{0}; /**< Get the initial base time in nanoseconds from epoch */
-    std::atomic<uint64_t> base_tsc{0}; /**< Get the initial base tsc time */
+    std::atomic<int64_t> base_time{0};  /**< Get the initial base time in nanoseconds from epoch */
+    std::atomic<uint64_t> base_tsc{0};  /**< Get the initial base tsc time */
     std::atomic<double> ns_per_tick{0}; /**< Tick rate used from this base */
   };
 

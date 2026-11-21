@@ -178,13 +178,13 @@ TEST_CASE("invalid_context_is_already_counted")
     std::atomic<ThreadContext*> context{nullptr};
     std::atomic<bool> retire{false};
     std::thread producer{[&]
-    {
-      context.store(get_local_thread_context<FrontendOptions>(), std::memory_order_release);
-      while (!retire.load(std::memory_order_acquire))
-      {
-        std::this_thread::yield();
-      }
-    }};
+                         {
+                           context.store(get_local_thread_context<FrontendOptions>(), std::memory_order_release);
+                           while (!retire.load(std::memory_order_acquire))
+                           {
+                             std::this_thread::yield();
+                           }
+                         }};
 
     ThreadContext* observed_context{nullptr};
     while (!(observed_context = context.load(std::memory_order_acquire)))

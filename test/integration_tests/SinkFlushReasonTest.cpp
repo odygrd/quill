@@ -5,8 +5,8 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
-#include "quill/sinks/Sink.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/sinks/Sink.h"
 
 #include <atomic>
 #include <chrono>

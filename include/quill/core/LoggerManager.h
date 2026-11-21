@@ -20,7 +20,6 @@
   #include <atomic>
   #include <cstdint>
   #include <cstdlib>
-  #include <initializer_list>
   #include <memory>
   #include <optional>
   #include <string>
@@ -277,8 +276,7 @@ public:
 
     // Frontend validates that the source logger uses the same frontend specialization.
     auto* clock = static_cast<typename TLogger::clock_object_t*>(source_logger->_user_clock);
-    return create_or_get_logger<TLogger>(logger_name, source_logger->_sinks,
-                                         source_logger->_pattern_formatter_options,
+    return create_or_get_logger<TLogger>(logger_name, source_logger->_sinks, source_logger->_pattern_formatter_options,
                                          source_logger->_clock_source, clock);
   }
 
@@ -291,8 +289,8 @@ public:
 
   /***/
   template <typename TCheckQueuesEmpty>
-  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(
-    TCheckQueuesEmpty check_queues_empty, std::vector<std::string>& removed_loggers)
+  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty,
+                                                                       std::vector<std::string>& removed_loggers)
   {
     // Return ownership so the backend can flush and destroy removed loggers outside _spinlock.
     std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;
@@ -372,7 +370,7 @@ public:
     {
       QUILL_TRY
       {
-        LogLevel const parsed_log_level = loglevel_from_string(log_level);
+        LogLevel const parsed_log_level = log_level_from_string(log_level);
 
         if (parsed_log_level == LogLevel::Backtrace)
         {
