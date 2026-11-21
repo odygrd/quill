@@ -253,131 +253,100 @@ private:
   bool _fsync_enabled{false};
 };
 
-/**
- * Keep the Windows-specific FileSink split isolated under _WIN32.
- * A previous attempt to share a FileSinkBase across all platforms introduced a measurable Linux
- * throughput regression in BENCHMARK_quill_backend_throughput despite equivalent logic.
+namespace detail
+{
+/** Formats `timestamp_ns` with a strftime pattern, for use in file names */
+QUILL_NODISCARD inline std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
+                                                          std::string const& append_format_pattern)
+{
+  auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
+  tm now_tm;
+
+  if (time_zone == Timezone::GmtTime)
+  {
+    detail::gmtime_rs(&time_now, &now_tm);
+  }
+  else
+  {
+    detail::localtime_rs(&time_now, &now_tm);
+  }
+
+  static constexpr size_t buffer_size{128};
+  static constexpr size_t max_buffer_size{64 * 1024};
+  std::vector<char> buffer(buffer_size);
+  // A prefix distinguishes an empty expansion from an insufficient buffer.
+  std::string const format_with_prefix{"x" + append_format_pattern};
+
+  while (true)
+  {
+    size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
+    if (len != 0)
+    {
+      return std::string{buffer.data() + 1, len - 1};
+    }
+
+    if (buffer.size() >= max_buffer_size)
+    {
+      QUILL_THROW(
+        QuillError{"strftime failed to format filename timestamp. The filename "
+                   "timestamp pattern may contain an unsupported format specifier."});
+    }
+
+    buffer.resize(buffer.size() * 2);
+  }
+}
+
+/***/
+QUILL_NODISCARD inline std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
+{
+  return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
+}
+
+/** Inserts the formatted timestamp between the file stem and its extension */
+QUILL_NODISCARD inline fs::path append_datetime_to_filename(fs::path const& filename,
+                                                            std::string const& append_filename_format_pattern,
+                                                            Timezone time_zone,
+                                                            std::chrono::system_clock::time_point timestamp)
+{
+  uint64_t const timestamp_ns = static_cast<uint64_t>(
+    std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
+
+  // Compose as paths rather than strings so non-ASCII names round-trip on every platform
+  fs::path result = filename.parent_path() / filename.stem();
+  result += format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern);
+  result += filename.extension();
+  return result;
+}
+
+/** The file name with the configured start timestamp appended, if any */
+QUILL_NODISCARD inline fs::path get_updated_filename_with_appended_datetime(
+  fs::path const& filename, FilenameAppendOption append_to_filename_option,
+  std::string const& append_filename_format_pattern, Timezone time_zone,
+  std::chrono::system_clock::time_point timestamp)
+{
+  if ((append_to_filename_option == FilenameAppendOption::None) || (filename == "/dev/null"))
+  {
+    return filename;
+  }
+
+  return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
+}
+} // namespace detail
+
+/*
+ * The Windows and POSIX FileSink classes are kept separate, sharing only the free functions
+ * above. A previous attempt to share a base class across all platforms introduced a measurable
+ * Linux throughput regression in BENCHMARK_quill_backend_throughput despite equivalent logic.
  * If this is revisited, revalidate Linux performance.
  */
 
-/**
- * FileSink
- * Writes the log messages to a file
- */
 #if defined(_WIN32)
-class FileSinkBase : public StreamSink
-{
-public:
-  explicit FileSinkBase(fs::path const& filename, FileSinkConfig const& config, FileEventNotifier file_event_notifier,
-                        bool /* do_fopen */, std::chrono::system_clock::time_point start_time)
-    : StreamSink(_get_updated_filename_with_appended_datetime(filename, config.filename_append_option(),
-                                                              config.append_filename_format_pattern(),
-                                                              config.timezone(), start_time),
-                 nullptr, config.override_pattern_formatter_options(), std::move(file_event_notifier)),
-      _config(config)
-  {
-    if (!_config.fsync_enabled() && (_config.minimum_fsync_interval().count() != 0))
-    {
-      QUILL_THROW(
-        QuillError{"Cannot set a non-zero minimum fsync interval when fsync is disabled."});
-    }
-  }
-
-  ~FileSinkBase() override = default;
-
-protected:
-  QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
-                                                            std::string const& append_format_pattern)
-  {
-    auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
-    tm now_tm;
-
-    if (time_zone == Timezone::GmtTime)
-    {
-      detail::gmtime_rs(&time_now, &now_tm);
-    }
-    else
-    {
-      detail::localtime_rs(&time_now, &now_tm);
-    }
-
-    static constexpr size_t buffer_size{128};
-    static constexpr size_t max_buffer_size{64 * 1024};
-    std::vector<char> buffer(buffer_size);
-    // A prefix distinguishes an empty expansion from an insufficient buffer.
-    std::string const format_with_prefix{"x" + append_format_pattern};
-
-    while (true)
-    {
-      size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
-      if (len != 0)
-      {
-        return std::string{buffer.data() + 1, len - 1};
-      }
-
-      if (buffer.size() >= max_buffer_size)
-      {
-        QUILL_THROW(
-          QuillError{"strftime failed to format filename timestamp. The filename "
-                     "timestamp pattern may contain an unsupported format specifier."});
-      }
-
-      buffer.resize(buffer.size() * 2);
-    }
-  }
-
-  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
-  {
-    return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
-  }
-
-  QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
-                                                              std::string const& append_filename_format_pattern,
-                                                              Timezone time_zone,
-                                                              std::chrono::system_clock::time_point timestamp)
-  {
-    uint64_t const timestamp_ns = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
-
-    fs::path result = filename.parent_path() / filename.stem();
-    result += format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern);
-    result += filename.extension();
-    return result;
-  }
-
-private:
-  QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(
-    fs::path const& filename, FilenameAppendOption append_to_filename_option,
-    std::string const& append_filename_format_pattern, Timezone time_zone,
-    std::chrono::system_clock::time_point timestamp)
-  {
-    if ((append_to_filename_option == FilenameAppendOption::None) || (filename == "/dev/null"))
-    {
-      return filename;
-    }
-
-    if ((append_to_filename_option == FilenameAppendOption::StartCustomTimestampFormat) ||
-        (append_to_filename_option == FilenameAppendOption::StartDate) ||
-        (append_to_filename_option == FilenameAppendOption::StartDateTime))
-    {
-      return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
-    }
-
-    QUILL_THROW(QuillError{"Unexpected FilenameAppendOption value"});
-  }
-
-protected:
-  FileSinkConfig _config;
-  std::chrono::steady_clock::time_point _last_fsync_timestamp{};
-  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
-};
-
 /**
  * Windows FileSink implementation.
  * Uses a native HANDLE + WriteFile path because it provides materially better
  * backend file-write throughput on Windows than the CRT FILE* path.
  */
-class FileSink : public FileSinkBase
+class FileSink : public StreamSink
 {
 private:
   friend class detail::SinkManager;
@@ -481,8 +450,18 @@ public:
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
                     FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
                     std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
-    : FileSinkBase(filename, config, std::move(file_event_notifier), do_fopen, start_time)
+    : StreamSink(detail::get_updated_filename_with_appended_datetime(
+                   filename, config.filename_append_option(),
+                   config.append_filename_format_pattern(), config.timezone(), start_time),
+                 nullptr, config.override_pattern_formatter_options(), std::move(file_event_notifier)),
+      _config(config)
   {
+    if (!_config.fsync_enabled() && (_config.minimum_fsync_interval().count() != 0))
+    {
+      QUILL_THROW(
+        QuillError{"Cannot set a non-zero minimum fsync interval when fsync is disabled."});
+    }
+
     if (do_fopen && !is_null())
     {
       open_file(_filename, _config.open_mode());
@@ -855,6 +834,9 @@ protected:
 
 protected:
   static constexpr size_t default_write_buffer_size{64 * 1024};
+  FileSinkConfig _config;
+  std::chrono::steady_clock::time_point _last_fsync_timestamp{};
+  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
   HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
   std::unique_ptr<char[]> _native_write_buffer;
   size_t _native_write_pos{0};
@@ -862,15 +844,19 @@ protected:
   bool _append_mode{false};
 };
 #else
+/**
+ * FileSink
+ * Writes the log messages to a file
+ */
 class FileSink : public StreamSink
 {
 public:
   explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
                     FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
                     std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
-    : StreamSink(_get_updated_filename_with_appended_datetime(filename, config.filename_append_option(),
-                                                              config.append_filename_format_pattern(),
-                                                              config.timezone(), start_time),
+    : StreamSink(detail::get_updated_filename_with_appended_datetime(
+                   filename, config.filename_append_option(),
+                   config.append_filename_format_pattern(), config.timezone(), start_time),
                  nullptr, config.override_pattern_formatter_options(), std::move(file_event_notifier)),
       _config(config)
   {
@@ -961,64 +947,6 @@ private:
   };
 
 protected:
-  QUILL_NODISCARD static std::string format_datetime_string(uint64_t timestamp_ns, Timezone time_zone,
-                                                            std::string const& append_format_pattern)
-  {
-    auto const time_now = static_cast<time_t>(timestamp_ns / 1000000000);
-    tm now_tm;
-
-    if (time_zone == Timezone::GmtTime)
-    {
-      detail::gmtime_rs(&time_now, &now_tm);
-    }
-    else
-    {
-      detail::localtime_rs(&time_now, &now_tm);
-    }
-
-    static constexpr size_t buffer_size{128};
-    static constexpr size_t max_buffer_size{64 * 1024};
-    std::vector<char> buffer(buffer_size);
-    // A prefix distinguishes an empty expansion from an insufficient buffer.
-    std::string const format_with_prefix{"x" + append_format_pattern};
-
-    while (true)
-    {
-      size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
-      if (len != 0)
-      {
-        return std::string{buffer.data() + 1, len - 1};
-      }
-
-      if (buffer.size() >= max_buffer_size)
-      {
-        QUILL_THROW(
-          QuillError{"strftime failed to format filename timestamp. The filename "
-                     "timestamp pattern may contain an unsupported format specifier."});
-      }
-
-      buffer.resize(buffer.size() * 2);
-    }
-  }
-
-  QUILL_NODISCARD static std::pair<std::string, std::string> extract_stem_and_extension(fs::path const& filename)
-  {
-    return std::make_pair((filename.parent_path() / filename.stem()).string(), filename.extension().string());
-  }
-
-  QUILL_NODISCARD static fs::path append_datetime_to_filename(fs::path const& filename,
-                                                              std::string const& append_filename_format_pattern,
-                                                              Timezone time_zone,
-                                                              std::chrono::system_clock::time_point timestamp)
-  {
-    auto const [stem, ext] = extract_stem_and_extension(filename);
-
-    uint64_t const timestamp_ns = static_cast<uint64_t>(
-      std::chrono::duration_cast<std::chrono::nanoseconds>(timestamp.time_since_epoch()).count());
-
-    return stem + format_datetime_string(timestamp_ns, time_zone, append_filename_format_pattern) + ext;
-  }
-
   void _reopen_file()
   {
     open_file(_filename, _config.open_mode());
@@ -1211,27 +1139,6 @@ protected:
   }
 
   QUILL_NODISCARD bool is_open() const noexcept { return _file != nullptr; }
-
-private:
-  QUILL_NODISCARD static fs::path _get_updated_filename_with_appended_datetime(
-    fs::path const& filename, FilenameAppendOption append_to_filename_option,
-    std::string const& append_filename_format_pattern, Timezone time_zone,
-    std::chrono::system_clock::time_point timestamp)
-  {
-    if ((append_to_filename_option == FilenameAppendOption::None) || (filename == "/dev/null"))
-    {
-      return filename;
-    }
-
-    if ((append_to_filename_option == FilenameAppendOption::StartCustomTimestampFormat) ||
-        (append_to_filename_option == FilenameAppendOption::StartDate) ||
-        (append_to_filename_option == FilenameAppendOption::StartDateTime))
-    {
-      return append_datetime_to_filename(filename, append_filename_format_pattern, time_zone, timestamp);
-    }
-
-    QUILL_THROW(QuillError{"Unexpected FilenameAppendOption value"});
-  }
 
 protected:
   FileSinkConfig _config;

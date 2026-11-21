@@ -535,12 +535,12 @@ private:
     if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
     {
       datetime_suffix =
-        this->format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d");
+        detail::format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d");
     }
     else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
     {
       datetime_suffix =
-        this->format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d_%H%M%S");
+        detail::format_datetime_string(_open_file_timestamp, _config.timezone(), "%Y%m%d_%H%M%S");
     }
 
     // Renaming a missing backup would fail and abort this and every later rotation. Without a
@@ -713,7 +713,7 @@ private:
         else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
         {
           std::string const today_date =
-            this->format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
+            detail::format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
 
           if (parsed_file_info.date_time == today_date)
           {
