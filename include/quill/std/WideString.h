@@ -32,7 +32,7 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<T, std::enable_if_t<detail::is_wide_string_v<T>>>
 {
-  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, T const& arg) noexcept
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, T const& arg)
   {
     size_t len;
 
