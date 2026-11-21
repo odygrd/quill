@@ -49,8 +49,9 @@ private:
   template <size_t... Indices>
   static auto decode_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
-    // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement{Codec<T>::decode_arg(buffer)})...}};
+    // The outer braced list preserves left-to-right evaluation of the decode calls. Construct each
+    // element with parentheses so an initializer_list constructor cannot wrap the decoded value.
+    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement(Codec<T>::decode_arg(buffer)))...}};
   }
 
 #if defined(_WIN32)
@@ -157,8 +158,9 @@ private:
   template <size_t... Indices>
   static auto decode_array_impl(std::byte*& buffer, std::index_sequence<Indices...>)
   {
-    // Brace initialization preserves left-to-right evaluation of the decode calls.
-    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement{Codec<UT>::decode_arg(buffer)})...}};
+    // The outer braced list preserves left-to-right evaluation of the decode calls. Construct each
+    // element with parentheses so an initializer_list constructor cannot wrap the decoded value.
+    return std::array<ArrayElement, N>{{((void)Indices, ArrayElement(Codec<UT>::decode_arg(buffer)))...}};
   }
 
 #if defined(_WIN32)
