@@ -50,47 +50,12 @@ struct TransitEvent
   TransitEvent(TransitEvent const& other) = delete;
   TransitEvent& operator=(TransitEvent const& other) = delete;
 
-  /***/
-  TransitEvent(TransitEvent&& other) noexcept
-    : timestamp(other.timestamp),
-      macro_metadata(other.macro_metadata),
-      logger_base(other.logger_base),
-      formatted_msg(std::move(other.formatted_msg)),
-      extra_data(std::move(other.extra_data)),
-      event_payload(std::move(other.event_payload))
-  {
-    other.event_payload = std::monostate{};
-
-    // Update macro_metadata pointer if it was pointing to runtime_metadata
-    if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
-    {
-      // Point to our own runtime_metadata instead of the moved-from object's
-      macro_metadata = &extra_data->runtime_metadata.macro_metadata;
-    }
-  }
-
-  /***/
-  TransitEvent& operator=(TransitEvent&& other) noexcept
-  {
-    if (this != &other)
-    {
-      timestamp = other.timestamp;
-      macro_metadata = other.macro_metadata;
-      logger_base = other.logger_base;
-      formatted_msg = std::move(other.formatted_msg);
-      extra_data = std::move(other.extra_data);
-      event_payload = std::move(other.event_payload);
-      other.event_payload = std::monostate{};
-
-      if (extra_data && extra_data->runtime_metadata.has_runtime_metadata)
-      {
-        // Point to our own runtime_metadata instead of the moved-from object's
-        macro_metadata = &extra_data->runtime_metadata.macro_metadata;
-      }
-    }
-
-    return *this;
-  }
+  /**
+   * Moves keep macro_metadata valid: runtime metadata lives in the heap-allocated ExtraData,
+   * whose address does not change when the unique_ptr is moved.
+   */
+  TransitEvent(TransitEvent&& other) noexcept = default;
+  TransitEvent& operator=(TransitEvent&& other) noexcept = default;
 
   /***/
   void copy_to(TransitEvent& other) const
