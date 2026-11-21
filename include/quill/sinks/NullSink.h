@@ -21,7 +21,7 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& /* record */) override {}
 
-  QUILL_ATTRIBUTE_HOT void flush_sink(SinkFlushReason) override {}
+  QUILL_ATTRIBUTE_HOT void flush_sink(QUILL_MAYBE_UNUSED SinkFlushReason flush_reason) override {}
 };
 
 QUILL_END_EXPORT
