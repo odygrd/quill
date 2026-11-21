@@ -83,7 +83,7 @@ public:
                                                                     return cfg;
                                                                   }());
 
-    bool const should_write_header = _should_write_header_on_initial_file(sink, open_mode == 'a', true);
+    bool const should_write_header = _should_write_header_on_initial_file(*sink, open_mode == 'a', true);
 
     _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
@@ -105,7 +105,7 @@ public:
   {
     auto sink = frontend_t::template create_or_get_sink<FileSink>(filename, sink_config);
     bool const should_write_initial_header = _should_write_header_on_initial_file(
-      sink, _is_append_mode(sink_config.open_mode()), should_write_header);
+      *sink, _is_append_mode(sink_config.open_mode()), should_write_header);
 
     _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
@@ -149,7 +149,7 @@ public:
 
     auto sink = frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier);
     bool const should_write_header_for_initial_file = _should_write_header_on_initial_file(
-      sink, _is_append_mode(sink_config.open_mode()), should_write_initial_header);
+      *sink, _is_append_mode(sink_config.open_mode()), should_write_initial_header);
 
     _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
                                                PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
@@ -265,28 +265,15 @@ private:
     return !open_mode.empty() && ((open_mode[0] == 'a') || (open_mode[0] == 'A'));
   }
 
-  static bool _should_write_header_on_initial_file(std::shared_ptr<Sink> const& sink,
-                                                   bool is_append_mode, bool should_write_header)
+  static bool _should_write_header_on_initial_file(StreamSink const& sink, bool is_append_mode, bool should_write_header)
   {
     if (!should_write_header || !is_append_mode)
     {
       return should_write_header;
     }
 
-#if QUILL_USE_RTTI
-    auto const stream_sink = std::dynamic_pointer_cast<StreamSink>(sink);
-
-    if (!stream_sink)
-    {
-      // not a file backed sink, there is no existing file to inspect
-      return should_write_header;
-    }
-#else
-    auto const stream_sink = std::static_pointer_cast<StreamSink>(sink);
-#endif
-
     std::error_code ec;
-    auto const size = fs::file_size(stream_sink->get_filename(), ec);
+    auto const size = fs::file_size(sink.get_filename(), ec);
     return ec || (size == 0);
   }
 
