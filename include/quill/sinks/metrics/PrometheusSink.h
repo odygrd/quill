@@ -258,6 +258,10 @@ public:
   void register_histogram(MetricMetadata const* metric_metadata, std::string help,
                           HistogramBuckets bucket_boundaries, Labels constant_labels = {})
   {
+    // Reject invalid buckets before any family exists. A family this call created would keep its
+    // help text after the failure, and one that already existed may belong to the application
+    _validate_histogram_buckets(bucket_boundaries);
+
     _register_metric<histogram_family_t>(
       metric_metadata, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
       [buckets = std::move(bucket_boundaries)](
@@ -304,6 +308,10 @@ public:
   void register_histogram_family(std::string const& metric_name, std::string help,
                                  HistogramBuckets bucket_boundaries, Labels constant_labels = {})
   {
+    // Every runtime series is created with these buckets, and a later registration of the family
+    // does not replace them, so reject invalid ones now rather than on each publish
+    _validate_histogram_buckets(bucket_boundaries);
+
     _register_metric_family<histogram_family_t>(
       metric_name, prometheus::MetricType::Histogram, std::move(help), std::move(constant_labels),
       [buckets = std::move(bucket_boundaries)](histogram_family_t* family, Labels const& labels,
@@ -713,14 +721,19 @@ private:
 
       FamilyKey const family_key{metric_type, validated_metric.metric_name(), std::move(constant_labels)};
       FamilyHandle& family_handle = _get_or_create_family<TFamily>(family_key, std::move(help));
-      auto const insert_result = _metric_series[validated_metric.metric_name()].try_emplace(metric_labels);
-      auto& series = insert_result.first->second;
-      if (!series)
+      auto& label_series = _metric_series[validated_metric.metric_name()];
+      auto series_it = label_series.find(metric_labels);
+      if ((series_it == label_series.end()) || !series_it->second)
       {
+        // Add the series before inserting its entry. An empty entry marks unregistered labels, so
+        // one left behind by a throwing adder would drop every later sample for these labels
         auto* family = std::get<TFamily*>(family_handle.family);
-        series = adder(family, metric_labels, family_key);
+        metric_series_t new_series{adder(family, metric_labels, family_key)};
+        series_it = label_series.insert_or_assign(metric_labels, std::move(new_series)).first;
         ++family_handle.metric_count;
       }
+
+      auto& series = series_it->second;
 
       _configure_family<TFamily>(family_handle, family_key, std::move(adder));
       _metrics.emplace(metric_metadata, &series);
@@ -734,6 +747,13 @@ private:
       throw;
     }
 #endif
+  }
+
+  /** Throws for bucket boundaries prometheus::Histogram rejects, using its own check */
+  static void _validate_histogram_buckets(HistogramBuckets const& bucket_boundaries)
+  {
+    prometheus::Histogram const histogram{bucket_boundaries};
+    (void)histogram;
   }
 
   static Labels _make_metric_labels(MetricMetadata const& metric_metadata)
