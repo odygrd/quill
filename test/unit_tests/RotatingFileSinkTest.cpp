@@ -5003,6 +5003,72 @@ TEST_CASE("rotating_file_sink_index_append_ignores_files_with_an_index_it_does_n
 }
 
 /***/
+TEST_CASE("rotating_file_sink_index_append_does_not_track_a_directory_named_like_a_backup")
+{
+  fs::path const filename = "rotating_file_sink_index_append_directory.log";
+  fs::path const backup_name = "rotating_file_sink_index_append_directory.1.log";
+  fs::path const renamed_directory = "rotating_file_sink_index_append_directory.2.log";
+  fs::path const file_in_directory = backup_name / "kept.txt";
+
+  std::error_code ec;
+  fs::remove_all(backup_name, ec);
+  fs::remove_all(renamed_directory, ec);
+  testing::remove_file(filename);
+
+  // A directory with the name of the first backup, and the log file of an earlier run
+  fs::create_directory(backup_name);
+  testing::create_file(file_in_directory, "Kept");
+  testing::create_file(filename, "Previous_run");
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('a');
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    // Each record fills more than half of the size limit, so the second one rotates
+    for (size_t i = 0; i < 2; ++i)
+    {
+      std::string formatted_log_statement{"Record_" + std::to_string(i)};
+      formatted_log_statement.append(600, 'x');
+      formatted_log_statement.push_back('\n');
+      rfh.write_log(LogRecord{nullptr,
+                              0,
+                              std::string_view{},
+                              std::string_view{},
+                              std::string{},
+                              std::string_view{},
+                              LogLevel::Info,
+                              "INFO",
+                              "I",
+                              nullptr,
+                              "",
+                              formatted_log_statement,
+                              {}});
+    }
+  }
+
+  // The directory is not a backup of the sink: the rotation does not rename it to the next index
+  REQUIRE(fs::is_directory(backup_name));
+  REQUIRE(testing::file_contains(testing::file_contents(file_in_directory), "Kept"));
+  REQUIRE_FALSE(fs::exists(renamed_directory));
+
+  // The log file cannot be rotated to that name, so it keeps every record
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE(testing::file_contains(file_contents, "Previous_run"));
+  REQUIRE(testing::file_contains(file_contents, "Record_0"));
+  REQUIRE(testing::file_contains(file_contents, "Record_1"));
+
+  fs::remove_all(backup_name, ec);
+  testing::remove_file(filename);
+}
+
+/***/
 TEST_CASE("rotating_file_sink_index_clean_up_keeps_files_with_an_index_it_does_not_write")
 {
   fs::path const filename = "rotating_file_sink_index_clean_up_stray_index.log";
