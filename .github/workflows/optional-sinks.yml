@@ -1,0 +1,69 @@
+name: Optional Sinks
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [g++, clang++]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libsystemd-dev
+
+      - name: Build prometheus-cpp
+        run: |
+          # GitHub at times answers the clone of another repository with a 403, so try it again
+          for attempt in 1 2 3 4 5; do
+            if git clone --depth 1 --branch v1.3.0 --recurse-submodules --shallow-submodules \
+                 https://github.com/jupp0r/prometheus-cpp.git "$RUNNER_TEMP/prometheus-cpp"; then
+              break
+            fi
+
+            rm -rf "$RUNNER_TEMP/prometheus-cpp"
+            sleep $((attempt * 10))
+          done
+
+          cmake -S "$RUNNER_TEMP/prometheus-cpp" -B "$RUNNER_TEMP/prometheus-cpp/build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DENABLE_PUSH=OFF -DENABLE_COMPRESSION=OFF -DENABLE_TESTING=OFF \
+            -DUSE_THIRDPARTY_LIBRARIES=ON -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/prometheus-install"
+          cmake --build "$RUNNER_TEMP/prometheus-cpp/build" --target install --parallel
+
+      - name: Configure
+        run: |
+          cmake -S test/optional_sinks_compile_test -B build/optional-sinks -G Ninja \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/prometheus-install"
+
+      - name: Build
+        run: cmake --build build/optional-sinks --parallel
