@@ -115,7 +115,7 @@ public:
   static constexpr bool use_memcpy =
     std::conjunction_v<std::is_trivially_copyable<T>, decltype(is_default_constructible<T>(0))>;
 
-  static size_t compute_encoded_size(detail::SizeCacheVector&, T const&) noexcept
+  static size_t compute_encoded_size(SizeCacheVector&, T const&) noexcept
   {
     if constexpr (use_memcpy)
     {
@@ -129,7 +129,7 @@ public:
   }
 
   template <typename Arg>
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const&, uint32_t&, Arg&& arg)
+  static void encode(std::byte*& buffer, SizeCacheVector const&, uint32_t&, Arg&& arg)
   {
     if constexpr (use_memcpy)
     {

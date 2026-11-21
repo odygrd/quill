@@ -20,7 +20,7 @@ namespace
 template <typename T>
 T roundtrip_through_codec(T const& value)
 {
-  detail::SizeCacheVector size_cache;
+  SizeCacheVector size_cache;
   size_t const encoded_size = Codec<T>::compute_encoded_size(size_cache, value);
 
   std::vector<std::byte> buffer(encoded_size);

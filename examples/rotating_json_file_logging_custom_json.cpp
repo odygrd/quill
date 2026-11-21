@@ -36,11 +36,15 @@ public:
     char formatted_time[20];
     std::strftime(formatted_time, sizeof(formatted_time), "%Y-%m-%d %H:%M:%S", tm);
 
-    // format json as desired
-    _json_message.append(fmtquill::format(
-      R"({{"timestamp":"{}","file_name":"{}","line":"{}","thread_id":"{}","logger":"{}","log_level":"{}","message":"{}")",
-      formatted_time, record.log_metadata->file_name(), record.log_metadata->line(),
-      record.thread_id, record.logger_name, record.log_level_description, message_format));
+    // format json as desired; escape any text that can contain quotes, backslashes or control characters
+    _json_message.append(fmtquill::format(R"({{"timestamp":"{}","file_name":")", formatted_time));
+    append_json_escaped(_json_message, record.log_metadata->file_name());
+    _json_message.append(fmtquill::format(R"(","line":"{}","thread_id":"{}","logger":")",
+                                          record.log_metadata->line(), record.thread_id));
+    append_json_escaped(_json_message, record.logger_name);
+    _json_message.append(fmtquill::format(R"(","log_level":"{}","message":")", record.log_level_description));
+    append_json_escaped(_json_message, message_format);
+    _json_message.append(std::string_view{"\""});
 
     // add log statement arguments as key-values to the json
     if (record.named_args)
@@ -48,9 +52,9 @@ public:
       for (auto const& [key, value] : *record.named_args)
       {
         _json_message.append(std::string_view{",\""});
-        _json_message.append(key);
+        append_json_escaped(_json_message, key);
         _json_message.append(std::string_view{"\":\""});
-        _json_message.append(value);
+        append_json_escaped(_json_message, value);
         _json_message.append(std::string_view{"\""});
       }
     }

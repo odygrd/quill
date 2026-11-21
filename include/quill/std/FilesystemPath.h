@@ -39,12 +39,12 @@ struct Codec<fs::path>
 {
   // native() returns the internal string by const reference, avoiding a temporary string
 
-  static size_t compute_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, fs::path const& arg)
+  static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, fs::path const& arg)
   {
     return Codec<fs::path::string_type>::compute_encoded_size(conditional_arg_size_cache, arg.native());
   }
 
-  static void encode(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+  static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, fs::path const& arg)
   {
     Codec<fs::path::string_type>::encode(buffer, conditional_arg_size_cache,

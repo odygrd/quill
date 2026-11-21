@@ -85,7 +85,7 @@ TEST_CASE("std_system_error_logging")
   StatefulErrorCategory codec_category{"first_category", "later_category_name_is_longer",
                                        std::string(21, 'a'), std::string(520, 'b')};
   std::error_code const codec_error{7, codec_category};
-  detail::SizeCacheVector size_cache;
+  SizeCacheVector size_cache;
   size_t const reserved_size = Codec<std::error_code>::compute_encoded_size(size_cache, codec_error);
 
   static constexpr size_t guard_size = 1024;

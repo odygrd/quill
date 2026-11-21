@@ -200,7 +200,7 @@ struct Codec
 {
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(
-    QUILL_MAYBE_UNUSED detail::SizeCacheVector& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
+    QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, QUILL_MAYBE_UNUSED Arg const& arg) noexcept
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
                                      std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
@@ -237,7 +237,7 @@ struct Codec
 
   /***/
   QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer,
-                                         QUILL_MAYBE_UNUSED detail::SizeCacheVector const& conditional_arg_size_cache,
+                                         QUILL_MAYBE_UNUSED SizeCacheVector const& conditional_arg_size_cache,
                                          QUILL_MAYBE_UNUSED uint32_t& conditional_arg_size_cache_index,
                                          Arg const& arg) noexcept
   {
@@ -458,7 +458,7 @@ inline constexpr FormatArgsDecoder decoder_ptr = &decode_and_store_args<remove_c
 /** Codec helpers for user defined types convenience **/
 /***/
 template <typename... TMembers>
-size_t compute_total_encoded_size(detail::SizeCacheVector& conditional_arg_size_cache, TMembers const&... members)
+size_t compute_total_encoded_size(SizeCacheVector& conditional_arg_size_cache, TMembers const&... members)
 {
   size_t total_size{0};
   ((total_size += Codec<detail::remove_cvref_t<TMembers>>::compute_encoded_size(conditional_arg_size_cache, members)),
@@ -468,7 +468,7 @@ size_t compute_total_encoded_size(detail::SizeCacheVector& conditional_arg_size_
 
 /***/
 template <typename... TMembers>
-void encode_members(std::byte*& buffer, detail::SizeCacheVector const& conditional_arg_size_cache,
+void encode_members(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                     uint32_t& conditional_arg_size_cache_index, TMembers const&... members)
 {
   ((Codec<detail::remove_cvref_t<TMembers>>::encode(buffer, conditional_arg_size_cache,
