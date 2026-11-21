@@ -23,17 +23,16 @@ TEST_CASE("transit_event_move_keeps_runtime_metadata")
   static_assert(std::is_nothrow_move_assignable_v<TransitEvent>);
 
   TransitEvent source;
-  source.ensure_extra_data();
-  source.extra_data->runtime_metadata.set("file.cpp", 7u, "function", "", "runtime {}", LogLevel::Info);
-  source.macro_metadata = &source.extra_data->runtime_metadata.macro_metadata;
+  source.ensure_runtime_metadata().set("file.cpp", 7u, "function", "", "runtime {}", LogLevel::Info);
+  source.macro_metadata = &source.extra_data->runtime_metadata->macro_metadata;
 
   TransitEvent moved_to{std::move(source)};
-  REQUIRE_EQ(moved_to.macro_metadata, &moved_to.extra_data->runtime_metadata.macro_metadata);
+  REQUIRE_EQ(moved_to.macro_metadata, &moved_to.extra_data->runtime_metadata->macro_metadata);
   REQUIRE_STREQ(moved_to.macro_metadata->message_format(), "runtime {}");
 
   TransitEvent assigned_to;
   assigned_to = std::move(moved_to);
-  REQUIRE_EQ(assigned_to.macro_metadata, &assigned_to.extra_data->runtime_metadata.macro_metadata);
+  REQUIRE_EQ(assigned_to.macro_metadata, &assigned_to.extra_data->runtime_metadata->macro_metadata);
   REQUIRE_STREQ(assigned_to.macro_metadata->message_format(), "runtime {}");
 }
 
@@ -66,9 +65,7 @@ TEST_CASE("runtime_metadata_reuse_updates_changed_fields")
   REQUIRE_STREQ(runtime_metadata.macro_metadata.message_format(), "value {name}");
   REQUIRE(runtime_metadata.macro_metadata.has_named_args());
 
-  runtime_metadata.has_runtime_metadata = false;
   runtime_metadata.set("first/path.cpp", 42u, "first_function", "first_tag", "value {name}", LogLevel::Info);
-  REQUIRE(runtime_metadata.has_runtime_metadata);
   REQUIRE_STREQ(runtime_metadata.macro_metadata.line(), "42");
 
   runtime_metadata.set("second.cpp", 7u, "fn", nullptr, "value {}", LogLevel::Warning);
