@@ -9,6 +9,7 @@
 #include "quill/backend/StringFromTime.h"
 #include "quill/bundled/fmt/format.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/BufferUtilities.h"
 #include "quill/core/Common.h"
 #include "quill/core/QuillError.h"
 
@@ -150,7 +151,7 @@ public:
     _formatted_date.clear();
 
     // 1. we always format part 1
-    _formatted_date.append(_strftime_part_1.format_timestamp(timestamp_secs));
+    append_to_buffer(_formatted_date, _strftime_part_1.format_timestamp(timestamp_secs));
 
     // 2. We add any special ms/us/ns specifier if any
     // Note: assumes timestamp_ns >= 0 (post-epoch). Pre-epoch timestamps are not supported.
@@ -172,7 +173,7 @@ public:
     // 3. format part 2 after fractional seconds - if any
     if (_has_format_part_2)
     {
-      _formatted_date.append(_strftime_part_2.format_timestamp(timestamp_secs));
+      append_to_buffer(_formatted_date, _strftime_part_2.format_timestamp(timestamp_secs));
     }
 
     return std::string_view{_formatted_date.data(), _formatted_date.size()};
