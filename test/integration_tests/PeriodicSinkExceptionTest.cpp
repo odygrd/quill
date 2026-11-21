@@ -24,12 +24,12 @@ public:
   {
     ++_periodic_task_calls;
 
-#if !defined(QUILL_NO_EXCEPTIONS)
     if (_should_throw)
     {
+#if !defined(QUILL_NO_EXCEPTIONS)
       throw std::runtime_error{"periodic task failure"};
-    }
 #endif
+    }
   }
 
   size_t periodic_task_calls() const noexcept { return _periodic_task_calls; }
