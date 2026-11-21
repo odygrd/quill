@@ -67,7 +67,8 @@ struct SignalHandlerOptions
 
   /**
    * Defines the timeout duration in seconds for the signal handler alarm.
-   * It is only available on Linux, as Windows does not support the alarm function.
+   * It is only available on POSIX systems, as Windows does not support the alarm function. 0
+   * disables the alarm and leaves the process SIGALRM handler untouched.
    * The signal handler sets up an alarm to ensure that the process will terminate if it does not
    * complete within the specified time frame. This is particularly useful to prevent the
    * process from hanging indefinitely in case the signal handler encounters an issue.
@@ -542,10 +543,10 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
   uint32_t const backend_thread_id = SignalHandlerContext::instance().backend_thread_id.load();
   uint32_t const current_thread_id = get_thread_id();
 
-  // Check if the signal handler is running from a caller thread and if the signal is CTRL+C or CTRL+BREAK
+  // Log only when the exception is raised outside the backend thread
   if ((backend_thread_id != 0) && (current_thread_id != backend_thread_id))
   {
-    // Log the interruption and flush log messages
+    // Log the exception and flush log messages
     LoggerBase* logger_base = SignalHandlerContext::instance().get_logger();
 
     if (logger_base)
@@ -729,15 +730,20 @@ void init_signal_handler(std::vector<int> const& catchable_signals)
     previous_signal_handlers.push_back(previous);
   }
 
-  /* Register the alarm handler */
-  SignalHandlerRestoreEntry previous_alarm{};
-  if (!install_signal_handler(SIGALRM, on_alarm, previous_alarm))
+  // The alarm only bounds a handler that hangs; with no timeout, keep the application's SIGALRM
+  // handler
+  if (ctx.signal_handler_timeout_seconds.load() != 0)
   {
-    restore_signal_handler_entries(previous_signal_handlers);
-    QUILL_THROW(QuillError{"Failed to setup signal handler for signal: SIGALRM"});
+    SignalHandlerRestoreEntry previous_alarm{};
+    if (!install_signal_handler(SIGALRM, on_alarm, previous_alarm))
+    {
+      restore_signal_handler_entries(previous_signal_handlers);
+      QUILL_THROW(QuillError{"Failed to setup signal handler for signal: SIGALRM"});
+    }
+
+    previous_signal_handlers.push_back(previous_alarm);
   }
 
-  previous_signal_handlers.push_back(previous_alarm);
   ctx.previous_signal_handlers = std::move(previous_signal_handlers);
 }
 

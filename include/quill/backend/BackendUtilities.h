@@ -10,6 +10,7 @@
 #include "quill/core/QuillError.h"
 
 #ifndef QUILL_MODULE
+  #include <cerrno>
   #include <cstdint>
   #include <cstring>
   #include <string>
@@ -18,7 +19,10 @@
   #include <vector>
 #endif
 
-#if defined(_WIN32)
+#if defined(__CYGWIN__)
+  #include <sched.h>
+  #include <unistd.h>
+#elif defined(_WIN32)
   #if !defined(WIN32_LEAN_AND_MEAN)
     #define WIN32_LEAN_AND_MEAN
   #endif
@@ -36,9 +40,6 @@
   #include <mach/thread_act.h>
   #include <mach/thread_policy.h>
   #include <pthread.h>
-  #include <unistd.h>
-#elif defined(__CYGWIN__)
-  #include <sched.h>
   #include <unistd.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
   #include <pthread.h>
@@ -64,9 +65,10 @@ namespace detail
  * @return {defer_timestamp, next_deadline}, with a zero deadline when the record can proceed.
  */
 template <typename TSteadyNow>
-QUILL_NODISCARD inline std::pair<bool, uint64_t> should_defer_timestamp(
-  uint64_t timestamp, uint64_t cutoff, uint64_t grace_period_ns, uint64_t deadline,
-  uint64_t steady_cutoff, TSteadyNow steady_now)
+QUILL_NODISCARD inline std::pair<bool, uint64_t> should_defer_timestamp(uint64_t timestamp, uint64_t cutoff,
+                                                                        uint64_t grace_period_ns,
+                                                                        uint64_t deadline, uint64_t steady_cutoff,
+                                                                        TSteadyNow steady_now)
 {
   if (timestamp <= cutoff)
   {
@@ -268,10 +270,7 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
 /***/
 QUILL_NODISCARD QUILL_ATTRIBUTE_COLD inline uint32_t get_process_id() noexcept
 {
-#if defined(__CYGWIN__)
-  // get pid on cygwin not supported
-  return 0;
-#elif defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
   return static_cast<uint32_t>(GetCurrentProcessId());
 #else
   return static_cast<uint32_t>(getpid());

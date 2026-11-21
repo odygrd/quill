@@ -38,7 +38,8 @@ std::vector<std::string> file_contents(char const* filename)
 
 bool file_contains(std::vector<std::string> const& lines, std::string const& expected)
 {
-  return std::find_if(lines.cbegin(), lines.cend(), [&expected](std::string const& line)
+  return std::find_if(lines.cbegin(), lines.cend(),
+                      [&expected](std::string const& line)
                       { return line.find(expected) != std::string::npos; }) != lines.cend();
 }
 } // namespace

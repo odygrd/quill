@@ -173,8 +173,9 @@ QUILL_NODISCARD inline fs::path try_normalize_file_sink_path(fs::path const& fil
       (canonical_path.native().compare(0, 4, L"\\\\?\\") != 0))
   {
     return fs::path{canonical_path.native().compare(0, 2, L"\\\\") == 0
-                     ? L"\\\\?\\UNC\\" + canonical_path.native().substr(2)
-                     : L"\\\\?\\" + canonical_path.native()} / filename.filename();
+                      ? L"\\\\?\\UNC\\" + canonical_path.native().substr(2)
+                      : L"\\\\?\\" + canonical_path.native()} /
+      filename.filename();
   }
 #endif
   return canonical_path / filename.filename();

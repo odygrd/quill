@@ -55,18 +55,17 @@ TEST_CASE("signal_handler_logger")
                                                       FileEventNotifier{}));
 
   // Create the logger for the signal handler to find it
-  Logger* logger_b = Frontend::create_or_get_logger(
-    logger_name_b,
-    Frontend::create_or_get_sink<FileSink>(
-      filename_b,
-      []()
-      {
-        FileSinkConfig cfg;
-        cfg.set_open_mode('w');
-        cfg.set_fsync_enabled(true);
-        return cfg;
-      }(),
-      FileEventNotifier{}));
+  Logger* logger_b = Frontend::create_or_get_logger(logger_name_b,
+                                                    Frontend::create_or_get_sink<FileSink>(
+                                                      filename_b,
+                                                      []()
+                                                      {
+                                                        FileSinkConfig cfg;
+                                                        cfg.set_open_mode('w');
+                                                        cfg.set_fsync_enabled(true);
+                                                        return cfg;
+                                                      }(),
+                                                      FileEventNotifier{}));
 
   // Signal messages also honor the selected logger's immediate-flush policy.
   logger_b->set_immediate_flush(1);

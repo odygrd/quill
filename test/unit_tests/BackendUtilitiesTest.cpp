@@ -141,12 +141,10 @@ TEST_CASE("backend_worker_lock_can_be_reacquired_after_release")
 
 TEST_CASE("get_process_id_matches_current_process")
 {
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(__CYGWIN__)
   REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::GetCurrentProcessId()));
-#elif !defined(__CYGWIN__)
-  REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::getpid()));
 #else
-  REQUIRE_EQ(get_process_id(), 0u);
+  REQUIRE_EQ(get_process_id(), static_cast<uint32_t>(::getpid()));
 #endif
 }
 

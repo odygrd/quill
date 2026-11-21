@@ -927,12 +927,10 @@ private:
     // Runtime custom clocks use User for dispatch; their timestamp format is independent.
     TimestampType const timestamp_type = (clock_source == ClockSourceType::Tsc)
       ? TimestampType::TscTicks
-      : (transit_event->logger_base->_user_clock
-           ? transit_event->logger_base->_user_clock->timestamp_type()
-           : TimestampType::EpochNanoseconds);
+      : (transit_event->logger_base->_user_clock ? transit_event->logger_base->_user_clock->timestamp_type()
+                                                 : TimestampType::EpochNanoseconds);
 
-    QUILL_ASSERT(timestamp_type == TimestampType::TscTicks ||
-                   timestamp_type == TimestampType::EpochNanoseconds,
+    QUILL_ASSERT(timestamp_type == TimestampType::TscTicks || timestamp_type == TimestampType::EpochNanoseconds,
                  "Clock returned an invalid TimestampType");
 
     if (timestamp_type == TimestampType::TscTicks)

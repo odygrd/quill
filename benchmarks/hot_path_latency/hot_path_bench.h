@@ -129,9 +129,8 @@ inline void wait_for_all_threads_to_start(std::atomic<size_t>& started_threads, 
 template <typename TOnThreadStart, typename TLogFunc, typename TOnThreadExit>
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
                               TOnThreadStart const& on_thread_start, TLogFunc const& log_func,
-                              TOnThreadExit const& on_thread_exit,
-                              std::atomic<size_t>& started_threads, size_t participant_count,
-                              size_t current_thread_num)
+                              TOnThreadExit const& on_thread_exit, std::atomic<size_t>& started_threads,
+                              size_t participant_count, size_t current_thread_num)
 {
   // running thread affinity
   try_set_cpu_affinity({get_cpu_to_pin_thread(static_cast<uint16_t>(current_thread_num))});
@@ -166,10 +165,9 @@ inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iterati
 template <typename TOnThreadStart, typename TLogFunc, typename TOnThreadExit>
 inline void run_log_benchmark(size_t num_iterations, size_t messages_per_iteration,
                               TOnThreadStart const& on_thread_start, TLogFunc const& log_func,
-                              TOnThreadExit const& on_thread_exit,
-                              std::atomic<size_t>& started_threads, size_t participant_count,
-                              uint16_t current_thread_num, std::vector<uint64_t>& latencies,
-                              double rdtsc_ns_per_tick)
+                              TOnThreadExit const& on_thread_exit, std::atomic<size_t>& started_threads,
+                              size_t participant_count, uint16_t current_thread_num,
+                              std::vector<uint64_t>& latencies, double rdtsc_ns_per_tick)
 {
   // running thread affinity
   try_set_cpu_affinity({get_cpu_to_pin_thread(current_thread_num)});
@@ -223,8 +221,9 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
   }
 
 #if defined(__APPLE__) && defined(__aarch64__) && !defined(PERF_ENABLED)
-  std::cout << "CPU affinity is unavailable on Apple Silicon; thread placement is controlled by the OS"
-            << std::endl;
+  std::cout
+    << "CPU affinity is unavailable on Apple Silicon; thread placement is controlled by the OS"
+    << std::endl;
 #endif
 
   // main thread affinity
@@ -291,19 +290,17 @@ inline void run_benchmark([[maybe_unused]] char const* benchmark_name, uint16_t 
 
 #ifdef PERF_ENABLED
     // Spawn num threads
-    threads.emplace_back(
-      run_log_benchmark<TOnThreadStart, TLogFunc, TOnThreadExit>, num_iterations,
-      thread_messages_per_iteration, std::cref(on_thread_start), std::cref(log_func),
-      std::cref(on_thread_exit), std::ref(started_threads), static_cast<size_t>(thread_count),
-      thread_num + 1);
+    threads.emplace_back(run_log_benchmark<TOnThreadStart, TLogFunc, TOnThreadExit>, num_iterations,
+                         thread_messages_per_iteration, std::cref(on_thread_start),
+                         std::cref(log_func), std::cref(on_thread_exit), std::ref(started_threads),
+                         static_cast<size_t>(thread_count), thread_num + 1);
 #else
     // Spawn num threads
-    threads.emplace_back(
-      run_log_benchmark<TOnThreadStart, TLogFunc, TOnThreadExit>, num_iterations,
-      thread_messages_per_iteration, std::cref(on_thread_start), std::cref(log_func),
-      std::cref(on_thread_exit), std::ref(started_threads), static_cast<size_t>(thread_count),
-      static_cast<uint16_t>(thread_num + 1u), std::ref(latencies[thread_num]),
-      rdtsc_clock.nanoseconds_per_tick());
+    threads.emplace_back(run_log_benchmark<TOnThreadStart, TLogFunc, TOnThreadExit>, num_iterations,
+                         thread_messages_per_iteration, std::cref(on_thread_start),
+                         std::cref(log_func), std::cref(on_thread_exit), std::ref(started_threads),
+                         static_cast<size_t>(thread_count), static_cast<uint16_t>(thread_num + 1u),
+                         std::ref(latencies[thread_num]), rdtsc_clock.nanoseconds_per_tick());
 #endif
   }
 

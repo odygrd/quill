@@ -68,9 +68,9 @@ QUILL_ATTRIBUTE_HOT void log(TLogger* logger, char const* tags, LogLevel log_lev
 
   if (logger->should_log_statement(log_level))
   {
-    logger->log_statement_runtime_metadata(
-      &macro_metadata, fmt, location.file_name(), location.function_name(), tags, location.line(),
-      log_level, std::forward<Args>(args)...);
+    logger->log_statement_runtime_metadata(&macro_metadata, fmt, location.file_name(),
+                                           location.function_name(), tags, location.line(),
+                                           log_level, std::forward<Args>(args)...);
   }
 }
 } // namespace detail

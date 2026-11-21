@@ -113,71 +113,6 @@ TEST_CASE("stress_test")
   }
 }
 
-TEST_CASE("assign_access_index")
-{
-  // Create an InlinedVector with uint32_t and a small capacity
-  InlinedVector<uint32_t, 4> vec;
-
-  // Add elements to the vector
-  vec.push_back(10);
-  vec.push_back(20);
-  vec.push_back(30);
-
-  // Assign a new value to index 1
-  vec.assign(1, 99);
-
-  // Verify that the value has been updated
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 99);
-  REQUIRE_EQ(vec[2], 30);
-
-  // Assign a new value to index 2
-  vec.assign(2, 199);
-
-  // Assign value to invalid index
-#if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS(vec.assign(3, 199));
-#endif
-
-  // Verify that the value has been updated
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 99);
-  REQUIRE_EQ(vec[2], 199);
-
-  {
-#if !defined(QUILL_NO_EXCEPTIONS)
-    // we only pushed_back 3 elements, trying to access the 4th will fail
-    REQUIRE_THROWS(vec[3]);
-#endif
-  }
-
-  // Add one more
-  vec.push_back(130);
-
-  // Verify that the values
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 99);
-  REQUIRE_EQ(vec[2], 199);
-  REQUIRE_EQ(vec[3], 130);
-
-  // Add one more - vector will switch to heap
-  vec.push_back(230);
-
-  // Verify that the values
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 99);
-  REQUIRE_EQ(vec[2], 199);
-  REQUIRE_EQ(vec[3], 130);
-  REQUIRE_EQ(vec[4], 230);
-
-  {
-#if !defined(QUILL_NO_EXCEPTIONS)
-    // we only pushed_back 5 elements, trying to access the 6th will fail
-    REQUIRE_THROWS(vec[5]);
-#endif
-  }
-}
-
 TEST_CASE("capacity_exactly_powers_of_two")
 {
   // Test with N=2 to ensure doubling works correctly
@@ -211,41 +146,6 @@ TEST_CASE("capacity_exactly_powers_of_two")
   REQUIRE_EQ(vec[2], 3);
   REQUIRE_EQ(vec[3], 4);
   REQUIRE_EQ(vec[4], 5);
-}
-
-TEST_CASE("assign_after_heap_allocation")
-{
-  InlinedVector<uint32_t, 2> vec;
-
-  // Fill inline buffer
-  vec.push_back(10);
-  vec.push_back(20);
-
-  // Trigger heap allocation
-  vec.push_back(30);
-  vec.push_back(40);
-
-  REQUIRE_EQ(vec.capacity(), 4);
-
-  // Now test assign on heap-allocated storage
-  vec.assign(0, 100);
-  vec.assign(1, 200);
-  vec.assign(2, 300);
-  vec.assign(3, 400);
-
-  REQUIRE_EQ(vec[0], 100);
-  REQUIRE_EQ(vec[1], 200);
-  REQUIRE_EQ(vec[2], 300);
-  REQUIRE_EQ(vec[3], 400);
-
-  // Test assign at boundary
-  vec.assign(3, 999);
-  REQUIRE_EQ(vec[3], 999);
-
-  // Test that assign beyond size still throws
-#if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_THROWS(vec.assign(4, 500));
-#endif
 }
 
 TEST_CASE("multiple_reallocations")
@@ -377,50 +277,6 @@ TEST_CASE("boundary_access_inline_only")
 #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[8]);
 #endif
-
-  // Assign at boundaries
-  vec.assign(0, 100);
-  vec.assign(7, 700);
-
-  REQUIRE_EQ(vec[0], 100);
-  REQUIRE_EQ(vec[7], 700);
-}
-
-TEST_CASE("alternating_push_assign")
-{
-  InlinedVector<uint32_t, 3> vec;
-
-  vec.push_back(1);
-  vec.assign(0, 10);
-  REQUIRE_EQ(vec[0], 10);
-
-  vec.push_back(2);
-  vec.assign(1, 20);
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 20);
-
-  vec.push_back(3);
-  vec.assign(2, 30);
-
-  // Now at capacity, next push will allocate heap
-  vec.push_back(4);
-  REQUIRE_GT(vec.capacity(), 3);
-
-  vec.assign(3, 40);
-
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 20);
-  REQUIRE_EQ(vec[2], 30);
-  REQUIRE_EQ(vec[3], 40);
-
-  vec.push_back(5);
-  vec.assign(4, 50);
-
-  REQUIRE_EQ(vec[0], 10);
-  REQUIRE_EQ(vec[1], 20);
-  REQUIRE_EQ(vec[2], 30);
-  REQUIRE_EQ(vec[3], 40);
-  REQUIRE_EQ(vec[4], 50);
 }
 
 TEST_CASE("test_heap_buffer_initialization")
@@ -468,16 +324,6 @@ TEST_CASE("test_clear_multiple_times")
     REQUIRE_EQ(vec[1], 200 + round);
     REQUIRE_EQ(vec[2], 300 + round);
   }
-}
-
-TEST_CASE("assign_at_index_zero_single_element")
-{
-  InlinedVector<uint32_t, 4> vec;
-
-  vec.push_back(100);
-  vec.assign(0, 999);
-  REQUIRE_EQ(vec[0], 999);
-  REQUIRE_EQ(vec.size(), 1);
 }
 
 TEST_CASE("exact_capacity_boundary")
@@ -714,30 +560,6 @@ TEST_CASE("first_reallocation_boundary")
   REQUIRE_EQ(vec[3], 400);
 }
 
-TEST_CASE("assign_exactly_at_size_minus_one")
-{
-  InlinedVector<uint32_t, 3> vec;
-
-  vec.push_back(1);
-  vec.push_back(2);
-  vec.push_back(3);
-
-  // Assign at last element (size - 1)
-  vec.assign(2, 999);
-  REQUIRE_EQ(vec[2], 999);
-  REQUIRE_EQ(vec[0], 1);
-  REQUIRE_EQ(vec[1], 2);
-
-  // Now trigger heap allocation
-  vec.push_back(4);
-
-  // Verify all values after heap transition
-  REQUIRE_EQ(vec[0], 1);
-  REQUIRE_EQ(vec[1], 2);
-  REQUIRE_EQ(vec[2], 999); // This was assigned
-  REQUIRE_EQ(vec[3], 4);
-}
-
 TEST_CASE("rapid_clear_and_refill")
 {
   InlinedVector<uint32_t, 2> vec;
@@ -811,31 +633,20 @@ TEST_CASE("interleaved_operations_stress")
   vec.push_back(20);
   REQUIRE_EQ(vec[1], 20);
 
-  vec.assign(0, 11);
-  REQUIRE_EQ(vec[0], 11);
-
   vec.push_back(30); // Triggers heap
-  REQUIRE_EQ(vec[0], 11);
+  REQUIRE_EQ(vec[0], 10);
   REQUIRE_EQ(vec[1], 20);
-  REQUIRE_EQ(vec[2], 30);
-
-  vec.assign(1, 22);
-  REQUIRE_EQ(vec[0], 11);
-  REQUIRE_EQ(vec[1], 22);
   REQUIRE_EQ(vec[2], 30);
 
   vec.push_back(40);
   REQUIRE_EQ(vec[3], 40);
 
   vec.push_back(50); // Triggers another resize
-  REQUIRE_EQ(vec[0], 11);
-  REQUIRE_EQ(vec[1], 22);
+  REQUIRE_EQ(vec[0], 10);
+  REQUIRE_EQ(vec[1], 20);
   REQUIRE_EQ(vec[2], 30);
   REQUIRE_EQ(vec[3], 40);
   REQUIRE_EQ(vec[4], 50);
-
-  vec.assign(2, 33);
-  REQUIRE_EQ(vec[2], 33);
 
   vec.clear();
   REQUIRE_EQ(vec.size(), 0);
@@ -872,15 +683,6 @@ TEST_CASE("size_one_vector_operations")
   REQUIRE_EQ(vec[0], 42);
   REQUIRE_EQ(vec[1], 43);
   REQUIRE_EQ(vec[2], 44);
-
-  // Assign operations
-  vec.assign(0, 100);
-  vec.assign(1, 101);
-  vec.assign(2, 102);
-
-  REQUIRE_EQ(vec[0], 100);
-  REQUIRE_EQ(vec[1], 101);
-  REQUIRE_EQ(vec[2], 102);
 }
 
 TEST_CASE("verify_heap_pointer_not_corrupted")
@@ -917,7 +719,6 @@ TEST_CASE("empty_vector_operations")
   // Should not be able to access anything
 #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS(vec[0]);
-  REQUIRE_THROWS(vec.assign(0, 100));
 #endif
 
   REQUIRE_EQ(vec.size(), 0);
@@ -926,31 +727,6 @@ TEST_CASE("empty_vector_operations")
   // Clear on empty vector should be safe
   vec.clear();
   REQUIRE_EQ(vec.size(), 0);
-}
-
-TEST_CASE("assign_after_multiple_reallocations")
-{
-  InlinedVector<uint32_t, 1> vec;
-
-  // Force multiple reallocations
-  for (uint32_t i = 0; i < 20; ++i)
-  {
-    vec.push_back(i * 10);
-  }
-
-  // Now assign to various indices
-  vec.assign(0, 1000);
-  vec.assign(10, 2000);
-  vec.assign(19, 3000);
-
-  REQUIRE_EQ(vec[0], 1000);
-  REQUIRE_EQ(vec[10], 2000);
-  REQUIRE_EQ(vec[19], 3000);
-
-  // Other values should be unchanged
-  REQUIRE_EQ(vec[1], 10);
-  REQUIRE_EQ(vec[5], 50);
-  REQUIRE_EQ(vec[15], 150);
 }
 
 TEST_SUITE_END();

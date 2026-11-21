@@ -192,8 +192,8 @@ TEST_CASE("named_args_edge_cases")
   REQUIRE(quill::testing::file_contains(text_file_contents,
                                         "|     3.142| [val:      3.142, _1: 10, _2: 4]"));
 
-  CHECK(testing::file_contains(text_file_contents,
-                              "12.35 USD [amount: 12.35, _1: 2, currency: USD]"));
+  CHECK(
+    testing::file_contains(text_file_contents, "12.35 USD [amount: 12.35, _1: 2, currency: USD]"));
   CHECK(testing::file_contains(json_file_contents, R"("_1":"6","_2":"2","unit":"ms")"));
   CHECK(testing::file_contains(json_file_contents, R"("_1":"3","unit":"ms","occurred":"1")"));
 

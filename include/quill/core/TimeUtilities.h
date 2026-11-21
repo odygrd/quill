@@ -25,7 +25,7 @@ namespace detail
  * @param timer to a time_t object to convert
  * @param buf to a struct tm object to store the result
  * @return copy of the buf pointer, or throws on error
- * @throws std::system_error on failure
+ * @throws QuillError on failure
  */
 inline tm* gmtime_rs(time_t const* timer, tm* buf)
 {
@@ -53,7 +53,7 @@ inline tm* gmtime_rs(time_t const* timer, tm* buf)
  * @param timer to a time_t object to convert
  * @param buf to a struct tm object to store the result
  * @return copy of the buf pointer, or throws on error
- * @throws std::system_error on failure
+ * @throws QuillError on failure
  */
 inline tm* localtime_rs(time_t const* timer, tm* buf)
 {

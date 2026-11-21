@@ -110,11 +110,12 @@ public:
 
     **Example**::
 
-      fmtquill::dynamic_format_arg_store<fmtquill::format_fmtquill::format_context> store;
+      quill::DynamicFormatArgStore store;
       store.push_back(42);
       store.push_back("abc");
       store.push_back(1.5f);
-      std::string result = fmtquill::vformat("{} and {} and {}", store);
+      std::string result = fmtquill::vformat(
+        "{} and {} and {}", fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
   */
   template <typename T>
   void push_back(T&& arg)

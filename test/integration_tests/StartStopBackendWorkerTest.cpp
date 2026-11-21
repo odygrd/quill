@@ -83,7 +83,8 @@ TEST_CASE("start_stop_backend_worker")
   notifier.before_close = [diagnostic](fs::path const&, FileEventNotifierHandle)
   { LOG_INFO(diagnostic, "victim closed"); };
 
-  auto* victim = Frontend::create_or_get_logger("start_stop_close_callback_victim",
+  auto* victim = Frontend::create_or_get_logger(
+    "start_stop_close_callback_victim",
     Frontend::create_or_get_sink<FileSink>(victim_file, FileSinkConfig{}, notifier));
 
   std::promise<void> poll_finished;
@@ -108,15 +109,16 @@ TEST_CASE("start_stop_backend_worker")
   Frontend::remove_logger(victim);
 
   // Schedule removal after ordinary poll cleanup, so shutdown must close the sink.
-  std::thread release_thread([&]()
-  {
-    while (Backend::is_running())
+  std::thread release_thread(
+    [&]()
     {
-      std::this_thread::yield();
-    }
+      while (Backend::is_running())
+      {
+        std::this_thread::yield();
+      }
 
-    release_poll.set_value();
-  });
+      release_poll.set_value();
+    });
 
   Backend::stop();
   release_thread.join();

@@ -126,6 +126,129 @@
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
+- **Breaking change:** `Sink::write_log()`, `Sink::write_metric()`, `Filter::filter()` and
+  `JsonSink::generate_json_message()` now take a single `LogRecord` or `MetricRecord`, and sinks
+  implement one `flush_sink(SinkFlushReason)`, so future record fields will not break custom sinks
+  and filters again.
+- **Breaking change:** Custom frontend options must derive from `quill::FrontendOptions`, so options
+  added in later versions are inherited instead of failing to compile.
+- **Breaking change:** Removed `ConsoleSinkConfig::Colours::set_colours_enabled()` and
+  `colours_enabled()`, which had no effect, and `PrometheusSink::Options`, which no constructor
+  accepted. Use `ConsoleSinkConfig::set_colour_mode()` to disable colours.
+- `Frontend::create_sink<TSink>()` and `Frontend::create_or_get_sink<TSink>()` return
+  `std::shared_ptr<TSink>`, so configuring the created sink no longer needs a cast. Code that
+  relied on both returning `std::shared_ptr<Sink>`, such as a conditional expression that selects
+  between two sink types, needs an explicit conversion.
+- `loglevel_from_string()` is deprecated in favour of `log_level_from_string()`.
+- **Breaking change:** Custom codecs use `quill::SizeCacheVector` instead of
+  `quill::detail::SizeCacheVector`, whose `assign()` is removed; no Quill codec used it. The new
+  `quill::MemberwiseCodec<T, &T::a, &T::b>` generates a codec from a list of data members.
+- **Breaking change:** The protected `FileSink` helpers `format_datetime_string()` and
+  `append_datetime_to_filename()` are now free functions in `quill::detail`, and
+  `extract_stem_and_extension()` is removed; use `path.parent_path() / path.stem()` and
+  `path.extension()` instead.
+- **Breaking change:** The protected `JsonSink::_append_json_escaped()` is renamed to
+  `append_json_escaped()`.
+- **Breaking change:** `LoggerBase::mark_invalid()` is now protected; remove loggers with
+  `Frontend::remove_logger()` or `Frontend::remove_logger_blocking()`. The unused macros
+  `QUILL_CPLUSPLUS`, `QUILL_HAS_INCLUDE`, `QUILL_HAS_CPP_ATTRIBUTE` and `QUILL_MAGIC_SEPARATOR` are
+  removed.
+- **Breaking change:** `FileSinkConfig::set_open_mode()` throws `QuillError` for modes other than
+  `"a"` and `"w"` (or `"ab"` and `"wb"`), which previously failed to open on POSIX or, for `"r+"` on
+  Windows, overwrote the file from its start.
+- Creating loggers whose `FrontendOptions` values differ now throws `QuillError`, as does passing a
+  different options type to `Backend::start<TFrontendOptions>()` with `SignalHandlerOptions` or, on
+  Windows, to `init_signal_handler<TFrontendOptions>()`; mixing queue types previously crashed on
+  the first log call from a thread that used both loggers.
+- `Frontend::preallocate()` can be called again by a thread that has already logged, e.g. at the
+  start of each job of a thread pool. With an unbounded queue it read memory that the backend
+  thread could be freeing.
+- On POSIX, with the built-in signal handler, Ctrl-C and `SIGTERM` still flush the logs but now
+  terminate the process by the signal, so shell loops and supervisors see the interruption. As PID 1
+  of a container, where the kernel ignores that signal, the process exits with status
+  `128 + signal`.
+- `SIGBUS` is now one of the default `SignalHandlerOptions::catchable_signals`.
+- With `SignalHandlerOptions::timeout_seconds = 0`, `Backend::start()` leaves the application's
+  `SIGALRM` handler installed.
+- With the built-in signal handler, a second handled signal on the thread that is already handling
+  one, such as `SIGINT` during `SIGTERM`, no longer stalls the shutdown until the handler timeout.
+- On Windows, an unhandled-exception filter installed before `Backend::start()`, such as a crash
+  reporter, runs again after Quill's filter.
+- `Backend::stop()` restores the signal handlers installed before `Backend::start()` instead of
+  resetting them to the default.
+- `FileSink` with `minimum_fsync_interval` now performs a skipped fsync once the interval elapses
+  and on the final flush, so the last records are synced, including the first fsync on a system up
+  for less than the interval.
+- `RotatingSink` keeps rotating after a backup file is deleted or compressed outside Quill, instead
+  of letting the active file grow without limit.
+- With `RotationNamingScheme::Date` or `DateAndTime`, `RotatingSink` names the first backup after
+  its first record, like every later backup, instead of after the sink's creation, so a sparse
+  logger's first backup no longer carries the date it was created on.
+- With `RotationNamingScheme::DateAndTime`, a restart within the same second no longer overwrites the
+  previous run's backup, and the newest backup keeps the unnumbered name.
+- A time-based rotation that fails, e.g. on a transient rename error, is retried after one second
+  instead of at the next scheduled rotation.
+- Closing one `CsvWriter` no longer breaks another `CsvWriter` with a different schema that writes to
+  the same file, or one with the same name created in another shared library.
+- Format strings that combine a dynamic width or precision with named arguments, such as
+  `"{:{}} {unit}"`, no longer fail with "argument not found".
+- File sinks on POSIX create files with permissions from the process umask, as `fopen()` does,
+  instead of always 0644.
+- A missing log directory no longer stalls the backend for 400 ms on every flush while `FileSink`
+  retries opening the file.
+- An unbounded queue that cannot grow because memory is exhausted now blocks or drops the message
+  like a full queue, instead of throwing from the `LOG_*` call. A message or MDC update too large
+  for the current queue is dropped in that case and reported separately through
+  `BackendOptions::error_notifier`.
+- With `HugePagesPolicy::Always` or `Try`, a queue of 1 MiB or more no longer requests one huge page
+  too many, so a hugetlb pool sized from the queue capacity is enough.
+- Timestamp patterns with flagged time specifiers such as `%-H` or `%_M` now print the current time
+  instead of a stale cached one, and patterns with `%X` or `%c` are accepted instead of throwing
+  `QuillError`. They are formatted with `strftime()`, which `BackendOptions::error_notifier`
+  reports once.
+- With the TSC clock, timestamps keep following the system clock on hosts where reading it is
+  slow, and drift less between resyncs.
+- With the default `check_printable_char`, the backend spends about 30% less time on messages with
+  string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
+- Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
+  rotation no longer fsyncs the file when fsync is disabled.
+- Added `QUILL_VERSION`, `QUILL_VERSION_MAJOR`, `QUILL_VERSION_MINOR` and `QUILL_VERSION_PATCH`.
+- `BackendOptions` is an aggregate in every language standard, so C++20 designated initializers
+  such as `BackendOptions{.thread_name = "backend"}` compile.
+- `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
+  `Backend::notify()` wakes the backend, instead of busy-spinning.
+- A custom `BackendOptions::check_printable_char` is now called once per byte value when the backend
+  starts instead of once per character, so it must depend only on its argument.
+- A transient allocation failure in the backend is reported through `error_notifier` and retried,
+  instead of terminating the process, logging a record with duplicated arguments or disabling a
+  sink's filters. `%(mdc)` also keeps its previous value instead of a truncated one.
+- Logger patterns with a `}` inside an attribute's format spec, such as `%(logger:})`, are now
+  rejected as an invalid format specifier instead of printing a literal `}`; put the `}` after the
+  attribute.
+- Arguments beyond the named fields of a format string get unique keys in `LogRecord::named_args`
+  and JSON output: `LOG_INFO(logger, "{_1}", 31, 42)` no longer emits the key `_1` twice.
+- A type using `DirectFormatCodec` is formatted once per log statement instead of twice, so a
+  formatter that reads concurrently changing state can no longer log truncated or stale text.
+- A type with a `std::initializer_list` constructor, such as `nlohmann::json`, logged through
+  `DeferredFormatCodec` or inside a `std::array` is no longer wrapped in a one-element list on GCC.
+- `decode_members()` can assign `std::variant` members whose alternatives are not strings, and on
+  Windows a `std::tuple` or `std::variant` holding a wide string can be logged; both previously
+  failed to compile.
+- Logging more than 12 C strings in one statement, or a container of them, now throws
+  `std::bad_alloc` from the log call when the size cache cannot allocate, instead of calling
+  `std::terminate()`.
+- `quill/std/Atomic.h` no longer includes `quill/bundled/fmt/format.h` and
+  `quill/bundled/fmt/std.h`; include them directly if your code relied on that.
+- `Frontend::create_or_get_sink()` no longer opens a second `FileSink` on the same file, truncating
+  it in `"w"` mode, when the path is a symlink whose target the first sink created.
+- In `QUILL_NO_EXCEPTIONS` builds, `Frontend::get_sink()` no longer aborts for a sink name that is
+  not a valid file path, such as `"tcp://collector:4317"`.
+- `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
+  boundaries before creating any state, so registering again with corrected buckets works instead
+  of dropping samples or failing every publish.
+- `RotatingFileSinkConfig::set_rotation_time_daily()` no longer switches the configuration to daily
+  rotation when it throws for an invalid time.
+- Various other fixes and performance improvements.
 
 ## v13.1.0
 

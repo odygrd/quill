@@ -18,7 +18,7 @@
 
 namespace
 {
-volatile sig_atomic_t signal_received{0};
+sig_atomic_t volatile signal_received{0};
 
 void interrupt_stream_write(int) { signal_received = 1; }
 
