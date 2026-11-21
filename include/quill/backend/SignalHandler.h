@@ -57,7 +57,13 @@ struct SignalHandlerOptions
    * On Windows, Backend::start() does not consume this list; pass the desired signals to
    * init_signal_handler<TFrontendOptions>() on each thread that needs CRT signal handling.
    */
-  std::vector<int> catchable_signals{SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV};
+  std::vector<int> catchable_signals
+  {
+    SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV,
+#if defined(SIGBUS)
+      SIGBUS
+#endif
+  };
 
   /**
    * Defines the timeout duration in seconds for the signal handler alarm.
@@ -97,17 +103,51 @@ namespace detail
 {
 using signal_handler_t = void (*)(int);
 
+/** The handler a signal had before Quill installed its own */
 struct SignalHandlerRestoreEntry
 {
   int signal_number;
+#if defined(_WIN32)
   signal_handler_t previous_handler;
+#else
+  // sigaction() also preserves flags such as SA_SIGINFO, which std::signal() cannot round-trip
+  struct sigaction previous_action;
+#endif
 };
+
+/**
+ * Installs `handler` for `signal_number` and saves the previous handler in `previous`.
+ * @return false if the signal cannot be handled
+ */
+inline bool install_signal_handler(int signal_number, signal_handler_t handler,
+                                   SignalHandlerRestoreEntry& previous) noexcept
+{
+  previous.signal_number = signal_number;
+
+#if defined(_WIN32)
+  previous.previous_handler = std::signal(signal_number, handler);
+  return previous.previous_handler != SIG_ERR;
+#else
+  // Same semantics as glibc's signal(): restart interrupted calls, keep the handler installed
+  struct sigaction action
+  {
+  };
+  action.sa_handler = handler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = SA_RESTART;
+  return ::sigaction(signal_number, &action, &previous.previous_action) == 0;
+#endif
+}
 
 inline void restore_signal_handler_entries(std::vector<SignalHandlerRestoreEntry> const& previous_signal_handlers) noexcept
 {
   for (auto it = previous_signal_handlers.rbegin(); it != previous_signal_handlers.rend(); ++it)
   {
+#if defined(_WIN32)
     std::signal(it->signal_number, it->previous_handler);
+#else
+    ::sigaction(it->signal_number, &it->previous_action, nullptr);
+#endif
   }
 }
 
@@ -236,7 +276,6 @@ public:
   std::atomic<uint32_t> signal_handler_timeout_seconds{20};
   std::atomic<bool> should_reraise_signal{true};
   std::mutex signal_handlers_mutex;
-  std::vector<int> registered_signal_handlers{};
   std::vector<SignalHandlerRestoreEntry> previous_signal_handlers{};
 #if defined(_WIN32)
   // Atomic because on_exception() reads it without the mutex, e.g. while stop() restores it
@@ -318,17 +357,9 @@ void on_signal(int32_t signal_number)
   uint32_t const current_thread_id = get_thread_id();
   bool const should_reraise_signal = SignalHandlerContext::instance().should_reraise_signal.load();
 
-  if ((backend_thread_id == 0) || (current_thread_id == backend_thread_id))
+  // Logging and flushing need a running backend on another thread
+  if ((backend_thread_id != 0) && (current_thread_id != backend_thread_id))
   {
-    // backend worker thread is not running or the signal handler is called in the backend worker thread
-    if (signal_number == SIGINT || signal_number == SIGTERM)
-    {
-      std::_Exit(EXIT_SUCCESS);
-    }
-  }
-  else
-  {
-    // This means signal handler is running on a frontend thread, we can log and flush
     LoggerBase* logger_base = SignalHandlerContext::instance().get_logger();
 
     if (logger_base)
@@ -341,13 +372,10 @@ void on_signal(int32_t signal_number)
 
       if (signal_number == SIGINT || signal_number == SIGTERM)
       {
-        // For SIGINT and SIGTERM, we are shutting down gracefully
-        // Pass `0` to avoid calling std::this_thread::sleep_for()
+        // A requested shutdown, not a crash. Pass `0` to avoid sleeping while flushing
         logger->flush_log(0);
-        std::_Exit(EXIT_SUCCESS);
       }
-
-      if (should_reraise_signal)
+      else if (should_reraise_signal)
       {
         QUILL_SIGNAL_HANDLER_LOG(logger, LogLevel::Critical,
                                  "Program terminated unexpectedly due to signal: {} (signum: {})",
@@ -361,21 +389,42 @@ void on_signal(int32_t signal_number)
         logger->flush_log(0);
       }
     }
+  }
 
-    // SIGINT and SIGTERM must still terminate when no valid logger was found.
-    if (signal_number == SIGINT || signal_number == SIGTERM)
-    {
-      std::_Exit(EXIT_SUCCESS);
-    }
+#if defined(_WIN32)
+  // Windows has no termination-by-signal status, and the default action of a re-raised SIGINT or
+  // SIGTERM exits with a failure code, so a requested shutdown keeps exiting successfully
+  if (signal_number == SIGINT || signal_number == SIGTERM)
+#else
+  if ((signal_number == SIGINT || signal_number == SIGTERM) && !should_reraise_signal)
+#endif
+  {
+    std::_Exit(EXIT_SUCCESS);
   }
 
   if (should_reraise_signal)
   {
-    // Reset to the default signal handler and re-raise the signal, even when no valid logger exists.
-    // Fatal signals must reach their default disposition so the process is reported as terminated
-    // by the original signal and the OS can generate a core dump when core dumps are enabled.
+    // Reset to the default signal handler and re-raise the signal, even when no valid logger
+    // exists. The signal must reach its default disposition so the process is reported as
+    // terminated by it: shells stop a loop on Ctrl-C only when the child died from SIGINT, and the
+    // OS can generate a core dump for crash signals when core dumps are enabled.
     std::signal(signal_number, SIG_DFL);
     std::raise(signal_number);
+
+#if !defined(_WIN32)
+    if (signal_number == SIGINT || signal_number == SIGTERM)
+    {
+      // The kernel discards a default-action signal sent to the init process of a PID namespace,
+      // such as a container entrypoint, so returning would leave the application running. Unblock
+      // the signal to take its default action here. A process that survives it exits with the
+      // status a shell reports for that signal.
+      sigset_t shutdown_signal;
+      sigemptyset(&shutdown_signal);
+      sigaddset(&shutdown_signal, signal_number);
+      pthread_sigmask(SIG_UNBLOCK, &shutdown_signal, nullptr);
+      std::_Exit(128 + signal_number);
+    }
+#endif
 
     // On POSIX the signal is blocked while its handler is running, so raise() leaves it pending.
     // Returning restores the previous signal mask and allows the default disposition to run. Do
@@ -590,54 +639,41 @@ void init_signal_handler(std::vector<int> const& catchable_signals = std::vector
   auto& ctx = detail::SignalHandlerContext::instance();
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
-  std::vector<detail::SignalHandlerRestoreEntry> previous_signal_handlers;
-  previous_signal_handlers.reserve(catchable_signals.size());
+  std::vector<detail::SignalHandlerRestoreEntry> installed_signal_handlers;
+  installed_signal_handlers.reserve(catchable_signals.size());
 
   for (auto const& catchable_signal : catchable_signals)
   {
     // setup a signal handler per signal in the array
-    auto const previous_handler = std::signal(catchable_signal, detail::on_signal<TFrontendOptions>);
-    if (previous_handler == SIG_ERR)
+    detail::SignalHandlerRestoreEntry previous{};
+    if (!detail::install_signal_handler(catchable_signal, detail::on_signal<TFrontendOptions>, previous))
     {
-      detail::restore_signal_handler_entries(previous_signal_handlers);
+      detail::restore_signal_handler_entries(installed_signal_handlers);
       QUILL_THROW(QuillError{"Failed to setup signal handler for signal: " + std::to_string(catchable_signal)});
     }
 
-    previous_signal_handlers.push_back({catchable_signal, previous_handler});
+    installed_signal_handlers.push_back(previous);
   }
 
-  ctx.registered_signal_handlers = catchable_signals;
-  ctx.previous_signal_handlers = std::move(previous_signal_handlers);
+  // This is called on each thread that needs CRT signal handling. Keep the handler a signal had
+  // before Quill's first installation, not Quill's own handler from an earlier call.
+  for (auto const& installed : installed_signal_handlers)
+  {
+    bool already_saved{false};
+    for (auto const& saved : ctx.previous_signal_handlers)
+    {
+      already_saved = already_saved || (saved.signal_number == installed.signal_number);
+    }
+
+    if (!already_saved)
+    {
+      ctx.previous_signal_handlers.push_back(installed);
+    }
+  }
 }
 
 QUILL_END_EXPORT
 
-namespace detail
-{
-inline void deinit_signal_handler()
-{
-  auto& ctx = SignalHandlerContext::instance();
-  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-
-  for (auto const& signal_number : ctx.registered_signal_handlers)
-  {
-    std::signal(signal_number, SIG_DFL);
-  }
-
-  ctx.registered_signal_handlers.clear();
-  ctx.previous_signal_handlers.clear();
-}
-
-inline void restore_signal_handlers()
-{
-  auto& ctx = SignalHandlerContext::instance();
-  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-
-  restore_signal_handler_entries(ctx.previous_signal_handlers);
-  ctx.registered_signal_handlers.clear();
-  ctx.previous_signal_handlers.clear();
-}
-} // namespace detail
 #else
 namespace detail
 {
@@ -659,6 +695,10 @@ inline void on_alarm(int32_t signal_number)
   sigaddset(&unblocked_signals, original_signal);
   pthread_sigmask(SIG_UNBLOCK, &unblocked_signals, nullptr);
   std::raise(original_signal);
+
+  // The kernel discards that signal for the init process of a PID namespace, such as a container
+  // entrypoint. End the process with the status a shell reports for the signal.
+  std::_Exit(128 + original_signal);
 }
 
 template <typename TFrontendOptions>
@@ -679,55 +719,42 @@ void init_signal_handler(std::vector<int> const& catchable_signals)
     }
 
     // set up a signal handler per signal in the array
-    auto const previous_handler = std::signal(catchable_signal, on_signal<TFrontendOptions>);
-    if (previous_handler == SIG_ERR)
+    SignalHandlerRestoreEntry previous{};
+    if (!install_signal_handler(catchable_signal, on_signal<TFrontendOptions>, previous))
     {
       restore_signal_handler_entries(previous_signal_handlers);
       QUILL_THROW(QuillError{"Failed to setup signal handler for signal: " + std::to_string(catchable_signal)});
     }
 
-    previous_signal_handlers.push_back({catchable_signal, previous_handler});
+    previous_signal_handlers.push_back(previous);
   }
 
   /* Register the alarm handler */
-  auto const previous_alarm_handler = std::signal(SIGALRM, on_alarm);
-  if (previous_alarm_handler == SIG_ERR)
+  SignalHandlerRestoreEntry previous_alarm{};
+  if (!install_signal_handler(SIGALRM, on_alarm, previous_alarm))
   {
     restore_signal_handler_entries(previous_signal_handlers);
     QUILL_THROW(QuillError{"Failed to setup signal handler for signal: SIGALRM"});
   }
 
-  previous_signal_handlers.push_back({SIGALRM, previous_alarm_handler});
-
-  ctx.registered_signal_handlers = catchable_signals;
-  ctx.registered_signal_handlers.push_back(SIGALRM);
+  previous_signal_handlers.push_back(previous_alarm);
   ctx.previous_signal_handlers = std::move(previous_signal_handlers);
 }
 
-inline void deinit_signal_handler()
+} // namespace detail
+#endif
+
+namespace detail
 {
-  auto& ctx = SignalHandlerContext::instance();
-  std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
-
-  for (auto const& signal_number : ctx.registered_signal_handlers)
-  {
-    std::signal(signal_number, SIG_DFL);
-  }
-
-  ctx.registered_signal_handlers.clear();
-  ctx.previous_signal_handlers.clear();
-}
-
+/** Reinstalls the handlers the signals had before Quill installed its own */
 inline void restore_signal_handlers()
 {
   auto& ctx = SignalHandlerContext::instance();
   std::lock_guard<std::mutex> const lock{ctx.signal_handlers_mutex};
 
   restore_signal_handler_entries(ctx.previous_signal_handlers);
-  ctx.registered_signal_handlers.clear();
   ctx.previous_signal_handlers.clear();
 }
 } // namespace detail
-#endif
 
 QUILL_END_NAMESPACE
