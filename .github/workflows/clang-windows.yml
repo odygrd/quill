@@ -39,7 +39,7 @@ jobs:
           version: "19.1.7"
 
       - name: Create Build Directory
-        run: cmake -E make_directory ${{runner.workspace}}/build
+        run: cmake -E make_directory ${{github.workspace}}/../build
 
       - name: Configure with Clang
         shell: bash
@@ -54,7 +54,7 @@ jobs:
             CXX_COMPILER="clang-cl"
           fi
           
-          cmake -S . -B "${{ runner.workspace }}/build" -G "Ninja" \
+          cmake -S . -B "${{ github.workspace }}/../build" -G "Ninja" \
             -DCMAKE_C_COMPILER="$C_COMPILER" \
             -DCMAKE_CXX_COMPILER="$CXX_COMPILER" \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
@@ -64,13 +64,13 @@ jobs:
             -DQUILL_VERBOSE_MAKEFILE=ON
 
       - name: Build
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         run: |
           $threads = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           cmake --build . --config ${{matrix.build_type}} --parallel $threads
 
       - name: Test
-        working-directory: ${{runner.workspace}}/build
+        working-directory: ${{github.workspace}}/../build
         run: |
           ctest --build-config ${{matrix.build_type}} --output-on-failure
 

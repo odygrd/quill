@@ -43,14 +43,14 @@ jobs:
         run: |
           apt-get update
           apt-get install -y cmake make
-          mkdir -p ${{runner.workspace}}/build
-          ls -l ${{runner.workspace}}
+          mkdir -p ${{github.workspace}}/../build
+          ls -l ${{github.workspace}}/..
 
       - name: Configure
         env:
           CXX: ${{matrix.cxx}}
         run: |
-          cd ${{runner.workspace}}/build
+          cd ${{github.workspace}}/../build
           cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
                 -DQUILL_BUILD_BENCHMARKS=${{ matrix.gcc_version >= 14 && matrix.build_type == 'Release' && 'ON' || 'OFF' }} \
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
@@ -58,12 +58,12 @@ jobs:
 
       - name: Build
         run: |
-          cd ${{runner.workspace}}/build
+          cd ${{github.workspace}}/../build
           cmake --build . --config ${{ matrix.build_type }} --parallel $(nproc)
 
       - name: Test
         run: |
-          cd ${{runner.workspace}}/build
+          cd ${{github.workspace}}/../build
           ctest --build-config ${{ matrix.build_type }} --parallel $(nproc) --output-on-failure
         env:
           CTEST_OUTPUT_ON_FAILURE: True
