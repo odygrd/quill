@@ -295,4 +295,31 @@ TEST_CASE("empty_source_location_is_handled")
   REQUIRE_STREQ(macro_metadata.short_source_location(), "");
 }
 
+TEST_CASE("source_location_is_scanned_from_its_end")
+{
+  // The file name and the line are found from the end of the source location. The macro-free
+  // functions construct the metadata at run time, usually from a long path
+  std::string const long_location = std::string(300, 'd') + "/nested\\file.cpp:1234";
+  MacroMetadata const runtime_metadata{
+    long_location.data(), "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(runtime_metadata.file_name(), "file.cpp");
+  REQUIRE_STREQ(runtime_metadata.line(), "1234");
+  REQUIRE_STREQ(runtime_metadata.short_source_location(), "file.cpp:1234");
+  REQUIRE_EQ(runtime_metadata.full_path().size(), long_location.size() - 5);
+
+  // Without a line the path ends the source location
+  constexpr MacroMetadata no_line{"nested/example.cpp",     "", "", nullptr, quill::LogLevel::Info,
+                                  MacroMetadata::Event::Log};
+  REQUIRE_EQ(no_line.full_path(), "nested/example.cpp");
+  REQUIRE_EQ(no_line.file_name(), "example.cpp");
+  REQUIRE_STREQ(no_line.line(), "");
+
+  // A separator can be the last character of the path
+  constexpr MacroMetadata no_file_name{
+    "nested/:7", "", "", nullptr, quill::LogLevel::Info, MacroMetadata::Event::Log};
+  REQUIRE_EQ(no_file_name.full_path(), "nested/");
+  REQUIRE_EQ(no_file_name.file_name(), "");
+  REQUIRE_STREQ(no_file_name.line(), "7");
+}
+
 TEST_SUITE_END();

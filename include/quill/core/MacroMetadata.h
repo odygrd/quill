@@ -49,17 +49,8 @@ public:
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
                           char const* message_format, char const* tags, LogLevel log_level,
                           Event event, bool is_rate_limited = false) noexcept
-    : _source_location(source_location),
-      _caller_function(caller_function),
-      _message_format(message_format),
-      _tags(tags),
-      _message_format_size(static_cast<uint32_t>(std::string_view{message_format}.size())),
-      _colon_separator_pos(_calc_colon_separator_pos()),
-      _file_name_pos(_calc_file_name_pos()),
-      _log_level(log_level),
-      _event(event),
-      _is_rate_limited(is_rate_limited),
-      _has_named_args(contains_named_args(std::string_view{message_format, _message_format_size}))
+    : MacroMetadata(std::string_view{source_location}, caller_function,
+                    std::string_view{message_format}, tags, log_level, event, is_rate_limited)
   {
   }
 
@@ -159,43 +150,59 @@ public:
   }
 
 private:
-  /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_file_name_pos() const noexcept
+  /**
+   * The strings are measured once, here in the views of the public constructor. The macro-free
+   * functions construct the metadata of every record at run time, where measuring a string is a
+   * call to strlen() and the positions below are found from the end of the source location: the
+   * file name and the line follow a path that is usually much longer than both.
+   */
+  constexpr MacroMetadata(std::string_view source_location, char const* caller_function,
+                          std::string_view message_format, char const* tags, LogLevel log_level,
+                          Event event, bool is_rate_limited) noexcept
+    : _source_location(source_location.data()),
+      _caller_function(caller_function),
+      _message_format(message_format.data()),
+      _tags(tags),
+      _message_format_size(static_cast<uint32_t>(message_format.size())),
+      _colon_separator_pos(_calc_colon_separator_pos(source_location)),
+      _file_name_pos(_calc_file_name_pos(source_location)),
+      _log_level(log_level),
+      _event(event),
+      _is_rate_limited(is_rate_limited),
+      _has_named_args(contains_named_args(message_format))
   {
-    char const* source_location = _source_location;
-    char const* file = source_location;
-    while (*source_location)
+  }
+
+  /** @return the position after the last path separator of `str`, 0 without one */
+  QUILL_NODISCARD static constexpr uint16_t _calc_file_name_pos(std::string_view str) noexcept
+  {
+    for (size_t i = str.size(); i > 0; --i)
     {
-      char const cur = *source_location++;
+      char const cur = str[i - 1];
 
       // Windows toolchains, and builds hosted on Windows, can spell source paths with either
       if ((cur == '/') || (cur == '\\'))
       {
-        file = source_location;
+        return static_cast<uint16_t>(i);
       }
     }
-    return static_cast<uint16_t>(file - _source_location);
+
+    return 0;
   }
 
-  /***/
-  QUILL_NODISCARD constexpr uint16_t _calc_colon_separator_pos() const noexcept
+  /** @return the position of the last ':' of `str`, its length without one */
+  QUILL_NODISCARD static constexpr uint16_t _calc_colon_separator_pos(std::string_view str) noexcept
   {
     // std::string_view::rfind is only constexpr from C++20
-    size_t length = 0;
-    while (_source_location[length] != '\0')
+    for (size_t i = str.size(); i > 0; --i)
     {
-      ++length;
-    }
-
-    for (size_t i = length; i > 0; --i)
-    {
-      if (_source_location[i - 1] == ':')
+      if (str[i - 1] == ':')
       {
         return static_cast<uint16_t>(i - 1);
       }
     }
 
-    return static_cast<uint16_t>(length);
+    return static_cast<uint16_t>(str.size());
   }
 
 private:
