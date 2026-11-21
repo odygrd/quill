@@ -63,6 +63,7 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   size_t errors{0};
   quill::BackendOptions options;
   options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
+  options.wait_for_queues_to_empty_before_exit = false;
   options.error_notifier = [&errors](std::string const&) { ++errors; };
   auto* worker = quill::Backend::acquire_manual_backend_worker();
   worker->init(options);
@@ -87,6 +88,18 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   worker->poll_one();
   CHECK_EQ(sink->writes, 1u);
   worker->poll();
+
+  // A thread that only creates its queue and exits leaves a retired context with nothing to read
+  std::thread idle_thread([]() { quill::Frontend::preallocate(); });
+  idle_thread.join();
+
+  // Fail the discovery of that context. shutdown() does not poll again when
+  // wait_for_queues_to_empty_before_exit is false, so it must cope with a context whose transit
+  // buffer was never allocated.
+  fail_next_allocation = true;
+  worker->poll_one();
+  CHECK_FALSE(fail_next_allocation);
+
   worker->shutdown();
   quill::Frontend::remove_logger(logger);
 #endif

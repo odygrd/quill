@@ -227,7 +227,7 @@ public:
       QUILL_THROW(QuillError{"Backend::stop() cannot be called from the backend worker thread"});
     }
 
-    detail::LockGuard const stop_lock{backend_manager._stop_spinlock};
+    std::lock_guard<std::mutex> const stop_lock{backend_manager._stop_mutex};
 
     detail::SignalHandlerContext::instance().backend_thread_id.store(0);
     backend_manager.stop_backend_thread();
