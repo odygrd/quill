@@ -552,6 +552,20 @@ private:
 
     _forget_missing_backups(checks_own_suffix_only ? &datetime_suffix : nullptr);
 
+    if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
+    {
+      _track_backups_with_date_time(datetime_suffix);
+
+      if ((_created_files.size() > _config.max_backup_files()) && !_config.overwrite_rolled_files())
+      {
+        // The backups just tracked reach the backup limit, and rotating would remove the oldest of
+        // them. Keep writing to the current file, as rotation does at the limit.
+        this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
+        this->_file_size = _get_file_size(this->_filename);
+        return;
+      }
+    }
+
     // We need to rotate the files and rename them with an index.
     // Track completed renames so we can undo them if a later rename fails.
     std::vector<RenameRecord> completed_renames;
@@ -624,8 +638,9 @@ private:
       _created_files[rec.created_files_idx].date_time = rec.new_date_time;
     }
 
-    // Check if we have too many files in the queue remove_file the oldest one
-    if (_created_files.size() > _config.max_backup_files())
+    // Remove the oldest files while there are too many. It is more than one when the backups of
+    // an earlier run were tracked by this rotation, see _track_backups_with_date_time()
+    while (_created_files.size() > _config.max_backup_files())
     {
       // remove_file that file from the system and also pop it from the queue
       fs::path const removed_file = _get_filename(
@@ -684,7 +699,8 @@ private:
     {
       if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::DateAndTime)
       {
-        // DateAndTime filenames are unique across runs and cannot collide, nothing to clean
+        // DateAndTime backups of previous runs are kept. A run that started in the same second
+        // produces the same names, which _track_backups_with_date_time() handles on rotation
         return true;
       }
 
@@ -1381,6 +1397,52 @@ private:
     }
 
     QUILL_THROW(QuillError{"Invalid rotation frequency"});
+  }
+
+  /**
+   * Tracks the DateAndTime backups named with `date_time` that the sink does not know about.
+   * Startup in "w" mode keeps the backups of previous runs without tracking them, and a run that
+   * started within the same second gives its backups the same names. Once tracked, rotation shifts
+   * them to a greater index like the sink's own backups instead of renaming over them, so index 0
+   * stays the newest backup, as append-mode recovery and backup retention expect.
+   */
+  void _track_backups_with_date_time(std::string const& date_time)
+  {
+    for (uint32_t index = 0;; ++index)
+    {
+      // Only a file is a backup: a directory with the name of one must not be renamed
+      std::error_code ec;
+      fs::file_status const status = fs::status(_get_filename(this->_filename, index, date_time), ec);
+
+      if (ec || (status.type() != fs::file_type::regular))
+      {
+        return;
+      }
+
+      // The list follows rotation order, which is not date_time order once local time repeats at
+      // the end of daylight saving time or the clock steps back, so look for the entry everywhere
+      bool const already_tracked =
+        std::any_of(_created_files.begin(), _created_files.end(),
+                    [&date_time, index](FileInfo const& file_info)
+                    { return (file_info.date_time == date_time) && (file_info.index == index); });
+
+      if (already_tracked)
+      {
+        continue;
+      }
+
+      // _created_files is ordered newest first, and within one date_time a greater index is older
+      auto const position =
+        std::find_if(_created_files.begin(), _created_files.end(),
+                     [&date_time, index](FileInfo const& file_info)
+                     {
+                       return !file_info.date_time.empty() &&
+                         ((file_info.date_time < date_time) ||
+                          ((file_info.date_time == date_time) && (file_info.index >= index)));
+                     });
+
+      _created_files.insert(position, FileInfo{this->_filename, index, date_time});
+    }
   }
 
   /***/
