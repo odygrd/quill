@@ -185,6 +185,9 @@
   for less than the interval.
 - `RotatingSink` keeps rotating after a backup file is deleted or compressed outside Quill, instead
   of letting the active file grow without limit.
+- `RotatingSink` ignores a file named with index zero or a zero-padded index, e.g. `app.0.log` or
+  `app.01.log` next to `app.log`, which it never writes. Before, such a file stopped rotation in
+  append mode and was deleted by `remove_old_files`.
 - With `RotationNamingScheme::Date` or `DateAndTime`, `RotatingSink` names the first backup after
   its first record, like every later backup, instead of after the sink's creation, so a sparse
   logger's first backup no longer carries the date it was created on.
