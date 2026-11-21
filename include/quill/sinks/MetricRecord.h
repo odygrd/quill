@@ -31,10 +31,10 @@ struct MetricRecord
   /** Timestamp in nanoseconds since epoch */
   uint64_t timestamp{0};
 
-  std::string_view thread_id;
-  std::string_view thread_name;
-  std::string_view process_id;
-  std::string_view logger_name;
+  std::string_view thread_id{};
+  std::string_view thread_name{};
+  std::string_view process_id{};
+  std::string_view logger_name{};
   double value{0};
 };
 
