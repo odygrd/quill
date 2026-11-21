@@ -2235,8 +2235,10 @@ private:
 
     for (size_t i = arg_names.size(); i < user_arg_count; ++i)
     {
-      // we do not have a named_arg for the argument value here so we just append its index as a placeholder
-      named_args->push_back(std::pair<std::string, std::string>(fmtquill::format("_{}", i), std::string{}));
+      // we do not have a named_arg for the argument value here so we just append its index as a
+      // placeholder, suffixed if a named argument already uses it, e.g. "{_1}" logged with two values
+      named_args->push_back(std::pair<std::string, std::string>(
+        make_unique_named_arg_key(*named_args, fmtquill::format("_{}", i)), std::string{}));
     }
 
     if (is_rate_limited)
