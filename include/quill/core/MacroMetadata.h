@@ -53,12 +53,13 @@ public:
       _caller_function(caller_function),
       _message_format(message_format),
       _tags(tags),
+      _message_format_size(static_cast<uint32_t>(std::string_view{message_format}.size())),
       _colon_separator_pos(_calc_colon_separator_pos()),
       _file_name_pos(_calc_file_name_pos()),
       _log_level(log_level),
       _event(event),
       _is_rate_limited(is_rate_limited),
-      _has_named_args(contains_named_args(message_format))
+      _has_named_args(contains_named_args(std::string_view{message_format, _message_format_size}))
   {
   }
 
@@ -67,6 +68,17 @@ public:
   QUILL_NODISCARD char const* caller_function() const noexcept { return _caller_function; }
 
   QUILL_NODISCARD char const* message_format() const noexcept { return _message_format; }
+
+  /**
+   * The length of message_format(). It is calculated with the metadata, at compile time for the
+   * logging macros, so that the backend does not measure the format string of every record.
+   *
+   * It is one of the facts that the metadata stores about its strings, like has_named_args() and
+   * the positions of the file name and line. The strings must therefore not change while the
+   * metadata is used: code that builds a MacroMetadata itself, e.g. for Logger::log_statement(),
+   * constructs a new one for another format string instead of writing it to the same buffer.
+   */
+  QUILL_NODISCARD size_t message_format_size() const noexcept { return _message_format_size; }
 
   QUILL_NODISCARD char const* line() const noexcept
   {
@@ -191,6 +203,7 @@ private:
   char const* _caller_function{nullptr};
   char const* _message_format{nullptr};
   char const* _tags{nullptr};
+  uint32_t _message_format_size{0};
   uint16_t _colon_separator_pos{0};
   uint16_t _file_name_pos{0};
   LogLevel _log_level{LogLevel::None};

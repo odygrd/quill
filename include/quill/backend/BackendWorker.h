@@ -1114,19 +1114,22 @@ private:
 
           if (!macro_metadata.has_named_args())
           {
-            _populate_formatted_log_message(transit_event, formatted_msg,
-                                            macro_metadata.message_format(), nullptr);
+            // The metadata stores the length of its format string. fmt measures a string that is
+            // passed as a pointer alone for every record, one byte at a time with MSVC
+            _populate_formatted_log_message(transit_event, formatted_msg, macro_metadata.message_format(),
+                                            macro_metadata.message_format_size(), nullptr);
           }
           else if (runtime_metadata_event)
           {
             // Runtime metadata format strings are user generated and can be unique per call;
             // caching them would grow the cache without bound for the lifetime of the backend, so
             // process them without caching
-            auto const [message_format, arg_names] =
-              process_named_args_format_message(macro_metadata.message_format());
+            auto const [message_format, arg_names] = process_named_args_format_message(
+              std::string_view{macro_metadata.message_format(), macro_metadata.message_format_size()});
 
             (void)_populate_formatted_named_args(transit_event, arg_names);
-            _populate_formatted_log_message(transit_event, formatted_msg, message_format, nullptr);
+            _populate_formatted_log_message(transit_event, formatted_msg, message_format.data(),
+                                            message_format.size(), nullptr);
             _sanitize_named_arg_values(transit_event);
           }
           else
@@ -1139,8 +1142,10 @@ private:
             bool const has_all_values =
               _populate_formatted_named_args(transit_event, named_args_template.arg_names());
 
+            std::string const& positional_format = named_args_template.format();
+
             _populate_formatted_log_message(
-              transit_event, formatted_msg, named_args_template.format(),
+              transit_event, formatted_msg, positional_format.data(), positional_format.size(),
               (has_all_values && named_args_template.can_build_from_values()) ? &named_args_template : nullptr);
 
             _sanitize_named_arg_values(transit_event);
@@ -2296,13 +2301,17 @@ private:
   /**
    * @param transit_event the event of the message
    * @param formatted_msg the buffer that the message is written to
-   * @param message_format the format string, with positional fields
+   * @param message_format the format string, with positional fields. It is passed as a pointer
+   * and a length because the Microsoft x64 calling convention passes a 16-byte string view in
+   * memory: the caller stores its two words, and fmt then copies them with one 16-byte load that
+   * has to wait for both stores to complete. A pointer and a length are passed in registers.
+   * @param message_format_size the length of message_format
    * @param named_args_template when not nullptr, the message is built from the values of the
    * event's named arguments instead of formatting the arguments again
    */
   QUILL_ATTRIBUTE_HOT void _populate_formatted_log_message(TransitEvent* transit_event,
                                                            fmtquill::detail::buffer<char>& formatted_msg,
-                                                           fmtquill::string_view message_format,
+                                                           char const* message_format, size_t message_format_size,
                                                            NamedArgsTemplate const* named_args_template)
   {
     formatted_msg.clear();
@@ -2320,9 +2329,9 @@ private:
       }
       else
       {
-        fmtquill::vformat_to(std::back_inserter(formatted_msg), message_format,
-                             fmtquill::basic_format_args<fmtquill::format_context>{
-                               _format_args_store.data(), user_arg_count});
+        fmtquill::vformat_to(
+          std::back_inserter(formatted_msg), fmtquill::string_view{message_format, message_format_size},
+          fmtquill::basic_format_args<fmtquill::format_context>{_format_args_store.data(), user_arg_count});
       }
 
       if (_options.check_printable_char && _format_args_store.has_string_related_type())
