@@ -18,6 +18,7 @@
 #ifndef QUILL_MODULE
   #include <algorithm>
   #include <atomic>
+  #include <cerrno>
   #include <cstdint>
   #include <cstdlib>
   #include <memory>
@@ -353,8 +354,15 @@ public:
 #if defined(_MSC_VER)
     size_t len = 0;
     char buf[128]{};
-    bool const ok = ::getenv_s(&len, buf, sizeof(buf), field) == 0;
-    if (ok && len > 0)
+    errno_t const result = ::getenv_s(&len, buf, sizeof(buf), field);
+
+    if (result == ERANGE)
+    {
+      QUILL_THROW(
+        QuillError{"invalid \"QUILL_LOG_LEVEL\" environment variable value - value is too long"});
+    }
+
+    if (result == 0 && len > 0)
     {
       log_level = buf;
     }
