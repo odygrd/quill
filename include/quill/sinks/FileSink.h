@@ -563,8 +563,8 @@ protected:
   {
     open_file(_filename, _config.open_mode());
     std::error_code ec;
-    auto const reopened_file_size = fs::file_size(_filename, ec);
-    _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+    uint64_t const reopened_file_size = fs::file_size(_filename, ec);
+    _file_size = ec ? 0 : reopened_file_size;
     _write_occurred = false;
   }
 
@@ -943,8 +943,8 @@ protected:
   {
     open_file(_filename, _config.open_mode());
     std::error_code ec;
-    auto const reopened_file_size = fs::file_size(_filename, ec);
-    _file_size = ec ? 0 : static_cast<size_t>(reopened_file_size);
+    uint64_t const reopened_file_size = fs::file_size(_filename, ec);
+    _file_size = ec ? 0 : reopened_file_size;
     _write_occurred = false;
   }
 

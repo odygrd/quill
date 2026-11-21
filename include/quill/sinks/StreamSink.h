@@ -347,7 +347,7 @@ protected:
 protected:
   fs::path _filename;
   FILE* _file{nullptr};
-  size_t _file_size{0}; /**< The current file size */
+  uint64_t _file_size{0}; /**< The current file size */
   FileEventNotifier _file_event_notifier;
   bool _is_null{false};
   bool _write_occurred{false};
