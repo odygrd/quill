@@ -136,6 +136,7 @@
   `QUILL_HAS_CPP_ATTRIBUTE` and `QUILL_MAGIC_SEPARATOR` are removed.
 - Quill now requires the standard `<filesystem>` header, so GCC 8 is the oldest supported GCC. The
   `<experimental/filesystem>` fallback for GCC 7 is removed; it no longer compiled.
+- `loglevel_from_string()` is renamed to `log_level_from_string()`.
 
 ### API and Behaviour Changes
 
@@ -146,7 +147,6 @@
   `std::shared_ptr<TSink>`, so configuring the created sink no longer needs a cast. Code that
   relied on both returning `std::shared_ptr<Sink>`, such as a conditional expression that selects
   between two sink types, needs an explicit conversion.
-- `loglevel_from_string()` is deprecated in favour of `log_level_from_string()`.
 - `quill/std/Atomic.h` no longer includes `quill/bundled/fmt/format.h` and
   `quill/bundled/fmt/std.h`; include them directly if your code relied on that.
 - Creating loggers whose `FrontendOptions` values differ now throws `QuillError`, as does passing a

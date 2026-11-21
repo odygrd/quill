@@ -148,12 +148,6 @@ QUILL_NODISCARD inline LogLevel log_level_from_string(std::string log_level)
   QUILL_THROW(QuillError{error_msg});
 }
 
-/** @deprecated Use log_level_from_string() */
-[[deprecated("Use quill::log_level_from_string()")]] QUILL_NODISCARD inline LogLevel loglevel_from_string(std::string log_level)
-{
-  return log_level_from_string(static_cast<std::string&&>(log_level));
-}
-
 QUILL_END_EXPORT
 
 QUILL_END_NAMESPACE
