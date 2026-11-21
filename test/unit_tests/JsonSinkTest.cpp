@@ -5,8 +5,10 @@
 
 #include "quill/bundled/fmt/format.h"
 
+#include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <random>
 #include <string>
 #include <string_view>
@@ -16,8 +18,8 @@ TEST_SUITE_BEGIN("JsonSink");
 
 namespace
 {
-/** Makes the escape function of the JSON sinks callable */
-class JsonEscaper : public quill::detail::JsonSink<quill::StreamSink>
+/** Makes the helper functions of the JSON sinks callable */
+class JsonSinkHelpers : public quill::detail::JsonSink<quill::StreamSink>
 {
 public:
   static std::string escape(std::string_view value)
@@ -26,7 +28,21 @@ public:
     append_json_escaped(buffer, value);
     return std::string{buffer.data(), buffer.size()};
   }
+
+  static std::string decimal(uint64_t value)
+  {
+    fmtquill::memory_buffer buffer;
+    _append_decimal(buffer, value);
+    return std::string{buffer.data(), buffer.size()};
+  }
 };
+
+std::string to_chars(uint64_t value)
+{
+  char buffer[std::numeric_limits<uint64_t>::digits10 + 1u];
+  auto const result = std::to_chars(buffer, buffer + sizeof(buffer), value);
+  return std::string{buffer, result.ptr};
+}
 
 /** Escapes one byte at a time */
 std::string reference_escape(std::string_view value)
@@ -95,7 +111,7 @@ TEST_CASE("json_escape_escapes_each_byte_value")
     value += static_cast<char>(c);
     value += " more text";
 
-    REQUIRE_EQ(JsonEscaper::escape(value), reference_escape(value));
+    REQUIRE_EQ(JsonSinkHelpers::escape(value), reference_escape(value));
   }
 }
 
@@ -116,7 +132,7 @@ TEST_CASE("json_escape_finds_escapes_at_each_position")
         std::string value(size, 'x');
         value.insert(pos, special);
 
-        REQUIRE_EQ(JsonEscaper::escape(value), reference_escape(value));
+        REQUIRE_EQ(JsonSinkHelpers::escape(value), reference_escape(value));
       }
     }
   }
@@ -140,7 +156,33 @@ TEST_CASE("json_escape_matches_the_reference_on_random_strings")
                                   : static_cast<char>('a' + (rng() % 26));
     }
 
-    REQUIRE_EQ(JsonEscaper::escape(value), reference_escape(value));
+    REQUIRE_EQ(JsonSinkHelpers::escape(value), reference_escape(value));
+  }
+}
+
+/***/
+TEST_CASE("json_sink_formats_decimals_as_to_chars")
+{
+  std::vector<uint64_t> values{0, (std::numeric_limits<uint64_t>::max)()};
+
+  // Each power of ten and its neighbours, where the number of digits changes
+  for (uint64_t power = 1; power <= 1'000'000'000'000'000'000ull; power *= 10)
+  {
+    values.push_back(power - 1);
+    values.push_back(power);
+    values.push_back(power + 1);
+  }
+
+  std::mt19937_64 rng{7};
+  for (size_t i = 0; i < 20000; ++i)
+  {
+    // Random values of each length
+    values.push_back(rng() >> (rng() % 64));
+  }
+
+  for (uint64_t const value : values)
+  {
+    REQUIRE_EQ(JsonSinkHelpers::decimal(value), to_chars(value));
   }
 }
 

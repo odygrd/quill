@@ -19,7 +19,6 @@
 
 #ifndef QUILL_MODULE
   #include <algorithm>
-  #include <charconv>
   #include <chrono>
   #include <cstdint>
   #include <cstring>
@@ -85,12 +84,7 @@ public:
     std::vector<std::pair<std::string, std::string>> const* const named_args = record.named_args;
 
     append_to_buffer(_json_message, std::string_view{"{\"timestamp\":\""});
-    char timestamp_buffer[std::numeric_limits<uint64_t>::digits10 + 1u];
-    auto const timestamp_result =
-      std::to_chars(timestamp_buffer, timestamp_buffer + sizeof(timestamp_buffer), record.log_timestamp);
-    append_to_buffer(
-      _json_message,
-      std::string_view{timestamp_buffer, static_cast<size_t>(timestamp_result.ptr - timestamp_buffer)});
+    _append_decimal(_json_message, record.log_timestamp);
     append_to_buffer(_json_message, std::string_view{"\",\"file_name\":\""});
     append_json_escaped(_json_message, log_metadata->file_name());
     append_to_buffer(_json_message, std::string_view{"\",\"line\":\""});
@@ -294,6 +288,58 @@ protected:
     }
 
     append_to_buffer(out, std::string_view{data + run_begin, size - run_begin});
+  }
+
+  /**
+   * Appends `value` in decimal, as std::to_chars() does. Splitting off 8 digits at a time shortens
+   * the chain of divisions for the 19 digits of a timestamp in nanoseconds
+   */
+  static void _append_decimal(fmtquill::memory_buffer& out, uint64_t value)
+  {
+    constexpr uint64_t chunk_divisor{100'000'000};
+
+    char digits[std::numeric_limits<uint64_t>::digits10 + 1u];
+    char* const end = digits + sizeof(digits);
+    char* begin = end;
+
+    while (value >= chunk_divisor)
+    {
+      uint64_t const quotient = value / chunk_divisor;
+      uint32_t const chunk = static_cast<uint32_t>(value - (quotient * chunk_divisor));
+      value = quotient;
+
+      // The digits of the two halves do not depend on each other
+      uint32_t const high = chunk / 10'000u;
+      uint32_t const low = chunk % 10'000u;
+
+      begin -= 8;
+      std::memcpy(begin, fmtquill::detail::digits2(high / 100u), 2);
+      std::memcpy(begin + 2, fmtquill::detail::digits2(high % 100u), 2);
+      std::memcpy(begin + 4, fmtquill::detail::digits2(low / 100u), 2);
+      std::memcpy(begin + 6, fmtquill::detail::digits2(low % 100u), 2);
+    }
+
+    uint32_t remaining = static_cast<uint32_t>(value);
+
+    while (remaining >= 100u)
+    {
+      begin -= 2;
+      std::memcpy(begin, fmtquill::detail::digits2(remaining % 100u), 2);
+      remaining /= 100u;
+    }
+
+    if (remaining >= 10u)
+    {
+      begin -= 2;
+      std::memcpy(begin, fmtquill::detail::digits2(remaining), 2);
+    }
+    else
+    {
+      --begin;
+      *begin = static_cast<char>('0' + remaining);
+    }
+
+    append_to_buffer(out, std::string_view{begin, static_cast<size_t>(end - begin)});
   }
 
   /**
