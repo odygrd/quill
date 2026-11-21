@@ -239,18 +239,21 @@ private:
                                                std::string_view log_message, std::string_view log_statement)
   {
     // Update our local collection of the filters
-    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)) &&
-        _new_filter.exchange(false, std::memory_order_relaxed))
+    if (QUILL_UNLIKELY(_new_filter.load(std::memory_order_relaxed)))
     {
-      // if there is a new filter we have to update
-      _local_filters.clear();
-
       detail::LockGuard const lock{_global_filters_lock};
+
+      // Reserve first and clear the flag last, so an allocation failure keeps the existing
+      // filters and leaves the refresh pending. add_filter() sets the flag under this lock.
+      _local_filters.reserve(_global_filters.size());
+      _local_filters.clear();
 
       for (auto const& filter : _global_filters)
       {
         _local_filters.push_back(filter.filter.get());
       }
+
+      _new_filter.store(false, std::memory_order_relaxed);
     }
 
     if (_local_filters.empty())
