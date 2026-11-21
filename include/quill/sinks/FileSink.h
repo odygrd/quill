@@ -136,16 +136,31 @@ public:
   QUILL_ATTRIBUTE_COLD void set_fsync_enabled(bool value) { _fsync_enabled = value; }
 
   /**
-   * @brief Sets the open mode for the file.
-   * @param open_mode open mode for the file.
+   * @brief Sets the open mode for the file: 'a' appends to an existing file, 'w' truncates it.
+   * @param open_mode 'a' or 'w'
+   * @throws QuillError for any other mode
    */
-  QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode) { _open_mode = open_mode; }
+  QUILL_ATTRIBUTE_COLD void set_open_mode(char open_mode)
+  {
+    set_open_mode(std::string_view{&open_mode, 1});
+  }
 
   /**
-   * @brief Sets the open mode for the file.
-   * @param open_mode open mode for the file.
+   * @brief Sets the open mode for the file: "a" appends to an existing file, "w" truncates it.
+   * "ab" and "wb" are accepted as aliases, since the file is always written as binary.
+   * @param open_mode "a", "w", "ab" or "wb"
+   * @throws QuillError for any other mode
    */
-  QUILL_ATTRIBUTE_COLD void set_open_mode(std::string_view open_mode) { _open_mode = open_mode; }
+  QUILL_ATTRIBUTE_COLD void set_open_mode(std::string_view open_mode)
+  {
+    if ((open_mode != "a") && (open_mode != "w") && (open_mode != "ab") && (open_mode != "wb"))
+    {
+      QUILL_THROW(QuillError{"Invalid file open mode \"" + std::string{open_mode} +
+                             "\", use \"a\" to append or \"w\" to truncate"});
+    }
+
+    _open_mode = open_mode;
+  }
 
   /**
    * @brief Sets the user-defined buffer size for fwrite operations.
