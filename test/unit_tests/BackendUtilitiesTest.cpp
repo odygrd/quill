@@ -196,6 +196,27 @@ TEST_CASE("set_thread_name_validates_length")
 #endif
 }
 
+TEST_CASE("windows_thread_name_preserves_long_unicode_descriptions")
+{
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
+  HMODULE const kernel{::GetModuleHandleW(L"KernelBase.dll")};
+  if (!kernel || !::GetProcAddress(kernel, "GetThreadDescription") ||
+      !::GetProcAddress(kernel, "SetThreadDescription"))
+  {
+    return;
+  }
+
+  // 262 UTF-16 code units with a surrogate pair across the old 256 unit limit
+  std::string const previous{get_thread_name()};
+  std::string const name{std::string(255, 'a') + "\xf0\x9f\x98\x80" + " tail"};
+  set_thread_name(name.c_str());
+  std::string const actual{get_thread_name()};
+  set_thread_name(previous.c_str());
+
+  REQUIRE_EQ(actual, name);
+#endif
+}
+
 TEST_CASE("get_thread_name_returns_names_longer_than_15_characters")
 {
 #if defined(__APPLE__) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
