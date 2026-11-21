@@ -10,6 +10,11 @@ ConsoleSink
 
 The `ConsoleSink` class sends logging output to streams `stdout` or `stderr`. Printing color codes to terminal or Windows console is also supported.
 
+On Windows, the console interprets bytes written by ``ConsoleSink`` using its output code page.
+To display UTF-8 logs, set the console output code page to UTF-8 with ``SetConsoleOutputCP(CP_UTF8)``
+and disable or customize :cpp:member:`BackendOptions::check_printable_char` to preserve UTF-8 bytes.
+When output is redirected to a pipe or file, the sink writes the original bytes.
+
 FileSink
 ~~~~~~~~
 

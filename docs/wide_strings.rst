@@ -7,7 +7,7 @@ Use this page if you need to log ``wchar_t`` strings on Windows. On other platfo
 
 On Windows, Quill supports ``wchar_t*``, ``std::wstring``, and ``std::wstring_view`` log arguments. The wide-string data is copied on the frontend and converted to UTF-8 on the backend before it is formatted and written to sinks. Quill does not use fmt's wide-character formatting context and does not write UTF-16 log files.
 
-By default, Quill's character sanitizer allows only printable ASCII bytes, plus newline, tab, and carriage return. Non-ASCII UTF-8 bytes are converted to hexadecimal escapes (for example, Chinese text may appear as ``\xE4\xB8\xAD``). To write real UTF-8 Unicode text to file sinks, disable or customize :cpp:member:`BackendOptions::check_printable_char` (see :doc:`backend_options`).
+By default, Quill's character sanitizer allows only printable ASCII bytes, plus newline, tab, and carriage return. Non-ASCII UTF-8 bytes are converted to hexadecimal escapes (for example, Chinese text may appear as ``\xE4\xB8\xAD``). To write real UTF-8 Unicode text to file sinks, disable or customize :cpp:member:`BackendOptions::check_printable_char` (see :doc:`backend_options`). For Windows console output, also configure the console output code page as described in :doc:`sink_types`.
 
 .. note::
 
