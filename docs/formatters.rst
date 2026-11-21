@@ -121,7 +121,8 @@ as Quill's fractional-second extension or as a cached time modifier.
    a flagged ``%s`` such as ``%10s`` from local time, so it is off by the UTC offset; use plain
    ``%s``.
 
-.. note:: MinGW does not support all ``strftime(...)`` format specifiers. If the platform ``strftime`` implementation cannot format the configured pattern, Quill reports a formatting error.
+.. note:: The supported ``strftime(...)`` specifiers depend on the platform's C runtime.
+   If it cannot format the configured pattern, Quill reports a formatting error.
 
 Customizing Log Message Formats
 -------------------------------

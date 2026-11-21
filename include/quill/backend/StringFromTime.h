@@ -102,7 +102,7 @@ public:
         }
         else
         {
-          _fallback_formatted.append(_safe_strftime(format_part.data(), timestamp, _time_zone).data());
+          _fallback_formatted.append(_safe_strftime(format_part.data(), timestamp, _time_zone));
         }
       }
       return _fallback_formatted;
@@ -438,9 +438,7 @@ protected:
       }
 
       // We call strftime on each part of the timestamp to format it.
-      std::vector<char> const formatted_part = _safe_strftime(format_part.data(), _cached_timestamp, _time_zone);
-      std::string_view const formatted_part_sv{formatted_part.data()};
-      _pre_formatted_ts.append(formatted_part_sv);
+      _pre_formatted_ts.append(_safe_strftime(format_part.data(), _cached_timestamp, _time_zone));
 
       // If we formatted and appended to the string a time modifier also store the
       // current index in the string
@@ -519,13 +517,11 @@ protected:
   }
 
   /***/
-  QUILL_NODISCARD static std::vector<char> _safe_strftime(char const* format_string, time_t timestamp, Timezone timezone)
+  QUILL_NODISCARD static std::string _safe_strftime(char const* format_string, time_t timestamp, Timezone timezone)
   {
     if (format_string[0] == '\0')
     {
-      std::vector<char> res;
-      res.push_back('\0');
-      return res;
+      return std::string{};
     }
 
     // Convert timestamp to time_info
@@ -539,36 +535,7 @@ protected:
       gmtime_rs(reinterpret_cast<time_t const*>(std::addressof(timestamp)), std::addressof(time_info));
     }
 
-    // Prefix a sentinel character before calling strftime: a return value of 0 is ambiguous
-    // between "buffer too small" and a legitimately empty expansion (e.g. %p in locales with
-    // empty AM/PM strings such as fr_FR). With the sentinel, a successful call always returns
-    // at least 1, so 0 unambiguously means the buffer was too small
-    std::string sentinel_format{"x"};
-    sentinel_format += format_string;
-
-    // Create a buffer to call strftime
-    static constexpr size_t max_buffer_size{64 * 1024};
-    std::vector<char> buffer;
-    buffer.resize(32);
-    size_t res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
-
-    while (res == 0)
-    {
-      if (QUILL_UNLIKELY(buffer.size() >= max_buffer_size))
-      {
-        QUILL_THROW(
-          QuillError{"strftime failed to format timestamp. The timestamp pattern may "
-                     "contain an unsupported format specifier."});
-      }
-
-      // if strftime fails we will reserve more space
-      buffer.resize(buffer.size() * 2);
-      res = strftime(&buffer[0], buffer.size(), sentinel_format.c_str(), std::addressof(time_info));
-    }
-
-    // Drop the sentinel character from the result
-    buffer.erase(buffer.begin());
-    return buffer;
+    return format_strftime(format_string, time_info, timezone);
   }
 
   /***/

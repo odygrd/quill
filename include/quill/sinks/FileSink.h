@@ -25,7 +25,6 @@
   #include <string>
   #include <string_view>
   #include <utility>
-  #include <vector>
 #endif
 
 #if defined(_WIN32)
@@ -271,29 +270,7 @@ QUILL_NODISCARD inline std::string format_datetime_string(uint64_t timestamp_ns,
     detail::localtime_rs(&time_now, &now_tm);
   }
 
-  static constexpr size_t buffer_size{128};
-  static constexpr size_t max_buffer_size{64 * 1024};
-  std::vector<char> buffer(buffer_size);
-  // A prefix distinguishes an empty expansion from an insufficient buffer.
-  std::string const format_with_prefix{"x" + append_format_pattern};
-
-  while (true)
-  {
-    size_t const len = std::strftime(buffer.data(), buffer.size(), format_with_prefix.c_str(), &now_tm);
-    if (len != 0)
-    {
-      return std::string{buffer.data() + 1, len - 1};
-    }
-
-    if (buffer.size() >= max_buffer_size)
-    {
-      QUILL_THROW(
-        QuillError{"strftime failed to format filename timestamp. The filename "
-                   "timestamp pattern may contain an unsupported format specifier."});
-    }
-
-    buffer.resize(buffer.size() * 2);
-  }
+  return detail::format_strftime(append_format_pattern, now_tm, time_zone);
 }
 
 /** Inserts the formatted timestamp between the file stem and its extension */
