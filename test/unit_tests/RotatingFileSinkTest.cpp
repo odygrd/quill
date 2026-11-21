@@ -2468,6 +2468,104 @@ TEST_CASE("time_rotation_minutes_rotating_file_sink_index")
 }
 
 /***/
+TEST_CASE("time_rotation_skipped_for_empty_file_dates_next_backup_from_first_record")
+{
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+  uint64_t const one_minute_ns = std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+
+  fs::path const filename = "time_rotation_skipped_for_empty_file.log";
+
+  // Opened at 00:00, but the first record arrives at 00:10, so that backup covers 00:10 onwards
+  fs::path const expected_backup = "time_rotation_skipped_for_empty_file.20230612_001000.log";
+  fs::path const stale_backup = "time_rotation_skipped_for_empty_file.20230612_000000.log";
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_frequency_and_interval('m', 1);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    rfh.write_log(nullptr, timestamp_20230612 + 10 * one_minute_ns, std::string_view{},
+                  std::string_view{}, std::string{}, std::string_view{}, LogLevel::Info, "INFO",
+                  "I", nullptr, "", "Record [0]\n");
+    rfh.write_log(nullptr, timestamp_20230612 + 11 * one_minute_ns, std::string_view{},
+                  std::string_view{}, std::string{}, std::string_view{}, LogLevel::Info, "INFO",
+                  "I", nullptr, "", "Record [1]\n");
+  }
+
+  REQUIRE_FALSE(fs::exists(stale_backup));
+  REQUIRE(fs::exists(expected_backup));
+  REQUIRE(testing::file_contains(testing::file_contents(expected_backup), "Record [0]"));
+  REQUIRE(testing::file_contains(testing::file_contents(filename), "Record [1]"));
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::remove_file(stale_backup);
+}
+
+/***/
+TEST_CASE("size_rotation_dates_first_backup_from_first_record")
+{
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+  uint64_t const one_day_ns = std::chrono::nanoseconds(std::chrono::hours(24)).count();
+
+  fs::path const filename = "size_rotation_dates_first_backup_from_first_record.log";
+
+  // Created on 2023-06-12, but the first record arrives on 2023-06-15
+  fs::path const expected_backup =
+    "size_rotation_dates_first_backup_from_first_record.20230615.log";
+  fs::path const stale_backup = "size_rotation_dates_first_backup_from_first_record.20230612.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::remove_file(stale_backup);
+
+  {
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_max_file_size(512);
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // Each record fills more than half of the file, so the second one rotates the first
+    std::string const padding(300, 'x');
+
+    rfh.write_log(nullptr, timestamp_20230612 + 3 * one_day_ns, std::string_view{},
+                  std::string_view{}, std::string{}, std::string_view{}, LogLevel::Info, "INFO",
+                  "I", nullptr, "", "Record [0] " + padding + "\n");
+    rfh.write_log(nullptr, timestamp_20230612 + 4 * one_day_ns, std::string_view{},
+                  std::string_view{}, std::string{}, std::string_view{}, LogLevel::Info, "INFO",
+                  "I", nullptr, "", "Record [1] " + padding + "\n");
+  }
+
+  REQUIRE_FALSE(fs::exists(stale_backup));
+  REQUIRE(fs::exists(expected_backup));
+  REQUIRE(testing::file_contains(testing::file_contents(expected_backup), "Record [0]"));
+  REQUIRE(testing::file_contains(testing::file_contents(filename), "Record [1]"));
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::remove_file(stale_backup);
+}
+
+/***/
 TEST_CASE("time_rotation_hours_rotating_file_sink_index")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;
