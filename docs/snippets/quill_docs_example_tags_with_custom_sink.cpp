@@ -21,24 +21,18 @@ public:
   CustomSink() = default;
 
   /***/
-  void write_log(quill::MacroMetadata const* log_metadata, uint64_t /** log_timestamp **/,
-                 std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-                 std::string const& /** process_id **/, std::string_view /** logger_name **/,
-                 quill::LogLevel /** log_level **/, std::string_view /** log_level_description **/,
-                 std::string_view /** log_level_short_code **/,
-                 std::vector<std::pair<std::string, std::string>> const* /** named_args - only populated when named args in the format placeholder are used **/,
-                 std::string_view /** log_message **/, std::string_view log_statement) override
+  void write_log(quill::LogRecord const& record) override
   {
-    if (log_metadata->tags())
+    if (record.log_metadata->tags())
     {
-      std::cout << "Message tags: " << log_metadata->tags() << std::endl;
+      std::cout << "Message tags: " << record.log_metadata->tags() << std::endl;
     }
 
-    std::cout << log_statement << std::endl;
+    std::cout << record.log_statement << std::endl;
   }
 
   /***/
-  void flush_sink() noexcept override {}
+  void flush_sink(quill::SinkFlushReason) noexcept override {}
 
   /***/
   void run_periodic_tasks() noexcept override {}

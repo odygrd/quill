@@ -19,12 +19,9 @@ public:
     _tag.push_back(' ');
   };
 
-  bool filter(quill::MacroMetadata const* log_metadata, uint64_t /** log_timestamp **/,
-              std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-              std::string_view /** logger_name **/, quill::LogLevel /** log_level **/,
-              std::string_view /** log_message **/, std::string_view /** log_statement **/) noexcept override
+  bool filter(quill::LogRecord const& record) noexcept override
   {
-    return log_metadata->tags() && (strcmp(log_metadata->tags(), _tag.data()) == 0);
+    return record.log_metadata->tags() && (strcmp(record.log_metadata->tags(), _tag.data()) == 0);
   }
 
 private:

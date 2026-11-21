@@ -104,15 +104,10 @@ public:
   /**
    * @brief Writes a formatted log message to the Android logging system.
    */
-  void write_log(MacroMetadata const* /* log_metadata */, uint64_t /* log_timestamp */,
-                 std::string_view /* thread_id */, std::string_view /* thread_name */,
-                 std::string const& /* process_id */, std::string_view /* logger_name */, LogLevel log_level,
-                 std::string_view /* log_level_description */, std::string_view /* log_level_short_code */,
-                 std::vector<std::pair<std::string, std::string>> const* /* named_args */,
-                 std::string_view log_message, std::string_view log_statement) override
+  void write_log(LogRecord const& record) override
   {
     // Choose between formatted log statement or raw log message
-    std::string_view const message = _config.should_format_message() ? log_statement : log_message;
+    std::string_view const message = _config.should_format_message() ? record.log_statement : record.log_message;
     size_t message_length = message.size();
 
     // Clamp to INT_MAX to avoid signed conversion overflow when passing the length to the
@@ -122,12 +117,12 @@ public:
       message_length = static_cast<size_t>((std::numeric_limits<int>::max)());
     }
 
-    __android_log_print(_config.get_android_level(log_level), _config.tag().data(), "%.*s",
+    __android_log_print(_config.get_android_level(record.log_level), _config.tag().data(), "%.*s",
                         static_cast<int>(message_length), message.data());
   }
 
   /***/
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
 private:
   AndroidSinkConfig _config;

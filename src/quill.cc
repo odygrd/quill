@@ -176,6 +176,8 @@ import std;
 #include "quill/UserClockSource.h"
 #include "quill/Utility.h"
 #include "quill/filters/Filter.h"
+#include "quill/sinks/LogRecord.h"
+#include "quill/sinks/MetricRecord.h"
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/JsonSink.h"

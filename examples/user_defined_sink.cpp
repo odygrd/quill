@@ -22,13 +22,7 @@ public:
   CustomSink() = default;
 
   /***/
-  void write_log(quill::MacroMetadata const* /** log_metadata **/, uint64_t /** log_timestamp **/,
-                 std::string_view /** thread_id **/, std::string_view /** thread_name **/,
-                 std::string const& /** process_id **/, std::string_view /** logger_name **/,
-                 quill::LogLevel /** log_level **/, std::string_view /** log_level_description **/,
-                 std::string_view /** log_level_short_code **/,
-                 std::vector<std::pair<std::string, std::string>> const* /** named_args - only populated when named args in the format placeholder are used **/,
-                 std::string_view /** log_message **/, std::string_view log_statement) override
+  void write_log(quill::LogRecord const& record) override
   {
     // This function is called by the logger backend worker thread for each LOG_* macro.
 
@@ -37,12 +31,12 @@ public:
     // In this example, instead of immediately writing the log statement, we cache it.
     // This can be useful for batching log messages to a database for example.
 
-    // The last character of log_statement is '\n', which we exclude by using size() - 1.
-    _cached_log_statements.push_back(std::string{log_statement.data(), log_statement.size() - 1});
+    // The last character of record.log_statement is '\n', which we exclude by using size() - 1.
+    _cached_log_statements.push_back(std::string{record.log_statement.data(), record.log_statement.size() - 1});
   }
 
   /***/
-  void flush_sink() noexcept override
+  void flush_sink(quill::SinkFlushReason) noexcept override
   {
     // This function is not called for each LOG_* invocation like the write function.
 

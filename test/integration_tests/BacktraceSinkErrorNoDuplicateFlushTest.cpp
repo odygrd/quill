@@ -23,22 +23,15 @@ class ThrowOnceFileSink : public FileSink
 public:
   using FileSink::FileSink;
 
-  void write_log(MacroMetadata const* log_metadata, uint64_t log_timestamp,
-                 std::string_view thread_id, std::string_view thread_name,
-                 std::string const& process_id, std::string_view logger_name, LogLevel log_level,
-                 std::string_view log_level_description, std::string_view log_level_short_code,
-                 std::vector<std::pair<std::string, std::string>> const* named_args,
-                 std::string_view log_message, std::string_view log_statement) override
+  void write_log(LogRecord const& record) override
   {
-    if (!_thrown && (log_statement.find("BT-1") != std::string_view::npos))
+    if (!_thrown && (record.log_statement.find("BT-1") != std::string_view::npos))
     {
       _thrown = true;
       QUILL_THROW(QuillError{"simulated sink failure"});
     }
 
-    FileSink::write_log(log_metadata, log_timestamp, thread_id, thread_name, process_id,
-                        logger_name, log_level, log_level_description, log_level_short_code,
-                        named_args, log_message, log_statement);
+    FileSink::write_log(record);
   }
 
 private:

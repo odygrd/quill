@@ -114,6 +114,18 @@ Sink Flush Reasons
 
 .. doxygenenum:: SinkFlushReason
 
+LogRecord Struct
+----------------
+
+.. doxygenstruct:: LogRecord
+   :members:
+
+MetricRecord Struct
+-------------------
+
+.. doxygenstruct:: MetricRecord
+   :members:
+
 Filter Class
 ------------
 

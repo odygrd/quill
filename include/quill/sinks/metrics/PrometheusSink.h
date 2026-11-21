@@ -358,9 +358,7 @@ public:
     return true;
   }
 
-  void write_log(MacroMetadata const*, uint64_t, std::string_view, std::string_view,
-                 std::string const&, std::string_view, LogLevel, std::string_view, std::string_view,
-                 std::vector<std::pair<std::string, std::string>> const*, std::string_view, std::string_view) override
+  void write_log(LogRecord const& /* record */) override
   {
     // Intentionally ignore log events.
     //
@@ -369,47 +367,47 @@ public:
     // to flow to the regular log sinks without PrometheusSink asserting or throwing here.
   }
 
-  void write_metric(MetricMetadata const* metric_metadata, uint64_t, std::string_view,
-                    std::string_view, std::string const&, std::string_view, double value) override
+  void write_metric(MetricRecord const& record) override
   {
-    QUILL_ASSERT(metric_metadata,
+    QUILL_ASSERT(record.metric_metadata,
                  "PrometheusSink::write_metric received a null metric metadata pointer");
 
     detail::LockGuard const lock{_spinlock};
 
-    auto metric_it = _metrics.find(metric_metadata);
+    auto metric_it = _metrics.find(record.metric_metadata);
     if (metric_it == _metrics.end())
     {
-      FamilyHandle* family = _find_family(metric_metadata->metric_name());
+      FamilyHandle* family = _find_family(record.metric_metadata->metric_name());
       if (!family)
       {
         return;
       }
 
-      Labels const labels = _make_metric_labels(*metric_metadata);
-      auto& series = _metric_series[metric_metadata->metric_name()];
+      Labels const labels = _make_metric_labels(*record.metric_metadata);
+      auto& series = _metric_series[record.metric_metadata->metric_name()];
       auto series_it = series.find(labels);
       if (series_it != series.end() && !series_it->second)
       {
         return;
       }
 
-      _ensure_metric_not_registered(metric_metadata->metric_key());
+      _ensure_metric_not_registered(record.metric_metadata->metric_key());
       if (series_it == series.end())
       {
         series_it = series.emplace(labels, family->create_series(labels)).first;
         ++family->metric_count;
       }
 
-      metric_it = _metrics.emplace(metric_metadata, &series_it->second).first;
-      _metric_keys.emplace(metric_metadata->metric_key(), metric_metadata);
+      metric_it = _metrics.emplace(record.metric_metadata, &series_it->second).first;
+      _metric_keys.emplace(record.metric_metadata->metric_key(), record.metric_metadata);
     }
 
-    std::visit([value](auto& registered_metric) { _apply_sample(registered_metric, value); },
+    std::visit([value = record.value](auto& registered_metric)
+               { _apply_sample(registered_metric, value); },
                **metric_it->second);
   }
 
-  void flush_sink() noexcept override {}
+  void flush_sink(SinkFlushReason) noexcept override {}
 
   void run_periodic_tasks() noexcept override {}
 
