@@ -140,8 +140,7 @@ public:
     {
       if (_clock_source != ClockSourceType::Tsc)
       {
-        return _log_statement_noinline<Args...>(
-          macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+        return _log_statement_noinline<Args...>(macro_metadata, 0, 0, static_cast<Args&&>(fmt_args)...);
       }
     }
 
@@ -150,8 +149,8 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      return _log_statement_noinline<Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      return _log_statement_noinline<Args...>(macro_metadata, current_timestamp, 0,
+                                              static_cast<Args&&>(fmt_args)...);
     }
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
@@ -164,8 +163,9 @@ public:
 
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
-      return _log_statement_noinline<Args...>(
-        macro_metadata, current_timestamp, static_cast<Args&&>(fmt_args)...);
+      // Pass the computed size: the size cache already holds this call's encoded arguments
+      return _log_statement_noinline<Args...>(macro_metadata, current_timestamp, total_size,
+                                              static_cast<Args&&>(fmt_args)...);
     }
 
     std::byte* write_buffer = reservation.write_buffer;
@@ -809,10 +809,12 @@ private:
    * caller can keep them in registers; all other arguments retain their original reference type.
    * With ClockSource, zero requests a non-TSC read. A concrete clock has already supplied its
    * timestamp, including a valid zero.
+   * @param total_size the encoded size computed by the caller, or zero to compute it here.
+   * Computing it twice would run a DirectFormatCodec formatter twice for one log call.
    */
   template <typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata,
-                                                              uint64_t current_timestamp,
+                                                              uint64_t current_timestamp, size_t total_size,
                                                               detail::slow_path_arg_t<OriginalArgs>... fmt_args)
   {
     if constexpr (using_runtime_clock)
@@ -831,9 +833,12 @@ private:
     detail::ThreadContext* const thread_context = _thread_context;
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
 
-    size_t total_size = s_header_size +
-      detail::compute_encoded_size_and_cache_string_lengths(
-                          thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    if (total_size == 0)
+    {
+      total_size = s_header_size +
+        detail::compute_encoded_size_and_cache_string_lengths(
+                     thread_context->get_conditional_arg_size_cache(), fmt_args...);
+    }
 
     std::byte* write_buffer = _reserve_queue_space(queue, total_size, macro_metadata, thread_context);
 

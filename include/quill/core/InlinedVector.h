@@ -138,6 +138,31 @@ public:
   }
 
   /**
+   * Appends raw bytes, packed into as many elements as needed. Used by codecs that snapshot a
+   * value while sizing it and copy the same bytes when encoding.
+   */
+  void append_bytes(void const* bytes, size_t bytes_size)
+  {
+    size_t const count = (bytes_size + sizeof(value_type) - 1u) / sizeof(value_type);
+
+    if (count == 0)
+    {
+      return;
+    }
+
+    if ((_capacity - _size) < count)
+    {
+      size_t const required = _size + count;
+      reserve((required > (_capacity * 2u)) ? required : (_capacity * 2u));
+    }
+
+    value_type* const dest = ((_capacity == N) ? _storage.inline_buffer : _storage.heap_buffer) + _size;
+    dest[count - 1u] = value_type{}; // zero the padding of the last element
+    std::memcpy(dest, bytes, bytes_size);
+    _size += count;
+  }
+
+  /**
    * Access element
    */
   QUILL_ATTRIBUTE_HOT value_type operator[](size_t index) const
@@ -175,6 +200,11 @@ public:
     {
       _storage.heap_buffer[index] = value;
     }
+  }
+
+  QUILL_NODISCARD value_type const* data() const noexcept
+  {
+    return (_capacity == N) ? _storage.inline_buffer : _storage.heap_buffer;
   }
 
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t size() const noexcept { return _size; }
