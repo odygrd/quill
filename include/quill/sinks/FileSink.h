@@ -577,57 +577,33 @@ protected:
 
     // Retry only while another process holds the file, e.g. an antivirus scan. Other errors such
     // as a missing directory are not transient and must not stall the backend thread.
-    constexpr int max_attempts = 3;
-    constexpr uint64_t retry_delay_ns = 200ull * 1'000'000ull;
+    constexpr int max_attempts{3};
+    constexpr uint64_t retry_delay_ns{200ull * 1'000'000ull};
+    DWORD const creation_disposition = (!mode.empty() && (mode[0] == 'w')) ? CREATE_ALWAYS : OPEN_ALWAYS;
     OpenedHandleGuard opened_handle_guard;
-    DWORD last_error = 0;
-    int attempts = 0;
 
-    while (attempts < max_attempts)
+    for (int attempt{1};; ++attempt)
     {
-      ++attempts;
-
-      DWORD creation_disposition = OPEN_ALWAYS;
-      if (!mode.empty() && mode[0] == 'w')
-      {
-        creation_disposition = CREATE_ALWAYS;
-      }
-
       opened_handle_guard.handle = ::CreateFileW(
         filename.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         nullptr, creation_disposition, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
 
-      if (opened_handle_guard.handle == INVALID_HANDLE_VALUE)
-      {
-        last_error = ::GetLastError();
-      }
-      else
-      {
-        if (!::SetHandleInformation(opened_handle_guard.handle, HANDLE_FLAG_INHERIT, 0))
-        {
-          last_error = ::GetLastError();
-          ::CloseHandle(opened_handle_guard.handle);
-          opened_handle_guard.handle = INVALID_HANDLE_VALUE;
-        }
-      }
-
-      bool const is_transient = (last_error == ERROR_SHARING_VIOLATION) || (last_error == ERROR_LOCK_VIOLATION);
-      if ((opened_handle_guard.handle != INVALID_HANDLE_VALUE) || !is_transient)
+      if (opened_handle_guard.handle != INVALID_HANDLE_VALUE)
       {
         break;
       }
 
-      if (attempts < max_attempts)
-      {
-        detail::sleep_for_ns(retry_delay_ns);
-      }
-    }
+      DWORD const last_error = ::GetLastError();
+      bool const is_transient = (last_error == ERROR_SHARING_VIOLATION) || (last_error == ERROR_LOCK_VIOLATION);
 
-    if (opened_handle_guard.handle == INVALID_HANDLE_VALUE)
-    {
-      QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempts) +
-                             " attempt(s), path: " + filename.string() + " mode: " + mode +
-                             " GetLastError: " + std::to_string(last_error)});
+      if (!is_transient || (attempt == max_attempts))
+      {
+        QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempt) +
+                               " attempt(s), path: " + filename.string() + " mode: " + mode +
+                               " GetLastError: " + std::to_string(last_error)});
+      }
+
+      detail::sleep_for_ns(retry_delay_ns);
     }
 
     _native_write_buffer_cap = _native_write_buffer_capacity();

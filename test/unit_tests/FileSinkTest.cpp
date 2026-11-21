@@ -301,6 +301,47 @@ TEST_CASE("created_file_permissions_follow_umask")
 }
 
 /***/
+TEST_CASE("windows_file_handle_is_not_inheritable")
+{
+#if defined(_WIN32)
+  fs::path const filename{"windows_file_handle_inheritance.log"};
+  {
+    FileSinkTestHarness sink{filename};
+    DWORD flags{0};
+    REQUIRE(::GetHandleInformation(sink.file_handle(), &flags));
+    REQUIRE_EQ(flags & HANDLE_FLAG_INHERIT, 0u);
+  }
+  fs::remove(filename);
+#endif
+}
+
+/***/
+TEST_CASE("windows_file_open_reports_actual_attempt_count")
+{
+#if defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
+  // An exclusive handle makes every open attempt fail with a sharing violation
+  fs::path const filename{"windows_file_open_attempt_count.log"};
+  HANDLE const handle{::CreateFileW(filename.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                    FILE_ATTRIBUTE_NORMAL, nullptr)};
+  REQUIRE(handle != INVALID_HANDLE_VALUE);
+
+  std::string error;
+  try
+  {
+    FileSink sink{filename};
+  }
+  catch (QuillError const& e)
+  {
+    error = e.what();
+  }
+
+  ::CloseHandle(handle);
+  fs::remove(filename);
+  REQUIRE_NE(error.find("after 3 attempt(s)"), std::string::npos);
+#endif
+}
+
+/***/
 TEST_CASE("open_failure_is_reported_without_retry_delay")
 {
 #if !defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
