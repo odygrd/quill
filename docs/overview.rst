@@ -113,7 +113,7 @@ If you use your own POSIX signal handler, keep it minimal and avoid calling the 
 - ``catchable_signals`` — the list of signals to handle (defaults to ``SIGTERM``, ``SIGINT``, ``SIGABRT``, ``SIGFPE``, ``SIGILL``, ``SIGSEGV`` and, where available, ``SIGBUS``). After flushing, the signal is re-raised with its default disposition, so the process terminates by that signal, and ``Backend::stop()`` reinstalls the handlers that were installed before.
 - ``timeout_seconds`` — alarm timeout to prevent the process from hanging in the signal handler (POSIX only, defaults to 20 seconds; 0 disables it).
 - ``logger_name`` — the logger to use for crash reporting. If empty, the signal handler automatically selects the first valid logger.
-- ``excluded_logger_substrings`` — logger names containing these substrings are skipped during automatic selection (defaults to ``{"__csv__"}``).
+- ``excluded_logger_substrings`` — logger names containing these substrings are skipped during automatic selection (defaults to ``{"__csv__", "__binary__"}``, the loggers of the csv, binary and pcap writers). When every logger is skipped, the handler logs nothing and still flushes the sinks.
 
 On Windows, ``Backend::start()`` installs structured exception handling and a process-wide
 console control handler. CRT signal handlers are thread-specific; call

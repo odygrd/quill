@@ -182,6 +182,8 @@
 - `CsvWriter(filename)` appends to the file by default, as `BinaryWriter` and `PcapWriter` do,
   instead of truncating it: a new file gets the header, and a file that has rows keeps them. Pass
   `'w'` as the open mode to truncate the file.
+- `SignalHandlerOptions::excluded_logger_substrings` also excludes the loggers of `BinaryWriter`
+  and `PcapWriter` by default, so the signal handler does not write its messages to their files.
 
 ### New Features
 
@@ -195,6 +197,18 @@
 - Added `quill::MemberwiseCodec<T, &T::a, &T::b>`, which generates a codec from a list of data
   members.
 - Added `QUILL_VERSION`, `QUILL_VERSION_MAJOR`, `QUILL_VERSION_MINOR` and `QUILL_VERSION_PATCH`.
+- Added `LOG_BINARY(logger, data, size)` and `Logger::log_binary()`, which write bytes to the sinks
+  of a logger as they are, e.g. to record a market data feed to a `FileSink` or `RotatingFileSink`.
+  Custom sinks receive the bytes in the new `Sink::write_binary(BinaryRecord const&)`.
+- Added `quill::BinaryWriter`, which creates the file sink and the logger of a binary file, so that
+  a record is written with `writer.write(data, size)`. It takes a `FileSinkConfig`, a
+  `RotatingFileSinkConfig`, or one or several custom sinks.
+- Added `FileSinkConfig::set_binary_record_framing()`, which makes a file sink write the size of
+  each binary record, or its timestamp and size, before its bytes, so that a reader can tell
+  records of different sizes apart.
+- Added `quill::PcapWriter`, which writes network packets to pcap files that Wireshark and tcpdump
+  read: `writer.write_packet(packet, size, timestamp_ns)`. With a `RotatingFileSinkConfig` each
+  file is a capture that can be read on its own.
 - Added `FileSinkConfig::set_file_header()`, which starts every file of a `FileSink` or
   `RotatingFileSink` with the given bytes, including each file created by a rotation, e.g. a csv
   header row or the global header of a pcap file.
@@ -224,6 +238,9 @@
 
 ### Bug Fixes
 
+- The signal handler flushes the sinks of an application whose only loggers are those of
+  `CsvWriter`s, which it does not log its messages to. Before, the rows that were not yet flushed
+  were lost on `SIGINT`, `SIGTERM` or a crash.
 - `Frontend::preallocate()` can be called again by a thread that has already logged, e.g. at the
   start of each job of a thread pool. With an unbounded queue it read memory that the backend
   thread could be freeing.

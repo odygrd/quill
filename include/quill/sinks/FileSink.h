@@ -17,6 +17,7 @@
 #ifndef QUILL_MODULE
   #include <cerrno>
   #include <chrono>
+  #include <cstddef>
   #include <cstdint>
   #include <cstdio>
   #include <cstring>
@@ -67,6 +68,66 @@ enum class FilenameAppendOption : uint8_t
   StartDateTime,
   StartCustomTimestampFormat
 };
+
+/**
+ * What a file sink writes before the bytes of a binary record, see
+ * FileSinkConfig::set_binary_record_framing(). The fields are in the byte order of the machine.
+ */
+enum class BinaryRecordFraming : uint8_t
+{
+  /** Nothing: the file has the bytes of the records, one after the other */
+  None,
+
+  /** The number of bytes of the record, as a uint32_t */
+  Size,
+
+  /**
+   * The timestamp of the record in nanoseconds since epoch, as a uint64_t, and then the number of
+   * bytes of the record, as a uint32_t
+   */
+  TimestampAndSize
+};
+
+namespace detail
+{
+/** The most bytes that a file sink writes before a binary record */
+constexpr size_t max_binary_record_frame_size{sizeof(uint64_t) + sizeof(uint32_t)};
+
+/** @return the number of bytes that a file sink writes before each binary record */
+QUILL_NODISCARD constexpr size_t binary_record_frame_size(BinaryRecordFraming framing) noexcept
+{
+  return (framing == BinaryRecordFraming::None)
+    ? 0u
+    : ((framing == BinaryRecordFraming::Size) ? sizeof(uint32_t) : max_binary_record_frame_size);
+}
+
+/**
+ * Writes what precedes the bytes of a binary record to `frame`, which has
+ * max_binary_record_frame_size bytes
+ * @param timestamp the timestamp of the record
+ * @param record_size the number of bytes of the record as they are written. 32 bits count it:
+ * the frontend rejects a larger record, see Logger::max_binary_record_size
+ * @return the number of bytes written to `frame`
+ */
+QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline size_t make_binary_record_frame(char* frame, BinaryRecordFraming framing,
+                                                                           uint64_t timestamp,
+                                                                           size_t record_size) noexcept
+{
+  char* position = frame;
+
+  if (framing == BinaryRecordFraming::TimestampAndSize)
+  {
+    std::memcpy(position, &timestamp, sizeof(timestamp));
+    position += sizeof(timestamp);
+  }
+
+  uint32_t const size = static_cast<uint32_t>(record_size);
+  std::memcpy(position, &size, sizeof(size));
+  position += sizeof(size);
+
+  return static_cast<size_t>(position - frame);
+}
+} // namespace detail
 
 /**
  * The FileSinkConfig class holds the configuration options for the FileSink
@@ -227,6 +288,21 @@ public:
   }
 
   /**
+   * @brief Sets what the sink writes before the bytes of each binary record, see LOG_BINARY.
+   * The default is BinaryRecordFraming::None: the sink writes the bytes and nothing else.
+   *
+   * With records of different sizes, BinaryRecordFraming::Size lets a reader find where each one
+   * ends, and BinaryRecordFraming::TimestampAndSize also keeps the time of each record. The
+   * timestamp is the one of the record in the queue, so the logging thread does nothing more.
+   *
+   * @param value The framing of the binary records.
+   */
+  QUILL_ATTRIBUTE_COLD void set_binary_record_framing(BinaryRecordFraming value)
+  {
+    _binary_record_framing = value;
+  }
+
+  /**
    * @brief Sets custom pattern formatter options for this sink.
    *
    * By default, the logger's pattern formatter is used to format log messages.
@@ -246,6 +322,10 @@ public:
   QUILL_NODISCARD FilenameAppendOption filename_append_option() const noexcept
   {
     return _filename_append_option;
+  }
+  QUILL_NODISCARD BinaryRecordFraming binary_record_framing() const noexcept
+  {
+    return _binary_record_framing;
   }
   QUILL_NODISCARD std::string const& append_filename_format_pattern() const noexcept
   {
@@ -283,6 +363,7 @@ private:
   std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
   Timezone _time_zone{Timezone::LocalTime};
   FilenameAppendOption _filename_append_option{FilenameAppendOption::None};
+  BinaryRecordFraming _binary_record_framing{BinaryRecordFraming::None};
   bool _fsync_enabled{false};
 };
 
@@ -600,28 +681,76 @@ public:
       statement = user_log_statement;
     }
 
-    auto const stmt_size = statement.size();
+    _write_buffered(statement.data(), statement.size());
+  }
 
-    if (_native_write_pos + stmt_size > _native_write_buffer_cap)
+  /**
+   * @brief Writes the bytes of a binary record to the file as they are, after the frame that
+   * FileSinkConfig::set_binary_record_framing() asks for, which is none by default.
+   * FileEventNotifier::before_write transforms the bytes first, as it does a log statement, and
+   * the frame has the size of what it returns.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
+  {
+    if (QUILL_UNLIKELY(_native_file_handle == INVALID_HANDLE_VALUE))
+    {
+      return;
+    }
+
+    std::string_view const bytes{reinterpret_cast<char const*>(record.data), record.size};
+
+    if (_file_event_notifier.before_write)
+    {
+      std::string const user_bytes = _file_event_notifier.before_write(bytes);
+      _write_binary_record(record.timestamp, user_bytes);
+    }
+    else
+    {
+      _write_binary_record(record.timestamp, bytes);
+    }
+  }
+
+protected:
+  /** Writes the bytes of a binary record, after its frame when the configuration asks for one */
+  QUILL_ATTRIBUTE_HOT void _write_binary_record(uint64_t timestamp, std::string_view bytes)
+  {
+    if (_config.binary_record_framing() != BinaryRecordFraming::None)
+    {
+      char frame[detail::max_binary_record_frame_size];
+      size_t const frame_size = detail::make_binary_record_frame(
+        frame, _config.binary_record_framing(), timestamp, bytes.size());
+      _write_buffered(frame, frame_size);
+    }
+
+    // A record without bytes has no data to copy from
+    if (QUILL_LIKELY(!bytes.empty()))
+    {
+      _write_buffered(bytes.data(), bytes.size());
+    }
+  }
+
+  /** Appends to the native write buffer, which is written to the file when it is full */
+  QUILL_ATTRIBUTE_HOT void _write_buffered(char const* data, size_t size)
+  {
+    if (_native_write_pos + size > _native_write_buffer_cap)
     {
       _flush_native_write_buffer();
     }
 
-    if (QUILL_LIKELY(stmt_size <= _native_write_buffer_cap))
+    if (QUILL_LIKELY(size <= _native_write_buffer_cap))
     {
-      std::memcpy(_native_write_buffer.get() + _native_write_pos, statement.data(), stmt_size);
-      _native_write_pos += stmt_size;
+      std::memcpy(_native_write_buffer.get() + _native_write_pos, data, size);
+      _native_write_pos += size;
     }
     else
     {
-      _write_to_file(statement.data(), stmt_size);
+      _write_to_file(data, size);
     }
 
-    _file_size += stmt_size;
+    _file_size += size;
     _write_occurred = true;
   }
 
-protected:
   void _reopen_file()
   {
     open_file(_filename, _config.open_mode());
@@ -845,6 +974,12 @@ protected:
     return _native_file_handle != INVALID_HANDLE_VALUE;
   }
 
+  /** @return the number of bytes that write_binary() writes for the record, with its frame */
+  QUILL_NODISCARD size_t binary_write_size(BinaryRecord const& record) const noexcept
+  {
+    return detail::binary_record_frame_size(_config.binary_record_framing()) + record.size;
+  }
+
   /**
    * Keeps the size that a file had when open_file() had created it: its header and what
    * after_open wrote to it. It is 0 for a file that already had content. These bytes were written
@@ -981,6 +1116,32 @@ public:
   }
 
   /**
+   * @brief Writes the bytes of a binary record to the file as they are, after the frame that
+   * FileSinkConfig::set_binary_record_framing() asks for, which is none by default.
+   * FileEventNotifier::before_write transforms the bytes first, as it does a log statement, and
+   * the frame has the size of what it returns.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
+  {
+    if (QUILL_UNLIKELY(!_file))
+    {
+      return;
+    }
+
+    std::string_view const bytes{reinterpret_cast<char const*>(record.data), record.size};
+
+    if (_file_event_notifier.before_write)
+    {
+      std::string const user_bytes = _file_event_notifier.before_write(bytes);
+      _write_binary_record(record.timestamp, user_bytes);
+    }
+    else
+    {
+      _write_binary_record(record.timestamp, bytes);
+    }
+  }
+
+  /**
    * @return the configuration that the sink was created with. A sink that is retrieved for a
    * file keeps the configuration of the call that created it.
    */
@@ -1055,6 +1216,20 @@ private:
   };
 
 protected:
+  /** Writes the bytes of a binary record, after its frame when the configuration asks for one */
+  QUILL_ATTRIBUTE_HOT void _write_binary_record(uint64_t timestamp, std::string_view bytes)
+  {
+    if (_config.binary_record_framing() != BinaryRecordFraming::None)
+    {
+      char frame[detail::max_binary_record_frame_size];
+      size_t const frame_size = detail::make_binary_record_frame(
+        frame, _config.binary_record_framing(), timestamp, bytes.size());
+      _write_statement(std::string_view{frame, frame_size});
+    }
+
+    _write_statement(bytes);
+  }
+
   void _reopen_file()
   {
     open_file(_filename, _config.open_mode());
@@ -1263,6 +1438,12 @@ protected:
   }
 
   QUILL_NODISCARD bool is_open() const noexcept { return _file != nullptr; }
+
+  /** @return the number of bytes that write_binary() writes for the record, with its frame */
+  QUILL_NODISCARD size_t binary_write_size(BinaryRecord const& record) const noexcept
+  {
+    return detail::binary_record_frame_size(_config.binary_record_framing()) + record.size;
+  }
 
   /**
    * Keeps the size that a file had when open_file() had created it: its header and what

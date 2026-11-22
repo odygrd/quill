@@ -71,8 +71,9 @@ using FileEventNotifierHandle = FILE*;
  *       and an exception from it leaves the sink without an open file, so it can reject a file
  *       that the sink must not append to.
  *
- * @note `before_write` transforms everything that the sink writes: each log statement and the
- *       header of a file.
+ * @note `before_write` transforms everything that the sink writes: each log statement, each
+ *       binary record and the header of a file. The frame of a binary record, see
+ *       FileSinkConfig::set_binary_record_framing(), has the size of the transformed bytes.
  *
  * @warning File-event callbacks must not call `Frontend::create_sink()` or
  *          `Frontend::create_or_get_sink()` with the name of the sink currently being constructed.
@@ -156,23 +157,18 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
-    std::string_view const log_statement = record.log_statement;
+    _write_bytes(record.log_statement);
+  }
 
-    if (QUILL_UNLIKELY(!_file))
-    {
-      // FileSink::flush() tries to re-open a deleted file and if it fails _file can be null
-      return;
-    }
-
-    if (_file_event_notifier.before_write)
-    {
-      std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
-      _write_statement(user_log_statement);
-    }
-    else
-    {
-      _write_statement(log_statement);
-    }
+  /**
+   * @brief Writes the bytes of a binary record to the stream as they are. Nothing is added before
+   * or after them. FileEventNotifier::before_write transforms them first, as it does a log
+   * statement.
+   * @note A caller-owned FILE* must be opened in binary mode on Windows.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
+  {
+    _write_bytes(std::string_view{reinterpret_cast<char const*>(record.data), record.size});
   }
 
   /**
@@ -316,6 +312,29 @@ protected:
    * unrelated record cannot consume the stale cached state.
    */
   void discard_write_estimate() noexcept {}
+
+  /**
+   * Writes a log statement or the bytes of a binary record, after before_write has transformed
+   * them.
+   */
+  QUILL_ATTRIBUTE_HOT void _write_bytes(std::string_view bytes)
+  {
+    if (QUILL_UNLIKELY(!_file))
+    {
+      // FileSink::flush() tries to re-open a deleted file and if it fails _file can be null
+      return;
+    }
+
+    if (_file_event_notifier.before_write)
+    {
+      std::string const user_bytes = _file_event_notifier.before_write(bytes);
+      _write_statement(user_bytes);
+    }
+    else
+    {
+      _write_statement(bytes);
+    }
+  }
 
   /**
    * Writes an already transformed statement without invoking before_write again.

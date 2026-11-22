@@ -6465,6 +6465,247 @@ TEST_CASE("rotating_file_sink_unicode_paths")
 }
 
 /***/
+TEST_CASE("rotating_file_sink_binary_records_rotate_by_size_after_the_file_header")
+{
+  fs::path const filename = "rotating_file_sink_binary_records.bin";
+  fs::path const filename_1 = "rotating_file_sink_binary_records.1.bin";
+  fs::path const filename_2 = "rotating_file_sink_binary_records.2.bin";
+  fs::path const filename_3 = "rotating_file_sink_binary_records.3.bin";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+  testing::remove_file(filename_3);
+
+  // A header with bytes that a text file would not keep, such as the global header of a pcap file
+  std::string const file_header{
+    "\xd4\xc3\xb2\xa1\x02\x00\x04\x00\x00\x00\x00\x00"
+    "\x00\x00\x00\x00\xff\xff\x00\x00\x01\x00\x00\x00",
+    24};
+
+  // Two records fit in a file after its header, and the third rotates it
+  static constexpr size_t record_size{200};
+  std::vector<std::string> const records{
+    std::string(record_size, '\0'), std::string(record_size, '\n'), std::string(record_size, '\r'),
+    std::string(record_size, '\xff'), std::string(record_size, 'A')};
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('w');
+    cfg.set_file_header(file_header);
+
+    RotatingFileSink sink{filename, cfg};
+
+    for (std::string const& record : records)
+    {
+      sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                     std::string_view{}, std::string_view{},
+                                     reinterpret_cast<std::byte const*>(record.data()), record.size()});
+    }
+  }
+
+  REQUIRE(read_file_bytes(filename_2) == file_header + records[0] + records[1]);
+  REQUIRE(read_file_bytes(filename_1) == file_header + records[2] + records[3]);
+  REQUIRE(read_file_bytes(filename) == file_header + records[4]);
+  REQUIRE_FALSE(fs::exists(filename_3));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_counts_the_frame_of_a_binary_record")
+{
+  fs::path const filename = "rotating_file_sink_binary_frames.bin";
+  fs::path const filename_1 = "rotating_file_sink_binary_frames.1.bin";
+  fs::path const filename_2 = "rotating_file_sink_binary_frames.2.bin";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+
+  // Two records of 250 bytes fill 500 of the 512 bytes of a file. Their frames of 12 bytes take
+  // the rest, so the second record no longer fits and goes to the next file with its frame
+  std::string const record(250, 'r');
+  uint64_t const timestamp{7};
+
+  std::string frame{reinterpret_cast<char const*>(&timestamp), sizeof(timestamp)};
+  uint32_t const record_size{250};
+  frame.append(reinterpret_cast<char const*>(&record_size), sizeof(record_size));
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('w');
+    cfg.set_binary_record_framing(BinaryRecordFraming::TimestampAndSize);
+
+    RotatingFileSink sink{filename, cfg};
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+      sink.write_binary(BinaryRecord{nullptr, timestamp, std::string_view{}, std::string_view{},
+                                     std::string_view{}, std::string_view{},
+                                     reinterpret_cast<std::byte const*>(record.data()), record.size()});
+    }
+  }
+
+  REQUIRE(read_file_bytes(filename_1) == frame + record);
+  REQUIRE(read_file_bytes(filename) == frame + record);
+  REQUIRE_FALSE(fs::exists(filename_2));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+/***/
+TEST_CASE("rotating_json_file_sink_ignores_binary_records")
+{
+  fs::path const filename = "rotating_json_file_sink_ignores_binary_records.json";
+  fs::path const backup_filename = "rotating_json_file_sink_ignores_binary_records.1.json";
+  testing::remove_file(filename);
+  testing::remove_file(backup_filename);
+
+  MacroMetadata const macro_metadata{"file.cpp:1", "function",     "message",
+                                     nullptr,      LogLevel::Info, MacroMetadata::Event::Log};
+
+  static constexpr uint64_t start_timestamp = 1'686'528'000'000'000'000ull;
+  constexpr uint64_t one_minute_ns = 60'000'000'000ull;
+  auto const write_json_record = [&macro_metadata](RotatingJsonFileSink& sink)
+  {
+    sink.write_log(LogRecord{&macro_metadata,
+                             start_timestamp,
+                             "thread_id",
+                             std::string_view{},
+                             std::string{},
+                             "logger",
+                             LogLevel::Info,
+                             "INFO",
+                             "I",
+                             nullptr,
+                             "message",
+                             "",
+                             {}});
+  };
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_max_backup_files(1);
+    cfg.set_rotation_frequency_and_interval('m', 1);
+    cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Index);
+
+    RotatingJsonFileSink sink{
+      filename, cfg, FileEventNotifier{},
+      std::chrono::system_clock::time_point{std::chrono::seconds{start_timestamp / 1'000'000'000u}}};
+
+    write_json_record(sink);
+
+    // The bytes of a binary record are not JSON: the sink writes nothing for it
+    std::string const binary_record(1024, '\0');
+    BinaryRecord record{nullptr,
+                        start_timestamp,
+                        {},
+                        {},
+                        {},
+                        {},
+                        reinterpret_cast<std::byte const*>(binary_record.data()),
+                        binary_record.size()};
+    sink.write_binary(record);
+    write_json_record(sink);
+
+    REQUIRE_FALSE(fs::exists(backup_filename));
+
+    record.timestamp += one_minute_ns;
+    sink.write_binary(record);
+  }
+
+  CHECK(testing::file_contents(filename).empty());
+  std::vector<std::string> const file_contents = testing::file_contents(backup_filename);
+  REQUIRE_EQ(file_contents.size(), 2);
+  REQUIRE_EQ(file_contents[0].front(), '{');
+  REQUIRE_EQ(file_contents[0].back(), '}');
+  REQUIRE_EQ(file_contents[0], file_contents[1]);
+
+  testing::remove_file(filename);
+  testing::remove_file(backup_filename);
+}
+
+/***/
+TEST_CASE("write_binary_passes_a_record_without_bytes_to_before_write")
+{
+  fs::path const filename = "write_binary_passes_a_record_without_bytes_to_before_write.bin";
+  testing::remove_file(filename);
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(1024);
+
+    // The callback delimits every record, also one without bytes
+    FileEventNotifier file_event_notifier;
+    file_event_notifier.before_write = [](std::string_view bytes)
+    { return "<" + std::string{bytes} + ">"; };
+
+    RotatingFileSink sink{filename, cfg, file_event_notifier};
+
+    std::string const bytes{"record"};
+    sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                   std::string_view{}, std::string_view{},
+                                   reinterpret_cast<std::byte const*>(bytes.data()), bytes.size()});
+
+    sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                   std::string_view{}, std::string_view{}, nullptr, 0});
+  }
+
+  REQUIRE(read_file_bytes(filename) == "<record><>");
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_binary_rotates_for_records_that_before_write_makes_larger")
+{
+  fs::path const filename = "write_binary_rotates_for_records_that_before_write_makes_larger.bin";
+  fs::path const filename_1 =
+    "write_binary_rotates_for_records_that_before_write_makes_larger.1.bin";
+  fs::path const filename_2 =
+    "write_binary_rotates_for_records_that_before_write_makes_larger.2.bin";
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_open_mode('w');
+    cfg.set_rotation_max_file_size(512);
+
+    // Each record is written as 300 bytes, also one without bytes of its own
+    FileEventNotifier file_event_notifier;
+    file_event_notifier.before_write = [](std::string_view) { return std::string(300, 'x'); };
+
+    RotatingFileSink sink{filename, cfg, file_event_notifier};
+
+    for (int i = 0; i < 4; ++i)
+    {
+      sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                     std::string_view{}, std::string_view{}, nullptr, 0});
+    }
+  }
+
+  // The size rotation estimates a record before before_write, so a file can exceed the limit by
+  // one record, as it can with log statements, and the next record rotates it
+  REQUIRE_EQ(fs::file_size(filename), 600u);
+  REQUIRE_EQ(fs::file_size(filename_1), 600u);
+  REQUIRE_FALSE(fs::exists(filename_2));
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+/***/
 TEST_CASE("time_rotation_skipped_for_file_with_only_its_header")
 {
   uint64_t const timestamp_20230612 = 1686528000000000000;

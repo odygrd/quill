@@ -176,7 +176,8 @@ public:
   template <typename TLogger>
   LoggerBase* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
                             PatternFormatterOptions const& pattern_formatter_options,
-                            ClockSourceType clock_source, typename TLogger::clock_object_t* clock)
+                            ClockSourceType clock_source, typename TLogger::clock_object_t* clock,
+                            std::optional<LogLevel> initial_log_level = std::nullopt)
   {
     QUILL_TRY
     {
@@ -202,8 +203,9 @@ public:
                      "or choose a different name."});
       }
 
-      return _insert_new_logger<TLogger>(logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
-                                         pattern_formatter_options, clock_source, clock);
+      return _insert_new_logger<TLogger>(
+        logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
+        pattern_formatter_options, clock_source, clock, initial_log_level);
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
@@ -431,7 +433,8 @@ private:
                                                  std::vector<std::shared_ptr<Sink>> sinks,
                                                  PatternFormatterOptions const& pattern_formatter_options,
                                                  ClockSourceType clock_source,
-                                                 typename TLogger::clock_object_t* clock)
+                                                 typename TLogger::clock_object_t* clock,
+                                                 std::optional<LogLevel> initial_log_level = std::nullopt)
   {
     constexpr FrontendOptionsValues frontend_options =
       FrontendOptionsValues::of<typename TLogger::frontend_options_t>();
@@ -441,7 +444,11 @@ private:
       new TLogger{logger_name, static_cast<std::vector<std::shared_ptr<Sink>>&&>(sinks),
                   pattern_formatter_options, clock_source, clock}};
 
-    if (_has_env_log_level)
+    if (initial_log_level)
+    {
+      new_logger->set_log_level(*initial_log_level);
+    }
+    else if (_has_env_log_level)
     {
       new_logger->set_log_level(_env_log_level);
     }

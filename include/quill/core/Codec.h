@@ -176,6 +176,18 @@ template <typename Allocator>
 struct is_std_string<std::basic_string<char, std::char_traits<char>, Allocator>> : std::true_type
 {
 };
+
+/**
+ * Two buffers that are encoded as the bytes of one string, the second after the first, e.g. the
+ * header of a binary record and its data. See Logger::log_binary()
+ */
+struct BinaryBuffers
+{
+  void const* first;
+  void const* second;
+  uint32_t first_size;
+  uint32_t second_size;
+};
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -381,6 +393,59 @@ struct Codec
     {
       detail::codec_not_found_for_type<Arg>();
     }
+  }
+};
+
+/** Encodes the two buffers as a std::string_view of their bytes is encoded, and decodes that view */
+template <>
+struct Codec<detail::BinaryBuffers>
+{
+  /***/
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(SizeCacheVector& /* conditional_arg_size_cache */,
+                                                                         detail::BinaryBuffers const& arg) noexcept
+  {
+    return sizeof(uint32_t) + arg.first_size + arg.second_size;
+  }
+
+  /***/
+  QUILL_ATTRIBUTE_HOT static void encode(std::byte*& buffer,
+                                         SizeCacheVector const& /* conditional_arg_size_cache */,
+                                         uint32_t& /* conditional_arg_size_cache_index */,
+                                         detail::BinaryBuffers const& arg) noexcept
+  {
+    // Local copy improves generated code (avoids aliasing penalties)
+    std::byte* buf_ptr = buffer;
+
+    uint32_t const len = arg.first_size + arg.second_size;
+    std::memcpy(buf_ptr, &len, sizeof(len));
+    buf_ptr += sizeof(len);
+
+    // Only copy if length > 0 to avoid UBSAN with nullptr in memcpy
+    if (arg.first_size != 0)
+    {
+      std::memcpy(buf_ptr, arg.first, arg.first_size);
+      buf_ptr += arg.first_size;
+    }
+
+    if (arg.second_size != 0)
+    {
+      std::memcpy(buf_ptr, arg.second, arg.second_size);
+      buf_ptr += arg.second_size;
+    }
+
+    buffer = buf_ptr;
+  }
+
+  /***/
+  QUILL_NODISCARD static std::string_view decode_arg(std::byte*& buffer)
+  {
+    return Codec<std::string_view>::decode_arg(buffer);
+  }
+
+  /***/
+  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  {
+    Codec<std::string_view>::decode_and_store_arg(buffer, args_store);
   }
 };
 

@@ -126,6 +126,12 @@ MetricRecord Struct
 .. doxygenstruct:: MetricRecord
    :members:
 
+BinaryRecord Struct
+-------------------
+
+.. doxygenstruct:: BinaryRecord
+   :members:
+
 Filter Class
 ------------
 
@@ -137,6 +143,11 @@ FileSinkConfig Class
 
 .. doxygenclass:: FileSinkConfig
    :members:
+
+BinaryRecordFraming Enum
+------------------------
+
+.. doxygenenum:: BinaryRecordFraming
 
 FileSink Class
 --------------------
@@ -281,4 +292,16 @@ CsvWriter Class
 ---------------
 
 .. doxygenclass:: CsvWriter
+   :members:
+
+BinaryWriter Class
+------------------
+
+.. doxygenclass:: BinaryWriterImpl
+   :members:
+
+PcapWriter Class
+----------------
+
+.. doxygenclass:: PcapWriterImpl
    :members:

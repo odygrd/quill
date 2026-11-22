@@ -350,50 +350,32 @@ public:
       return;
     }
 
-    if (QUILL_UNLIKELY(!this->is_open()))
-    {
-      // A failed reopen left no active file. Recover now, through the throttled retry in
-      // _rotate_files(), rather than only when a record reaches a rotation threshold: records
-      // written to the closed file are lost and never count towards it.
-      _rotate_files(record.log_timestamp);
-    }
-
-    bool time_rotation = false;
-
-    if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
-    {
-      // Check if we need to rotate based on time
-      time_rotation = _time_rotation(record.log_timestamp);
-    }
-
-    if (!time_rotation && _config.rotation_max_file_size() != 0)
-    {
-      size_t const write_size = this->estimate_write_size(record);
-
-      // Check if we need to rotate based on size
-      QUILL_TRY { _size_rotation(write_size, record.log_timestamp); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH_ALL()
-      {
-        // The estimate may have cached state for this record (e.g. JsonSink caches the built
-        // json message). The write is abandoned, so discard it before propagating, otherwise a
-        // later record could consume the stale cached state
-        base_type::discard_write_estimate();
-        throw;
-      }
-#endif
-    }
-
-    if (QUILL_UNLIKELY(!_holds_records(this->_file_size)))
-    {
-      // The file holds no records yet, so name its backup after this record, as rotation does for
-      // every later file, rather than after when the sink was created. A sparse logger's first
-      // record can arrive days later.
-      _open_file_timestamp = record.log_timestamp;
-    }
+    _rotate_before_write(record.log_timestamp,
+                         [this, &record]() { return this->estimate_write_size(record); });
 
     // write to file
     base_type::write_log(record);
+  }
+
+  /**
+   * @brief Writes the bytes of a binary record, rotating the file first if needed.
+   * @param record the binary record
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
+  {
+    if (this->is_null() || !_rotation_enabled())
+    {
+      base_type::write_binary(record);
+      return;
+    }
+
+    // A record without bytes still goes through the time and size checks:
+    // FileEventNotifier::before_write can turn it into some
+    _rotate_before_write(record.timestamp,
+                         [this, &record]() { return base_type::binary_write_size(record); });
+
+    // write to file
+    base_type::write_binary(record);
   }
 
 protected:
@@ -418,6 +400,58 @@ private:
   QUILL_NODISCARD bool _holds_records(uint64_t file_size) const noexcept
   {
     return file_size > this->_initial_file_size;
+  }
+
+  /**
+   * Rotates the file when the record that is written next is due for a time or size rotation
+   * @param record_timestamp_ns the timestamp of the record
+   * @param estimate_write_size returns the size of the record in the file. Only called when size
+   * rotation is configured, as estimating it can be expensive
+   */
+  template <typename TEstimateWriteSize>
+  QUILL_ATTRIBUTE_HOT void _rotate_before_write(uint64_t record_timestamp_ns, TEstimateWriteSize estimate_write_size)
+  {
+    if (QUILL_UNLIKELY(!this->is_open()))
+    {
+      // A failed reopen left no active file. Recover now, through the throttled retry in
+      // _rotate_files(), rather than only when a record reaches a rotation threshold: records
+      // written to the closed file are lost and never count towards it.
+      _rotate_files(record_timestamp_ns);
+    }
+
+    bool time_rotation = false;
+
+    if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
+    {
+      // Check if we need to rotate based on time
+      time_rotation = _time_rotation(record_timestamp_ns);
+    }
+
+    if (!time_rotation && _config.rotation_max_file_size() != 0)
+    {
+      size_t const write_size = estimate_write_size();
+
+      // Check if we need to rotate based on size
+      QUILL_TRY { _size_rotation(write_size, record_timestamp_ns); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        // The estimate may have cached state for this record (e.g. JsonSink caches the built
+        // json message). The write is abandoned, so discard it before propagating, otherwise a
+        // later record could consume the stale cached state
+        base_type::discard_write_estimate();
+        throw;
+      }
+#endif
+    }
+
+    if (QUILL_UNLIKELY(!_holds_records(this->_file_size)))
+    {
+      // The file holds no records yet, so name its backup after this record, as rotation does for
+      // every later file, rather than after when the sink was created. A sparse logger's first
+      // record can arrive days later.
+      _open_file_timestamp = record_timestamp_ns;
+    }
   }
 
   /***/

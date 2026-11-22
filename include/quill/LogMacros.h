@@ -1065,9 +1065,23 @@
     (logger)->publish_dynamic_metric(__VA_ARGS__);                                                 \
   } while (0)
 
+/**
+ * Writes `size` bytes of `data` to the sinks of the logger as they are, without formatting. The
+ * sinks also get the metadata of the call, e.g. its source location, as for a log statement.
+ */
+#define QUILL_LOG_BINARY(logger, data, size)                                                       \
+  do                                                                                               \
+  {                                                                                                \
+    static constexpr quill::MacroMetadata quill_macro_metadata_{                                   \
+      QUILL_FILE_INFO, QUILL_FUNCTION_NAME,   "",                                                  \
+      nullptr,         quill::LogLevel::None, quill::MacroMetadata::Event::Binary};                \
+    (logger)->log_binary(&quill_macro_metadata_, (data), (size));                                  \
+  } while (0)
+
 #if !defined(QUILL_DISABLE_NON_PREFIXED_MACROS)
   #define METRIC(logger, metric_metadata, value) QUILL_METRIC(logger, metric_metadata, value)
   #define DYNAMIC_METRIC(logger, ...) QUILL_DYNAMIC_METRIC(logger, __VA_ARGS__)
+  #define LOG_BINARY(logger, data, size) QUILL_LOG_BINARY(logger, data, size)
   #define TAGS(...) QUILL_TAGS(__VA_ARGS__)
   #define LOG_TRACE_L3(logger, fmt, ...) QUILL_LOG_TRACE_L3(logger, fmt, ##__VA_ARGS__)
   #define LOG_TRACE_L2(logger, fmt, ...) QUILL_LOG_TRACE_L2(logger, fmt, ##__VA_ARGS__)
