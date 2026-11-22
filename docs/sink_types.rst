@@ -22,6 +22,12 @@ The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The 
 
 Each file can only have a single instance of `FileSink`.
 
+``FileSinkConfig::set_file_header()`` sets bytes that start every file of the sink, e.g. the header
+row of a csv file. They are written when the sink opens an empty file, which includes each file
+that a ``RotatingFileSink`` rotates to; a file that is appended to and already has content gets no
+second header. ``FileEventNotifier::after_open`` is called before the header is written, with the
+file as it was opened.
+
 On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
 characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
 

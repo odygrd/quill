@@ -17,7 +17,7 @@ struct FailedRotationCsvSchema
 };
 
 /***/
-TEST_CASE("csv_writer_failed_rotation_reopen_appends_header")
+TEST_CASE("csv_writer_failed_rotation_reopen_does_not_write_header")
 {
 #if !defined(_WIN32)
   return;
@@ -55,11 +55,13 @@ TEST_CASE("csv_writer_failed_rotation_reopen_appends_header")
 
   Backend::stop();
 
+  // The rotation fails while the other handle is open, and the file is opened again to append to
+  // it. It has content, so it keeps it and gets no header in the middle of it
   std::vector<std::string> const file_contents = testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 4);
+  REQUIRE_EQ(file_contents.size(), 3);
   REQUIRE_EQ(file_contents[0], "existing,row");
-  REQUIRE_EQ(file_contents[2], "device_id,location,status,temperature_c");
-  REQUIRE_EQ(file_contents[3], "sensor-001,ward-a,stable,21.5");
+  REQUIRE_EQ(file_contents[1], std::string(512, 'x'));
+  REQUIRE_EQ(file_contents[2], "sensor-001,ward-a,stable,21.5");
 
   testing::remove_file(filename);
   testing::remove_file(filename_1);

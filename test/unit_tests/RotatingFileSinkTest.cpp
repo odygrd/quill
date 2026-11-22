@@ -8,9 +8,12 @@
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
+#include <iterator>
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 #if defined(_WIN32)
   #include <winioctl.h>
@@ -68,6 +71,30 @@ private:
   uint32_t _rename_call_count{0};
   uint32_t _fail_on_call{0};
 };
+
+/** The bytes of a file, without the newline translation of a text stream */
+std::string read_file_bytes(fs::path const& filename)
+{
+  std::ifstream file{filename, std::ios::binary};
+  return std::string{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+}
+
+void write_log_statement(RotatingFileSink& sink, uint64_t timestamp, std::string_view log_statement)
+{
+  sink.write_log(LogRecord{nullptr,
+                           timestamp,
+                           std::string_view{},
+                           std::string_view{},
+                           std::string{},
+                           std::string_view{},
+                           LogLevel::Info,
+                           "INFO",
+                           "I",
+                           nullptr,
+                           "",
+                           log_statement,
+                           {}});
+}
 
 void check_deadline_saturation(char const* filename_stem, RotatingFileSinkConfig const& cfg)
 {
@@ -6435,6 +6462,244 @@ TEST_CASE("rotating_file_sink_unicode_paths")
   }
 
   REQUIRE(fs::remove(directory));
+}
+
+/***/
+TEST_CASE("time_rotation_skipped_for_file_with_only_its_header")
+{
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+  uint64_t const one_minute_ns = std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+
+  fs::path const filename = "time_rotation_skipped_for_file_with_only_its_header.csv";
+
+  // Opened at 00:00, but the first record arrives at 00:10. Until then the file has only its
+  // header, so it is not rotated and its backup covers 00:10 onwards
+  fs::path const expected_backup =
+    "time_rotation_skipped_for_file_with_only_its_header.20230612_001000.csv";
+  fs::path const stale_backup =
+    "time_rotation_skipped_for_file_with_only_its_header.20230612_000000.csv";
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::remove_file(stale_backup);
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_frequency_and_interval('m', 1);
+    cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+    cfg.set_timezone(Timezone::GmtTime);
+    cfg.set_open_mode('w');
+    cfg.set_file_header("id,name\n");
+
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{},
+                          std::chrono::time_point<std::chrono::system_clock>(
+                            std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    write_log_statement(sink, timestamp_20230612 + 10 * one_minute_ns, "0,first\n");
+    write_log_statement(sink, timestamp_20230612 + 11 * one_minute_ns, "1,second\n");
+  }
+
+  REQUIRE_FALSE(fs::exists(stale_backup));
+  REQUIRE(read_file_bytes(expected_backup) == "id,name\n0,first\n");
+  REQUIRE(read_file_bytes(filename) == "id,name\n1,second\n");
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::remove_file(stale_backup);
+}
+
+/***/
+TEST_CASE("time_rotation_rotates_an_appended_file_smaller_than_its_header")
+{
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+  uint64_t const one_minute_ns = std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+
+  fs::path const filename = "time_rotation_rotates_an_appended_file_smaller_than_its_header.csv";
+
+  // The file that is appended to has content, although less than a header, and is rotated
+  fs::path const expected_backup =
+    "time_rotation_rotates_an_appended_file_smaller_than_its_header.20230612_000000.csv";
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::create_file(filename, "x");
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_frequency_and_interval('m', 1);
+    cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+    cfg.set_timezone(Timezone::GmtTime);
+    cfg.set_open_mode('a');
+    cfg.set_file_header("id,name\n");
+
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{},
+                          std::chrono::time_point<std::chrono::system_clock>(
+                            std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    // A file with content gets no header
+    REQUIRE(read_file_bytes(filename) == "x");
+
+    write_log_statement(sink, timestamp_20230612 + 10 * one_minute_ns, "0,first\n");
+  }
+
+  REQUIRE(read_file_bytes(expected_backup) == "x");
+  REQUIRE(read_file_bytes(filename) == "id,name\n0,first\n");
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+}
+
+/***/
+TEST_CASE("time_rotation_rotates_an_appended_file_of_the_size_of_its_header")
+{
+  uint64_t const timestamp_20230612 = 1686528000000000000;
+  uint64_t const one_minute_ns = std::chrono::nanoseconds(std::chrono::minutes(1)).count();
+
+  fs::path const filename = "time_rotation_rotates_an_appended_file_of_the_size_of_its_header.csv";
+
+  // The file that is appended to is as long as a header, but the sink did not write it: it has
+  // content of its own and is rotated
+  fs::path const expected_backup =
+    "time_rotation_rotates_an_appended_file_of_the_size_of_its_header.20230612_000000.csv";
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+  testing::create_file(filename, "OLD-DATA");
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_frequency_and_interval('m', 1);
+    cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+    cfg.set_timezone(Timezone::GmtTime);
+    cfg.set_open_mode('a');
+    cfg.set_file_header("HEADER01");
+
+    RotatingFileSink sink{filename, cfg, FileEventNotifier{},
+                          std::chrono::time_point<std::chrono::system_clock>(
+                            std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    write_log_statement(sink, timestamp_20230612 + 10 * one_minute_ns, "NEW");
+  }
+
+  REQUIRE(read_file_bytes(expected_backup) == "OLD-DATA");
+  REQUIRE(read_file_bytes(filename) == "HEADER01NEW");
+
+  testing::remove_file(filename);
+  testing::remove_file(expected_backup);
+}
+
+/***/
+TEST_CASE("rotation_on_creation_rotates_a_file_smaller_than_the_header")
+{
+  fs::path const filename = "rotation_on_creation_rotates_a_file_smaller_than_the_header.csv";
+  fs::path const filename_1 = "rotation_on_creation_rotates_a_file_smaller_than_the_header.1.csv";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::create_file(filename, "x");
+
+  {
+    // Opening the file for writing would truncate it, so it is rotated first whatever its size
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(1024);
+    cfg.set_rotation_on_creation(true);
+    cfg.set_open_mode('w');
+    cfg.set_file_header("id,name\n");
+
+    RotatingFileSink sink{filename, cfg};
+  }
+
+  REQUIRE(read_file_bytes(filename_1) == "x");
+  REQUIRE(read_file_bytes(filename) == "id,name\n");
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+}
+
+/***/
+TEST_CASE("rename_failure_reopens_the_file_without_another_header")
+{
+  fs::path const filename = "rename_failure_reopens_the_file_without_another_header.csv";
+  fs::path const filename_1 = "rename_failure_reopens_the_file_without_another_header.1.csv";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+
+  // Each row fills more than half of the file, so the second one is due for a rotation
+  std::string const first_row = "0," + std::string(300, 'a') + "\n";
+  std::string const second_row = "1," + std::string(300, 'b') + "\n";
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('w');
+    cfg.set_file_header("id,name\n");
+
+    FailingRenameRotatingFileSink sink{filename, cfg};
+
+    write_log_statement(sink, 0, first_row);
+
+    // The rotation cannot rename the file and opens it again to append to it. It has content,
+    // so the header is not written in the middle of it
+    write_log_statement(sink, 0, second_row);
+  }
+
+  REQUIRE_FALSE(fs::exists(filename_1));
+  REQUIRE(read_file_bytes(filename) == "id,name\n" + first_row + second_row);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("size_rotation_counts_what_after_open_writes_to_a_new_file")
+{
+  fs::path const filename = "size_rotation_counts_what_after_open_writes.log";
+  fs::path const filename_1 = "size_rotation_counts_what_after_open_writes.1.log";
+  fs::path const filename_2 = "size_rotation_counts_what_after_open_writes.2.log";
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+
+  // The callback writes a preamble of 240 bytes to every file it is opened for. It is called
+  // before the sink writes the header, so the preamble comes first
+  std::string const preamble(240, 'p');
+
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&preamble](fs::path const&, FileEventNotifierHandle file)
+  {
+#if defined(_WIN32)
+    DWORD bytes_written{0};
+    REQUIRE(::WriteFile(file, preamble.data(), static_cast<DWORD>(preamble.size()), &bytes_written, nullptr));
+#else
+    StreamSink::safe_fwrite(preamble.data(), sizeof(char), preamble.size(), file);
+#endif
+  };
+
+  std::string const record(110, 'r');
+
+  {
+    RotatingFileSinkConfig cfg;
+    cfg.set_rotation_max_file_size(512);
+    cfg.set_open_mode('w');
+    cfg.set_file_header("HEAD");
+
+    RotatingFileSink sink{filename, cfg, file_event_notifier};
+
+    // Two records fit in a file of 512 bytes after the 244 bytes that it starts with
+    for (size_t i = 0; i < 5; ++i)
+    {
+      write_log_statement(sink, 0, record);
+    }
+  }
+
+  REQUIRE(read_file_bytes(filename_2) == preamble + "HEAD" + record + record);
+  REQUIRE(read_file_bytes(filename_1) == preamble + "HEAD" + record + record);
+  REQUIRE(read_file_bytes(filename) == preamble + "HEAD" + record);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
 }
 
 TEST_SUITE_END();

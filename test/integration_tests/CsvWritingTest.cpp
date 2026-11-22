@@ -46,6 +46,13 @@ TEST_CASE("csv_writing")
   static constexpr char const* filename_7 = "orders_shared_writer.csv";
   static constexpr char const* filename_8 = "orders_appended_date.csv";
   static constexpr char const* filename_9 = "orders_escaped_fields.csv";
+  static constexpr char const* filename_10 = "orders_appended_by_default.csv";
+
+  // The writers of these files append by default, so the files of a run that did not finish are
+  // removed first
+  testing::remove_file(filename);
+  testing::remove_file(filename_9);
+  testing::remove_file(filename_10);
 
   // Start the backend thread
   quill::BackendOptions backend_options;
@@ -56,6 +63,15 @@ TEST_CASE("csv_writing")
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.append_row(14212123, "AAPL", 120, 210.42321, "BUY");
+    csv_writter.close();
+  }
+
+  // A writer appends by default: the file that a first one created gets the rows of a second one,
+  // and keeps its one header
+  for (int i = 0; i < 2; ++i)
+  {
+    quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{filename_10};
+    csv_writter.append_row(13212123 + i, "AAPL", 100, 210.32321, "BUY");
     csv_writter.close();
   }
 
@@ -177,6 +193,10 @@ TEST_CASE("csv_writing")
   {
     quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{
       filename_8, 'w', FilenameAppendOption::StartDate};
+
+    // The sink of the file with the date in its name is the one of the name of the writer
+    REQUIRE(quill::Frontend::get_sink(filename_8));
+
     csv_writter.append_row(13212123, "AAPL", 100, 210.32321, "BUY");
     csv_writter.close();
   }
@@ -228,13 +248,14 @@ TEST_CASE("csv_writing")
   }
 
   {
-    // Read file and check
+    // Read file and check. Every file starts with the header, which counts towards its size, so
+    // each of the rotated files has the header and 16 of the 40 rows
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename_2);
-    REQUIRE_EQ(file_contents.size(), 8);
+    REQUIRE_EQ(file_contents.size(), 9);
     REQUIRE_EQ(file_contents[0], "order_id,symbol,quantity,price,side");
 
     std::vector<std::string> const file_contents_1 = quill::testing::file_contents(filename_2_1);
-    REQUIRE_EQ(file_contents_1.size(), 18);
+    REQUIRE_EQ(file_contents_1.size(), 17);
     REQUIRE_EQ(file_contents_1[0], "order_id,symbol,quantity,price,side");
 
     std::vector<std::string> const file_contents_2 = quill::testing::file_contents(filename_2_2);
@@ -325,6 +346,15 @@ TEST_CASE("csv_writing")
       quill::testing::file_contains(file_contents, "13212123,\"A,APL\",100,210.32,\"B\"\"UY\""));
   }
 
+  {
+    std::vector<std::string> const file_contents = quill::testing::file_contents(filename_10);
+    REQUIRE_EQ(file_contents.size(), 3);
+    REQUIRE_EQ(file_contents[0], "order_id,symbol,quantity,price,side");
+    REQUIRE_EQ(file_contents[1], "13212123,AAPL,100,210.32,BUY");
+    REQUIRE_EQ(file_contents[2], "13212124,AAPL,100,210.32,BUY");
+  }
+
+  testing::remove_file(filename_10);
   testing::remove_file(filename_9);
   testing::remove_file(filename);
   testing::remove_file(filename_1);

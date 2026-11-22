@@ -25,6 +25,9 @@ TEST_CASE("csv_writing_custom_frontend")
   using CsvFrontend = FrontendImpl<CustomFrontendOptions>;
   static constexpr char const* filename = "orders_custom_frontend.csv";
 
+  // The writer appends by default, so the file of a run that did not finish is removed first
+  testing::remove_file(filename);
+
   // Start the backend thread
   quill::BackendOptions backend_options;
   quill::Backend::start(backend_options);

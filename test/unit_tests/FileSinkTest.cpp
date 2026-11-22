@@ -7,6 +7,10 @@
 #include "quill/sinks/FileSink.h"
 
 #include <clocale>
+#include <fstream>
+#include <iterator>
+#include <string>
+#include <string_view>
 
 #if !defined(_WIN32)
   #include <sys/stat.h>
@@ -69,6 +73,30 @@ public:
 #endif
   }
 };
+
+/** The bytes of a file, without the newline translation of a text stream */
+std::string read_file_bytes(fs::path const& filename)
+{
+  std::ifstream file{filename, std::ios::binary};
+  return std::string{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+}
+
+void write_log_statement(FileSink& file_sink, std::string_view log_statement)
+{
+  file_sink.write_log(LogRecord{nullptr,
+                                0,
+                                std::string_view{},
+                                std::string_view{},
+                                std::string{},
+                                std::string_view{},
+                                LogLevel::Info,
+                                "INFO",
+                                "I",
+                                nullptr,
+                                "",
+                                log_statement,
+                                {}});
+}
 } // namespace
 
 #if defined(__linux__)
@@ -1090,6 +1118,162 @@ TEST_CASE("stream_sink_reports_persistent_write_errors")
   std::fclose(stream);
   REQUIRE(error_reported);
 #endif
+}
+
+/***/
+TEST_CASE("file_header_starts_a_new_file")
+{
+  fs::path const filename = "file_header_starts_a_new_file.csv";
+  testing::remove_file(filename);
+
+  // before_write transforms everything the sink writes, the header too
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.before_write = [](std::string_view message)
+  { return ">" + std::string{message}; };
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_file_header("id,name\n");
+    REQUIRE_EQ(fsc.file_header(), "id,name\n");
+
+    FileSink file_sink{filename, fsc, file_event_notifier};
+
+    // The header is in the file as soon as it is opened
+    REQUIRE(read_file_bytes(filename) == ">id,name\n");
+
+    write_log_statement(file_sink, "1,first\n");
+    write_log_statement(file_sink, "2,second\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == ">id,name\n>1,first\n>2,second\n");
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("after_open_is_called_before_the_file_header_is_written")
+{
+  fs::path const filename = "after_open_is_called_before_the_file_header_is_written.csv";
+  testing::remove_file(filename);
+
+  // The callback gets the file as it was opened, so it can still configure the stream, or
+  // refuse a file that has content
+  size_t after_open_calls{0};
+  uint64_t file_size_in_after_open{1};
+
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.after_open = [&after_open_calls, &file_size_in_after_open](
+                                     fs::path const& file_path, FileEventNotifierHandle)
+  {
+    ++after_open_calls;
+    file_size_in_after_open = fs::file_size(file_path);
+  };
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_file_header("id,name\n");
+
+    FileSink file_sink{filename, fsc, file_event_notifier};
+
+    REQUIRE_EQ(after_open_calls, 1);
+    REQUIRE_EQ(file_size_in_after_open, 0);
+    REQUIRE(read_file_bytes(filename) == "id,name\n");
+  }
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("file_header_is_not_repeated_when_appending_to_a_file_with_content")
+{
+  fs::path const filename = "file_header_is_not_repeated_when_appending.csv";
+  testing::remove_file(filename);
+
+  FileSinkConfig fsc;
+  fsc.set_open_mode('a');
+  fsc.set_file_header("id,name\n");
+
+  {
+    // The file does not exist yet, so appending starts it with the header
+    FileSink file_sink{filename, fsc};
+    write_log_statement(file_sink, "1,first\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  {
+    FileSink file_sink{filename, fsc};
+    write_log_statement(file_sink, "2,second\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == "id,name\n1,first\n2,second\n");
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("file_header_starts_the_file_that_replaces_a_deleted_one")
+{
+#if defined(__linux__)
+  fs::path const filename = "file_header_starts_the_file_that_replaces_a_deleted_one.csv";
+  testing::remove_file(filename);
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('a');
+    fsc.set_file_header("id,name\n");
+    FileSink file_sink{filename, fsc};
+
+    write_log_statement(file_sink, "1,first\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+
+    testing::remove_file(filename);
+    REQUIRE_FALSE(fs::exists(filename));
+
+    // This record is written to the deleted file. The flush then finds the file gone and opens
+    // a new one
+    write_log_statement(file_sink, "2,second\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+
+    write_log_statement(file_sink, "3,third\n");
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == "id,name\n3,third\n");
+
+  testing::remove_file(filename);
+#else
+  return;
+#endif
+}
+
+/***/
+TEST_CASE("file_header_is_synced_when_fsync_is_enabled")
+{
+  fs::path const filename = "file_header_is_synced_when_fsync_is_enabled.csv";
+  testing::remove_file(filename);
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_fsync_enabled(true);
+    fsc.set_file_header("id,name\n");
+
+    FileSinkTestHarness file_sink{filename, fsc};
+
+    // No record is written. The header is in the file, and the next flush syncs it
+    REQUIRE(file_sink.fsync_pending_for_test());
+
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+    REQUIRE_FALSE(file_sink.fsync_pending_for_test());
+  }
+
+  REQUIRE(read_file_bytes(filename) == "id,name\n");
+
+  testing::remove_file(filename);
 }
 
 TEST_SUITE_END();

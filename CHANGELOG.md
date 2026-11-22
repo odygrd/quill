@@ -171,6 +171,17 @@
   resetting them to the default.
 - File sinks on POSIX create files with permissions from the process umask, as `fopen()` does,
   instead of always 0644.
+- `CsvWriter` writes the header of a file through `FileSinkConfig::set_file_header()`. With a
+  `RotatingFileSinkConfig`, the header counts towards `rotation_max_file_size` in every file. Time
+  rotation skips a file whose only content is the header written during the current open. Reopening
+  a file after a failed rotation preserves its existing header.
+- A `CsvWriter` with `should_write_header=true` throws `QuillError` when the file already has a
+  sink that does not write that header, e.g. the one of a writer with `should_write_header=false`:
+  only the sink can start every file it opens with the header. Create the writer that writes the
+  header first.
+- `CsvWriter(filename)` appends to the file by default, as `BinaryWriter` and `PcapWriter` do,
+  instead of truncating it: a new file gets the header, and a file that has rows keeps them. Pass
+  `'w'` as the open mode to truncate the file.
 
 ### New Features
 
@@ -184,6 +195,12 @@
 - Added `quill::MemberwiseCodec<T, &T::a, &T::b>`, which generates a codec from a list of data
   members.
 - Added `QUILL_VERSION`, `QUILL_VERSION_MAJOR`, `QUILL_VERSION_MINOR` and `QUILL_VERSION_PATCH`.
+- Added `FileSinkConfig::set_file_header()`, which starts every file of a `FileSink` or
+  `RotatingFileSink` with the given bytes, including each file created by a rotation, e.g. a csv
+  header row or the global header of a pcap file.
+- Added `FileSink::config()`, which returns the `FileSinkConfig` that the sink was created with.
+- The `CsvWriter` constructors take the clock of the writer as a last argument, so a writer can be
+  created with frontend options that have a `clock_type`.
 - `BackendOptions` is an aggregate in every language standard, so C++20 designated initializers
   such as `BackendOptions{.thread_name = "backend"}` compile.
 - Updated bundled `libfmt` to `v12.2.1`
@@ -275,6 +292,9 @@
   instead of at the next scheduled rotation.
 - `RotatingFileSinkConfig::set_rotation_time_daily()` no longer switches the configuration to daily
   rotation when it throws for an invalid time.
+- `RotatingFileSink` counts what `FileEventNotifier::after_open` writes to a new file towards
+  `rotation_max_file_size`. Before, each file after a rotation could exceed the limit by those
+  bytes.
 - Closing one `CsvWriter` no longer breaks another `CsvWriter` with a different schema that writes to
   the same file, or one with the same name created in another shared library.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
