@@ -34,7 +34,7 @@ TEST_CASE("macros_and_functions_logging_test")
       FileSinkConfig cfg;
       cfg.set_open_mode('w');
 
-      // For this test only we use the default buffer size, it should not make any difference it is just for testing the default behaviour and code coverage
+      // For this test only the write buffer of the sink is disabled, it should not make any difference it is just for code coverage
       cfg.set_write_buffer_size(0);
 
       return cfg;

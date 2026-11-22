@@ -224,15 +224,24 @@ public:
   }
 
   /**
-   * @brief Sets the user-defined buffer size for fwrite operations.
+   * @brief Sets the size of the write buffer of the sink.
    *
-   * This function allows you to specify a custom buffer size for fwrite, improving efficiency
-   * for file write operations.
+   * The sink copies each record to this buffer, and writes the buffer to the file when it is
+   * full and when the backend flushes the sink. A record that is larger than the buffer is
+   * written to the file on its own.
    *
-   * To disable custom buffering and revert to the default size, pass a value of 0.
+   * The sink writes its buffer to the file past the handle that FileEventNotifier::after_open
+   * and FileEventNotifier::before_close receive. What a callback writes through the handle stays
+   * in order with the records, but the records do not follow how the callback configures the
+   * handle, e.g. with `setvbuf`, and the handle is not to be used outside the callback.
+   *
+   * A size of 0 disables the buffer. The sink then writes every record through that handle as it
+   * arrives, so the callbacks decide how the file is buffered and can keep the handle. On Windows
+   * each record is then written to the file at once. On other platforms the handle is a `FILE*`,
+   * which has the default buffering of the C library until `after_open` changes it with `setvbuf`.
    *
    * @note By default, a buffer of 64 KiB is used, or of 256 KiB on Windows.
-   * @param value Size of the buffer in bytes. If set to 0, the default buffer size will be used.
+   * @param value Size of the buffer in bytes, 4096 at least, or 0 to disable the buffer.
    */
   QUILL_ATTRIBUTE_COLD void set_write_buffer_size(size_t value)
   {
@@ -499,7 +508,9 @@ QUILL_NODISCARD inline fs::path get_canonical_path(fs::path const& path)
 /**
  * Windows FileSink implementation.
  * Uses a native HANDLE + WriteFile path because it provides materially better
- * backend file-write throughput on Windows than the CRT FILE* path.
+ * backend file-write throughput on Windows than the CRT FILE* path. Records are copied to a
+ * write buffer of the sink, which is written to the handle, as the POSIX sink does with its file
+ * descriptor.
  */
 class FileSink : public StreamSink
 {
@@ -635,7 +646,23 @@ public:
       return;
     }
 
-    _flush_native_write_buffer();
+    QUILL_TRY { _flush_native_write_buffer(); }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // A file that was removed, e.g. to make room on a full disk, keeps its space until it is
+      // closed. What could not be written to it is lost with it, and the next records go to a
+      // new file
+      if (_is_file_removed())
+      {
+        _native_write_pos = 0;
+        _replace_removed_file();
+      }
+
+      throw;
+    }
+  #endif
+
     _write_occurred = false;
 
     if (_config.fsync_enabled())
@@ -643,24 +670,9 @@ public:
       fsync_file(force_fsync);
     }
 
-    std::error_code ec;
-    bool const file_exists = fs::exists(_filename, ec);
-    bool file_removed = !ec && !file_exists;
-    if (ec)
+    if (_is_file_removed())
     {
-      // libc++ can report access denied for a file pending deletion. Query the open
-      // handle so an unrelated status error does not cause a valid file to be reopened.
-      FILE_STANDARD_INFO file_info{};
-      file_removed = ::GetFileInformationByHandleEx(_native_file_handle, FileStandardInfo,
-                                                    &file_info, sizeof(file_info)) &&
-        file_info.DeletePending;
-    }
-    if (file_removed)
-    {
-      // Keep recovery pending even when a close callback throws after closing the handle.
-      _write_occurred = true;
-      close_file();
-      _reopen_file();
+      _replace_removed_file();
     }
   }
 
@@ -672,16 +684,16 @@ public:
     }
 
     std::string_view const log_statement = record.log_statement;
-    std::string_view statement = log_statement;
-    std::string user_log_statement;
 
     if (_file_event_notifier.before_write)
     {
-      user_log_statement = _file_event_notifier.before_write(log_statement);
-      statement = user_log_statement;
+      std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
+      _write_buffered(user_log_statement.data(), user_log_statement.size());
     }
-
-    _write_buffered(statement.data(), statement.size());
+    else
+    {
+      _write_buffered(log_statement.data(), log_statement.size());
+    }
   }
 
   /**
@@ -719,7 +731,8 @@ protected:
       char frame[detail::max_binary_record_frame_size];
       size_t const frame_size = detail::make_binary_record_frame(
         frame, _config.binary_record_framing(), timestamp, bytes.size());
-      _write_buffered(frame, frame_size);
+      _write_buffered(frame, frame_size, bytes.data(), bytes.size());
+      return;
     }
 
     // A record without bytes has no data to copy from
@@ -729,9 +742,54 @@ protected:
     }
   }
 
+  /**
+   * Appends two parts that belong together to the native write buffer: the frame of a binary
+   * record and its bytes. When the buffer is full and cannot be written to the file, neither is
+   * appended, so a frame is not written later without its record.
+   */
+  QUILL_ATTRIBUTE_HOT void _write_buffered(char const* first, size_t first_size, char const* second, size_t second_size)
+  {
+    size_t const size = first_size + second_size;
+
+    // Counted also when the flush below fails, see the overload below
+    _file_size += size;
+    _write_occurred = true;
+
+    if (_native_write_pos + size > _native_write_buffer_cap)
+    {
+      _flush_native_write_buffer();
+    }
+
+    if (QUILL_LIKELY(size <= _native_write_buffer_cap))
+    {
+      std::memcpy(_native_write_buffer.get() + _native_write_pos, first, first_size);
+
+      // A record without bytes has no data to copy from
+      if (QUILL_LIKELY(second_size != 0))
+      {
+        std::memcpy(_native_write_buffer.get() + _native_write_pos + first_size, second, second_size);
+      }
+
+      _native_write_pos += size;
+      return;
+    }
+
+    _write_to_file(first, first_size, second, second_size);
+  }
+
   /** Appends to the native write buffer, which is written to the file when it is full */
   QUILL_ATTRIBUTE_HOT void _write_buffered(char const* data, size_t size)
   {
+    // Counted also when the flush below fails: a record that the file cannot take brings a sink
+    // that rotates by size closer to its rotation, which makes room when it removes a backup
+    _file_size += size;
+    _write_occurred = true;
+
+    if (QUILL_UNLIKELY(size == 0))
+    {
+      return;
+    }
+
     if (_native_write_pos + size > _native_write_buffer_cap)
     {
       _flush_native_write_buffer();
@@ -744,11 +802,35 @@ protected:
     }
     else
     {
-      _write_to_file(data, size);
+      _write_to_file(data, size, nullptr, 0);
+    }
+  }
+
+  /** @return true if the open file is no longer at its path */
+  QUILL_NODISCARD bool _is_file_removed() const
+  {
+    std::error_code ec;
+    bool const file_exists = fs::exists(_filename, ec);
+
+    if (ec)
+    {
+      // libc++ can report access denied for a file pending deletion. Query the open
+      // handle so an unrelated status error does not cause a valid file to be reopened.
+      FILE_STANDARD_INFO file_info{};
+      return ::GetFileInformationByHandleEx(_native_file_handle, FileStandardInfo, &file_info, sizeof(file_info)) &&
+        file_info.DeletePending;
     }
 
-    _file_size += size;
+    return !file_exists;
+  }
+
+  /** Closes the open file, which was removed, and opens a new one at its path */
+  void _replace_removed_file()
+  {
+    // Keep recovery pending even when a close callback throws after closing the handle.
     _write_occurred = true;
+    close_file();
+    _reopen_file();
   }
 
   void _reopen_file()
@@ -798,7 +880,8 @@ protected:
       detail::sleep_for_ns(retry_delay_ns);
     }
 
-    _native_write_buffer_cap = _native_write_buffer_capacity();
+    // A size of 0 disables the buffer: every record is then written to the file as it arrives
+    _native_write_buffer_cap = _config.write_buffer_size();
     _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
     _native_write_pos = 0;
 
@@ -825,18 +908,7 @@ protected:
 
     if (is_new_file && !_config.file_header().empty())
     {
-      // Written to the file rather than to the write buffer, so that the size of the file
-      // includes it
-      std::string_view file_header = _config.file_header();
-      std::string user_file_header;
-
-      if (_file_event_notifier.before_write)
-      {
-        user_file_header = _file_event_notifier.before_write(file_header);
-        file_header = user_file_header;
-      }
-
-      _write_to_handle(opened_handle_guard.handle, append_mode, file_header.data(), file_header.size());
+      _write_file_header(opened_handle_guard.handle, append_mode, filename);
     }
 
     uint64_t const initial_file_size = is_new_file ? _opened_file_size(opened_handle_guard.handle) : 0;
@@ -1019,18 +1091,68 @@ protected:
     return ::GetFileSizeEx(file_handle, &size) ? static_cast<uint64_t>(size.QuadPart) : 0;
   }
 
-  void _write_to_file(char const* data, size_t size)
+  /**
+   * Writes the header of a new file, see FileSinkConfig::set_file_header(). It goes to the file
+   * rather than to the write buffer, so that the size of the file includes it.
+   */
+  void _write_file_header(HANDLE file_handle, bool append_mode, fs::path const& filename)
   {
-    _write_to_handle(_native_file_handle, _append_mode, data, size);
+    std::string_view file_header = _config.file_header();
+    std::string user_file_header;
+
+    if (_file_event_notifier.before_write)
+    {
+      user_file_header = _file_event_notifier.before_write(file_header);
+      file_header = user_file_header;
+    }
+
+    if (_write_to_handle(file_handle, append_mode, file_header.data(), file_header.size()) !=
+        file_header.size())
+    {
+      DWORD const last_error = ::GetLastError();
+      QUILL_THROW(QuillError{std::string{"Failed to write the file header, path: "} +
+                             detail::file_sink_path_string(filename) +
+                             " GetLastError: " + std::to_string(last_error)});
+    }
   }
 
-  static void _write_to_handle(HANDLE file_handle, bool append_mode, char const* data, size_t size)
+  /**
+   * Writes a record past the write buffer: one that is larger than it, and every record when the
+   * buffer is disabled. The record can come in two parts, the frame of a binary record and its
+   * bytes. When a write fails, what was written of the record stays in the file.
+   */
+  void _write_to_file(char const* first, size_t first_size, char const* second, size_t second_size)
   {
-    while (size != 0)
+    size_t bytes_written = _write_to_handle(_native_file_handle, _append_mode, first, first_size);
+
+    if ((bytes_written == first_size) && (second_size != 0))
+    {
+      bytes_written += _write_to_handle(_native_file_handle, _append_mode, second, second_size);
+    }
+
+    if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
+    {
+      DWORD const last_error = ::GetLastError();
+      QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
+    }
+  }
+
+  /**
+   * Writes to the handle until all of `data` is in the file. Each write tells how many bytes are
+   * in the file, so a partial write is continued.
+   * @return the number of bytes that are in the file: fewer than `size` when a write failed, with
+   * the reason in GetLastError()
+   */
+  QUILL_NODISCARD static size_t _write_to_handle(HANDLE file_handle, bool append_mode,
+                                                 char const* data, size_t size) noexcept
+  {
+    size_t total_bytes_written{0};
+
+    while (total_bytes_written != size)
     {
       DWORD bytes_written = 0;
       constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
-      DWORD const chunk = static_cast<DWORD>(std::min<size_t>(size, max_dword));
+      DWORD const chunk = static_cast<DWORD>(std::min<size_t>(size - total_bytes_written, max_dword));
       OVERLAPPED overlapped{};
       OVERLAPPED* overlapped_ptr{nullptr};
 
@@ -1041,15 +1163,16 @@ protected:
         overlapped_ptr = &overlapped;
       }
 
-      if (!::WriteFile(file_handle, data, chunk, &bytes_written, overlapped_ptr) || (bytes_written == 0))
+      if (!::WriteFile(file_handle, data + total_bytes_written, chunk, &bytes_written, overlapped_ptr) ||
+          (bytes_written == 0))
       {
-        QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
-                               std::to_string(::GetLastError())});
+        break;
       }
 
-      data += bytes_written;
-      size -= bytes_written;
+      total_bytes_written += bytes_written;
     }
+
+    return total_bytes_written;
   }
 
   void _flush_native_write_buffer()
@@ -1059,17 +1182,24 @@ protected:
       return;
     }
 
-    _write_to_file(_native_write_buffer.get(), _native_write_pos);
+    size_t const bytes_written =
+      _write_to_handle(_native_file_handle, _append_mode, _native_write_buffer.get(), _native_write_pos);
+
+    if (QUILL_UNLIKELY(bytes_written != _native_write_pos))
+    {
+      DWORD const last_error = ::GetLastError();
+
+      // Keep what is not in the file for the next flush, so that nothing is written twice
+      _native_write_pos -= bytes_written;
+      std::memmove(_native_write_buffer.get(), _native_write_buffer.get() + bytes_written, _native_write_pos);
+
+      QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
+    }
+
     _native_write_pos = 0;
   }
 
-  QUILL_NODISCARD size_t _native_write_buffer_capacity() const noexcept
-  {
-    return _config.write_buffer_size() == 0 ? default_write_buffer_size : _config.write_buffer_size();
-  }
-
 protected:
-  static constexpr size_t default_write_buffer_size{FileSinkConfig::default_write_buffer_size};
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
@@ -1082,8 +1212,11 @@ protected:
 };
 #else
 /**
- * FileSink
- * Writes the log messages to a file
+ * POSIX FileSink implementation.
+ * Records are copied to a write buffer of the sink, which is written to the file descriptor with
+ * write(). fwrite() locks and unlocks the stream on every call, which for a short record costs
+ * more than copying it. The stream of the file is kept for the FileEventNotifier callbacks, and
+ * for the records when the write buffer is disabled.
  */
 class FileSink : public StreamSink
 {
@@ -1113,32 +1246,6 @@ public:
   {
     _fsync_pending_noexcept();
     _close_file_noexcept();
-  }
-
-  /**
-   * @brief Writes the bytes of a binary record to the file as they are, after the frame that
-   * FileSinkConfig::set_binary_record_framing() asks for, which is none by default.
-   * FileEventNotifier::before_write transforms the bytes first, as it does a log statement, and
-   * the frame has the size of what it returns.
-   */
-  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
-  {
-    if (QUILL_UNLIKELY(!_file))
-    {
-      return;
-    }
-
-    std::string_view const bytes{reinterpret_cast<char const*>(record.data), record.size};
-
-    if (_file_event_notifier.before_write)
-    {
-      std::string const user_bytes = _file_event_notifier.before_write(bytes);
-      _write_binary_record(record.timestamp, user_bytes);
-    }
-    else
-    {
-      _write_binary_record(record.timestamp, bytes);
-    }
   }
 
   /**
@@ -1176,21 +1283,83 @@ public:
       return;
     }
 
-    StreamSink::flush_sink(flush_reason);
+    QUILL_TRY
+    {
+      _flush_native_write_buffer();
+
+      // The stream has the records when the write buffer is disabled. Clears _write_occurred
+      flush();
+    }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // A file that was removed, e.g. to make room on a full disk, keeps its space until it is
+      // closed. What could not be written to it is lost with it, and the next records go to a
+      // new file
+      if (_is_file_removed())
+      {
+        _native_write_pos = 0;
+        _replace_removed_file();
+      }
+
+      throw;
+    }
+  #endif
 
     if (_config.fsync_enabled())
     {
       fsync_file(force_fsync);
     }
 
-    std::error_code ec;
-    bool const file_exists = fs::exists(_filename, ec);
-    if (!ec && !file_exists)
+    if (_is_file_removed())
     {
-      // Keep recovery pending even when a close callback throws after closing the handle.
-      _write_occurred = true;
-      close_file();
-      _reopen_file();
+      _replace_removed_file();
+    }
+  }
+
+  QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
+  {
+    if (QUILL_UNLIKELY(!_file))
+    {
+      return;
+    }
+
+    std::string_view const log_statement = record.log_statement;
+
+    if (_file_event_notifier.before_write)
+    {
+      std::string const user_log_statement = _file_event_notifier.before_write(log_statement);
+      _write_buffered(user_log_statement.data(), user_log_statement.size());
+    }
+    else
+    {
+      _write_buffered(log_statement.data(), log_statement.size());
+    }
+  }
+
+  /**
+   * @brief Writes the bytes of a binary record to the file as they are, after the frame that
+   * FileSinkConfig::set_binary_record_framing() asks for, which is none by default.
+   * FileEventNotifier::before_write transforms the bytes first, as it does a log statement, and
+   * the frame has the size of what it returns.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
+  {
+    if (QUILL_UNLIKELY(!_file))
+    {
+      return;
+    }
+
+    std::string_view const bytes{reinterpret_cast<char const*>(record.data), record.size};
+
+    if (_file_event_notifier.before_write)
+    {
+      std::string const user_bytes = _file_event_notifier.before_write(bytes);
+      _write_binary_record(record.timestamp, user_bytes);
+    }
+    else
+    {
+      _write_binary_record(record.timestamp, bytes);
     }
   }
 
@@ -1224,10 +1393,96 @@ protected:
       char frame[detail::max_binary_record_frame_size];
       size_t const frame_size = detail::make_binary_record_frame(
         frame, _config.binary_record_framing(), timestamp, bytes.size());
-      _write_statement(std::string_view{frame, frame_size});
+      _write_buffered(frame, frame_size, bytes.data(), bytes.size());
+      return;
     }
 
-    _write_statement(bytes);
+    // A record without bytes has no data to copy from
+    if (QUILL_LIKELY(!bytes.empty()))
+    {
+      _write_buffered(bytes.data(), bytes.size());
+    }
+  }
+
+  /**
+   * Appends two parts that belong together to the native write buffer: the frame of a binary
+   * record and its bytes. When the buffer is full and cannot be written to the file, neither is
+   * appended, so a frame is not written later without its record.
+   */
+  QUILL_ATTRIBUTE_HOT void _write_buffered(char const* first, size_t first_size, char const* second, size_t second_size)
+  {
+    size_t const size = first_size + second_size;
+
+    // Counted also when the flush below fails, see the overload below
+    _file_size += size;
+    _write_occurred = true;
+
+    if (_native_write_pos + size > _native_write_buffer_cap)
+    {
+      _flush_native_write_buffer();
+    }
+
+    if (QUILL_LIKELY(size <= _native_write_buffer_cap))
+    {
+      std::memcpy(_native_write_buffer.get() + _native_write_pos, first, first_size);
+
+      // A record without bytes has no data to copy from
+      if (QUILL_LIKELY(second_size != 0))
+      {
+        std::memcpy(_native_write_buffer.get() + _native_write_pos + first_size, second, second_size);
+      }
+
+      _native_write_pos += size;
+      return;
+    }
+
+    _write_to_file(first, first_size, second, second_size);
+  }
+
+  /** Appends to the native write buffer, which is written to the file when it is full */
+  QUILL_ATTRIBUTE_HOT void _write_buffered(char const* data, size_t size)
+  {
+    // Counted also when the flush below fails: a record that the file cannot take brings a sink
+    // that rotates by size closer to its rotation, which makes room when it removes a backup
+    _file_size += size;
+    _write_occurred = true;
+
+    if (QUILL_UNLIKELY(size == 0))
+    {
+      return;
+    }
+
+    if (_native_write_pos + size > _native_write_buffer_cap)
+    {
+      _flush_native_write_buffer();
+    }
+
+    if (QUILL_LIKELY(size <= _native_write_buffer_cap))
+    {
+      std::memcpy(_native_write_buffer.get() + _native_write_pos, data, size);
+      _native_write_pos += size;
+    }
+    else
+    {
+      _write_to_file(data, size, nullptr, 0);
+    }
+  }
+
+  /** @return true if the open file is no longer at its path */
+  QUILL_NODISCARD bool _is_file_removed() const
+  {
+    std::error_code ec;
+    bool const file_exists = fs::exists(_filename, ec);
+    return !ec && !file_exists;
+  }
+
+  /** Closes the open file, which was removed, and opens a new one at its path */
+  void _replace_removed_file()
+  {
+    // Keep recovery pending even when a close callback throws after closing the handle.
+    _write_occurred = true;
+    close_file();
+    _reopen_file();
   }
 
   void _reopen_file()
@@ -1246,7 +1501,6 @@ protected:
       _file_event_notifier.before_open(filename);
     }
 
-    std::unique_ptr<char[]> write_buffer;
     OpenedFileGuard opened_file_guard;
 
     int flags = O_CREAT | O_WRONLY | O_CLOEXEC;
@@ -1280,23 +1534,17 @@ protected:
                              " errno: " + std::to_string(open_errno) + " error: " + std::strerror(open_errno)});
     }
 
-    if (_config.write_buffer_size() != 0)
-    {
-      write_buffer = std::make_unique<char[]>(_config.write_buffer_size());
-
-      if (setvbuf(opened_file_guard.file, write_buffer.get(), _IOFBF, _config.write_buffer_size()) != 0)
-      {
-        QUILL_THROW(QuillError{std::string{"setvbuf failed error: "} + std::strerror(errno)});
-      }
-    }
+    // A size of 0 disables the buffer: every record is then written to the file as it arrives
+    _native_write_buffer_cap = _config.write_buffer_size();
+    _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
+    _native_write_pos = 0;
 
     // A file that is empty gets its start here: what after_open writes to it, and the header
     bool const is_new_file = _is_empty_file(opened_file_guard.file);
 
     if (_file_event_notifier.after_open)
     {
-      // Called with the file as it was opened, before the sink writes to it, so the callback can
-      // still configure the stream
+      // Called with the file as it was opened, before the sink writes to it
       _file_event_notifier.after_open(filename, opened_file_guard.file);
 
       // What the callback wrote to the stream is part of the size of the file
@@ -1317,7 +1565,6 @@ protected:
     }
 
     _file = opened_file_guard.release();
-    _write_buffer = std::move(write_buffer);
     _set_initial_file_size(initial_file_size);
   }
 
@@ -1330,20 +1577,25 @@ protected:
 
     if (_file_event_notifier.before_close)
     {
+      // Callbacks write through the stream, outside Quill's separate native buffer.
+      _flush_native_write_buffer();
       QUILL_TRY { _file_event_notifier.before_close(_filename, _file); }
   #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
       {
         FILE* file = _file;
         _file = nullptr;
+        _native_write_pos = 0;
         std::fclose(file);
         throw;
       }
   #endif
     }
 
+    _flush_native_write_buffer();
     FILE* file = _file;
     _file = nullptr;
+    _native_write_pos = 0;
 
     if (std::fclose(file) != 0)
     {
@@ -1372,7 +1624,8 @@ protected:
 
     QUILL_TRY
     {
-      StreamSink::flush_sink(SinkFlushReason::Final);
+      _flush_native_write_buffer();
+      flush();
       fsync_file(true);
     }
   #if !defined(QUILL_NO_EXCEPTIONS)
@@ -1384,7 +1637,15 @@ protected:
   {
     QUILL_TRY { close_file(); }
   #if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH_ALL() {}
+    QUILL_CATCH_ALL()
+    {
+      if (_file)
+      {
+        FILE* file = _file;
+        _file = nullptr;
+        std::fclose(file);
+      }
+    }
   #endif
   }
 
@@ -1495,9 +1756,8 @@ protected:
 
   /**
    * Writes the header of a new file, see FileSinkConfig::set_file_header(). It goes to the file
-   * descriptor, past the stream, which has nothing buffered at this point: each write tells how
-   * many bytes are in the file, so an interrupted or partial write is continued until the header
-   * is complete, and the size of the file includes it.
+   * rather than to the write buffer, so that the size of the file includes it, and past the
+   * stream, which has nothing buffered at this point.
    */
   void _write_file_header(FILE* file, fs::path const& filename)
   {
@@ -1510,38 +1770,121 @@ protected:
       file_header = user_file_header;
     }
 
-    int const file_descriptor = fileno(file);
-    size_t bytes_written{0};
-
-    while (bytes_written < file_header.size())
+    if (_write_to_descriptor(fileno(file), file_header.data(), file_header.size()) != file_header.size())
     {
-      ssize_t const written =
-        ::write(file_descriptor, file_header.data() + bytes_written, file_header.size() - bytes_written);
-
-      if (written > 0)
-      {
-        bytes_written += static_cast<size_t>(written);
-        continue;
-      }
-
-      // Nothing was written by an interrupted call, so it is made again
-      if ((written < 0) && (errno == EINTR))
-      {
-        continue;
-      }
-
       int const write_errno = errno;
       QUILL_THROW(QuillError{std::string{"Failed to write the file header, path: "} + filename.string() +
                              " errno: " + std::to_string(write_errno) + " error: " + std::strerror(write_errno)});
     }
   }
 
+  /**
+   * Writes a record past the write buffer: one that is larger than it, and every record when the
+   * buffer is disabled. The record can come in two parts, the frame of a binary record and its
+   * bytes. When a write fails, what was written of the record stays in the file.
+   */
+  void _write_to_file(char const* first, size_t first_size, char const* second, size_t second_size)
+  {
+    if (_native_write_buffer_cap == 0)
+    {
+      // Through the stream, as the callbacks of the FileEventNotifier have configured it
+      _safe_fwrite(first, sizeof(char), first_size, _file, false);
+
+      if (second_size != 0)
+      {
+        _safe_fwrite(second, sizeof(char), second_size, _file, false);
+      }
+
+      return;
+    }
+
+    int const file_descriptor = fileno(_file);
+    size_t bytes_written = _write_to_descriptor(file_descriptor, first, first_size);
+
+    if ((bytes_written == first_size) && (second_size != 0))
+    {
+      bytes_written += _write_to_descriptor(file_descriptor, second, second_size);
+    }
+
+    if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
+    {
+      int const write_errno = errno;
+      QUILL_THROW(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
+                             " error: " + std::strerror(write_errno)});
+    }
+  }
+
+  /**
+   * Writes to the file descriptor until all of `data` is in the file. Each write tells how many
+   * bytes are in the file, so an interrupted or partial write is continued.
+   * @return the number of bytes that are in the file: fewer than `size` when a write failed, with
+   * the reason in errno
+   */
+  QUILL_NODISCARD static size_t _write_to_descriptor(int file_descriptor, char const* data, size_t size) noexcept
+  {
+    size_t total_bytes_written{0};
+
+    while (total_bytes_written != size)
+    {
+      ssize_t const bytes_written =
+        ::write(file_descriptor, data + total_bytes_written, size - total_bytes_written);
+
+      if (bytes_written > 0)
+      {
+        total_bytes_written += static_cast<size_t>(bytes_written);
+        continue;
+      }
+
+      if (bytes_written == 0)
+      {
+        // Reported as an error rather than tried without end
+        errno = EIO;
+        break;
+      }
+
+      // Nothing was written by an interrupted call, so it is made again
+      if (errno != EINTR)
+      {
+        break;
+      }
+    }
+
+    return total_bytes_written;
+  }
+
+  void _flush_native_write_buffer()
+  {
+    if (!_file || (_native_write_pos == 0))
+    {
+      return;
+    }
+
+    size_t const bytes_written =
+      _write_to_descriptor(fileno(_file), _native_write_buffer.get(), _native_write_pos);
+
+    if (QUILL_UNLIKELY(bytes_written != _native_write_pos))
+    {
+      int const write_errno = errno;
+
+      // Keep what is not in the file for the next flush, so that nothing is written twice
+      _native_write_pos -= bytes_written;
+      std::memmove(_native_write_buffer.get(), _native_write_buffer.get() + bytes_written, _native_write_pos);
+
+      QUILL_THROW(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
+                             " error: " + std::strerror(write_errno)});
+    }
+
+    _native_write_pos = 0;
+  }
+
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
+  std::unique_ptr<char[]> _native_write_buffer;
+  size_t _native_write_pos{0};
+  size_t _native_write_buffer_cap{0};
   bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
-  std::unique_ptr<char[]> _write_buffer;
 };
 #endif
 

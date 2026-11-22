@@ -530,7 +530,29 @@ private:
       }
     }
 
-    base_type::flush_sink(SinkFlushReason::Periodic);
+    QUILL_TRY { base_type::flush_sink(SinkFlushReason::Periodic); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      // The write buffer keeps the records that cannot be written to the file, e.g. the file has
+      // reached the maximum size of a file or the disk is full, so every later flush would fail
+      // in the same way and the file would never be rotated. They are dropped from a file that
+      // holds records, as stdio dropped them: the next record then rotates the file, which gives
+      // the records that follow a new file and, when it removes the oldest backup, room
+      if (this->is_open() && _holds_records(_get_open_file_size()))
+      {
+        this->_native_write_pos = 0;
+
+        // The file can end with a part of a record now. It counts as over its size limit, so
+        // that a size rotation stays due for the next record whatever its size, also one without
+        // bytes, as a time rotation does
+        this->_file_size =
+          std::max<uint64_t>(this->_file_size, _config.rotation_max_file_size() + uint64_t{1});
+      }
+
+      throw;
+    }
+#endif
 
     if (_config.fsync_enabled())
     {
