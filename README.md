@@ -79,6 +79,7 @@
 ## 🧭 Table of Contents
 
 - [Introduction](#-introduction)
+- [Use Cases](#-use-cases)
 - [Quick Start](#-quick-start)
 - [Features](#-features)
 - [Performance](#-performance)
@@ -112,6 +113,43 @@ backend worker.
 
 > Using Quill? Click **Star** at the top of the [GitHub repository](https://github.com/odygrd/quill) to help other C++
 > developers discover it.
+
+---
+
+## 🧰 Use Cases
+
+**One backend thread for your logs, metrics, data files and packet captures.**
+
+By default, every call below costs your thread one thing: encoding its arguments into a lock-free queue of its own,
+which for most types is a plain copy. Formatting and I/O run later on the backend thread, which merges everything in
+timestamp order across all threads. Where a record goes, to a file, a terminal or a metrics collector, does not change
+what it costs your thread.
+
+| Use Quill to                                                                                                                                                                 | Your thread calls                                               | The backend thread writes                                                                       |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------|:------------------------------------------------------------------------------------------------|
+| Log [text](https://quillcpp.readthedocs.io/en/latest/sink_types.html) to the console, to files rotated by size or time, or to syslog, the systemd journal and Android logcat | `LOG_INFO(logger, "User {} logged in from {}", user, address);` | `User alice logged in from 10.0.0.5`, with the time, thread and source location of your pattern |
+| Write structured [JSON](https://quillcpp.readthedocs.io/en/latest/json_logging.html) logs, for a log pipeline to search                                                      | `LOGJ_INFO(logger, "User logged in", user, address);`           | `{…,"user":"alice","address":"10.0.0.5"}`                                                       |
+| Log [your own types](https://quillcpp.readthedocs.io/en/latest/recipes.html#logging-user-defined-types) with the formatter they already have                                 | `LOG_INFO(logger, "Connected to {}", endpoint);`                | `Connected to example.org:443`                                                                  |
+| Publish [metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html) to any metrics system, with a built-in sink for Prometheus                                         | `METRIC(metrics_logger, requests_total, 1.0);`                  | Each sample to your metrics sink, e.g. `requests_total 1024` for Prometheus                     |
+| Write [CSV files](https://quillcpp.readthedocs.io/en/latest/csv_writing.html)                                                                                                | `weather_csv.append_row("Athens", 21.4, 40);`                   | `Athens,21.4,40`, below the header `city,temperature,humidity` of every file                    |
+| Record [binary data](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#raw-binary-file-writing) as it arrives, such as a sensor stream or a market data feed   | `LOG_BINARY(logger, &reading, sizeof(reading));`                | The bytes as they are, or after their size and timestamp                                        |
+| Capture [network traffic](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#writing-pcap-files)                                                                | `pcap_writer.write_packet(frame, frame_size, timestamp_ns);`    | A capture that Wireshark and tcpdump open, in a new file every hour if you like                 |
+| Decode [binary protocols](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html) such as SBE into readable text                                                    | `LOG_INFO(logger, "[IN] {}", SbeMessage{buffer, size});`        | The fields of each message, decoded on the backend thread                                       |
+| Send records [anywhere](https://quillcpp.readthedocs.io/en/latest/sinks.html): a database, a socket, a message bus                                                           | A sink of your own, with `write_log(LogRecord const&)`          | Whatever your sink does with each record                                                        |
+
+### Put Them Together
+
+An application can have as many loggers and writers as it needs, for any mix of the above. They all share the one
+backend thread, and a call still costs its thread only the encoding into its queue:
+
+- 📈 **A trading system** logs its decisions as text, records the exchange feed to pcap files that rotate every hour,
+  writes its fills to CSV, and publishes its order latencies as metrics.
+- 🎮 **A multiplayer game server** keeps I/O out of its tick loop: it logs to rotating files, records each match as a
+  binary replay, and publishes its tick time and the number of players online as metrics.
+- 📞 **A VoIP server** logs to syslog, captures the packets of its calls to pcap files for Wireshark, and publishes the
+  number of active calls as metrics.
+- ☁️ **A service in a container** logs JSON to stdout for the platform to collect, and publishes its request counts as
+  metrics.
 
 ---
 
