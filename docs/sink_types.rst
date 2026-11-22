@@ -28,6 +28,23 @@ that a ``RotatingFileSink`` rotates to; a file that is appended to and already h
 second header. ``FileEventNotifier::after_open`` is called before the header is written, with the
 file as it was opened.
 
+The sink copies each record to a write buffer of its own and writes the buffer to the file when it
+is full and when the backend flushes the sink. ``FileSinkConfig::set_write_buffer_size()`` sets the
+size of the buffer, which is 64 KiB by default and 256 KiB on Windows. The handle that
+``FileEventNotifier::after_open`` and ``FileEventNotifier::before_close`` receive is not part of
+this: what a callback writes through it stays in order with the records, but configuring it, e.g.
+with ``setvbuf``, does not change how the records are buffered.
+
+When a write to the file fails, e.g. on a full disk, the sink keeps what is in its buffer and
+writes it once a later write succeeds; what it cannot keep is lost, so a file can end with a part
+of a record.
+
+``FileSinkConfig::set_write_buffer_size(0)`` turns the buffer of the sink off. Every record
+is then written through that handle as it arrives, so the callbacks decide how the file is
+buffered and can keep the handle. On Windows each record is written to the file at once; on other
+platforms the handle is a ``FILE*`` with the default buffering of the C library, until
+``after_open`` changes it with ``setvbuf``. This is slower than the buffer of the sink.
+
 On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
 characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
 
@@ -139,9 +156,9 @@ same setup sequence applies to a POSIX pipe stream opened with ``fdopen()``:
    ``FileEventNotifier::after_open``, but changing buffering in that callback does not
    enable the retry flag.
 
-   ``FileSink`` uses a 64 KiB buffer by default, and a 256 KiB one on Windows.
-   ``FileSinkConfig::set_write_buffer_size(0)`` selects default buffering; it does not make the
-   stream unbuffered.
+   ``FileSink`` uses a write buffer of 64 KiB by default, and of 256 KiB on Windows.
+   ``FileSinkConfig::set_write_buffer_size(0)`` disables that buffer, so that the records go
+   through the ``FILE*``; it does not make the stream unbuffered.
 
 Buffered short writes retain the existing error reporting. This feature does not provide
 lossless recovery for buffered streams: some C libraries discard pending buffered data on

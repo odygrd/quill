@@ -135,8 +135,8 @@ TEST_CASE("binary_data_logging")
       FileSinkConfig config;
       config.set_open_mode('w');
 
-      // For this test only we use the default buffer size, it should not make any difference
-      // it is just for testing the default behavior and code coverage
+      // For this test only the write buffer of the sink is disabled, it should not make any
+      // difference it is just for code coverage
       config.set_write_buffer_size(0);
 
       return config;

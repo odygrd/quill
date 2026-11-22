@@ -184,6 +184,16 @@
   `'w'` as the open mode to truncate the file.
 - `SignalHandlerOptions::excluded_logger_substrings` also excludes the loggers of `BinaryWriter`
   and `PcapWriter` by default, so the signal handler does not write its messages to their files.
+- On Linux and macOS a `FileSink` keeps the records in a write buffer of its own, as it does on
+  Windows, so calling `setvbuf()` on the `FILE*` in `FileEventNotifier::after_open` no longer
+  changes how records are buffered. `FileSinkConfig::set_write_buffer_size()` sizes the buffer.
+- `FileSinkConfig::set_write_buffer_size(0)` disables the write buffer of a `FileSink` on every
+  platform: each record is written through the handle that the `FileEventNotifier` callbacks
+  receive, for an application that configures that handle itself or keeps it. On Windows `0`
+  selected the default size before.
+- When a write to the file fails, e.g. on a full disk, a `FileSink` keeps the records that are in
+  its write buffer and writes them once a later write succeeds, where the C library could discard
+  them on Linux and macOS. A `RotatingFileSink` that rotates the file in the meantime drops them.
 
 ### New Features
 
@@ -230,6 +240,8 @@
   paths, such as the absolute paths that CMake passes.
 - On Windows, `FileSink` now uses a 256 KiB write buffer by default instead of 64 KiB, as each write
   to a file costs more there. `FileSinkConfig::set_write_buffer_size()` sets another size.
+- On Linux the backend writes a further 5% more log statements per second to a `FileSink` with a
+  typical pattern.
 - With the default `check_printable_char`, the backend spends about 30% less time on messages with
   string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
 - Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and

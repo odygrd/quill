@@ -63,13 +63,19 @@ using FileEventNotifierHandle = FILE*;
  *       performing the file open/close operation. Different callbacks, and different invocations
  *       of the same callback, may therefore run on different threads over the sink lifetime.
  *       Callbacks must be thread-safe and must not assume a single calling thread.
- *       On Windows, buffered log data is flushed before `before_close`, and append-mode
- *       regular files are positioned at the end before `after_open`.
+ *       On Windows, append-mode regular files are positioned at the end before `after_open`.
  *
  * @note `after_open` is called with the file as it was opened, before the sink writes to it, e.g.
- *       the header of FileSinkConfig::set_file_header(). The callback can configure the stream,
- *       and an exception from it leaves the sink without an open file, so it can reject a file
- *       that the sink must not append to.
+ *       the header of FileSinkConfig::set_file_header(). An exception from the callback leaves
+ *       the sink without an open file, so it can reject a file that the sink must not append to.
+ *
+ * @note FileSink keeps the records in a write buffer of its own and writes it to the file past
+ *       the handle of `after_open` and `before_close`. What a callback writes through the handle
+ *       stays in order with the records: the buffer is written to the file before `before_close`.
+ *       The records do not follow how a callback configures the handle, e.g. with `setvbuf`, and
+ *       the handle is not to be used outside the callback, unless
+ *       FileSinkConfig::set_write_buffer_size() disables the buffer with a size of 0, which makes
+ *       the sink write every record through the handle.
  *
  * @note `before_write` transforms everything that the sink writes: each log statement, each
  *       binary record and the header of a file. The frame of a binary record, see

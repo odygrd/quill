@@ -6943,4 +6943,67 @@ TEST_CASE("size_rotation_counts_what_after_open_writes_to_a_new_file")
   testing::remove_file(filename_2);
 }
 
+/***/
+TEST_CASE("rotating_file_sink_size_rotation_with_the_write_buffer_disabled")
+{
+  fs::path const filename = "rotating_file_sink_write_buffer_disabled.log";
+  fs::path const filename_1 = "rotating_file_sink_write_buffer_disabled.1.log";
+  fs::path const filename_2 = "rotating_file_sink_write_buffer_disabled.2.log";
+
+  {
+    auto rfh = RotatingFileSink{filename,
+                                []()
+                                {
+                                  RotatingFileSinkConfig cfg;
+                                  cfg.set_rotation_max_file_size(1024);
+                                  cfg.set_open_mode('w');
+
+                                  // Every record goes through the handle of the file
+                                  cfg.set_write_buffer_size(0);
+                                  return cfg;
+                                }(),
+                                FileEventNotifier{}};
+
+    // Two records fit in a file, so the third and the fifth one rotate it
+    for (size_t i = 0; i < 5; ++i)
+    {
+      std::string formatted_log_statement{"Record [" + std::to_string(i) + "]"};
+      formatted_log_statement.resize(400, '.');
+      formatted_log_statement.push_back('\n');
+
+      rfh.write_log(LogRecord{nullptr,
+                              0,
+                              std::string_view{},
+                              std::string_view{},
+                              std::string{},
+                              std::string_view{},
+                              LogLevel::Info,
+                              "INFO",
+                              "I",
+                              nullptr,
+                              "",
+                              formatted_log_statement,
+                              {}});
+    }
+  }
+
+  std::vector<std::string> const file_contents = testing::file_contents(filename);
+  REQUIRE_EQ(file_contents.size(), 1);
+  REQUIRE_EQ(testing::file_contains(file_contents, "Record [4]"), true);
+
+  std::vector<std::string> const file_contents_1 = testing::file_contents(filename_1);
+  REQUIRE_EQ(file_contents_1.size(), 2);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [2]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_1, "Record [3]"), true);
+
+  std::vector<std::string> const file_contents_2 = testing::file_contents(filename_2);
+  REQUIRE_EQ(file_contents_2.size(), 2);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [0]"), true);
+  REQUIRE_EQ(testing::file_contains(file_contents_2, "Record [1]"), true);
+
+  testing::remove_file(filename);
+  testing::remove_file(filename_1);
+  testing::remove_file(filename_2);
+}
+
 TEST_SUITE_END();

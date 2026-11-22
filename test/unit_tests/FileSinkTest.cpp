@@ -1419,4 +1419,212 @@ TEST_CASE("file_header_is_synced_when_fsync_is_enabled")
   testing::remove_file(filename);
 }
 
+/***/
+TEST_CASE("write_buffer_keeps_records_until_it_is_full_or_the_sink_is_flushed")
+{
+  fs::path const filename = "write_buffer_keeps_records_until_it_is_full.bin";
+  testing::remove_file(filename);
+
+  std::string const record(1000, 'a');
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_write_buffer_size(4096);
+    FileSink file_sink{filename, fsc};
+
+    // Four records fit in the buffer, so the file has none of them yet
+    for (int i = 0; i < 4; ++i)
+    {
+      write_binary_record(file_sink, record);
+    }
+
+    REQUIRE_EQ(read_file_bytes(filename).size(), 0);
+
+    // The fifth does not fit: the buffer is written to the file, and the record starts it again
+    write_binary_record(file_sink, record);
+    REQUIRE_EQ(read_file_bytes(filename).size(), 4000);
+
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+    REQUIRE_EQ(read_file_bytes(filename).size(), 5000);
+  }
+
+  REQUIRE_EQ(read_file_bytes(filename).size(), 5000);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("buffered_file_sink_allows_empty_formatted_log_records")
+{
+  fs::path const filename = "buffered_file_sink_empty_formatted_log_records.log";
+  FileSinkConfig config;
+  config.set_open_mode('w');
+
+  LogRecord const record{nullptr, 0,   {},      {}, {}, {}, LogLevel::Info,
+                         "INFO",  "I", nullptr, {}, {}, {}};
+  {
+    FileSink sink{filename, config};
+    sink.write_log(record);
+    sink.flush_sink(SinkFlushReason::Explicit);
+    CHECK(read_file_bytes(filename).empty());
+  }
+
+  {
+    FileEventNotifier notifier;
+    notifier.before_write = [](std::string_view statement)
+    {
+      CHECK(statement.empty());
+      return std::string{"replacement"};
+    };
+    FileSink sink{filename, config, notifier};
+    sink.write_log(record);
+    sink.flush_sink(SinkFlushReason::Explicit);
+    CHECK_EQ(read_file_bytes(filename), "replacement");
+  }
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("record_larger_than_the_write_buffer_is_written_in_order")
+{
+  fs::path const filename = "record_larger_than_the_write_buffer.bin";
+  testing::remove_file(filename);
+
+  std::string const first_record{"first|"};
+  std::string const large_record(10000, 'b');
+  std::string const last_record{"|last"};
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_write_buffer_size(4096);
+    FileSink file_sink{filename, fsc};
+
+    write_binary_record(file_sink, first_record);
+    write_binary_record(file_sink, large_record);
+
+    // The large record does not fit in the buffer. It is written to the file on its own, after
+    // the record that was in the buffer
+    REQUIRE(read_file_bytes(filename) == first_record + large_record);
+
+    write_log_statement(file_sink, last_record);
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == first_record + large_record + last_record);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_buffer_disabled_writes_records_through_the_file_handle")
+{
+  fs::path const filename = "write_buffer_disabled_writes_records_through_the_file_handle.bin";
+  testing::remove_file(filename);
+
+  auto const write_through_handle = [](FileEventNotifierHandle handle, std::string_view text)
+  {
+#if defined(_WIN32)
+    DWORD written{0};
+    REQUIRE(::WriteFile(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr));
+    REQUIRE_EQ(written, text.size());
+#else
+    REQUIRE_EQ(std::fwrite(text.data(), 1, text.size(), handle), text.size());
+#endif
+  };
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_write_buffer_size(0);
+
+    // Without the buffer of the sink, the callback decides how the file is buffered and can keep
+    // the handle
+    FileEventNotifierHandle file_handle{};
+    FileEventNotifier file_event_notifier;
+    file_event_notifier.after_open = [&file_handle](fs::path const&, FileEventNotifierHandle handle)
+    {
+#if !defined(_WIN32)
+      REQUIRE_EQ(std::setvbuf(handle, nullptr, _IONBF, 0), 0);
+#endif
+      file_handle = handle;
+    };
+
+    FileSink file_sink{filename, fsc, file_event_notifier};
+
+    // Each record is in the file when it is written, without a flush of the sink
+    write_binary_record(file_sink, "first|");
+    REQUIRE(read_file_bytes(filename) == "first|");
+
+    // What is written through the handle between two records is between them in the file
+    write_through_handle(file_handle, "handle|");
+    write_log_statement(file_sink, "second");
+    REQUIRE(read_file_bytes(filename) == "first|handle|second");
+
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == "first|handle|second");
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_buffer_disabled_keeps_the_buffering_of_the_stream")
+{
+#if defined(_WIN32)
+  return;
+#else
+  fs::path const filename = "write_buffer_disabled_keeps_the_buffering_of_the_stream.bin";
+  testing::remove_file(filename);
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_write_buffer_size(0);
+
+    // The stream is buffered by the C library, as the callback leaves it
+    FileSink file_sink{filename, fsc};
+
+    write_binary_record(file_sink, "first|");
+    write_log_statement(file_sink, "second");
+    REQUIRE(read_file_bytes(filename).empty());
+
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+    REQUIRE(read_file_bytes(filename) == "first|second");
+  }
+
+  testing::remove_file(filename);
+#endif
+}
+
+/***/
+TEST_CASE("failed_flush_is_reported_and_retried")
+{
+#if !defined(__linux__) || defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  // Every write to this device fails, as to a disk that is full
+  fs::path const filename = "/dev/full";
+
+  if (!fs::exists(filename))
+  {
+    return;
+  }
+
+  FileSinkTestHarness file_sink{filename};
+
+  write_binary_record(file_sink, "record");
+  REQUIRE_THROWS_AS(file_sink.flush_sink(SinkFlushReason::Explicit), QuillError);
+
+  // The record is still in the buffer, and the next flush tries to write it again
+  REQUIRE(file_sink.write_occurred_for_test());
+  REQUIRE_THROWS_AS(file_sink.flush_sink(SinkFlushReason::Explicit), QuillError);
+
+  // The destructor closes the file although the buffer cannot be written
+#endif
+}
+
 TEST_SUITE_END();
