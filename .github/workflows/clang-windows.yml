@@ -24,7 +24,7 @@ on:
 jobs:
   clang_msvc:
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         compiler: [ clang-cl ]
@@ -77,7 +77,7 @@ jobs:
   clang_libcxx:
     name: clang-cl with libc++
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
 
