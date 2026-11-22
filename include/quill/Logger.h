@@ -75,6 +75,20 @@ constexpr bool can_pass_slow_path_arg_by_value() noexcept
 template <typename Arg>
 using slow_path_arg_t =
   std::conditional_t<can_pass_slow_path_arg_by_value<Arg>(), remove_cvref_t<Arg>, Arg&&>;
+
+/**
+ * @param max_size the largest value of size_t
+ * @param queue_header_size the size of the header that precedes every record in the queue
+ * @return the most bytes of a binary record. Its length is encoded in 32 bits, and the space
+ * that is reserved for it in the queue, with the header and the length before the bytes, has to
+ * be a size that size_t can hold: on a 32-bit platform it would wrap around otherwise
+ */
+QUILL_NODISCARD constexpr uint64_t max_binary_record_size(uint64_t max_size, uint64_t queue_header_size) noexcept
+{
+  uint64_t const max_encoded_length = UINT32_MAX - 1u;
+  uint64_t const max_reservable = max_size - queue_header_size - sizeof(uint32_t);
+  return (max_reservable < max_encoded_length) ? max_reservable : max_encoded_length;
+}
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -108,6 +122,10 @@ public:
 
   using queue_t =
     std::conditional_t<using_unbounded_queue, detail::UnboundedSPSCQueue, detail::BoundedSPSCQueue>;
+
+  /** The most bytes of a binary record, see log_binary() and detail::max_binary_record_size() */
+  static constexpr size_t max_binary_record_size{
+    static_cast<size_t>(detail::max_binary_record_size(SIZE_MAX, 4u * sizeof(uint64_t)))};
 
   /***/
   LoggerImpl(LoggerImpl const&) = delete;
@@ -202,6 +220,79 @@ public:
 
     _flush_after_log_statement_if_needed(macro_metadata);
     return true;
+  }
+
+  /**
+   * Push a binary record to the spsc queue to be written by the backend thread.
+   *
+   * The backend passes the bytes as they are to Sink::write_binary() of each sink of this logger.
+   * They are not formatted: the log level, the pattern formatter and the sink filters do not apply
+   * to a binary record, and it never triggers an immediate flush. It is ordered by timestamp with
+   * the other events.
+   *
+   * @note This function is thread-safe. The bytes are copied, so `data` may be changed or
+   * destroyed after it returns.
+   * @param macro_metadata metadata of the call, e.g. its source location, that the sinks get with
+   * the bytes. Its event is MacroMetadata::Event::Binary. The queue keeps this pointer, so the
+   * metadata and the strings it refers to have to stay valid until the backend has written the
+   * record: define it `static constexpr` with string literals, as LOG_BINARY does for its call site
+   * @param data the bytes to write
+   * @param size the number of bytes, at most max_binary_record_size
+   *
+   * @throws QuillError if the record is larger than max_binary_record_size
+   * @return true if the record is written to the queue, false if it is dropped
+   */
+  QUILL_ATTRIBUTE_HOT bool log_binary(MacroMetadata const* macro_metadata, void const* data, size_t size)
+  {
+    QUILL_ASSERT(macro_metadata->event() == MacroMetadata::Event::Binary,
+                 "log_binary() should only be called with MacroMetadata::Event::Binary");
+
+    QUILL_ASSERT((data != nullptr) || (size == 0),
+                 "log_binary() requires data when size is not zero");
+
+    if (QUILL_UNLIKELY(size > max_binary_record_size))
+    {
+      _throw_binary_record_too_large();
+    }
+
+    // A string view is encoded as its length followed by its bytes, copied with one memcpy
+    return this->log_statement(macro_metadata, std::string_view{static_cast<char const*>(data), size});
+  }
+
+  /**
+   * Push a binary record that is given in two parts, e.g. a header that the caller builds for
+   * data it has received. The sinks get one record, the bytes of the header followed by the data,
+   * so nothing can come between the two in the output and the data is copied once.
+   *
+   * See log_binary(MacroMetadata const*, void const*, size_t)
+   *
+   * @param macro_metadata metadata of the call
+   * @param header the bytes that the record starts with
+   * @param header_size the number of bytes of the header
+   * @param data the bytes that follow the header
+   * @param size the number of bytes of the data. The two sizes add up to at most
+   * max_binary_record_size
+   *
+   * @throws QuillError if the record is larger than max_binary_record_size
+   * @return true if the record is written to the queue, false if it is dropped
+   */
+  QUILL_ATTRIBUTE_HOT bool log_binary(MacroMetadata const* macro_metadata, void const* header,
+                                      size_t header_size, void const* data, size_t size)
+  {
+    QUILL_ASSERT(macro_metadata->event() == MacroMetadata::Event::Binary,
+                 "log_binary() should only be called with MacroMetadata::Event::Binary");
+
+    QUILL_ASSERT(((header != nullptr) || (header_size == 0)) && ((data != nullptr) || (size == 0)),
+                 "log_binary() requires a header and data when their sizes are not zero");
+
+    if (QUILL_UNLIKELY((header_size > max_binary_record_size) || (size > (max_binary_record_size - header_size))))
+    {
+      _throw_binary_record_too_large();
+    }
+
+    return this->log_statement(macro_metadata,
+                               detail::BinaryBuffers{header, data, static_cast<uint32_t>(header_size),
+                                                     static_cast<uint32_t>(size)});
   }
 
   /**
@@ -649,6 +740,16 @@ private:
 
   static constexpr size_t s_header_size = 4 * sizeof(uint64_t);
 
+  static_assert(max_binary_record_size <= (SIZE_MAX - s_header_size - sizeof(uint32_t)),
+                "The queue space of the largest binary record must not overflow size_t");
+
+  /** Not inlined: it keeps the message of the error out of the callers of log_binary() */
+  QUILL_NOINLINE QUILL_ATTRIBUTE_COLD static void _throw_binary_record_too_large()
+  {
+    QUILL_THROW(QuillError{"A binary record is larger than the maximum of " +
+                           std::to_string(max_binary_record_size) + " bytes"});
+  }
+
   /***/
   LoggerImpl(std::string logger_name, std::vector<std::shared_ptr<Sink>> sinks,
              PatternFormatterOptions pattern_formatter_options, ClockSourceType clock_source,
@@ -938,9 +1039,9 @@ private:
           }
         }
 
-        // Not enough space to push: bump the shared failure counter for both log and metric
-        // drops so that neither silently disappears. Metrics reuse the existing counter rather
-        // than adding a parallel one; the error-notifier message reflects the combined count.
+        // Not enough space to push: bump the shared failure counter for log, binary and metric
+        // drops so that none silently disappears. They reuse the existing counter rather than
+        // adding parallel ones; the error-notifier message reflects the combined count.
         // Internal control events (flush, mdc updates, backtrace control, logger removal) are
         // not counted: their callers retry in a loop until the event is enqueued, so a failed
         // attempt would report a phantom drop for an event that is eventually delivered
@@ -950,7 +1051,8 @@ private:
             (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
             (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
             (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
-            (event == MacroMetadata::Event::Metric) || (event == MacroMetadata::Event::DynamicMetric))
+            (event == MacroMetadata::Event::Metric) ||
+            (event == MacroMetadata::Event::DynamicMetric) || (event == MacroMetadata::Event::Binary))
         {
           thread_context->increment_failure_counter();
         }

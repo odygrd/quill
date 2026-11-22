@@ -41,7 +41,8 @@ public:
     MdcSet,
     MdcErase,
     MdcClear,
-    DynamicMetric
+    DynamicMetric,
+    Binary
   };
 
   constexpr MacroMetadata() = default;

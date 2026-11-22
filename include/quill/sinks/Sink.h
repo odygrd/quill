@@ -13,6 +13,7 @@
 #include "quill/core/QuillError.h"
 #include "quill/core/Spinlock.h"
 #include "quill/filters/Filter.h"
+#include "quill/sinks/BinaryRecord.h"
 #include "quill/sinks/LogRecord.h"
 #include "quill/sinks/MetricRecord.h"
 
@@ -152,6 +153,14 @@ public:
    * implement metrics support.
    */
   QUILL_ATTRIBUTE_HOT virtual void write_metric(MetricRecord const& /* record */) {}
+
+  /**
+   * @brief Writes the bytes of a binary record, logged with LOG_BINARY. Called on the backend thread.
+   *
+   * The sink log level and filters do not apply to binary records. The default implementation
+   * ignores them, so sinks that only write text do not need to implement binary support.
+   */
+  QUILL_ATTRIBUTE_HOT virtual void write_binary(BinaryRecord const& /* record */) {}
 
   /**
    * @brief Flushes the sink, synchronizing it with its output. Called on the backend thread.

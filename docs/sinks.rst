@@ -99,6 +99,10 @@ sink. The default ``Sink::write_metric()`` is a no-op, so log-only sinks need no
 See :doc:`Metrics <metrics>` for the metric publishing model and the Prometheus/custom-sink
 examples.
 
+To receive the bytes logged with ``LOG_BINARY``, implement ``write_binary(BinaryRecord const&)``.
+The default ``Sink::write_binary()`` is a no-op as well, and the stream and file sinks write the
+bytes as they are. See :doc:`Binary Protocols <binary_protocols>`.
+
 .. literalinclude:: ../examples/user_defined_sink.cpp
    :language: cpp
    :linenos:

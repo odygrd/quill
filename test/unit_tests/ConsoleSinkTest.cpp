@@ -130,4 +130,37 @@ TEST_CASE("coloured_console_applies_before_write_before_newline_handling")
   REQUIRE_EQ(sink.contents(), expected);
 }
 
+/***/
+TEST_CASE("console_sink_ignores_binary_records")
+{
+  ConsoleSinkConfig config;
+  config.set_colour_mode(ConsoleSinkConfig::ColourMode::Never);
+
+  TestConsoleSink sink{config, FileEventNotifier{}};
+  REQUIRE(sink.has_file());
+
+  // A logger can have a console sink for its log statements next to a file sink for its binary
+  // records, whose bytes are not text for a terminal
+  std::string const bytes{"\x1b[2J\x00\x01", 6};
+  sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                 std::string_view{}, std::string_view{},
+                                 reinterpret_cast<std::byte const*>(bytes.data()), bytes.size()});
+
+  sink.write_log(LogRecord{nullptr,
+                           0,
+                           std::string_view{},
+                           std::string_view{},
+                           std::string{},
+                           std::string_view{},
+                           LogLevel::Info,
+                           "INFO",
+                           "I",
+                           nullptr,
+                           "message",
+                           "statement\n",
+                           {}});
+
+  REQUIRE_EQ(sink.contents(), "statement\n");
+}
+
 TEST_SUITE_END();

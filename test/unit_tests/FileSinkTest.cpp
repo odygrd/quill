@@ -7,6 +7,7 @@
 #include "quill/sinks/FileSink.h"
 
 #include <clocale>
+#include <cstdint>
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -96,6 +97,20 @@ void write_log_statement(FileSink& file_sink, std::string_view log_statement)
                                 "",
                                 log_statement,
                                 {}});
+}
+
+void write_binary_record(FileSink& file_sink, std::string_view bytes, uint64_t timestamp = 0)
+{
+  file_sink.write_binary(BinaryRecord{nullptr, timestamp, std::string_view{}, std::string_view{},
+                                      std::string_view{}, std::string_view{},
+                                      reinterpret_cast<std::byte const*>(bytes.data()), bytes.size()});
+}
+
+/** The bytes of a value in the byte order of the machine, as a framed file has them */
+template <typename T>
+std::string bytes_of(T value)
+{
+  return std::string{reinterpret_cast<char const*>(&value), sizeof(value)};
 }
 } // namespace
 
@@ -1118,6 +1133,134 @@ TEST_CASE("stream_sink_reports_persistent_write_errors")
   std::fclose(stream);
   REQUIRE(error_reported);
 #endif
+}
+
+/***/
+TEST_CASE("write_binary_writes_the_bytes_unchanged")
+{
+  fs::path const filename = "write_binary_writes_the_bytes_unchanged.bin";
+  testing::remove_file(filename);
+
+  // Every byte value, including the ones a text stream or the pattern formatter would change
+  std::string all_bytes;
+  for (int value = 0; value < 256; ++value)
+  {
+    all_bytes.push_back(static_cast<char>(value));
+  }
+
+  std::string const line_breaks{"\n\r\n\n"};
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    FileSink file_sink{filename, fsc};
+
+    write_binary_record(file_sink, all_bytes);
+    write_binary_record(file_sink, std::string_view{});
+    write_binary_record(file_sink, line_breaks);
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) == all_bytes + line_breaks);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_binary_applies_before_write_before_the_frame")
+{
+  fs::path const filename = "write_binary_applies_before_write_before_the_frame.bin";
+  testing::remove_file(filename);
+
+  // before_write transforms everything the sink writes: the header and the binary records here.
+  // The frame of a record has the size of the bytes that are in the file after it
+  FileEventNotifier file_event_notifier;
+  file_event_notifier.before_write = [](std::string_view bytes)
+  { return "<" + std::string{bytes} + ">"; };
+
+  std::string const record{"\x01\x00\n", 3};
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_file_header("HEAD");
+    fsc.set_binary_record_framing(BinaryRecordFraming::Size);
+
+    FileSink file_sink{filename, fsc, file_event_notifier};
+
+    write_binary_record(file_sink, record);
+    write_binary_record(file_sink, std::string_view{});
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(read_file_bytes(filename) ==
+          "<HEAD>" + bytes_of(uint32_t{5}) + "<" + record + ">" + bytes_of(uint32_t{2}) + "<>");
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_binary_frames_the_records_with_their_size")
+{
+  fs::path const filename = "write_binary_frames_the_records_with_their_size.bin";
+  testing::remove_file(filename);
+
+  std::string const first_record{"\x01\x00\n", 3};
+  std::string const second_record(300, '\xff');
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_binary_record_framing(BinaryRecordFraming::Size);
+    REQUIRE(fsc.binary_record_framing() == BinaryRecordFraming::Size);
+
+    FileSink file_sink{filename, fsc};
+
+    write_binary_record(file_sink, first_record);
+    write_binary_record(file_sink, std::string_view{});
+    write_binary_record(file_sink, second_record);
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  // A record without bytes has a frame too, so that a reader counts the same records
+  REQUIRE(read_file_bytes(filename) ==
+          bytes_of(uint32_t{3}) + first_record + bytes_of(uint32_t{0}) + bytes_of(uint32_t{300}) + second_record);
+
+  testing::remove_file(filename);
+}
+
+/***/
+TEST_CASE("write_binary_frames_the_records_with_their_timestamp_and_size")
+{
+  fs::path const filename = "write_binary_frames_the_records_with_their_timestamp_and_size.bin";
+  testing::remove_file(filename);
+
+  std::string const file_header{"FEED0001"};
+  std::string const first_record{"\x01\x00\n", 3};
+  std::string const second_record(300, '\xff');
+
+  uint64_t const first_timestamp{1'686'528'000'000'000'001ull};
+  uint64_t const second_timestamp{1'686'528'000'123'456'789ull};
+
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_file_header(file_header);
+    fsc.set_binary_record_framing(BinaryRecordFraming::TimestampAndSize);
+
+    FileSink file_sink{filename, fsc};
+
+    write_binary_record(file_sink, first_record, first_timestamp);
+    write_binary_record(file_sink, second_record, second_timestamp);
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  // The header of the file has no frame
+  REQUIRE(read_file_bytes(filename) ==
+          file_header + bytes_of(first_timestamp) + bytes_of(uint32_t{3}) + first_record +
+            bytes_of(second_timestamp) + bytes_of(uint32_t{300}) + second_record);
+
+  testing::remove_file(filename);
 }
 
 /***/

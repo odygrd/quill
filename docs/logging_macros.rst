@@ -399,3 +399,12 @@ text into the frontend queue. ``SHALLOW`` stores only the tag pointer, so its ta
 valid and immutable until the backend consumes the record. For a simpler dynamic-tag API, the
 macro-free logging functions accept ``quill::Tags`` constructed from ``std::string`` and
 ``std::string_view`` values; see :doc:`Log Tagging <log_tagging>`.
+
+Binary Record Macro
+-------------------
+
+- ``LOG_BINARY(logger, data, size)``
+
+Writes ``size`` bytes to the sinks of the logger as they are, without formatting them. It has no log level, so it is
+not affected by the log level of the logger or by compile-time log level filtering. See
+:doc:`Binary Protocols <binary_protocols>`.

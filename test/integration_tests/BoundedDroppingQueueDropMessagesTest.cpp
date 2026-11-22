@@ -187,8 +187,21 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   Backend::start(retired_options);
   ready.wait();
 
-  std::thread producer([&]() { LOG_INFO(retired_logger, "{}", std::string(2048, 'x')); });
+  // A log statement and a binary record that the queue has no room for are both dropped and
+  // counted, and log_binary() tells its caller
+  static constexpr MacroMetadata binary_metadata{
+    "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::Binary};
+  bool binary_record_queued{true};
+
+  std::thread producer(
+    [&]()
+    {
+      std::string const payload(2048, 'x');
+      LOG_INFO(retired_logger, "{}", payload);
+      binary_record_queued = retired_logger->log_binary(&binary_metadata, payload.data(), payload.size());
+    });
   producer.join();
+  REQUIRE_FALSE(binary_record_queued);
 
   std::promise<void> flusher_ready;
   auto flush_ready = flusher_ready.get_future();
@@ -208,7 +221,7 @@ TEST_CASE("bounded_dropping_queue_drop_messages")
   CustomFrontend::remove_logger(retired_logger);
   Backend::stop();
 
-  REQUIRE_NE(retired_notification.find("Dropped 1 events from thread"), std::string::npos);
+  REQUIRE_NE(retired_notification.find("Dropped 2 events from thread"), std::string::npos);
 
   testing::remove_file(retired_filename);
 }

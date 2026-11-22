@@ -299,6 +299,13 @@ public:
     }
   }
 
+  /**
+   * @brief Ignores the record. The bytes of a binary record are not text for a terminal, so a
+   * logger can have a console sink for its log statements next to a file sink for its binary
+   * records. A StreamSink writes them to stdout or stderr.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& /* record */) override {}
+
 protected:
   // protected in case someone wants to derive from this class and create a custom one, e.g. for json logging to stdout
   ConsoleSinkConfig _config;

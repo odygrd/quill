@@ -175,9 +175,10 @@ struct BackendOptions
   std::chrono::microseconds log_timestamp_ordering_grace_period{5};
 
   /**
-   * Ensures sink-visible timestamps for regular log and metric records do not move backwards.
+   * Ensures sink-visible timestamps for regular log, metric and binary records do not move
+   * backwards.
    *
-   * If a regular log or metric record selected for output has a timestamp lower than the last
+   * If such a record selected for output has a timestamp lower than the last
    * corrected output timestamp, the backend adjusts it to `last_timestamp + 1` nanosecond before
    * formatting, filtering, and writing it to sinks. This is useful when a delayed frontend event
    * escapes the configured grace period or when a clock source moves backwards.

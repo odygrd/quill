@@ -1100,9 +1100,11 @@ private:
           _apply_runtime_metadata(read_pos, transit_event);
         }
 
-        // we need to check and do not try to format the flush events as that wouldn't be valid
+        // we need to check and do not try to format the flush events as that wouldn't be valid,
+        // nor the binary records, which are written as they are
         if ((transit_event->macro_metadata->event() != MacroMetadata::Event::Flush) &&
-            (transit_event->macro_metadata->event() != MacroMetadata::Event::LoggerRemovalRequest))
+            (transit_event->macro_metadata->event() != MacroMetadata::Event::LoggerRemovalRequest) &&
+            (transit_event->macro_metadata->event() != MacroMetadata::Event::Binary))
         {
           format_args_decoder(read_pos, _format_args_store);
 
@@ -1152,6 +1154,36 @@ private:
           }
 
           _set_transit_event_mdc(*thread_context, transit_event);
+        }
+        else if (transit_event->macro_metadata->event() == MacroMetadata::Event::Binary)
+        {
+          // The bytes are kept where a formatted message is, until the event is processed
+          std::string_view const bytes = Codec<std::string_view>::decode_arg(read_pos);
+
+          QUILL_TRY
+          {
+            thread_context->_transit_event_buffer->back_message().append(
+              bytes.data(), bytes.data() + bytes.size());
+          }
+#if !defined(QUILL_NO_EXCEPTIONS)
+          QUILL_CATCH_ALL()
+          {
+            // There is no memory for the bytes. The record has been read from the queue, so it is
+            // dropped: leaving it there to be read again would hold up the events behind it, and
+            // those that are already buffered, for as long as the memory is not available.
+            // The report is best effort. Its message needs memory too, and an exception that
+            // leaves this handler would put the record back in the way
+            QUILL_TRY
+            {
+              _notify_error(
+                "Quill ERROR: Failed to allocate memory for a binary record. The record is "
+                "dropped");
+            }
+            QUILL_CATCH_ALL() {}
+
+            return true;
+          }
+#endif
         }
         else if (transit_event->macro_metadata->event() == MacroMetadata::Event::Flush)
         {
@@ -1378,6 +1410,11 @@ private:
         }
       }
     }
+    else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Binary)
+    {
+      _ensure_monotonic_output_timestamp(transit_event);
+      _write_binary_record(transit_event, thread_context.thread_id(), thread_context.thread_name());
+    }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
     {
       // we can just convert the capacity back to int here and use it
@@ -1540,6 +1577,28 @@ private:
           sink->write_metric(MetricRecord{metric_metadata, transit_event.timestamp, thread_id, thread_name,
                                           _process_id, transit_event.logger_base->_logger_name, metric_value});
         });
+    }
+  }
+
+  /**
+   * Forwards the bytes of a binary record to each sink associated with the logger. They are not
+   * formatted, and the sink log level and filters do not apply to them.
+   */
+  QUILL_ATTRIBUTE_HOT void _write_binary_record(TransitEvent const& transit_event,
+                                                std::string_view thread_id, std::string_view thread_name)
+  {
+    BinaryRecord const record{transit_event.macro_metadata,
+                              transit_event.timestamp,
+                              thread_id,
+                              thread_name,
+                              _process_id,
+                              transit_event.logger_base->_logger_name,
+                              reinterpret_cast<std::byte const*>(transit_event.formatted_msg.data()),
+                              transit_event.formatted_msg.size()};
+
+    for (auto& sink : transit_event.logger_base->_sinks)
+    {
+      _run_guarded([&]() { sink->write_binary(record); });
     }
   }
 

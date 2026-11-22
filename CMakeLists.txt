@@ -270,6 +270,7 @@ set(HEADER_FILES
         include/quill/filters/Filter.h
 
         include/quill/sinks/AndroidSink.h
+        include/quill/sinks/BinaryRecord.h
         include/quill/sinks/ConsoleSink.h
         include/quill/sinks/FileSink.h
         include/quill/sinks/JsonSink.h
@@ -309,6 +310,7 @@ set(HEADER_FILES
         include/quill/Backend.h
         include/quill/BackendTscClock.h
         include/quill/BinaryDataDeferredFormatCodec.h
+        include/quill/BinaryWriter.h
         include/quill/CsvWriter.h
         include/quill/DeferredFormatCodec.h
         include/quill/DirectFormatCodec.h
@@ -318,6 +320,7 @@ set(HEADER_FILES
         include/quill/Logger.h
         include/quill/LogMacros.h
         include/quill/MemberwiseCodec.h
+        include/quill/PcapWriter.h
         include/quill/SimpleSetup.h
         include/quill/StopWatch.h
         include/quill/StringRef.h

@@ -93,9 +93,11 @@ struct SignalHandlerOptions
    * The signal handler will skip any logger whose name contains any of these substrings.
    * This is useful to avoid selecting specialized loggers that write to CSV files, binary files,
    * or other non-standard formats that may not be suitable for crash reporting.
-   * Default: {"__csv__"} to exclude CSV loggers.
+   * Default: {"__csv__", "__binary__"} to exclude the loggers of CsvWriter, BinaryWriter and
+   * PcapWriter, whose files a message of the signal handler would corrupt. When every logger is
+   * excluded, the signal handler logs nothing and still flushes the sinks.
    */
-  std::vector<std::string> excluded_logger_substrings{"__csv__"};
+  std::vector<std::string> excluded_logger_substrings{"__csv__", "__binary__"};
 };
 
 QUILL_END_EXPORT
@@ -304,6 +306,29 @@ private:
     }                                                                                              \
   } while (0)
 
+/**
+ * Flushes the sinks when no logger can take the messages of the handler, e.g. the application
+ * has only the loggers of csv, binary or pcap writers, which are excluded so that a message does
+ * not end up in their files. The records of those files must not be lost with the process
+ * either: a flush goes through a logger without writing anything to its sinks, and flushes every
+ * sink.
+ * @return false if there is no valid logger to flush with
+ */
+template <typename TFrontendOptions>
+bool flush_without_logging()
+{
+  LoggerBase* const logger_base = LoggerManager::instance().get_valid_logger();
+
+  if (!logger_base)
+  {
+    return false;
+  }
+
+  // Pass `0` to avoid sleeping while flushing
+  static_cast<LoggerImpl<TFrontendOptions>*>(logger_base)->flush_log(0);
+  return true;
+}
+
 /***/
 template <typename TFrontendOptions>
 void on_signal(int32_t signal_number)
@@ -391,6 +416,10 @@ void on_signal(int32_t signal_number)
       {
         logger->flush_log(0);
       }
+    }
+    else
+    {
+      flush_without_logging<TFrontendOptions>();
     }
   }
 
@@ -533,6 +562,11 @@ BOOL WINAPI on_console_signal(DWORD signal)
       logger->flush_log(0);
       std::_Exit(EXIT_SUCCESS);
     }
+
+    if (flush_without_logging<TFrontendOptions>())
+    {
+      std::_Exit(EXIT_SUCCESS);
+    }
   }
 
   return FALSE;
@@ -566,6 +600,10 @@ LONG WINAPI on_exception(EXCEPTION_POINTERS* exception_p)
 
       // Pass `0` to avoid calling std::this_thread::sleep_for()
       logger->flush_log(0);
+    }
+    else
+    {
+      flush_without_logging<TFrontendOptions>();
     }
   }
 

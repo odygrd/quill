@@ -143,6 +143,12 @@ public:
     }
   }
 
+  /**
+   * @brief Ignores the record. The bytes of a binary record are not JSON, so a logger can have a
+   * JSON sink for its log statements next to a file sink for its binary records.
+   */
+  QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& /* record */) override {}
+
 protected:
   QUILL_NODISCARD size_t estimate_write_size(LogRecord const& record) override
   {
@@ -410,6 +416,13 @@ public:
   }
 
   ~JsonFileSink() override = default;
+
+protected:
+  /** Binary records are ignored, so they contribute no bytes to size rotation. */
+  QUILL_NODISCARD constexpr size_t binary_write_size(BinaryRecord const&) const noexcept
+  {
+    return 0;
+  }
 };
 
 /**
