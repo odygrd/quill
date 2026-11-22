@@ -46,6 +46,66 @@ Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full
 ``Frontend`` APIs when you need custom sinks, multiple loggers, metrics, or explicit lifecycle
 control.
 
+One Backend Thread for Every Output
+-----------------------------------
+
+One backend thread does the formatting and I/O for your logs, metrics, data files and packet
+captures.
+
+By default, every call below costs your thread one thing: encoding its arguments into a lock-free
+queue of its own, which for most types is a plain copy. Formatting and I/O run later on the backend
+thread, which merges everything in timestamp order across all threads. Where a record goes, to a
+file, a terminal or a metrics collector, does not change what it costs your thread.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 36 30
+
+   * - Use Quill to
+     - Your thread calls
+     - The backend thread writes
+   * - Log :doc:`text <sink_types>` to the console, to files rotated by size or time, or to syslog, the systemd journal and Android logcat
+     - ``LOG_INFO(logger, "User {} logged in from {}", user, address);``
+     - ``User alice logged in from 10.0.0.5``, with the time, thread and source location of your
+       pattern
+   * - Write structured :doc:`JSON <json_logging>` logs, for a log pipeline to search
+     - ``LOGJ_INFO(logger, "User logged in", user, address);``
+     - ``{…,"user":"alice","address":"10.0.0.5"}``
+   * - Log :ref:`your own types <recipes:Logging User Defined Types>` with the formatter they already have
+     - ``LOG_INFO(logger, "Connected to {}", endpoint);``
+     - ``Connected to example.org:443``
+   * - Publish :doc:`metrics <metrics>` to any metrics system, with a built-in sink for Prometheus
+     - ``METRIC(metrics_logger, requests_total, 1.0);``
+     - Each sample to your metrics sink, e.g. ``requests_total 1024`` for Prometheus
+   * - Write :doc:`CSV files <csv_writing>`
+     - ``weather_csv.append_row("Athens", 21.4, 40);``
+     - ``Athens,21.4,40``, below the header ``city,temperature,humidity`` of every file
+   * - Record :ref:`binary data <binary_protocols:Raw Binary File Writing>` as it arrives, such as a sensor stream or a market data feed
+     - ``LOG_BINARY(logger, &reading, sizeof(reading));``
+     - The bytes as they are, or after their size and timestamp
+   * - Capture :ref:`network traffic <binary_protocols:Writing pcap Files>`
+     - ``pcap_writer.write_packet(frame, frame_size, timestamp_ns);``
+     - A capture that Wireshark and tcpdump open, in a new file every hour if you like
+   * - Decode :doc:`binary protocols <binary_protocols>` such as SBE into readable text
+     - ``LOG_INFO(logger, "[IN] {}", SbeMessage{buffer, size});``
+     - The fields of each message, decoded on the backend thread
+   * - Send records :doc:`anywhere <sinks>`: a database, a socket, a message bus
+     - A sink of your own, with ``write_log(LogRecord const&)``
+     - Whatever your sink does with each record
+
+An application can have as many loggers and writers as it needs, for any mix of the above. They all
+share the one backend thread, and a call still costs its thread only the encoding into its queue:
+
+- **A trading system** logs its decisions as text, records the exchange feed to pcap files that
+  rotate every hour, writes its fills to CSV, and publishes its order latencies as metrics.
+- **A multiplayer game server** keeps I/O out of its tick loop: it logs to rotating files, records
+  each match as a binary replay, and publishes its tick time and the number of players online as
+  metrics.
+- **A VoIP server** logs to syslog, captures the packets of its calls to pcap files for Wireshark,
+  and publishes the number of active calls as metrics.
+- **A service in a container** logs JSON to stdout for the platform to collect, and publishes its
+  request counts as metrics.
+
 .. raw:: html
 
    <div class="quill-feature-grid"><section>
