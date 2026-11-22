@@ -66,6 +66,14 @@ using FileEventNotifierHandle = FILE*;
  *       On Windows, buffered log data is flushed before `before_close`, and append-mode
  *       regular files are positioned at the end before `after_open`.
  *
+ * @note `after_open` is called with the file as it was opened, before the sink writes to it, e.g.
+ *       the header of FileSinkConfig::set_file_header(). The callback can configure the stream,
+ *       and an exception from it leaves the sink without an open file, so it can reject a file
+ *       that the sink must not append to.
+ *
+ * @note `before_write` transforms everything that the sink writes: each log statement and the
+ *       header of a file.
+ *
  * @warning File-event callbacks must not call `Frontend::create_sink()` or
  *          `Frontend::create_or_get_sink()` with the name of the sink currently being constructed.
  *          That sink name remains reserved until construction completes, so recursively requesting

@@ -42,6 +42,7 @@
   #include <windows.h>
 #else
   #include <fcntl.h>
+  #include <sys/stat.h>
   #include <unistd.h>
 #endif
 
@@ -206,6 +207,26 @@ public:
   }
 
   /**
+   * @brief Sets the bytes that start every file of the sink, e.g. the header row of a csv file or
+   * the global header of a pcap file. The default is no header.
+   *
+   * The header is written when the sink opens a file that is empty, which includes each new file
+   * of a rotating sink. A file that is opened for appending and already has content keeps it and
+   * gets no header. The pattern formatter does not apply to the header, so a line of text needs
+   * its own newline. FileEventNotifier::before_write does, as to everything the sink writes.
+   *
+   * FileEventNotifier::after_open is called before the header is written, with the file as it
+   * was opened. Bytes that the callback writes to a new file therefore precede the header: make
+   * them part of the header when they belong after its start.
+   *
+   * @param file_header The header, or empty for none.
+   */
+  QUILL_ATTRIBUTE_COLD void set_file_header(std::string_view file_header)
+  {
+    _file_header = file_header;
+  }
+
+  /**
    * @brief Sets custom pattern formatter options for this sink.
    *
    * By default, the logger's pattern formatter is used to format log messages.
@@ -231,6 +252,7 @@ public:
     return _append_filename_format_pattern;
   }
   QUILL_NODISCARD std::string const& open_mode() const noexcept { return _open_mode; }
+  QUILL_NODISCARD std::string const& file_header() const noexcept { return _file_header; }
   QUILL_NODISCARD size_t write_buffer_size() const noexcept { return _write_buffer_size; }
   QUILL_NODISCARD std::chrono::milliseconds minimum_fsync_interval() const noexcept
   {
@@ -255,6 +277,7 @@ public:
 private:
   std::string _open_mode{'a'};
   std::string _append_filename_format_pattern;
+  std::string _file_header;
   size_t _write_buffer_size{default_write_buffer_size};
   std::chrono::milliseconds _minimum_fsync_interval{0};
   std::optional<PatternFormatterOptions> _override_pattern_formatter_options;
@@ -502,6 +525,12 @@ public:
   }
 
   /**
+   * @return the configuration that the sink was created with. A sink that is retrieved for a
+   * file keeps the configuration of the call that created it.
+   */
+  QUILL_NODISCARD FileSinkConfig const& config() const noexcept { return _config; }
+
+  /**
    * Flushes buffered records to the file and fsyncs it when enabled. The final flush also
    * performs an fsync deferred by minimum_fsync_interval.
    */
@@ -644,9 +673,14 @@ protected:
     _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
     _native_write_pos = 0;
 
+    bool const append_mode = !mode.empty() && mode[0] == 'a';
+
+    // A file that is empty gets its start here: what after_open writes to it, and the header
+    bool const is_new_file = _is_empty_file(opened_handle_guard.handle);
+
     if (_file_event_notifier.after_open)
     {
-      if (!mode.empty() && mode[0] == 'a' && ::GetFileType(opened_handle_guard.handle) == FILE_TYPE_DISK)
+      if (append_mode && ::GetFileType(opened_handle_guard.handle) == FILE_TYPE_DISK)
       {
         LARGE_INTEGER offset{};
         if (!::SetFilePointerEx(opened_handle_guard.handle, offset, nullptr, FILE_END))
@@ -655,8 +689,28 @@ protected:
           QUILL_THROW(QuillError{"SetFilePointerEx failed. GetLastError: " + std::to_string(seek_error)});
         }
       }
+
+      // Called with the file as it was opened, before the sink writes to it
       _file_event_notifier.after_open(filename, opened_handle_guard.handle);
     }
+
+    if (is_new_file && !_config.file_header().empty())
+    {
+      // Written to the file rather than to the write buffer, so that the size of the file
+      // includes it
+      std::string_view file_header = _config.file_header();
+      std::string user_file_header;
+
+      if (_file_event_notifier.before_write)
+      {
+        user_file_header = _file_event_notifier.before_write(file_header);
+        file_header = user_file_header;
+      }
+
+      _write_to_handle(opened_handle_guard.handle, append_mode, file_header.data(), file_header.size());
+    }
+
+    uint64_t const initial_file_size = is_new_file ? _opened_file_size(opened_handle_guard.handle) : 0;
 
     // A subclass may reopen a different path. Commit it only after the open and callbacks succeed.
     if (filename != _filename)
@@ -664,8 +718,9 @@ protected:
       _filename = detail::normalize_file_sink_path(filename, false);
     }
 
-    _append_mode = !mode.empty() && mode[0] == 'a';
+    _append_mode = append_mode;
     _native_file_handle = opened_handle_guard.release();
+    _set_initial_file_size(initial_file_size);
   }
 
   void close_file()
@@ -790,7 +845,51 @@ protected:
     return _native_file_handle != INVALID_HANDLE_VALUE;
   }
 
+  /**
+   * Keeps the size that a file had when open_file() had created it: its header and what
+   * after_open wrote to it. It is 0 for a file that already had content. These bytes were written
+   * past the write buffer, so they are still to be synced when fsync is enabled.
+   */
+  void _set_initial_file_size(uint64_t initial_file_size) noexcept
+  {
+    _initial_file_size = initial_file_size;
+
+    if ((initial_file_size != 0) && _config.fsync_enabled())
+    {
+      _fsync_pending = true;
+    }
+  }
+
+  /** @return true if nothing was written to the open file yet. A pipe or a device has no size */
+  QUILL_NODISCARD static bool _is_empty_file(HANDLE file_handle) noexcept
+  {
+    if (::GetFileType(file_handle) != FILE_TYPE_DISK)
+    {
+      return true;
+    }
+
+    LARGE_INTEGER size{};
+    return ::GetFileSizeEx(file_handle, &size) && (size.QuadPart == 0);
+  }
+
+  /** @return the size of the open file, 0 for a pipe or a device */
+  QUILL_NODISCARD static uint64_t _opened_file_size(HANDLE file_handle) noexcept
+  {
+    if (::GetFileType(file_handle) != FILE_TYPE_DISK)
+    {
+      return 0;
+    }
+
+    LARGE_INTEGER size{};
+    return ::GetFileSizeEx(file_handle, &size) ? static_cast<uint64_t>(size.QuadPart) : 0;
+  }
+
   void _write_to_file(char const* data, size_t size)
+  {
+    _write_to_handle(_native_file_handle, _append_mode, data, size);
+  }
+
+  static void _write_to_handle(HANDLE file_handle, bool append_mode, char const* data, size_t size)
   {
     while (size != 0)
     {
@@ -800,14 +899,14 @@ protected:
       OVERLAPPED overlapped{};
       OVERLAPPED* overlapped_ptr{nullptr};
 
-      if (_append_mode)
+      if (append_mode)
       {
         overlapped.Offset = 0xFFFFFFFF;
         overlapped.OffsetHigh = 0xFFFFFFFF;
         overlapped_ptr = &overlapped;
       }
 
-      if (!::WriteFile(_native_file_handle, data, chunk, &bytes_written, overlapped_ptr) || (bytes_written == 0))
+      if (!::WriteFile(file_handle, data, chunk, &bytes_written, overlapped_ptr) || (bytes_written == 0))
       {
         QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
                                std::to_string(::GetLastError())});
@@ -838,7 +937,8 @@ protected:
   static constexpr size_t default_write_buffer_size{FileSinkConfig::default_write_buffer_size};
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
-  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
+  uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
+  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
   HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
   std::unique_ptr<char[]> _native_write_buffer;
   size_t _native_write_pos{0};
@@ -879,6 +979,12 @@ public:
     _fsync_pending_noexcept();
     _close_file_noexcept();
   }
+
+  /**
+   * @return the configuration that the sink was created with. A sink that is retrieved for a
+   * file keeps the configuration of the call that created it.
+   */
+  QUILL_NODISCARD FileSinkConfig const& config() const noexcept { return _config; }
 
   /**
    * Flushes buffered records to the file and fsyncs it when enabled. The final flush also
@@ -1009,10 +1115,25 @@ protected:
       }
     }
 
+    // A file that is empty gets its start here: what after_open writes to it, and the header
+    bool const is_new_file = _is_empty_file(opened_file_guard.file);
+
     if (_file_event_notifier.after_open)
     {
+      // Called with the file as it was opened, before the sink writes to it, so the callback can
+      // still configure the stream
       _file_event_notifier.after_open(filename, opened_file_guard.file);
+
+      // What the callback wrote to the stream is part of the size of the file
+      _flush_opened_file(opened_file_guard.file, filename);
     }
+
+    if (is_new_file && !_config.file_header().empty())
+    {
+      _write_file_header(opened_file_guard.file, filename);
+    }
+
+    uint64_t const initial_file_size = is_new_file ? _opened_file_size(opened_file_guard.file) : 0;
 
     // A subclass may reopen a different path. Commit it only after the open and callbacks succeed.
     if (filename != _filename)
@@ -1022,6 +1143,7 @@ protected:
 
     _file = opened_file_guard.release();
     _write_buffer = std::move(write_buffer);
+    _set_initial_file_size(initial_file_size);
   }
 
   void close_file()
@@ -1142,10 +1264,102 @@ protected:
 
   QUILL_NODISCARD bool is_open() const noexcept { return _file != nullptr; }
 
+  /**
+   * Keeps the size that a file had when open_file() had created it: its header and what
+   * after_open wrote to it. It is 0 for a file that already had content. These bytes were written
+   * past the write buffer, so they are still to be synced when fsync is enabled.
+   */
+  void _set_initial_file_size(uint64_t initial_file_size) noexcept
+  {
+    _initial_file_size = initial_file_size;
+
+    if ((initial_file_size != 0) && _config.fsync_enabled())
+    {
+      _fsync_pending = true;
+    }
+  }
+
+  /** @return true if nothing was written to the open file yet. A pipe or a device has no size */
+  QUILL_NODISCARD static bool _is_empty_file(FILE* file) noexcept
+  {
+    struct stat file_stat
+    {
+    };
+    return (::fstat(fileno(file), &file_stat) == 0) && (file_stat.st_size == 0);
+  }
+
+  /** @return the size of the open file, without what is in its write buffer */
+  QUILL_NODISCARD static uint64_t _opened_file_size(FILE* file) noexcept
+  {
+    struct stat file_stat
+    {
+    };
+    return (::fstat(fileno(file), &file_stat) == 0) ? static_cast<uint64_t>(file_stat.st_size) : 0;
+  }
+
+  /**
+   * Writes the write buffer of a file that open_file() is opening. A flush that fails is not
+   * tried again, also when it was interrupted: the stream can have discarded what it had buffered,
+   * and the next flush would then report success for bytes that are not in the file.
+   */
+  static void _flush_opened_file(FILE* file, fs::path const& filename)
+  {
+    if (std::fflush(file) != 0)
+    {
+      int const flush_errno = errno;
+      QUILL_THROW(QuillError{std::string{"fflush failed, path: "} + filename.string() + " errno: " +
+                             std::to_string(flush_errno) + " error: " + std::strerror(flush_errno)});
+    }
+  }
+
+  /**
+   * Writes the header of a new file, see FileSinkConfig::set_file_header(). It goes to the file
+   * descriptor, past the stream, which has nothing buffered at this point: each write tells how
+   * many bytes are in the file, so an interrupted or partial write is continued until the header
+   * is complete, and the size of the file includes it.
+   */
+  void _write_file_header(FILE* file, fs::path const& filename)
+  {
+    std::string_view file_header = _config.file_header();
+    std::string user_file_header;
+
+    if (_file_event_notifier.before_write)
+    {
+      user_file_header = _file_event_notifier.before_write(file_header);
+      file_header = user_file_header;
+    }
+
+    int const file_descriptor = fileno(file);
+    size_t bytes_written{0};
+
+    while (bytes_written < file_header.size())
+    {
+      ssize_t const written =
+        ::write(file_descriptor, file_header.data() + bytes_written, file_header.size() - bytes_written);
+
+      if (written > 0)
+      {
+        bytes_written += static_cast<size_t>(written);
+        continue;
+      }
+
+      // Nothing was written by an interrupted call, so it is made again
+      if ((written < 0) && (errno == EINTR))
+      {
+        continue;
+      }
+
+      int const write_errno = errno;
+      QUILL_THROW(QuillError{std::string{"Failed to write the file header, path: "} + filename.string() +
+                             " errno: " + std::to_string(write_errno) + " error: " + std::strerror(write_errno)});
+    }
+  }
+
 protected:
   FileSinkConfig _config;
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
-  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval */
+  uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
+  bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
   std::unique_ptr<char[]> _write_buffer;
 };
 #endif

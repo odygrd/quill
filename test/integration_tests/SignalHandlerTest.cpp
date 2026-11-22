@@ -31,6 +31,9 @@ TEST_CASE("signal_handler")
   static constexpr size_t number_of_threads = 10;
   static std::string const logger_name_prefix = "logger_";
 
+  // The csv writer appends by default, so the file of a run that did not finish is removed first
+  testing::remove_file(csv_filename);
+
   // Start the logging backend thread, we expect the signal handler to catch the signal,
   // flush the log and raise the signal back
   SignalHandlerOptions sho{};

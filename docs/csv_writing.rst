@@ -11,11 +11,24 @@ The :cpp:class:`CsvWriter` class is a utility designed to facilitate asynchronou
 
 Call :cpp:func:`CsvWriter::close` before stopping the backend worker if you need deterministic
 logger removal and file closure. The destructor performs best-effort asynchronous cleanup and
-does not block.
+does not block. A file whose sink is shared, e.g. by writers that are given the same file name,
+is closed when the last owner of the sink releases it.
 
-When multiple writers share the same file, use the configuration or sink constructor overload
-and pass ``should_write_header=false`` for every writer except the one responsible for the header.
-Append mode checks the file size, which cannot detect another writer's queued or buffered header.
+A writer that is given a file name makes the file sink write the header, see
+``FileSinkConfig::set_file_header()``. Every file the sink creates starts with it, including each
+file of a ``RotatingFileSink``, and a file that is appended to and already has content gets no
+second header.
+
+By default the writer appends to the file: a file that does not exist is created with the header,
+and a file that has rows keeps them. Pass ``'w'`` as the open mode, or a ``FileSinkConfig`` with
+``set_open_mode('w')``, to truncate the file instead.
+
+Writers that are given the same file name share its file sink, which writes the header once in
+every file, so writers with the same schema need no ``should_write_header=false`` and can be
+created in any order. The sink keeps the header of the writer that created it: a later writer that
+asks for a header that the sink does not write, e.g. after a writer with
+``should_write_header=false``, throws ``QuillError``. Writers that are given a sink log a header
+row each instead, so pass ``should_write_header=false`` to all but one of them.
 Alternatively, share one ``CsvWriter`` and finish all row submissions before calling ``close()``.
 
 CSV Writing To File
@@ -25,7 +38,7 @@ CSV Writing To File
    :language: cpp
    :linenos:
 
-Csv output (orders.csv):
+Csv output (orders.csv) of the first run. A later run appends its rows below these:
 
 .. code-block:: shell
 

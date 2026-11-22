@@ -29,6 +29,9 @@ TEST_CASE("csv_writer_shared_file_different_schemas")
 {
   static constexpr char const* filename = "csv_writer_shared_file_different_schemas.csv";
 
+  // The writer appends by default, so the file of a run that did not finish is removed first
+  testing::remove_file(filename);
+
   Backend::start();
 
   quill::CsvWriter<SharedFileOrderSchema, quill::FrontendOptions> order_writer{filename};

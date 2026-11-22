@@ -384,7 +384,7 @@ public:
 #endif
     }
 
-    if (QUILL_UNLIKELY(this->_file_size == 0))
+    if (QUILL_UNLIKELY(!_holds_records(this->_file_size)))
     {
       // The file holds no records yet, so name its backup after this record, as rotation does for
       // every later file, rather than after when the sink was created. A sparse logger's first
@@ -408,6 +408,17 @@ protected:
 private:
   /***/
   QUILL_NODISCARD bool _rotation_enabled() const noexcept { return !_created_files.empty(); }
+
+  /**
+   * @return true if the open file has records when it has this size. What the sink wrote when it
+   * created the file is not a record: its header, see FileSinkConfig::set_file_header(), and the
+   * bytes of FileEventNotifier::after_open. A file that the sink opened with content started
+   * without those, whatever its size.
+   */
+  QUILL_NODISCARD bool _holds_records(uint64_t file_size) const noexcept
+  {
+    return file_size > this->_initial_file_size;
+  }
 
   /***/
   QUILL_NODISCARD bool _time_rotation(uint64_t record_timestamp_ns)
@@ -493,10 +504,10 @@ private:
       base_type::fsync_file(true);
     }
 
-    if (_get_open_file_size() == 0)
+    if (!_holds_records(_get_open_file_size()))
     {
-      // Also check the file size is > 0  to better deal with full disk. The file holds no records
-      // yet, so date the next backup from now rather than from when it was opened.
+      // Also check the file has more than its header to better deal with full disk. The file holds
+      // no records yet, so date the next backup from now rather than from when it was opened.
       _open_file_timestamp = record_timestamp_ns;
       return true;
     }
@@ -665,10 +676,11 @@ private:
     // add the current file back to the list with index 0
     _created_files.emplace_front(this->_filename, 0, std::string{});
 
-    // Open file for logging
+    // Open file for logging. The new file holds what it was created with: its header, if one is
+    // configured, and what after_open wrote
     this->open_file(this->_filename, _config.open_mode());
     _open_file_timestamp = record_timestamp_ns;
-    this->_file_size = 0;
+    this->_file_size = this->_initial_file_size;
     return true;
   }
 

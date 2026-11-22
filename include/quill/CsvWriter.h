@@ -35,10 +35,19 @@ QUILL_BEGIN_EXPORT
  *
  * Call close() before Backend::stop() when deterministic logger removal and file closure
  * are required. The destructor performs best-effort asynchronous cleanup and does not block.
+ * A file whose sink is shared, e.g. by writers that are given the same file name, is closed when
+ * the last owner of the sink releases it.
  *
- * When multiple writers share a file, use the configuration or sink overloads and set
- * should_write_header=false for all but one writer. Append-mode file-size checks cannot detect
- * a header that another writer has queued but not yet flushed.
+ * A writer that is given a file name makes the file sink write the header, see
+ * FileSinkConfig::set_file_header(): every file the sink creates starts with it, including each
+ * file of a rotating sink, and a file that is appended to and already has content gets no header.
+ *
+ * Writers that are given the same file name share its file sink, which writes the header once
+ * in every file, so writers with the same schema need no should_write_header=false and can be
+ * created in any order. The sink keeps the header of the writer that created it: a later writer
+ * that asks for a header that the sink does not write, e.g. after a writer with
+ * should_write_header=false, throws QuillError. Writers that are given a sink log a header row
+ * each instead, so set should_write_header=false for all but one of them.
  *
  * @tparam TCsvSchema A user-defined struct specifying the CSV schema at compile-time.
  * @tparam TFrontendOptions Custom frontend options if they are used application-wide. If no custom frontend options are used, then use quill::FrontendOptions.
@@ -58,6 +67,7 @@ class CsvWriter
 {
 public:
   using frontend_t = FrontendImpl<TFrontendOptions>;
+  using clock_source_t = typename LoggerImpl<TFrontendOptions>::clock_source_t;
 
   CsvWriter(CsvWriter const&) = delete;
   CsvWriter& operator=(CsvWriter const&) = delete;
@@ -68,30 +78,22 @@ public:
    * Constructs a CsvWriter object that writes to a file.
    *
    * @param filename The name of the CSV file to write to.
-   * @param open_mode The mode in which to open the file ('w' for write, 'a' for append).
+   * @param open_mode The mode in which to open the file: 'a' to append, the default, as the other
+   * writers do, or 'w' to truncate it. A file that does not exist is created, with the header.
    * @param filename_append Option to append to the filename (None, StartDate, StartDateTime).
+   * @param clock ClockSource::tsc(), ClockSource::system(), or ClockSource::custom(clock), for the
+   * timestamps that order the rows. A non-default frontend clock_type requires a matching
+   * user-clock reference.
    */
-  explicit CsvWriter(std::string const& filename, char open_mode = 'w',
-                     FilenameAppendOption filename_append = FilenameAppendOption::None)
+  explicit CsvWriter(std::string const& filename, char open_mode = 'a',
+                     FilenameAppendOption filename_append = FilenameAppendOption::None,
+                     clock_source_t clock = ClockSource::tsc())
   {
-    auto sink = frontend_t::template create_or_get_sink<FileSink>(filename,
-                                                                  [open_mode, filename_append]()
-                                                                  {
-                                                                    FileSinkConfig cfg;
-                                                                    cfg.set_open_mode(open_mode);
-                                                                    cfg.set_filename_append_option(filename_append);
-                                                                    return cfg;
-                                                                  }());
+    FileSinkConfig sink_config;
+    sink_config.set_open_mode(open_mode);
+    sink_config.set_filename_append_option(filename_append);
 
-    bool const should_write_header = _should_write_header_on_initial_file(*sink, open_mode == 'a', true);
-
-    _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
-                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
-
-    if (should_write_header)
-    {
-      write_header();
-    }
+    _create_file_logger<FileSink>(filename, sink_config, true, clock);
   }
 
   /**
@@ -100,20 +102,12 @@ public:
    * @param filename The name of the CSV file to write to.
    * @param sink_config Configuration settings for the file sink.
    * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   * @param clock The clock of the timestamps that order the rows, see the constructor above.
    */
-  CsvWriter(std::string const& filename, FileSinkConfig sink_config, bool should_write_header = true)
+  CsvWriter(std::string const& filename, FileSinkConfig sink_config,
+            bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
   {
-    auto sink = frontend_t::template create_or_get_sink<FileSink>(filename, sink_config);
-    bool const should_write_initial_header = _should_write_header_on_initial_file(
-      *sink, _is_append_mode(sink_config.open_mode()), should_write_header);
-
-    _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
-                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
-
-    if (should_write_initial_header)
-    {
-      write_header();
-    }
+    _create_file_logger<FileSink>(filename, sink_config, should_write_header, clock);
   }
 
   /**
@@ -121,44 +115,13 @@ public:
    *
    * @param filename The name of the CSV file to write to.
    * @param sink_config Configuration settings for the file sink.
-   * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   * @param should_write_header Whether to write the header at the beginning of each CSV file.
+   * @param clock The clock of the timestamps that order the rows, see the constructor above.
    */
-  CsvWriter(std::string const& filename, RotatingFileSinkConfig sink_config, bool should_write_header = true)
+  CsvWriter(std::string const& filename, RotatingFileSinkConfig sink_config,
+            bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
   {
-    FileEventNotifier file_notifier;
-    bool const should_write_initial_header = should_write_header;
-
-    // The sink owns this notifier and may invoke it after the CsvWriter is destroyed.
-    // Keep it independent from this instance and only use schema-level state.
-    file_notifier.after_open = [should_write_header, is_first_rotation = true](
-                                 fs::path const&, FileEventNotifierHandle file) mutable
-    {
-      if (is_first_rotation)
-      {
-        // On the first rotation, skip writing the header because the logger isn't fully initialized.
-        is_first_rotation = false;
-        return;
-      }
-
-      if (should_write_header)
-      {
-        // For subsequent rotations, if header writing is enabled, append the header directly
-        _write_header(file, true);
-      }
-    };
-
-    auto sink = frontend_t::template create_or_get_sink<RotatingFileSink>(filename, sink_config, file_notifier);
-    bool const should_write_header_for_initial_file = _should_write_header_on_initial_file(
-      *sink, _is_append_mode(sink_config.open_mode()), should_write_initial_header);
-
-    _logger = frontend_t::create_or_get_logger(_make_logger_name(filename), std::move(sink),
-                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
-
-    // For the initial file (before any rotations), write the header if required.
-    if (should_write_header_for_initial_file)
-    {
-      write_header();
-    }
+    _create_file_logger<RotatingFileSink>(filename, sink_config, should_write_header, clock);
   }
 
   /**
@@ -167,11 +130,14 @@ public:
    * @param unique_name A unique name for this CsvWriter instance.
    * @param sink The sink to output the data to (e.g., a ConsoleSink or a user-defined Sink).
    * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   * @param clock The clock of the timestamps that order the rows, see the constructor above.
    */
-  CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink, bool should_write_header = true)
+  CsvWriter(std::string const& unique_name, std::shared_ptr<Sink> sink,
+            bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
   {
-    _logger = frontend_t::create_or_get_logger(_make_logger_name(unique_name), std::move(sink),
-                                               PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+    _logger = frontend_t::create_or_get_logger(
+      _make_logger_name(unique_name), std::move(sink),
+      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime}, clock);
 
     if (should_write_header)
     {
@@ -185,12 +151,13 @@ public:
    * @param unique_name A unique name for this CsvWriter instance.
    * @param sinks A list of sinks to output the data to.
    * @param should_write_header Whether to write the header at the beginning of the CSV file.
+   * @param clock The clock of the timestamps that order the rows, see the constructor above.
    */
   CsvWriter(std::string const& unique_name, std::vector<std::shared_ptr<Sink>> sinks,
-            bool should_write_header = true)
+            bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
   {
     _logger = frontend_t::create_or_get_logger(
-      _make_logger_name(unique_name), sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime});
+      _make_logger_name(unique_name), sinks, PatternFormatterOptions{"%(message)", "", Timezone::GmtTime}, clock);
 
     if (should_write_header)
     {
@@ -235,10 +202,31 @@ public:
    * Writes the csv header to the specified file
    * @param file file to write
    */
-  void write_header(FileEventNotifierHandle file) { _write_header(file, false); }
+  void write_header(FileEventNotifierHandle file)
+  {
+#if defined(_WIN32)
+    DWORD bytes_written = 0;
+    if (!::WriteFile(file, TCsvSchema::header, static_cast<DWORD>(std::strlen(TCsvSchema::header)),
+                     &bytes_written, nullptr) ||
+        (bytes_written != std::strlen(TCsvSchema::header)))
+    {
+      QUILL_THROW(QuillError{"CsvWriter failed to write header"});
+    }
+
+    if (!::WriteFile(file, "\n", 1, &bytes_written, nullptr) || (bytes_written != 1))
+    {
+      QUILL_THROW(QuillError{"CsvWriter failed to write newline"});
+    }
+#else
+    StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
+    StreamSink::safe_fwrite("\n", sizeof(char), 1, file);
+#endif
+  }
 
   /**
-   * @brief Removes the logger synchronously and closes the underlying file sink before returning.
+   * @brief Removes the logger of this writer synchronously. The file is closed before this
+   * function returns, unless something else still holds its sink, e.g. another writer of the
+   * same file: the file is then closed when the last owner of the sink releases it.
    * @note This function must only be used while the backend worker is running.
    *
    * After calling close(), this CsvWriter instance must no longer be used.
@@ -260,21 +248,36 @@ public:
   }
 
 private:
-  static bool _is_append_mode(std::string const& open_mode) noexcept
+  /**
+   * Creates the logger of a writer that is given a file name. The file sink writes the header
+   * when it creates a file, so that it is also the first line of each file after a rotation.
+   */
+  template <typename TFileSink, typename TFileSinkConfig>
+  void _create_file_logger(std::string const& filename, TFileSinkConfig& sink_config,
+                           bool should_write_header, clock_source_t clock)
   {
-    return !open_mode.empty() && (open_mode[0] == 'a');
-  }
-
-  static bool _should_write_header_on_initial_file(StreamSink const& sink, bool is_append_mode, bool should_write_header)
-  {
-    if (!should_write_header || !is_append_mode)
+    if (should_write_header)
     {
-      return should_write_header;
+      sink_config.set_file_header(std::string{TCsvSchema::header} + "\n");
     }
 
-    std::error_code ec;
-    auto const size = fs::file_size(sink.get_filename(), ec);
-    return ec || (size == 0);
+    // Writers that are given the same file name share its sink
+    std::shared_ptr<TFileSink> sink = frontend_t::template create_or_get_sink<TFileSink>(filename, sink_config);
+
+    if (should_write_header && (sink->config().file_header() != sink_config.file_header()))
+    {
+      // The file has a sink already, which keeps the configuration that another writer or the
+      // application created it with, whatever its type. A header that this writer logged would
+      // start the file that is open and none that the sink opens later
+      QUILL_THROW(QuillError{
+        "The file sink of a CsvWriter that writes the header must be created by that writer, "
+        "before the writers that share the file with should_write_header=false: " +
+        filename});
+    }
+
+    _logger = frontend_t::create_or_get_logger(
+      _make_logger_name(filename), std::move(sink),
+      PatternFormatterOptions{"%(message)", "", Timezone::GmtTime}, clock);
   }
 
   void _throw_if_closed(char const* api_name) const
@@ -283,37 +286,6 @@ private:
     {
       QUILL_THROW(QuillError{"CsvWriter::" + std::string{api_name} + " called after close()"});
     }
-  }
-
-  static void _write_header(FileEventNotifierHandle file, QUILL_MAYBE_UNUSED bool append)
-  {
-#if defined(_WIN32)
-    OVERLAPPED overlapped{};
-    OVERLAPPED* overlapped_ptr{nullptr};
-    if (append)
-    {
-      overlapped.Offset = 0xFFFFFFFF;
-      overlapped.OffsetHigh = 0xFFFFFFFF;
-      overlapped_ptr = &overlapped;
-    }
-
-    DWORD bytes_written = 0;
-    if (!::WriteFile(file, TCsvSchema::header, static_cast<DWORD>(std::strlen(TCsvSchema::header)),
-                     &bytes_written, overlapped_ptr) ||
-        (bytes_written != std::strlen(TCsvSchema::header)))
-    {
-      QUILL_THROW(QuillError{"CsvWriter failed to write header"});
-    }
-
-    if (!::WriteFile(file, "\n", 1, &bytes_written, overlapped_ptr) || (bytes_written != 1))
-    {
-      QUILL_THROW(QuillError{"CsvWriter failed to write newline"});
-    }
-#else
-    (void)append;
-    StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
-    StreamSink::safe_fwrite("\n", sizeof(char), 1, file);
-#endif
   }
 
   static constexpr MacroMetadata _header_metadata{
