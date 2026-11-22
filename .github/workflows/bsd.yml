@@ -23,7 +23,7 @@ on:
 jobs:
   FreeBSD:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         build_type: [ Release ]
@@ -48,7 +48,7 @@ jobs:
 
   NetBSD:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         build_type: [ Release ]
@@ -73,7 +73,7 @@ jobs:
 
   OpenBSD:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         build_type: [ Release ]
@@ -98,7 +98,7 @@ jobs:
 
   DragonFlyBSD:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         build_type: [ Release ]
