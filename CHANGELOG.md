@@ -194,6 +194,8 @@
 - When a write to the file fails, e.g. on a full disk, a `FileSink` keeps the records that are in
   its write buffer and writes them once a later write succeeds, where the C library could discard
   them on Linux and macOS. A `RotatingFileSink` that rotates the file in the meantime drops them.
+- When regular output records arrive out of timestamp order, `BackendOptions::error_notifier` suggests
+  a larger `log_timestamp_ordering_grace_period` for delayed publishers. It repeats the advice only when the estimate increases.
 
 ### New Features
 

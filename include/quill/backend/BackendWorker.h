@@ -680,6 +680,7 @@ private:
     }
 
     _last_output_timestamp = 0;
+    _advised_grace_period_us = static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count());
 
     // Backend::stop() releases the worker's cache, but thread-local contexts can
     // outlive the backend thread and be reused after a later Backend::start().
@@ -1373,7 +1374,7 @@ private:
     {
       if (transit_event.log_level() != LogLevel::Backtrace)
       {
-        _ensure_monotonic_output_timestamp(transit_event);
+        _check_output_timestamp_order(transit_event);
         _dispatch_transit_event_to_sinks(transit_event, thread_context._thread_id, thread_context._thread_name);
 
         // We also need to check the severity of the log message here against the backtrace
@@ -1412,7 +1413,7 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Binary)
     {
-      _ensure_monotonic_output_timestamp(transit_event);
+      _check_output_timestamp_order(transit_event);
       _write_binary_record(transit_event, thread_context.thread_id(), thread_context.thread_name());
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::InitBacktrace)
@@ -1453,7 +1454,7 @@ private:
     }
     else if (transit_event.macro_metadata->event() == MacroMetadata::Event::Metric)
     {
-      _ensure_monotonic_output_timestamp(transit_event);
+      _check_output_timestamp_order(transit_event);
       _write_metric_sample(transit_event, thread_context.thread_id(), thread_context.thread_name());
 
       // Reset the payload as TransitEvents are re-used, so a later reuse of this slot starts
@@ -1469,26 +1470,64 @@ private:
     }
   }
 
-  /**
-   * Adjusts regular output event timestamps so sink-visible timestamps do not move backwards when
-   * the feature is enabled. This runs only after an event has been selected for processing, so the
-   * transit event buffers are still ordered by original timestamp.
-   */
-  QUILL_ATTRIBUTE_HOT void _ensure_monotonic_output_timestamp(TransitEvent& transit_event) noexcept
+  /** Checks regular output records after selection, leaving the transit buffers in timestamp order. */
+  QUILL_ATTRIBUTE_HOT void _check_output_timestamp_order(TransitEvent& transit_event)
   {
-    if (!_options.ensure_monotonic_output_timestamps)
+    if (_options.ensure_monotonic_output_timestamps)
+    {
+      if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
+      {
+        transit_event.timestamp = (_last_output_timestamp == (std::numeric_limits<uint64_t>::max)())
+          ? _last_output_timestamp
+          : _last_output_timestamp + 1;
+      }
+    }
+    else
+    {
+      // Only compare clocks subject to the grace period. A simulation can use an arbitrary epoch
+      // while another logger in the same process uses wall time.
+      auto const* user_clock = transit_event.logger_base->_user_clock;
+      if ((_advised_grace_period_us == 0) ||
+          (user_clock && user_clock->timestamp_type() == TimestampType::EpochNanoseconds))
+      {
+        return;
+      }
+
+      if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
+      {
+        _report_out_of_order_timestamp(_last_output_timestamp - transit_event.timestamp);
+        return;
+      }
+    }
+
+    _last_output_timestamp = transit_event.timestamp;
+  }
+
+  QUILL_NOINLINE QUILL_ATTRIBUTE_COLD void _report_out_of_order_timestamp(uint64_t late_ns)
+  {
+    uint64_t const late_us = late_ns / 1'000u;
+    uint64_t const needed_grace_period_us =
+      static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count()) + late_us;
+
+    if (needed_grace_period_us <= _advised_grace_period_us)
     {
       return;
     }
 
-    if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
+    // Round up to one significant digit, e.g. 576 to 600, so that the advice changes rarely
+    uint64_t magnitude{1};
+
+    while ((needed_grace_period_us / magnitude) >= 10u)
     {
-      transit_event.timestamp = (_last_output_timestamp == (std::numeric_limits<uint64_t>::max)())
-        ? _last_output_timestamp
-        : _last_output_timestamp + 1;
+      magnitude *= 10u;
     }
 
-    _last_output_timestamp = transit_event.timestamp;
+    _advised_grace_period_us = ((needed_grace_period_us + magnitude - 1u) / magnitude) * magnitude;
+
+    _notify_error(fmtquill::format(
+      "{} Quill WARNING: A record is {} us out of timestamp order. For delayed publishers, "
+      "consider increasing BackendOptions::log_timestamp_ordering_grace_period to at least {} us.",
+      _get_local_time_str(), late_us, _advised_grace_period_us));
   }
 
   /**
@@ -2576,7 +2615,8 @@ private:
   LoggerManager& _logger_manager = LoggerManager::instance();
   BackendOptions _options;
   PrintableChars _printable_chars; /**< check_printable_char() result per byte value */
-  uint64_t _last_output_timestamp{0};
+  uint64_t _last_output_timestamp{0}; /**< Newest timestamp written, see _check_output_timestamp_order() */
+  uint64_t _advised_grace_period_us{0}; /**< Grace period of the last out-of-order notification */
   std::thread _worker_thread;
 
   DynamicFormatArgStore _format_args_store; /** Format args tmp storage as member to avoid reallocation */

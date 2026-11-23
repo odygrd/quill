@@ -21,6 +21,18 @@ The backend assumes timestamps produced within a single frontend queue are norma
 If a wall clock or user-provided clock moves backwards, :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` can be enabled to correct regular log, metric and binary record output.
 Backtrace records preserve their original capture timestamps and may still appear out of timestamp order when flushed later.
 
+If a regular log, metric or binary record has an older timestamp than one already selected for output,
+the backend can suggest a larger grace period through :cpp:member:`BackendOptions::error_notifier`:
+
+.. code-block:: text
+
+   Quill WARNING: A record is 571 us out of timestamp order. For delayed publishers, consider increasing BackendOptions::log_timestamp_ordering_grace_period to at least 600 us.
+
+The backend adds the observed timestamp difference in whole microseconds to the configured grace period and rounds up to one significant digit.
+It reports again only when the estimate exceeds the last suggestion. A larger grace period can help a delayed publisher, but cannot correct a clock that moves backwards.
+The notification is disabled when the grace period is zero or monotonic output correction is enabled.
+Custom epoch timestamps are excluded from the comparison, so simulation loggers can use their own timeline alongside wall-clock loggers.
+
 Timestamp Methods
 -----------------
 
