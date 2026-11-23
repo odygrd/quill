@@ -50,6 +50,16 @@ When reviewing or changing code, always ask:
 - Before fixing a "bug", trace all call sites — the invariant may be maintained by callers rather than the function
   itself.
 
+## Reviewing
+
+- Report defects in realistic use, including rare cases and behavior the documentation leaves unspecified.
+  For an edge case, explain what could trigger it in a real application and what the impact would be.
+- Weigh the likelihood and impact of an edge case against the complexity of fixing it. A highly unlikely,
+  low-impact scenario may be worth noting without requiring a fix.
+- Prefer the simplest fix.
+- Also say what can be removed or simplified, not only what is missing.
+- A fix must not change what user code sees, for example the file name that a custom sink's constructor receives.
+
 ## Important Contracts
 
 - Single backend worker thread.
@@ -164,6 +174,8 @@ as two separate jobs: first identify the upstream delta, then port the Quill-spe
   `include/quill/bundled/` and `test/bundled/`, and the generated codecs in `examples/sbe_binary_data/sample/`.
 - Follow existing codebase patterns.
 - Prefer readable, maintainable, low-overhead code.
+- After a change, reread the surrounding code as a whole. Remove redundant logic and simplify anything the change
+  makes unnecessary in the same commit.
 - Use blank lines to separate logical steps or changes of context in code and tests, such as setup, actions,
   assertions, and cleanup. Keep related statements together; avoid dense walls of text or a blank line after every statement.
 - Keep assignments out of `if` and `while` conditions: compute the value first, then test it.
