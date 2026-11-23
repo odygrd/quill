@@ -154,7 +154,12 @@ struct BackendOptions
    * not guarantee ordering if a frontend thread records a timestamp and is delayed longer than the
    * grace period before publishing the event to its queue.
    *
-   * Setting `log_timestamp_ordering_grace_period` to zero disables this grace-period delay.
+   * If regular output records arrive out of timestamp order, `error_notifier` suggests a larger
+   * grace period based on the observed difference. Another message is emitted only when the
+   * suggestion increases. Custom epoch clocks are excluded from the comparison.
+   *
+   * A grace period of zero disables both the delay and the notification. The notification is
+   * also suppressed when `ensure_monotonic_output_timestamps` corrects the output.
    *
    * - 0μs: Fastest processing, may process messages out of timestamp order
    * - 1-5μs: Good default - minimal delay, occasional reordering possible
