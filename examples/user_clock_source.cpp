@@ -29,7 +29,7 @@ public:
    * Required by TimestampClock
    * @return current time now, in nanoseconds since epoch
    */
-  uint64_t now() const override { return _timestamp_ns.load(std::memory_order_relaxed); }
+  uint64_t now() const noexcept override { return _timestamp_ns.load(std::memory_order_relaxed); }
 
   /**
    * set custom timestamp

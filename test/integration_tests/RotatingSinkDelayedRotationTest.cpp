@@ -24,7 +24,7 @@ namespace
 class TestUserClockSource : public UserClockSource
 {
 public:
-  uint64_t now() const override { return _timestamp.load(std::memory_order_relaxed); }
+  uint64_t now() const noexcept override { return _timestamp.load(std::memory_order_relaxed); }
 
   void set_timestamp(std::chrono::nanoseconds timestamp)
   {

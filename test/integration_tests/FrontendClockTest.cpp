@@ -70,7 +70,8 @@ TEST_CASE("frontend_clock_provider")
   // A zero timestamp survives the cold queue path. Macro-free logging uses the same instance.
   LOG_INFO(logger, "zero timestamp");
 
-  // Force queue growth with the backend stopped. Recovery must reuse the captured zero timestamp.
+  // Force queue growth with the backend stopped. The clock is read once, when the record is
+  // committed to the queue that has grown.
   size_t const initial_capacity = AppFrontend::get_thread_local_queue_capacity();
   std::string const payload(initial_capacity, 'x');
   LOG_INFO(logger, "queue growth {}", payload);

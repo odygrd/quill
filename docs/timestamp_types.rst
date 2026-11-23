@@ -8,14 +8,12 @@ Use this page to choose between TSC, system, or custom clock sources and underst
 Timestamp Recording
 -------------------
 
-The library records the timestamp of the log statement on the caller thread at the point the call was made.
-This approach makes the log statement timestamp more accurate but introduces the possibility of the backend seeing a timestamp in the past, causing an out-of-order timestamp to appear in the log.
+The caller thread timestamps each record just before publishing it to its queue. Time spent waiting for queue space,
+formatting an argument on the frontend, or copying a large payload therefore falls before the timestamp.
 
-Due to the usage of different types of queues, it is possible in rare cases for the timestamp to be recorded but not immediately processed.
-For example, the caller thread might block (if a blocking queue is used) or take some time to reallocate a new non-blocking queue.
-
-To mitigate this, there is a configurable :cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` option.
-This option delays the reading of timestamps by the backend for a few microseconds (default 5μs), providing additional time for the frontend to push messages and reducing the chance of out-of-order timestamps within that grace window.
+A thread can still be preempted between reading the clock and publishing the record.
+:cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` delays the backend by a short window (5 μs by default)
+to allow older records from other threads to arrive.
 A queue head that stays ahead of the wall-clock cutoff becomes eligible once one grace period of steady time has elapsed since its first backend observation. Backward clock corrections therefore do not require waiting for wall time to catch up.
 The backend assumes timestamps produced within a single frontend queue are normally non-decreasing.
 If a wall clock or user-provided clock moves backwards, :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` can be enabled to correct regular log, metric and binary record output.
@@ -72,7 +70,7 @@ Frontend Clock Selection
 ``clock_type`` retain this runtime behavior.
 
 To inline a clock, set ``clock_type`` to the ``UserClockSource`` subclass implementing the
-``now() const`` function you want called, and pass ``ClockSource::custom(clock)`` through the same
+``now() const noexcept`` function you want called, and pass ``ClockSource::custom(clock)`` through the same
 factory argument. This expression retains the clock's type for compile-time checking.
 The frontend calls that implementation directly, without virtual dispatch. The selected type may
 be abstract if it already implements ``now()``; pass an instance of a derived class in that case.
@@ -91,8 +89,13 @@ The option selects dispatch; the argument supplies the clock object and its stat
 
 The clock is non-owned and must outlive its logger. Both clock methods must be thread-safe, and
 its timestamp representation must remain consistent for the logger's lifetime, including queued
-records. Different loggers may use different instances of the configured clock type. Zero is a
-valid nanosecond timestamp and is not read again during queue recovery.
+records. Different loggers may use different instances of the configured clock type. The clock
+is read once for each record that is queued, and not for a record that is dropped. Zero is a
+valid nanosecond timestamp.
+
+Declare custom overrides as ``uint64_t now() const noexcept override``. They must return normally and must not log through Quill,
+including through another logger. The calling thread has already encoded the record in its queue.
+A nested log could overwrite it, and an exception could leave a deferred argument in the uncommitted record.
 
 ``ClockSource::custom(clock)`` is non-owning and accepts a clock object by reference. When
 ``clock_type`` names an implementation class, this reference must refer to that class or a
