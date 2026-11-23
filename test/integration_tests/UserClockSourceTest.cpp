@@ -27,7 +27,7 @@ public:
 
   TimestampType timestamp_type() const noexcept override { return _timestamp_type; }
 
-  uint64_t now() const override
+  uint64_t now() const noexcept override
   {
     reads.fetch_add(1, std::memory_order_relaxed);
     return _timestamp_type == TimestampType::TscTicks ? quill::detail::rdtsc() : _ts.load();
@@ -67,6 +67,7 @@ TEST_CASE("user_clock_source")
   Backend::start();
 
   UserClockSourceTest uct;
+  static_assert(noexcept(static_cast<UserClockSource const&>(uct).now()));
   uct.set_timestamp(std::chrono::seconds{1655007309});
 
   // Set writing logging to a file

@@ -113,6 +113,8 @@
 
 - Logger creation now takes `ClockSource::tsc()`, `ClockSource::system()`, or
   `ClockSource::custom(clock)` instead of the previous clock-source enum and optional pointer.
+- `UserClockSource::now()` is now `noexcept`. Add `noexcept` to existing overrides and keep them
+  free of Quill logging calls, since they run while a record occupies the calling thread's queue.
 - Custom frontend options must derive from `quill::FrontendOptions`, so options added in later
   versions are inherited instead of failing to compile.
 - `Sink::write_log()`, `Sink::write_metric()`, `Filter::filter()` and
@@ -194,8 +196,11 @@
 - When a write to the file fails, e.g. on a full disk, a `FileSink` keeps the records that are in
   its write buffer and writes them once a later write succeeds, where the C library could discard
   them on Linux and macOS. A `RotatingFileSink` that rotates the file in the meantime drops them.
-- When regular output records arrive out of timestamp order, `BackendOptions::error_notifier` suggests
-  a larger `log_timestamp_ordering_grace_period` for delayed publishers. It repeats the advice only when the estimate increases.
+- When regular output records arrive out of timestamp order, `BackendOptions::error_notifier`
+  suggests a larger `log_timestamp_ordering_grace_period` for delayed publishers. It repeats the
+  advice only when the estimate increases.
+- Logging and metric calls now timestamp records immediately before publishing them. A call that
+  copies a large payload or waits for queue space records the time after that work completes.
 
 ### New Features
 

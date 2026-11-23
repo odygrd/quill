@@ -41,13 +41,17 @@ public:
   /**
    * Returns a timestamp in the representation reported by timestamp_type().
    *
+   * Quill calls now() after encoding a record and immediately before committing it to the
+   * calling thread's queue. It must return normally and must not log through Quill, even
+   * through a different logger. Loggers on one thread share that queue.
+   *
    * @note Values returned by successive calls to now() should be monotonically non-decreasing.
    *       For custom epoch timestamps, the backend bypasses strict ordering. A clock that steps
    *       backwards can therefore produce log lines that appear out of timestamp order.
    *
    * @return The current timestamp as raw TSC ticks or epoch nanoseconds
    */
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const = 0;
+  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const noexcept = 0;
 
   /**
    * Defaults to epoch nanoseconds, the common case, preserving existing clock implementations.

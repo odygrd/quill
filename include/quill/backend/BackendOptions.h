@@ -141,18 +141,14 @@ struct BackendOptions
    * stays ahead of the cutoff (for example after a backward wall-clock correction), the check
    * stops deferring it once one grace period of steady time has elapsed since its first observation.
    *
-   * Example scenario:
-   * 1. Frontend thread takes a timestamp at the very start of logging, then becomes delayed
-   *    (preempted, blocked, processing slowly, etc.) before pushing to the queue.
-   * 2. Backend thread takes timestamp `now()` and subtracts the grace period, reads queues up to
-   *    the adjusted `now()`, and writes the logs.
-   * 3. Frontend thread wakes up and pushes the message with its already-recorded timestamp to the queue.
-   * 4. Backend thread reads and writes the delayed timestamp, resulting in an out-of-order log.
+   * The frontend timestamps a record after reserving queue space and encoding its arguments.
+   * If the frontend thread is preempted between that clock read and the queue commit, the
+   * backend may have already written newer records by the time the delayed record arrives.
    *
    * Setting this option to a non-zero value causes a minor delay in reading messages from the
    * lock-free queues and protects timestamp ordering within the configured grace window. It does
-   * not guarantee ordering if a frontend thread records a timestamp and is delayed longer than the
-   * grace period before publishing the event to its queue.
+   * not guarantee ordering if a frontend thread is delayed longer than the grace period between
+   * reading the clock and committing the record.
    *
    * If regular output records arrive out of timestamp order, `error_notifier` suggests a larger
    * grace period based on the observed difference. Another message is emitted only when the

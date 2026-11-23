@@ -16,7 +16,7 @@ struct SelectionClock : quill::UserClockSource
   // ClockSource must bind the actual object without invoking an overloaded address-of operator.
   SelectionClock* operator&() noexcept { return nullptr; }
 
-  uint64_t now() const override
+  uint64_t now() const noexcept override
   {
     reads.fetch_add(1, std::memory_order_relaxed);
     return 0;

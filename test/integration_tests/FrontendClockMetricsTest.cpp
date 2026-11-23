@@ -68,7 +68,7 @@ TEST_CASE("frontend_clock_metrics")
   quill::MetricMetadata const* metadata =
     MetricFrontend::create_metric("frontend_clock_metric", "frontend_clock_metric");
 
-  // The first publish initializes the queue. Its valid zero timestamp must not be read again.
+  // The first publish initializes the queue. The clock is read once, and its zero is valid.
   REQUIRE(logger->publish_metric(metadata, 0.5));
   CHECK_EQ(clock.reads.load(), 1);
 

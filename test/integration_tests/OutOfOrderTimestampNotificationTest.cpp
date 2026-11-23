@@ -26,7 +26,7 @@ class TestClockSource : public UserClockSource
 public:
   explicit TestClockSource(TimestampType timestamp_type) : _timestamp_type(timestamp_type) {}
 
-  uint64_t now() const override { return _timestamp.load(std::memory_order_relaxed); }
+  uint64_t now() const noexcept override { return _timestamp.load(std::memory_order_relaxed); }
 
   TimestampType timestamp_type() const noexcept override { return _timestamp_type; }
 

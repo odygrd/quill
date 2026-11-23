@@ -11,6 +11,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <string>
 #include <thread>
@@ -102,6 +103,8 @@ TEST_CASE("backend_transit_buffer_hard_limit")
   manual_options.transit_event_buffer_initial_capacity = 1;
   manual_options.transit_events_soft_limit = 1;
   manual_options.transit_events_hard_limit = 1;
+  // The two manual polls exercise the transit limit with every queued record eligible to read.
+  manual_options.log_timestamp_ordering_grace_period = std::chrono::microseconds{0};
 
   ManualBackendWorker* manual_backend_worker = Backend::acquire_manual_backend_worker();
   manual_backend_worker->init(manual_options);
