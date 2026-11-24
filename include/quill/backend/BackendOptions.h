@@ -57,7 +57,8 @@ struct BackendOptions
 {
   /**
    * The name assigned to the backend, visible during thread naming queries (e.g.,
-   * pthread_getname_np) or in the debugger.
+   * pthread_getname_np) or in the debugger. A name that is longer than the operating system
+   * keeps is truncated: to 15 bytes on Linux and the BSDs, and to 63 bytes on macOS.
    */
   std::string thread_name = "QuillBackend";
 

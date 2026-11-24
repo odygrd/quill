@@ -249,8 +249,13 @@ QUILL_ATTRIBUTE_COLD inline void set_thread_name(char const* name)
     QUILL_THROW(QuillError{"Failed to set thread name"});
   }
 #elif defined(__APPLE__)
-  // Apple
-  auto const res = pthread_setname_np(name);
+  // macOS keeps 63 bytes of a thread name and rejects a longer one, where Linux and the BSDs are
+  // given the first 15 bytes below
+  char truncated_name[64];
+  std::strncpy(truncated_name, name, 63);
+  truncated_name[63] = '\0';
+
+  auto const res = pthread_setname_np(truncated_name);
   if (res != 0)
   {
     QUILL_THROW(QuillError{std::string{"Failed to set thread name - error: " + std::to_string(res) +
