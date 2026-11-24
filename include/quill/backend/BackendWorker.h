@@ -375,6 +375,7 @@ public:
     _logger_removal_reads_queues = false;
     _active_thread_contexts_cache = {};
     _active_sinks_cache = {};
+    _active_sinks_cache_generation = 0;
     _named_arg_value_buffer = fmtquill::memory_buffer{};
     _format_args_store = DynamicFormatArgStore{};
     _named_args_template_cache.clear();
@@ -424,6 +425,13 @@ private:
   {
     std::array<bool, 256> printable{};
     bool printable_ascii{false}; /**< every byte from ' ' to '~' is printable */
+  };
+
+  /** A sink of the loggers */
+  struct ActiveSink
+  {
+    Sink* sink;
+    bool has_valid_logger; /**< false if only loggers that wait to be removed have the sink */
   };
 
   /** Runs `fn`, reporting an exception through error_notifier instead of propagating it */
@@ -1969,42 +1977,16 @@ private:
     }
   }
 
-  /***/
+  /**
+   * @param include_invalidated_loggers true to also flush the sinks that only loggers that wait
+   * to be removed have
+   */
   QUILL_ATTRIBUTE_HOT void _flush_and_run_active_sinks(bool run_periodic_tasks,
                                                        std::chrono::milliseconds sink_min_flush_interval,
                                                        SinkFlushReason flush_reason,
                                                        bool include_invalidated_loggers = false)
   {
-    // A previous call may have thrown before clearing the cache; its sinks may no longer exist.
-    _active_sinks_cache.clear();
-
-    // Removal and shutdown must also flush sinks belonging to invalidated loggers.
-    _logger_manager.for_each_logger(
-      [this, include_invalidated_loggers](LoggerBase* logger)
-      {
-        if (include_invalidated_loggers || logger->is_valid_logger())
-        {
-          for (std::shared_ptr<Sink> const& sink : logger->_sinks)
-          {
-            Sink* logger_sink_ptr = sink.get();
-            auto search_it = std::find_if(_active_sinks_cache.begin(), _active_sinks_cache.end(),
-                                          [logger_sink_ptr](Sink* elem)
-                                          {
-                                            // no one else can remove the shared pointer as this is
-                                            // only running on backend thread
-                                            return elem == logger_sink_ptr;
-                                          });
-
-            if (search_it == std::end(_active_sinks_cache))
-            {
-              _active_sinks_cache.push_back(logger_sink_ptr);
-            }
-          }
-        }
-
-        // return false to never end the loop early
-        return false;
-      });
+    _update_active_sinks_cache();
 
     bool should_flush_sinks{false};
     std::chrono::steady_clock::time_point now;
@@ -2024,8 +2006,15 @@ private:
       should_flush_sinks = true;
     }
 
-    for (auto const& sink : _active_sinks_cache)
+    for (ActiveSink const& active_sink : _active_sinks_cache)
     {
+      if (!include_invalidated_loggers && !active_sink.has_valid_logger)
+      {
+        continue;
+      }
+
+      Sink* const sink = active_sink.sink;
+
       _run_guarded(
         [&]()
         {
@@ -2049,8 +2038,58 @@ private:
     {
       _last_sink_flush_time = now;
     }
+  }
 
+  /**
+   * Lists the sinks of the loggers again when a logger was created, invalidated or removed since
+   * they were listed. A logger keeps its sinks for as long as it exists, so the list holds until
+   * then.
+   */
+  QUILL_ATTRIBUTE_HOT void _update_active_sinks_cache()
+  {
+    // Read before the loggers: one that is created meanwhile then lists the sinks once more
+    uint64_t const loggers_generation = _logger_manager.loggers_generation();
+
+    if (QUILL_LIKELY(loggers_generation == _active_sinks_cache_generation))
+    {
+      return;
+    }
+
+    // The generation of the list is set last, so that a list that an allocation failure left
+    // incomplete is built again by the next call
     _active_sinks_cache.clear();
+
+    _logger_manager.for_each_logger(
+      [this](LoggerBase* logger)
+      {
+        bool const is_valid_logger = logger->is_valid_logger();
+
+        for (std::shared_ptr<Sink> const& sink : logger->_sinks)
+        {
+          Sink* logger_sink_ptr = sink.get();
+          auto search_it = std::find_if(_active_sinks_cache.begin(), _active_sinks_cache.end(),
+                                        [logger_sink_ptr](ActiveSink const& elem)
+                                        {
+                                          // no one else can remove the shared pointer as this is
+                                          // only running on backend thread
+                                          return elem.sink == logger_sink_ptr;
+                                        });
+
+          if (search_it == std::end(_active_sinks_cache))
+          {
+            _active_sinks_cache.push_back(ActiveSink{logger_sink_ptr, is_valid_logger});
+          }
+          else
+          {
+            search_it->has_valid_logger |= is_valid_logger;
+          }
+        }
+
+        // return false to never end the loop early
+        return false;
+      });
+
+    _active_sinks_cache_generation = loggers_generation;
   }
 
   /**
@@ -2835,6 +2874,8 @@ private:
   PrintableChars _printable_chars; /**< check_printable_char() result per byte value */
   uint64_t _last_output_timestamp{0}; /**< Newest timestamp written, see _check_output_timestamp_order() */
   uint64_t _last_custom_clock_output_timestamp{0}; /**< The same for the loggers with a custom epoch clock */
+  uint64_t _active_sinks_cache_generation{
+    0}; /**< LoggerManager::loggers_generation() of _active_sinks_cache, 0 before it is built */
   uint64_t _advised_grace_period_us{0}; /**< Grace period of the last out-of-order notification */
   std::thread _worker_thread;
 
@@ -2845,7 +2886,7 @@ private:
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<LoggerBase const*> _loggers_pending_removal; /** Sorted. The loggers that are removed when the records logged before their removal are processed */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
-  std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
+  std::vector<ActiveSink> _active_sinks_cache; /** The sinks of the loggers, see _update_active_sinks_cache() **/
   std::vector<std::pair<std::string, std::string>> _mdc_fields; /** MDC set scratch storage */
   std::vector<std::string> _mdc_keys;                           /** MDC erase scratch storage */
   std::unordered_map<std::string, std::atomic<bool>*> _logger_removal_flags; /** Maps logger names to atomic flags used for synchronizing remove_logger_blocking(). */

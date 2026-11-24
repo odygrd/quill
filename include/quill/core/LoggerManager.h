@@ -288,6 +288,7 @@ public:
   {
     logger->mark_invalid();
     _has_invalidated_loggers.store(true, std::memory_order_release);
+    _loggers_generation.fetch_add(1, std::memory_order_release);
   }
 
   /***/
@@ -341,6 +342,11 @@ public:
             ++it;
           }
         }
+
+        if (!loggers_to_destroy.empty())
+        {
+          _loggers_generation.fetch_add(1, std::memory_order_release);
+        }
       }
 #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
@@ -360,6 +366,16 @@ public:
   QUILL_NODISCARD bool has_invalidated_loggers() const noexcept
   {
     return _has_invalidated_loggers.load(std::memory_order_acquire);
+  }
+
+  /**
+   * @return a number that changes when a logger is created, invalidated or removed, for the
+   * backend to keep what it derives from the loggers, e.g. the list of their sinks, until then.
+   * Never 0.
+   */
+  QUILL_NODISCARD uint64_t loggers_generation() const noexcept
+  {
+    return _loggers_generation.load(std::memory_order_acquire);
   }
 
   /**
@@ -509,6 +525,7 @@ private:
                                       { return a->get_logger_name() < b; });
 
     _loggers.insert(search_it, static_cast<std::unique_ptr<LoggerBase>&&>(logger));
+    _loggers_generation.fetch_add(1, std::memory_order_release);
   }
 
   /***/
@@ -526,6 +543,7 @@ private:
 private:
   std::vector<std::unique_ptr<LoggerBase>> _loggers;
   std::atomic<uint64_t> _next_unique_logger_id{0};
+  std::atomic<uint64_t> _loggers_generation{1}; /**< Changes with each logger that is added to _loggers, invalidated or erased */
   mutable Spinlock _spinlock;
   std::atomic<bool> _has_invalidated_loggers{false};
 
