@@ -5,6 +5,7 @@
 
 #include <prometheus/histogram.h>
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -117,6 +118,51 @@ int main()
 
   prometheus_sink->register_histogram_family("batch_size", "Batch size", {1.0, 10.0});
 
+  // A summary window that prometheus-cpp would divide by zero for, or rotate without end, is
+  // rejected before anything is registered, so the corrected registration succeeds
+  quill::MetricMetadata const* response_size =
+    quill::Frontend::create_metric("response_size_bytes", "response_size_bytes", {{"route", "a"}});
+
+  struct SummaryWindow
+  {
+    std::chrono::milliseconds max_age;
+    int age_buckets;
+  };
+
+  // The last two cannot be converted to the duration that prometheus-cpp keeps the window in
+  SummaryWindow const invalid_summary_windows[] = {{std::chrono::seconds{60}, 0},
+                                                   {std::chrono::seconds{60}, -1},
+                                                   {std::chrono::milliseconds{0}, 5},
+                                                   {(std::chrono::milliseconds::max)(), 5},
+                                                   {(std::chrono::milliseconds::min)(), 5}};
+
+  size_t accepted_invalid_summaries{0};
+  for (SummaryWindow const& window : invalid_summary_windows)
+  {
+    try
+    {
+      prometheus_sink->register_summary(response_size, "Response size", {{0.5, 0.05}},
+                                        window.max_age, window.age_buckets);
+      ++accepted_invalid_summaries;
+    }
+    catch (std::exception const&)
+    {
+    }
+
+    try
+    {
+      prometheus_sink->register_summary_family("request_size_bytes", "Request size", {{0.5, 0.05}},
+                                               window.max_age, window.age_buckets);
+      ++accepted_invalid_summaries;
+    }
+    catch (std::exception const&)
+    {
+    }
+  }
+
+  prometheus_sink->register_summary(response_size, "Response size", {{0.5, 0.05}});
+  prometheus_sink->register_summary_family("request_size_bytes", "Request size", {{0.5, 0.05}});
+
   quill::Logger* logger = quill::Frontend::create_or_get_logger("prometheus_logger", prometheus_sink);
 
   logger->publish_metric(requests_total, 1.0);
@@ -124,6 +170,8 @@ int main()
   logger->publish_metric(route_a_latency, 0.2);
   logger->publish_metric(queue_latency, 0.2);
   logger->publish_dynamic_metric("batch_size", {{"stage", "decode"}}, 5.0);
+  logger->publish_metric(response_size, 512.0);
+  logger->publish_dynamic_metric("request_size_bytes", {{"route", "a"}}, 256.0);
 
   logger->flush_log();
 
@@ -153,8 +201,13 @@ int main()
     }
   }
 
+  if (accepted_invalid_summaries != 0)
+  {
+    std::fprintf(stderr, "%zu summaries with an invalid window were registered\n", accepted_invalid_summaries);
+  }
+
   quill::Frontend::remove_logger(logger);
   quill::Backend::stop();
 
-  return (missing_samples == 0) ? 0 : 1;
+  return ((missing_samples == 0) && (accepted_invalid_summaries == 0)) ? 0 : 1;
 }

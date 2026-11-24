@@ -395,6 +395,10 @@
   throws, e.g. for a header larger than a `BoundedBlocking` queue.
 - Closing one `CsvWriter` no longer breaks another `CsvWriter` with a different schema that writes to
   the same file, or one with the same name created in another shared library.
+- `PrometheusSink::register_summary()` and `register_summary_family()` throw `QuillError` for
+  `age_buckets <= 0`, and for a `max_age` that is not positive or too long for a
+  `std::chrono::steady_clock::duration`. prometheus-cpp divided by zero or never returned from the
+  first sample for these.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
   boundaries before creating any state, so registering again with corrected buckets works instead
   of dropping samples or failing every publish.
