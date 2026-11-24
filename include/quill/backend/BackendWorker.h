@@ -475,8 +475,10 @@ private:
     time_t t = time(nullptr);
     tm p;
     localtime_rs(std::addressof(t), std::addressof(p));
-    strftime(ts, 24, "%X", std::addressof(p));
-    return std::string{ts};
+
+    // Not %X, which a locale can make longer than the buffer
+    size_t const length = strftime(ts, sizeof(ts), "%H:%M:%S", std::addressof(p));
+    return std::string{ts, length};
   }
 
   /** Reports an error through BackendOptions::error_notifier */
@@ -1422,9 +1424,11 @@ private:
       // If `FreeLibrary` is called, the backend thread may attempt to access an invalidated
       // `ThreadContext`, which can lead to a crash due to invalid memory access.
       //
-      // To prevent this, whenever we receive a Flush event, we clean up any invalidated thread contexts
-      // before notifying the caller. This ensures that when `flush_log()` is invoked in `DllMain`
-      // during `DLL_PROCESS_DETACH`, the `ThreadContext` is properly cleaned up before the DLL exits.
+      // To prevent this, whenever we receive a Flush event, we clean up any invalidated thread
+      // contexts before notifying the caller. This ensures that the `flush_log()` an application
+      // calls before `FreeLibrary` leaves no `ThreadContext` of an exited thread behind. It must
+      // not be called from `DllMain`: when the process exits, the backend thread was already
+      // terminated by then and the call waits forever.
       _cleanup_invalidated_thread_contexts();
 
       // Now it’s safe to notify the caller to continue execution.

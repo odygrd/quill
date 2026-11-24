@@ -252,6 +252,44 @@ This ordering makes the user object's destructor run before Quill's context dest
 must still be running and the logger must remain valid. Prefer explicit cleanup before thread exit
 when possible rather than relying on thread-local destruction order.
 
+Can I unload a shared library or plugin that logs with Quill?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yes, when the library leaves nothing behind that refers to its code. A record that waits in a
+queue refers to the log statement that made it and to the decoder of its arguments, which are in
+the library, and so does a record that a logger keeps for its backtrace.
+
+A library that creates its own loggers exports a function for the application to call before
+``dlclose()`` or ``FreeLibrary()``, which, in this order:
+
+- releases the sink pointers that the library holds,
+- removes the loggers that the library created, with ``Frontend::remove_logger_blocking()`` while
+  the backend is still running,
+- stops the backend with ``Backend::stop()``, when the library is the one that started it.
+
+The sink pointers are released first, because a sink is unregistered when a logger is removed and
+nothing holds the sink any more. One that the library still holds at that time stays registered
+after the library has released it.
+
+``Backend::stop()`` alone is not enough: it keeps the loggers and the sinks registered for the
+next ``Backend::start()``, and those of the library must not outlive its code.
+``examples/shared_library`` shows this case.
+
+A library that logs through a logger of the application has no logger to remove, and that logger
+stays. Before such a library is unloaded, what its threads logged has to be written, in this order:
+
+- each thread of the library calls ``flush_log()`` on the logger after its last log statement of
+  the library, which returns when the records of that thread are processed,
+- then the thread that unloads the library calls ``flush_backtrace()`` on the logger when it stores
+  a backtrace, and ``flush_log()``.
+
+A flush that another thread makes does not wait for a record of a library thread that has the same
+timestamp, e.g. with a clock that both threads read the same value from, so each thread flushes
+what it logged itself.
+
+In both cases unload the library only after these calls have returned, and do not make them from
+``DllMain`` or from another function that runs while the library is unloaded.
+
 Can I use Quill with fork()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

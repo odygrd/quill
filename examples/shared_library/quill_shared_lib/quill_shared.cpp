@@ -26,21 +26,13 @@ void setup_quill()
 
 quill::Logger* get_logger(std::string const& name) { return quill::Frontend::get_logger(name); }
 
-#if (defined(__GNUC__) || defined(__clang__)) && !defined(_WIN32)
-/**
- * Safety net for dlclose() on Linux/macOS: flush pending log messages before the DSO is unmapped.
- * This prevents the backend thread from dereferencing dangling pointers to MacroMetadata,
- * decode functions, or Sink vtables that lived in this DSO's code segment.
- *
- * Note: This does NOT make dlclose() fully safe with Quill. The recommended approach is to
- * call Backend::stop() before dlclose(), or use RTLD_NODELETE to keep the DSO mapped.
- * This destructor is a best-effort safeguard only.
- */
-__attribute__((destructor)) void quill_shared_lib_on_unload()
+void stop_quill()
 {
-  if (global_logger_a)
-  {
-    global_logger_a->flush_log();
-  }
+  // Backend::stop() keeps the loggers and the sinks registered for the next start. The ones
+  // that a library created are removed while the backend still runs, so that none of them is
+  // left with the code of a library that is unloaded
+  quill::Frontend::remove_logger_blocking(global_logger_a);
+  global_logger_a = nullptr;
+
+  quill::Backend::stop();
 }
-#endif

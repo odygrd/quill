@@ -131,6 +131,11 @@ TEST_CASE("out_of_order_timestamp_notification")
 
   REQUIRE_EQ(notifications.size(), 2);
 
+  // The local time of the notification comes first, as HH:MM:SS in every locale
+  REQUIRE_EQ(notifications[0].find(" Quill WARNING"), 8u);
+  REQUIRE_EQ(notifications[0][2], ':');
+  REQUIRE_EQ(notifications[0][5], ':');
+
   REQUIRE_NE(notifications[0].find("Quill WARNING: A record is 571 us out of timestamp order"),
              std::string::npos);
   REQUIRE_NE(notifications[0].find("log_timestamp_ordering_grace_period to at least 600 us"), std::string::npos);

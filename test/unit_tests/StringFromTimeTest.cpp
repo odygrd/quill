@@ -100,6 +100,15 @@ TEST_CASE("string_from_time_formats_uncached_specifiers_with_strftime")
     REQUIRE_FALSE(string_from_time.init(fmt, Timezone::GmtTime).empty());
   }
 
+#if !defined(__MINGW32__) || defined(_UCRT)
+  {
+    // %r is the time of day as the locale writes it. The C runtime of legacy MinGW does not have
+    // it, and there it is expanded to specifiers that are cached
+    StringFromTime string_from_time;
+    REQUIRE_FALSE(string_from_time.init("%r", Timezone::GmtTime).empty());
+  }
+#endif
+
   // escaped variants are literal text and date specifiers with flags are cached as usual
   for (auto const* fmt :
        {"literal %%X", "literal %%EX", "literal %%c", "literal %%Ec", "literal %%OH", "literal %%OI",
@@ -113,9 +122,9 @@ TEST_CASE("string_from_time_formats_uncached_specifiers_with_strftime")
   // The Windows CRT does not accept the glibc and BSD strftime flags
   std::array<char const*, 3> const formatted_patterns{"%X", "%c", "prefix %H:%M %c suffix"};
 #else
-  std::array<char const*, 11> const formatted_patterns{
+  std::array<char const*, 12> const formatted_patterns{
     "%X",          "%EX", "%c", "%Ec", "%OH", "%OI", "%OM", "%OS", "prefix %H:%M %c suffix",
-    "%-H:%-M:%-S", "%_M"};
+    "%-H:%-M:%-S", "%_M", "%r"};
 #endif
 
   for (auto const* fmt : formatted_patterns)
@@ -135,6 +144,39 @@ TEST_CASE("string_from_time_formats_uncached_specifiers_with_strftime")
       REQUIRE_EQ(string_from_time.format_timestamp(timestamp), std::string{expected.data()});
     }
   }
+}
+
+/***/
+TEST_CASE("string_from_time_formats_r_as_the_locale_does")
+{
+#if defined(__MINGW32__) && !defined(_UCRT)
+  // The C runtime of legacy MinGW has no %r, which is expanded to %I:%M:%S %p there
+  return;
+#else
+  // The locale of the process is put back also when an assertion below fails
+  struct LocaleRestorer
+  {
+    ~LocaleRestorer() { std::setlocale(LC_TIME, previous_locale.c_str()); }
+    std::string previous_locale;
+  } const locale_restorer{std::setlocale(LC_TIME, nullptr)};
+
+  // %r is %I:%M:%S %p in the C locale only. Skipped where this locale is not installed
+  if (!std::setlocale(LC_TIME, "ja_JP.UTF-8"))
+  {
+    return;
+  }
+
+  StringFromTime string_from_time;
+  REQUIRE_FALSE(string_from_time.init("%r", Timezone::GmtTime).empty());
+
+  time_t const timestamp{1'700'000'000};
+  tm time_info{};
+  gmtime_rs(&timestamp, &time_info);
+
+  std::array<char, 256> expected{};
+  REQUIRE_NE(std::strftime(expected.data(), expected.size(), "%r", &time_info), 0u);
+  REQUIRE_EQ(string_from_time.format_timestamp(timestamp), std::string{expected.data()});
+#endif
 }
 
 /***/

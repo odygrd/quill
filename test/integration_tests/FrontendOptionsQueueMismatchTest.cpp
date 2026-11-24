@@ -14,6 +14,11 @@ struct BoundedDroppingFrontendOptions : FrontendOptions
 {
   static constexpr QueueType queue_type = QueueType::BoundedDropping;
 };
+
+// The values of FrontendOptions, so that its loggers can be created next to the default ones
+struct RenamedFrontendOptions : FrontendOptions
+{
+};
 } // namespace
 #endif
 
@@ -40,6 +45,18 @@ TEST_CASE("frontend_options_queue_mismatch")
   #if defined(_WIN32)
   // So does the per-thread CRT signal handler
   REQUIRE_THROWS_AS(init_signal_handler<BoundedDroppingFrontendOptions>({SIGTERM}), QuillError);
+  #endif
+
+  #if QUILL_USE_RTTI
+  // A logger is not returned as the logger type of another frontend
+  using RenamedFrontend = FrontendImpl<RenamedFrontendOptions>;
+  Logger* logger = Frontend::create_or_get_logger("frontend_options_queue_mismatch_default", sink);
+
+  REQUIRE_THROWS_AS((void)RenamedFrontend::get_logger("frontend_options_queue_mismatch_default"), QuillError);
+  REQUIRE_THROWS_AS((void)RenamedFrontend::get_valid_logger(), QuillError);
+  REQUIRE_EQ(Frontend::get_valid_logger(), logger);
+
+  Frontend::remove_logger(logger);
   #endif
 #endif
 }

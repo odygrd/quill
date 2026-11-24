@@ -61,10 +61,14 @@ public:
     _timestamp_format = std::move(timestamp_format);
     _time_zone = timezone;
 
+#if defined(__MINGW32__) && !defined(_UCRT)
+    // msvcrt.dll, the C runtime before the Universal one, has no %r
+    _replace_unescaped_modifier(_timestamp_format, "%r", "%I:%M:%S %p");
+#endif
+
     std::string uncached_specifier = _find_uncached_time_of_day_specifier(_timestamp_format);
 
     // We first look for some special format modifiers and replace them
-    _replace_unescaped_modifier(_timestamp_format, "%r", "%I:%M:%S %p");
     _replace_unescaped_modifier(_timestamp_format, "%R", "%H:%M");
     _replace_unescaped_modifier(_timestamp_format, "%T", "%H:%M:%S");
 
@@ -306,7 +310,9 @@ public:
       }
 
       char const conversion = timestamp_format[pos];
-      bool const embeds_time_of_day = (conversion == 'X') || (conversion == 'c') || (conversion == '+');
+      // %r is among them: only in the C locale it is %I:%M:%S %p
+      bool const embeds_time_of_day =
+        (conversion == 'X') || (conversion == 'c') || (conversion == '+') || (conversion == 'r');
 
       if (embeds_time_of_day ||
           (has_modifier && (time_of_day_conversions.find(conversion) != std::string_view::npos)))
