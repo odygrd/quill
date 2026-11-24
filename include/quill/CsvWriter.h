@@ -141,7 +141,7 @@ public:
 
     if (should_write_header)
     {
-      write_header();
+      _write_header_or_remove_logger();
     }
   }
 
@@ -161,7 +161,7 @@ public:
 
     if (should_write_header)
     {
-      write_header();
+      _write_header_or_remove_logger();
     }
   }
 
@@ -280,6 +280,23 @@ private:
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime}, clock);
   }
 
+  /**
+   * Logs the header of a writer that is given a sink. The destructor does not run for a
+   * constructor that throws, e.g. for a header that is larger than a bounded queue, so the
+   * logger is removed here
+   */
+  void _write_header_or_remove_logger()
+  {
+    QUILL_TRY { write_header(); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      frontend_t::remove_logger(_logger);
+      throw;
+    }
+#endif
+  }
+
   void _throw_if_closed(char const* api_name) const
   {
     if (QUILL_UNLIKELY(!_logger))
@@ -299,11 +316,11 @@ private:
     // Every CsvWriter specialization, in every shared library of the application, draws its id
     // from one counter, so writers with different schemas on the same file get different logger
     // names and closing one cannot remove the logger of another.
+    // The prefix is a literal: a static std::string member of a class template is not yet
+    // initialised when a writer at namespace scope is constructed.
     uint64_t const logger_id = detail::LoggerManager::instance().next_unique_logger_id();
-    return _logger_name_prefix + base_name + "_" + std::to_string(logger_id);
+    return "__csv__" + base_name + "_" + std::to_string(logger_id);
   }
-
-  static inline std::string _logger_name_prefix{"__csv__"};
 
   LoggerImpl<TFrontendOptions>* _logger{nullptr};
 };
