@@ -350,6 +350,10 @@
 - `PcapWriter` throws `QuillError` when the file already has a sink with a
   `BinaryRecordFraming`, e.g. one created for a `BinaryWriter`, instead of sharing it and writing
   the size of each packet into the capture.
+- A `CsvWriter` defined at namespace scope gets the `__csv__` logger name prefix in GCC builds, so
+  the signal handler no longer writes its messages to the CSV file.
+- A `CsvWriter` that is given a sink no longer leaves its logger registered when its constructor
+  throws, e.g. for a header larger than a `BoundedBlocking` queue.
 - Closing one `CsvWriter` no longer breaks another `CsvWriter` with a different schema that writes to
   the same file, or one with the same name created in another shared library.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
