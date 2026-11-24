@@ -152,9 +152,7 @@ public:
   QUILL_ATTRIBUTE_COLD void set_filename_append_option(
     FilenameAppendOption value, std::string_view append_filename_format_pattern = std::string_view{})
   {
-    _filename_append_option = value;
-
-    if (_filename_append_option == FilenameAppendOption::StartCustomTimestampFormat)
+    if (value == FilenameAppendOption::StartCustomTimestampFormat)
     {
       if (append_filename_format_pattern.empty())
       {
@@ -166,14 +164,17 @@ public:
 
       _append_filename_format_pattern = append_filename_format_pattern;
     }
-    else if (_filename_append_option == FilenameAppendOption::StartDateTime)
+    else if (value == FilenameAppendOption::StartDateTime)
     {
       _append_filename_format_pattern = "_%Y%m%d_%H%M%S";
     }
-    else if (_filename_append_option == FilenameAppendOption::StartDate)
+    else if (value == FilenameAppendOption::StartDate)
     {
       _append_filename_format_pattern = "_%Y%m%d";
     }
+
+    // Set last, so that the configuration stays as it was when the pattern is rejected
+    _filename_append_option = value;
   }
 
   /**

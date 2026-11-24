@@ -362,6 +362,10 @@
   remaining records when it is destroyed gives them up.
 - In `QUILL_NO_EXCEPTIONS` builds, `Frontend::get_sink()` no longer aborts for a sink name that is
   not a valid file path, such as `"tcp://collector:4317"`.
+- A `ConsoleSink` whose `ConsoleSinkConfig::set_stream()` name is not `stdout` or `stderr` throws
+  before it creates the directories of a name such as `logs/console`, and
+  `FileSinkConfig::set_filename_append_option()` leaves the configuration unchanged when it throws
+  for a missing pattern.
 - `FileSink` with `minimum_fsync_interval` now performs a skipped fsync once the interval elapses
   and on the final flush, so the last records are synced, including the first fsync on a system up
   for less than the interval.
