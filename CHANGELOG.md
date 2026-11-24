@@ -347,6 +347,9 @@
 - `RotatingFileSink` counts what `FileEventNotifier::after_open` writes to a new file towards
   `rotation_max_file_size`. Before, each file after a rotation could exceed the limit by those
   bytes.
+- `PcapWriter` throws `QuillError` when the file already has a sink with a
+  `BinaryRecordFraming`, e.g. one created for a `BinaryWriter`, instead of sharing it and writing
+  the size of each packet into the capture.
 - Closing one `CsvWriter` no longer breaks another `CsvWriter` with a different schema that writes to
   the same file, or one with the same name created in another shared library.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
