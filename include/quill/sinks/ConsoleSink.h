@@ -226,16 +226,10 @@ public:
    */
   explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{},
                        FileEventNotifier file_event_notifier = FileEventNotifier{})
-    : StreamSink{config.stream(), nullptr, config.override_pattern_formatter_options(),
-                 std::move(file_event_notifier)},
+    : StreamSink{_validated_stream(config.stream()), nullptr,
+                 config.override_pattern_formatter_options(), std::move(file_event_notifier)},
       _config(config)
   {
-    if (QUILL_UNLIKELY(_config.stream() != "stdout" && _config.stream() != "stderr"))
-    {
-      QUILL_THROW(
-        QuillError{"Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'"});
-    }
-
     _colours_enabled = _use_colours(_file, _config.colour_mode());
   }
 
@@ -311,6 +305,21 @@ protected:
   ConsoleSinkConfig _config;
 
 private:
+  /**
+   * Checked before the StreamSink is constructed, which takes any other name for the path of a
+   * file and creates its directories
+   */
+  QUILL_NODISCARD static std::string const& _validated_stream(std::string const& stream)
+  {
+    if (QUILL_UNLIKELY(stream != "stdout" && stream != "stderr"))
+    {
+      QUILL_THROW(
+        QuillError{"Invalid stream name in ConsoleSink constructor, must be 'stdout' or 'stderr'"});
+    }
+
+    return stream;
+  }
+
   /** Whether to write colour codes to the stream for the configured colour mode */
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _use_colours(FILE* file, ConsoleSinkConfig::ColourMode colour_mode) noexcept
   {

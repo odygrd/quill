@@ -104,6 +104,19 @@ TEST_CASE("append_custom_date_to_filename")
 }
 
 /***/
+TEST_CASE("append_custom_date_without_a_pattern_keeps_the_configuration")
+{
+#if !defined(QUILL_NO_EXCEPTIONS)
+  FileSinkConfig cfg;
+  cfg.set_filename_append_option(FilenameAppendOption::StartDate);
+
+  REQUIRE_THROWS_AS(cfg.set_filename_append_option(FilenameAppendOption::StartCustomTimestampFormat), QuillError);
+  REQUIRE_EQ(cfg.filename_append_option(), FilenameAppendOption::StartDate);
+  REQUIRE_EQ(cfg.append_filename_format_pattern(), "_%Y%m%d");
+#endif
+}
+
+/***/
 TEST_CASE("append_long_custom_date_to_filename")
 {
   std::chrono::system_clock::time_point const ts =
