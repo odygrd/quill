@@ -724,6 +724,7 @@ private:
     }
 
     _last_output_timestamp = 0;
+    _last_custom_clock_output_timestamp = 0;
     _advised_grace_period_us = static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count());
 
     // Backend::stop() releases the worker's cache, but thread-local contexts can
@@ -1552,31 +1553,38 @@ private:
   /** Checks regular output records after selection, leaving the transit buffers in timestamp order. */
   QUILL_ATTRIBUTE_HOT void _check_output_timestamp_order(TransitEvent& transit_event)
   {
+    // A simulation can use an arbitrary epoch while another logger in the same process uses wall
+    // time, so the timestamps of custom epoch clocks are not compared with the other ones.
+    auto const* user_clock = transit_event.logger_base->_user_clock;
+    bool const has_custom_epoch_clock =
+      user_clock && (user_clock->timestamp_type() == TimestampType::EpochNanoseconds);
+
     if (_options.ensure_monotonic_output_timestamps)
     {
-      if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
+      uint64_t& last_output_timestamp =
+        has_custom_epoch_clock ? _last_custom_clock_output_timestamp : _last_output_timestamp;
+
+      if (QUILL_UNLIKELY(transit_event.timestamp < last_output_timestamp))
       {
-        transit_event.timestamp = (_last_output_timestamp == (std::numeric_limits<uint64_t>::max)())
-          ? _last_output_timestamp
-          : _last_output_timestamp + 1;
-      }
-    }
-    else
-    {
-      // Only compare clocks subject to the grace period. A simulation can use an arbitrary epoch
-      // while another logger in the same process uses wall time.
-      auto const* user_clock = transit_event.logger_base->_user_clock;
-      if ((_advised_grace_period_us == 0) ||
-          (user_clock && user_clock->timestamp_type() == TimestampType::EpochNanoseconds))
-      {
-        return;
+        transit_event.timestamp = (last_output_timestamp == (std::numeric_limits<uint64_t>::max)())
+          ? last_output_timestamp
+          : last_output_timestamp + 1;
       }
 
-      if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
-      {
-        _report_out_of_order_timestamp(_last_output_timestamp - transit_event.timestamp);
-        return;
-      }
+      last_output_timestamp = transit_event.timestamp;
+      return;
+    }
+
+    // Only compare clocks subject to the grace period.
+    if ((_advised_grace_period_us == 0) || has_custom_epoch_clock)
+    {
+      return;
+    }
+
+    if (QUILL_UNLIKELY(transit_event.timestamp < _last_output_timestamp))
+    {
+      _report_out_of_order_timestamp(_last_output_timestamp - transit_event.timestamp);
+      return;
     }
 
     _last_output_timestamp = transit_event.timestamp;
@@ -2813,6 +2821,7 @@ private:
   BackendOptions _options;
   PrintableChars _printable_chars; /**< check_printable_char() result per byte value */
   uint64_t _last_output_timestamp{0}; /**< Newest timestamp written, see _check_output_timestamp_order() */
+  uint64_t _last_custom_clock_output_timestamp{0}; /**< The same for the loggers with a custom epoch clock */
   uint64_t _advised_grace_period_us{0}; /**< Grace period of the last out-of-order notification */
   std::thread _worker_thread;
 

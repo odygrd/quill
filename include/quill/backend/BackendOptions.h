@@ -197,6 +197,10 @@ struct BackendOptions
    * logger removal, backtrace setup/flush, and MDC changes are also excluded because they are not
    * written as output records.
    *
+   * The records of loggers with a custom epoch clock are kept in order among themselves and are
+   * not compared with those of the other loggers, so that e.g. a simulation keeps its own
+   * timeline next to loggers that use wall time.
+   *
    * This option changes the timestamp displayed in the output for corrected records. It does not
    * affect frontend timestamp capture or the timestamp used to select the next cached event for
    * processing.
