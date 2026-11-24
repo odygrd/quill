@@ -502,7 +502,12 @@ private:
       // reopen was attempted). Try to recover by reopening before doing anything else, so we
       // do not flush/fsync a null handle and re-enter this path again on the next write.
       _next_rotation_attempt = now + rotation_retry_interval;
-      this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
+      if (!this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode())))
+      {
+        // Without exceptions an open that fails returns. It is tried again after the interval
+        return false;
+      }
+
       _next_rotation_attempt = {};
       _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
@@ -530,34 +535,37 @@ private:
       }
     }
 
+    // The flush of the base sink, which can have records of its own to write to the file first
     QUILL_TRY { base_type::flush_sink(SinkFlushReason::Periodic); }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      // The write buffer keeps the records that cannot be written to the file, e.g. the file has
-      // reached the maximum size of a file or the disk is full, so every later flush would fail
-      // in the same way and the file would never be rotated. They are dropped from a file that
-      // holds records, as stdio dropped them: the next record then rotates the file, which gives
-      // the records that follow a new file and, when it removes the oldest backup, room
-      if (this->is_open() && _holds_records(_get_open_file_size()))
-      {
-        this->_native_write_pos = 0;
-
-        // The file can end with a part of a record now. It counts as over its size limit, so
-        // that a size rotation stays due for the next record whatever its size, also one without
-        // bytes, as a time rotation does
-        this->_file_size =
-          std::max<uint64_t>(this->_file_size, _config.rotation_max_file_size() + uint64_t{1});
-      }
-
+      // The next record rotates the file
+      _drop_records_after_failed_flush();
       throw;
     }
 #endif
 
-    if (_config.fsync_enabled())
+    if (QUILL_UNLIKELY(!this->is_open()))
     {
-      // The rotated file is closed next, so fsync it now regardless of minimum_fsync_interval
-      base_type::fsync_file(true);
+      // Without exceptions a flush that fails returns. One that found the file removed has
+      // closed it, and could not open it again when its directory is gone: there is no file to
+      // rotate, and the next record tries to open it
+      return false;
+    }
+
+    if (QUILL_UNLIKELY(this->_flush_failed) && !_drop_records_after_failed_flush())
+    {
+      // Without exceptions a flush that fails returns. The file holds no records, and its write
+      // buffer keeps the ones it did not take: the rotation stays due. A file that holds records
+      // is rotated now, without the ones it did not take
+      return false;
+    }
+
+    // The rotated file is closed next, so fsync it now regardless of minimum_fsync_interval
+    if (_config.fsync_enabled() && !base_type::fsync_file(true))
+    {
+      return false;
     }
 
     if (!_holds_records(_get_open_file_size()))
@@ -568,11 +576,64 @@ private:
       return true;
     }
 
-    this->close_file();
+    if (!this->close_file())
+    {
+      // Without exceptions a close that fails returns. The file lacks a part of what was written
+      // to it, e.g. what before_close wrote, so it does not take the place of a backup. The
+      // rotation stays due, and the next record opens the file again
+      return false;
+    }
+
     return _rotate_closed_file(record_timestamp_ns);
   }
 
-  /** @return false if a rename failed and the file was reopened without rotating */
+  /**
+   * The write buffer keeps the records that cannot be written to the file, e.g. the file has
+   * reached the maximum size of a file or the disk is full, so every later flush would fail in
+   * the same way and the file would never be rotated. They are dropped from a file that holds
+   * records, as stdio dropped them: rotating the file gives the records that follow a new file
+   * and, when it removes the oldest backup, room
+   * @return true if the file holds records. It is rotated then, without the ones it did not take
+   */
+  bool _drop_records_after_failed_flush() noexcept
+  {
+    if (!this->is_open() || !_holds_records(_get_open_file_size()))
+    {
+      return false;
+    }
+
+    this->_native_write_pos = 0;
+
+    // The file can end with a part of a record now. It counts as over its size limit, so that a
+    // size rotation stays due for the next record whatever its size, also one without bytes, as
+    // a time rotation does
+    this->_file_size = std::max<uint64_t>(this->_file_size, _config.rotation_max_file_size() + uint64_t{1});
+
+    return true;
+  }
+
+  /**
+   * Opens the file of the sink after a rotation has closed it. Without exceptions an open that
+   * fails returns: the sink is left without a file, which _rotate_files() opens after the
+   * retry interval
+   * @return false if the file was not opened
+   */
+  QUILL_NODISCARD bool _open_file_after_rotation(std::string const& open_mode)
+  {
+    if (this->open_file(this->_filename, open_mode))
+    {
+      return true;
+    }
+
+    _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
+    this->_file_size = 0;
+    return false;
+  }
+
+  /**
+   * @return false if a rename failed and the file was reopened without rotating, or if the file
+   * could not be opened again, which is only returned without exceptions
+   */
   bool _rotate_closed_file(uint64_t record_timestamp_ns)
   {
     bool rotation_succeeded = true;
@@ -607,7 +668,11 @@ private:
       {
         // The backups just tracked reach the backup limit, and rotating would remove the oldest of
         // them. Keep writing to the current file, as rotation does at the limit.
-        this->open_file(this->_filename, _reopen_mode_after_failed_rotation(_config.open_mode()));
+        if (!_open_file_after_rotation(_reopen_mode_after_failed_rotation(_config.open_mode())))
+        {
+          return false;
+        }
+
         this->_file_size = _get_file_size(this->_filename);
         return true;
       }
@@ -734,7 +799,11 @@ private:
 
     // Open file for logging. The new file holds what it was created with: its header, if one is
     // configured, and what after_open wrote
-    this->open_file(this->_filename, _config.open_mode());
+    if (!_open_file_after_rotation(_config.open_mode()))
+    {
+      return false;
+    }
+
     _open_file_timestamp = record_timestamp_ns;
     this->_file_size = this->_initial_file_size;
     return true;

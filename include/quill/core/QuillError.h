@@ -35,14 +35,64 @@
   #define QUILL_THROW(ex) QUILL_REQUIRE(false, ex.what())
   #define QUILL_CATCH(x) if (false)
   #define QUILL_CATCH_ALL() if (false)
+
+  /**
+   * For an I/O failure of a sink that the backend survives, such as a write to a full disk. With
+   * exceptions these throw `ex`, which the backend passes to error_notifier. Without them, on the
+   * backend thread while it works, they report the message through error_notifier and return
+   * from the function, `value` from one that returns something. The caller continues, so a
+   * function that fails this way tells its caller. On any other thread they end the process, as
+   * QUILL_THROW does, except where the failures are discarded, as the destructor of FileSink does.
+   */
+  #define QUILL_THROW_OR_RETURN(ex)                                                                \
+    do                                                                                             \
+    {                                                                                              \
+      ::quill::detail::report_error(ex.what());                                                    \
+      return;                                                                                      \
+    } while (0)
+
+  #define QUILL_THROW_OR_RETURN_VALUE(ex, value)                                                   \
+    do                                                                                             \
+    {                                                                                              \
+      ::quill::detail::report_error(ex.what());                                                    \
+      return value;                                                                                \
+    } while (0)
 #else
   #define QUILL_TRY try
   #define QUILL_THROW(ex) throw(ex)
   #define QUILL_CATCH(x) catch (x)
   #define QUILL_CATCH_ALL() catch (...)
+  #define QUILL_THROW_OR_RETURN(ex) throw(ex)
+  #define QUILL_THROW_OR_RETURN_VALUE(ex, value) throw(ex)
 #endif
 
 QUILL_BEGIN_NAMESPACE
+
+#if defined(QUILL_NO_EXCEPTIONS)
+namespace detail
+{
+/** Takes the failures of QUILL_THROW_OR_RETURN. The backend sets one for its thread while it works */
+struct ErrorReceiver
+{
+  void (*report)(void* context, char const* message);
+  void* context;
+};
+
+// The exported accessor keeps its thread-local state shared with DLL consumers.
+QUILL_EXPORT inline ErrorReceiver const*& error_receiver() noexcept
+{
+  static QUILL_THREAD_LOCAL ErrorReceiver const* receiver{nullptr};
+  return receiver;
+}
+
+inline void report_error(char const* message)
+{
+  ErrorReceiver const* const receiver = error_receiver();
+  QUILL_REQUIRE(receiver != nullptr, message);
+  receiver->report(receiver->context, message);
+}
+} // namespace detail
+#endif
 
 QUILL_BEGIN_EXPORT
 

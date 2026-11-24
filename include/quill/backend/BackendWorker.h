@@ -424,6 +424,30 @@ private:
 #endif
   }
 
+#if defined(QUILL_NO_EXCEPTIONS)
+  /**
+   * While it lives, a failure of QUILL_THROW_OR_RETURN on this thread is reported through
+   * error_notifier, as the exception is with exceptions
+   */
+  struct ErrorReceiverScope
+  {
+    explicit ErrorReceiverScope(BackendWorker& backend_worker) noexcept
+      : receiver{&ErrorReceiverScope::report, &backend_worker}
+    {
+      error_receiver() = &receiver;
+    }
+
+    ~ErrorReceiverScope() { error_receiver() = nullptr; }
+
+    static void report(void* backend_worker, char const* message)
+    {
+      static_cast<BackendWorker*>(backend_worker)->_notify_error(std::string{message});
+    }
+
+    ErrorReceiver const receiver;
+  };
+#endif
+
   QUILL_ATTRIBUTE_HOT void _invoke_poll_hook(std::function<void()> const& hook)
   {
     _run_guarded([&]() { hook(); });
@@ -532,6 +556,10 @@ private:
    */
   QUILL_ATTRIBUTE_HOT void _poll()
   {
+#if defined(QUILL_NO_EXCEPTIONS)
+    ErrorReceiverScope const error_receiver_scope{*this};
+#endif
+
     // poll hook
     bool poll_end_called = false;
     if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_begin)))
@@ -727,6 +755,10 @@ private:
    */
   QUILL_ATTRIBUTE_COLD void _exit()
   {
+#if defined(QUILL_NO_EXCEPTIONS)
+    ErrorReceiverScope const error_receiver_scope{*this};
+#endif
+
     while (true)
     {
       bool const queues_and_events_empty = (!_options.wait_for_queues_to_empty_before_exit) ||
@@ -1445,9 +1477,9 @@ private:
         }
         else
         {
-          QUILL_THROW(
-            QuillError{"logger->init_backtrace(...) needs to be called first before using "
-                       "LOG_BACKTRACE(...)."});
+          _notify_error(
+            std::string{"logger->init_backtrace(...) needs to be called first before "
+                        "using LOG_BACKTRACE(...)."});
         }
       }
     }
@@ -2242,11 +2274,7 @@ private:
         {
           for (auto const& sink : logger->_sinks)
           {
-            QUILL_TRY { sink->flush_sink(SinkFlushReason::Explicit); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-            QUILL_CATCH(std::exception const& e) { _notify_error(e.what()); }
-            QUILL_CATCH_ALL() { _notify_error(std::string{"Caught unhandled exception."}); }
-#endif
+            _run_guarded([&]() { sink->flush_sink(SinkFlushReason::Explicit); });
           }
         }
       }

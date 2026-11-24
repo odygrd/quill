@@ -168,7 +168,8 @@ public:
 
     if (QUILL_UNLIKELY(err != 0))
     {
-      QUILL_THROW(QuillError{std::string{"Failed writing to systemd with error "} + std::to_string(err)});
+      QUILL_THROW_OR_RETURN(
+        QuillError{std::string{"Failed writing to systemd with error "} + std::to_string(err)});
     }
   }
 

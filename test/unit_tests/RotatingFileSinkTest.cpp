@@ -163,6 +163,58 @@ void check_deadline_saturation(char const* filename_stem, RotatingFileSinkConfig
   testing::remove_file(filename_1);
   testing::remove_file(filename_2);
 }
+
+/**
+ * Keeps what it is given until it has a block of 512 bytes, as a sink that compresses or encrypts
+ * its file does. What is left is written to the file when the sink is flushed
+ */
+class BlockFileSink : public FileSink
+{
+public:
+  using FileSink::FileSink;
+
+  void write_log(LogRecord const& record) override
+  {
+    _pending.append(record.log_statement);
+
+    while (_pending.size() >= block_size)
+    {
+      _write_pending(block_size);
+    }
+  }
+
+  void flush_sink(SinkFlushReason flush_reason) override
+  {
+    if (!_pending.empty())
+    {
+      _write_pending(_pending.size());
+    }
+
+    FileSink::flush_sink(flush_reason);
+  }
+
+private:
+  void _write_pending(size_t size)
+  {
+    FileSink::write_log(LogRecord{nullptr,
+                                  0,
+                                  {},
+                                  {},
+                                  {},
+                                  {},
+                                  LogLevel::Info,
+                                  "INFO",
+                                  "I",
+                                  nullptr,
+                                  {},
+                                  std::string_view{_pending.data(), size},
+                                  {}});
+    _pending.erase(0, size);
+  }
+
+  static constexpr size_t block_size{512};
+  std::string _pending;
+};
 } // namespace
 
 /***/
@@ -1242,6 +1294,39 @@ TEST_CASE("rotating_file_sink_append_recovers_case_alias")
   REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'B')});
   REQUIRE(testing::file_contents(backup_2) == std::vector<std::string>{std::string(399, 'A')});
   fs::remove_all(directory);
+}
+
+/***/
+TEST_CASE("rotating_sink_flushes_with_the_flush_of_its_base_sink")
+{
+  fs::path const filename = "rotating_sink_flushes_with_the_flush_of_its_base_sink.log";
+  fs::path const backup = "rotating_sink_flushes_with_the_flush_of_its_base_sink.1.log";
+
+  RotatingFileSinkConfig config;
+  config.set_open_mode('w');
+  config.set_rotation_max_file_size(1000);
+
+  auto write_record = [](RotatingSink<BlockFileSink>& sink, char value)
+  {
+    sink.write_log(LogRecord{
+      nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, std::string(699, value) + '\n', {}});
+  };
+
+  {
+    RotatingSink<BlockFileSink> sink{filename, config};
+    write_record(sink, 'A');
+
+    // This record does not fit in the file, which is rotated. The base sink still has the end of
+    // the first record, and writes it to the file in its flush before the file is renamed
+    write_record(sink, 'B');
+    sink.flush_sink(SinkFlushReason::Explicit);
+  }
+
+  REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(699, 'A')});
+  REQUIRE(testing::file_contents(filename) == std::vector<std::string>{std::string(699, 'B')});
+
+  testing::remove_file(filename);
+  testing::remove_file(backup);
 }
 
 /** Tests for scheme date **/

@@ -327,6 +327,12 @@
 - On Windows, `Frontend::create_or_get_sink<FileSink>()` returns the existing sink for another
   spelling of the same file, such as `app.log.` or, in MinGW builds, a directory differing only in
   letter case, instead of opening the file again, which could truncate it in `w` mode.
+- In `QUILL_NO_EXCEPTIONS` builds, an I/O failure of a `FileSink`, `RotatingFileSink`, `StreamSink`
+  or `SystemdSink` while the backend thread writes or flushes, such as a full disk or a log file
+  whose directory was removed, is reported through `BackendOptions::error_notifier` instead of
+  ending the process, as is `LOG_BACKTRACE` without `init_backtrace()`. A sink that cannot open
+  its file when it is created still ends the process, while a file sink that cannot write its
+  remaining records when it is destroyed gives them up.
 - In `QUILL_NO_EXCEPTIONS` builds, `Frontend::get_sink()` no longer aborts for a sink name that is
   not a valid file path, such as `"tcp://collector:4317"`.
 - `FileSink` with `minimum_fsync_interval` now performs a skipped fsync once the interval elapses

@@ -255,7 +255,8 @@ protected:
   }
 #endif
 
-  QUILL_ATTRIBUTE_HOT static void _safe_fwrite(void const* ptr, size_t size, size_t count,
+  /** @return false if the write failed, which is only returned without exceptions */
+  QUILL_ATTRIBUTE_HOT static bool _safe_fwrite(void const* ptr, size_t size, size_t count,
                                                FILE* stream, bool stream_is_unbuffered)
   {
     size_t const total_bytes = size * count;
@@ -276,7 +277,7 @@ protected:
         if (QUILL_UNLIKELY(handle == nullptr))
         {
           // There is nothing to write to
-          return;
+          return true;
         }
 
         constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
@@ -286,13 +287,14 @@ protected:
         if (QUILL_UNLIKELY(::WriteFile(handle, current_ptr, total_bytes_remaining,
                                        &bytes_written_this_call, nullptr) == 0))
         {
-          QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
-                                 std::to_string(::GetLastError())});
+          QUILL_THROW_OR_RETURN_VALUE(
+            QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(::GetLastError())}, false);
         }
 
         if (QUILL_UNLIKELY(bytes_written_this_call == 0))
         {
-          QUILL_THROW(QuillError{"WriteFile returned 0 bytes written without error"});
+          QUILL_THROW_OR_RETURN_VALUE(
+            QuillError{"WriteFile returned 0 bytes written without error"}, false);
         }
 
         bytes_written += bytes_written_this_call;
@@ -315,16 +317,18 @@ protected:
             bytes_written += written;
             continue;
           }
-          QUILL_THROW(QuillError{std::string{"fwrite failed errno: "} + std::to_string(saved_errno) +
-                                 " error: " + std::strerror(saved_errno)});
+          QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"fwrite failed errno: "} + std::to_string(saved_errno) +
+                                                 " error: " + std::strerror(saved_errno)},
+                                      false);
         }
 
         if (written == 0)
         {
           // Zero bytes written without error is unusual - treat as fatal to avoid infinite loop
-          QUILL_THROW(
+          QUILL_THROW_OR_RETURN_VALUE(
             QuillError{std::string{"fwrite returned 0 bytes written without error - stream may be "
-                                   "at EOF or in invalid state"}});
+                                   "at EOF or in invalid state"}},
+            false);
         }
 
         // Partial write succeeded - continue with remaining bytes
@@ -332,6 +336,8 @@ protected:
 
       bytes_written += written;
     }
+
+    return true;
   }
 
   QUILL_NODISCARD virtual size_t estimate_write_size(LogRecord const& record)
@@ -381,8 +387,9 @@ protected:
 
   /**
    * Flushes the stream
+   * @return false if the flush failed, which is only returned without exceptions
    */
-  QUILL_ATTRIBUTE_HOT void flush()
+  QUILL_ATTRIBUTE_HOT bool flush()
   {
     // Retry on EINTR — a signal delivered during fflush() causes it to fail transiently.
     int result{0};
@@ -391,17 +398,17 @@ protected:
       result = std::fflush(_file);
     } while (result != 0 && errno == EINTR);
 
-    if (QUILL_LIKELY(result == 0))
-    {
-      _write_occurred = false;
-    }
-    else
+    if (QUILL_UNLIKELY(result != 0))
     {
       int const saved_errno = errno;
       std::clearerr(_file); // Reset error state
-      QUILL_THROW(QuillError{std::string{"fflush failed errno: "} + std::to_string(saved_errno) +
-                             " error: " + std::strerror(saved_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"fflush failed errno: "} + std::to_string(saved_errno) +
+                                             " error: " + std::strerror(saved_errno)},
+                                  false);
     }
+
+    _write_occurred = false;
+    return true;
   }
 
 protected:

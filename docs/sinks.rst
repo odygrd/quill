@@ -30,7 +30,11 @@ Sinks can be obtained using :cpp:func:`FrontendImpl::get_sink`, :cpp:func:`Front
 - ``get_sink`` retrieves an existing sink by name and throws ``QuillError`` if it does not exist.
 
 In builds configured with ``QUILL_NO_EXCEPTIONS``, conditions documented as throwing ``QuillError``
-invoke Quill's fatal error path instead.
+invoke Quill's fatal error path instead. An I/O failure of a file, stream or systemd sink on the
+backend thread, such as a write to a full disk or a file that cannot be opened again, is the
+exception: it is reported through ``BackendOptions::error_notifier`` in these builds too, and the
+backend keeps running. A file sink that is destroyed on another thread, e.g. as the process exits,
+gives up the records that it cannot write.
 
 .. warning::
 

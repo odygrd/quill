@@ -289,6 +289,9 @@ public:
    * was opened. Bytes that the callback writes to a new file therefore precede the header: make
    * them part of the header when they belong after its start.
    *
+   * A header that cannot be written in full, e.g. to a full disk, does not stay in the file: the
+   * file is emptied again, so that it gets its whole header when the sink opens it the next time.
+   *
    * @param file_header The header, or empty for none.
    */
   QUILL_ATTRIBUTE_COLD void set_file_header(std::string_view file_header)
@@ -478,6 +481,36 @@ QUILL_NODISCARD inline fs::path get_final_path(HANDLE handle)
 }
 #endif
 
+#if defined(QUILL_NO_EXCEPTIONS)
+/**
+ * Discards the failures of QUILL_THROW_OR_RETURN on a thread that has no receiver for them,
+ * where a failure would end the process
+ */
+struct DiscardedErrorsScope
+{
+  DiscardedErrorsScope() noexcept : is_installed{error_receiver() == nullptr}
+  {
+    if (is_installed)
+    {
+      error_receiver() = &receiver;
+    }
+  }
+
+  ~DiscardedErrorsScope()
+  {
+    if (is_installed)
+    {
+      error_receiver() = nullptr;
+    }
+  }
+
+  static void discard(void*, char const*) noexcept {}
+
+  ErrorReceiver const receiver{&DiscardedErrorsScope::discard, nullptr};
+  bool const is_installed;
+};
+#endif
+
 /**
  * fs::canonical() of an existing path, spelled as the filesystem stores it with every standard
  * library: MinGW's fs::canonical() keeps the requested case of each name. On Windows the result
@@ -612,6 +645,13 @@ public:
 
   ~FileSink() override
   {
+  #if defined(QUILL_NO_EXCEPTIONS)
+    // The sink can be destroyed on a thread that has no receiver for a failure, e.g. when the
+    // loggers are destroyed as the process exits, or by the application that holds it. What
+    // cannot be written or synced by now is given up, as the exceptions of these calls are
+    detail::DiscardedErrorsScope const discarded_errors_scope;
+  #endif
+
     _fsync_pending_noexcept();
     _close_file_noexcept();
   }
@@ -630,9 +670,17 @@ public:
   {
     bool const force_fsync = (flush_reason == SinkFlushReason::Final);
 
+    // Set again where the flush fails and returns, which it only does without exceptions
+    _flush_failed = false;
+
     if (_write_occurred && !is_open())
     {
       _reopen_file();
+    }
+
+    if (!is_open())
+    {
+      return;
     }
 
     if (!_write_occurred)
@@ -640,34 +688,37 @@ public:
       // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
       if (_fsync_pending && _config.fsync_enabled())
       {
-        fsync_file(force_fsync);
+        _flush_failed = !fsync_file(force_fsync);
       }
 
       return;
     }
 
-    QUILL_TRY { _flush_native_write_buffer(); }
+    bool flushed{false};
+
+    QUILL_TRY { flushed = _flush_native_write_buffer(); }
   #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      // A file that was removed, e.g. to make room on a full disk, keeps its space until it is
-      // closed. What could not be written to it is lost with it, and the next records go to a
-      // new file
-      if (_is_file_removed())
-      {
-        _native_write_pos = 0;
-        _replace_removed_file();
-      }
-
+      _replace_file_removed_before_failed_flush();
       throw;
     }
   #endif
 
+    if (QUILL_UNLIKELY(!flushed))
+    {
+      // Without exceptions a flush that fails returns. The next flush tries again
+      _replace_file_removed_before_failed_flush();
+      _flush_failed = true;
+      return;
+    }
+
     _write_occurred = false;
 
-    if (_config.fsync_enabled())
+    if (_config.fsync_enabled() && !fsync_file(force_fsync))
     {
-      fsync_file(force_fsync);
+      _flush_failed = true;
+      return;
     }
 
     if (_is_file_removed())
@@ -757,7 +808,11 @@ protected:
 
     if (_native_write_pos + size > _native_write_buffer_cap)
     {
-      _flush_native_write_buffer();
+      if (QUILL_UNLIKELY(!_flush_native_write_buffer()))
+      {
+        // Without exceptions a flush that fails returns, and the buffer has no room for the record
+        return;
+      }
     }
 
     if (QUILL_LIKELY(size <= _native_write_buffer_cap))
@@ -792,7 +847,11 @@ protected:
 
     if (_native_write_pos + size > _native_write_buffer_cap)
     {
-      _flush_native_write_buffer();
+      if (QUILL_UNLIKELY(!_flush_native_write_buffer()))
+      {
+        // Without exceptions a flush that fails returns, and the buffer has no room for the record
+        return;
+      }
     }
 
     if (QUILL_LIKELY(size <= _native_write_buffer_cap))
@@ -824,6 +883,19 @@ protected:
     return !file_exists;
   }
 
+  /**
+   * A file that was removed, e.g. to make room on a full disk, keeps its space until it is closed.
+   * What could not be written to it is lost with it, and the next records go to a new file
+   */
+  void _replace_file_removed_before_failed_flush()
+  {
+    if (_is_file_removed())
+    {
+      _native_write_pos = 0;
+      _replace_removed_file();
+    }
+  }
+
   /** Closes the open file, which was removed, and opens a new one at its path */
   void _replace_removed_file()
   {
@@ -835,14 +907,20 @@ protected:
 
   void _reopen_file()
   {
-    open_file(_filename, _config.open_mode());
+    if (!open_file(_filename, _config.open_mode()))
+    {
+      // Without exceptions an open that fails returns. The next flush tries again
+      return;
+    }
+
     std::error_code ec;
     uint64_t const reopened_file_size = fs::file_size(_filename, ec);
     _file_size = ec ? 0 : reopened_file_size;
     _write_occurred = false;
   }
 
-  void open_file(fs::path const& filename, std::string const& mode)
+  /** @return false if the file was not opened, which is only returned without exceptions */
+  bool open_file(fs::path const& filename, std::string const& mode)
   {
     if (_file_event_notifier.before_open)
     {
@@ -872,9 +950,11 @@ protected:
 
       if (!is_transient || (attempt == max_attempts))
       {
-        QUILL_THROW(QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempt) +
-                               " attempt(s), path: " + detail::file_sink_path_string(filename) +
-                               " mode: " + mode + " GetLastError: " + std::to_string(last_error)});
+        QUILL_THROW_OR_RETURN_VALUE(
+          QuillError{std::string{"CreateFileW failed after "} + std::to_string(attempt) +
+                     " attempt(s), path: " + detail::file_sink_path_string(filename) +
+                     " mode: " + mode + " GetLastError: " + std::to_string(last_error)},
+          false);
       }
 
       detail::sleep_for_ns(retry_delay_ns);
@@ -898,7 +978,8 @@ protected:
         if (!::SetFilePointerEx(opened_handle_guard.handle, offset, nullptr, FILE_END))
         {
           DWORD const seek_error = ::GetLastError();
-          QUILL_THROW(QuillError{"SetFilePointerEx failed. GetLastError: " + std::to_string(seek_error)});
+          QUILL_THROW_OR_RETURN_VALUE(
+            QuillError{"SetFilePointerEx failed. GetLastError: " + std::to_string(seek_error)}, false);
         }
       }
 
@@ -906,9 +987,10 @@ protected:
       _file_event_notifier.after_open(filename, opened_handle_guard.handle);
     }
 
-    if (is_new_file && !_config.file_header().empty())
+    if (is_new_file && !_config.file_header().empty() &&
+        !_write_file_header(opened_handle_guard.handle, append_mode, filename))
     {
-      _write_file_header(opened_handle_guard.handle, append_mode, filename);
+      return false;
     }
 
     uint64_t const initial_file_size = is_new_file ? _opened_file_size(opened_handle_guard.handle) : 0;
@@ -922,25 +1004,35 @@ protected:
     _append_mode = append_mode;
     _native_file_handle = opened_handle_guard.release();
     _set_initial_file_size(initial_file_size);
+    return true;
   }
 
-  void close_file()
+  /**
+   * @return false if the file was closed without all that was written to it, which is only
+   * returned without exceptions
+   */
+  bool close_file()
   {
     if (_native_file_handle == INVALID_HANDLE_VALUE)
     {
-      return;
+      return true;
     }
+
+    bool flushed{true};
 
     if (_file_event_notifier.before_close)
     {
-      // Callbacks write through the handle, outside Quill's separate native buffer.
-      _flush_native_write_buffer();
+      // Callbacks write through the handle, outside Quill's separate native buffer. Without
+      // exceptions a flush that fails returns: what it did not write is dropped, so that it does
+      // not follow what the callback writes
+      flushed = _flush_native_write_buffer();
+      _native_write_pos = 0;
       QUILL_TRY { _file_event_notifier.before_close(_filename, _native_file_handle); }
   #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
       {
         HANDLE native_file_handle = _native_file_handle;
-        QUILL_TRY { _flush_native_write_buffer(); }
+        QUILL_TRY { (void)_flush_native_write_buffer(); }
         QUILL_CATCH_ALL() {}
         _native_file_handle = INVALID_HANDLE_VALUE;
         _append_mode = false;
@@ -951,7 +1043,8 @@ protected:
   #endif
     }
 
-    _flush_native_write_buffer();
+    // Without exceptions a flush that fails returns: the file is closed without those records
+    flushed = _flush_native_write_buffer() && flushed;
     ::CloseHandle(_native_file_handle);
     _native_file_handle = INVALID_HANDLE_VALUE;
     _append_mode = false;
@@ -961,6 +1054,8 @@ protected:
     {
       _file_event_notifier.after_close(_filename);
     }
+
+    return flushed;
   }
 
   /**
@@ -977,8 +1072,10 @@ protected:
 
     QUILL_TRY
     {
-      _flush_native_write_buffer();
-      fsync_file(true);
+      if (_flush_native_write_buffer())
+      {
+        fsync_file(true);
+      }
     }
   #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL() {}
@@ -1000,11 +1097,12 @@ protected:
   #endif
   }
 
-  void fsync_file(bool force_fsync = false)
+  /** @return false if the file was not synced, which is only returned without exceptions */
+  bool fsync_file(bool force_fsync = false)
   {
     if (_native_file_handle == INVALID_HANDLE_VALUE)
     {
-      return;
+      return true;
     }
 
     // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
@@ -1014,14 +1112,14 @@ protected:
     {
       // Deferred: a later flush performs it once the interval has elapsed, or the final flush
       _fsync_pending = true;
-      return;
+      return true;
     }
 
     if (!::FlushFileBuffers(_native_file_handle))
     {
       _write_occurred = true;
-      QUILL_THROW(QuillError{std::string{"FlushFileBuffers failed. GetLastError: "} +
-                             std::to_string(::GetLastError())});
+      QUILL_THROW_OR_RETURN_VALUE(
+        QuillError{std::string{"FlushFileBuffers failed. GetLastError: "} + std::to_string(::GetLastError())}, false);
     }
 
     _fsync_pending = false;
@@ -1030,6 +1128,8 @@ protected:
     {
       _last_fsync_timestamp = now;
     }
+
+    return true;
   }
 
   /** True if the previous fsync was less than minimum_fsync_interval before `now` */
@@ -1094,8 +1194,9 @@ protected:
   /**
    * Writes the header of a new file, see FileSinkConfig::set_file_header(). It goes to the file
    * rather than to the write buffer, so that the size of the file includes it.
+   * @return false if it was not written, which is only returned without exceptions
    */
-  void _write_file_header(HANDLE file_handle, bool append_mode, fs::path const& filename)
+  QUILL_NODISCARD bool _write_file_header(HANDLE file_handle, bool append_mode, fs::path const& filename)
   {
     std::string_view file_header = _config.file_header();
     std::string user_file_header;
@@ -1109,11 +1210,34 @@ protected:
     if (_write_to_handle(file_handle, append_mode, file_header.data(), file_header.size()) !=
         file_header.size())
     {
-      DWORD const last_error = ::GetLastError();
-      QUILL_THROW(QuillError{std::string{"Failed to write the file header, path: "} +
-                             detail::file_sink_path_string(filename) +
-                             " GetLastError: " + std::to_string(last_error)});
+      DWORD const write_error = ::GetLastError();
+
+      // The file was empty, and is made empty again: with a part of the header in it, the open
+      // that follows would take it for a file that has its header, and append the records to that
+      bool const is_emptied = _truncate_native_file(file_handle);
+      DWORD const truncate_error = ::GetLastError();
+
+      std::string error_message = std::string{"Failed to write the file header, path: "} +
+        detail::file_sink_path_string(filename) + " GetLastError: " + std::to_string(write_error);
+
+      if (!is_emptied)
+      {
+        error_message += ". The part of it that was written is left in the file, GetLastError: " +
+          std::to_string(truncate_error);
+      }
+
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{error_message}, false);
     }
+
+    return true;
+  }
+
+  /** @return false if the file was not emptied, with the reason in GetLastError() */
+  QUILL_NODISCARD static bool _truncate_native_file(HANDLE file_handle) noexcept
+  {
+    LARGE_INTEGER const start{};
+    return (::SetFilePointerEx(file_handle, start, nullptr, FILE_BEGIN) != 0) &&
+      (::SetEndOfFile(file_handle) != 0);
   }
 
   /**
@@ -1133,7 +1257,8 @@ protected:
     if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
     {
       DWORD const last_error = ::GetLastError();
-      QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
+      QUILL_THROW_OR_RETURN(
+        QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
     }
   }
 
@@ -1175,11 +1300,12 @@ protected:
     return total_bytes_written;
   }
 
-  void _flush_native_write_buffer()
+  /** @return false if the file did not take the records, which is only returned without exceptions */
+  QUILL_NODISCARD bool _flush_native_write_buffer()
   {
     if ((_native_file_handle == INVALID_HANDLE_VALUE) || (_native_write_pos == 0))
     {
-      return;
+      return true;
     }
 
     size_t const bytes_written =
@@ -1193,10 +1319,12 @@ protected:
       _native_write_pos -= bytes_written;
       std::memmove(_native_write_buffer.get(), _native_write_buffer.get() + bytes_written, _native_write_pos);
 
-      QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
+      QUILL_THROW_OR_RETURN_VALUE(
+        QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)}, false);
     }
 
     _native_write_pos = 0;
+    return true;
   }
 
 protected:
@@ -1204,6 +1332,7 @@ protected:
   std::chrono::steady_clock::time_point _last_fsync_timestamp{};
   uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
   bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
+  bool _flush_failed{false}; /**< The last flush_sink() returned without the records written and synced, which it only does without exceptions */
   HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
   std::unique_ptr<char[]> _native_write_buffer;
   size_t _native_write_pos{0};
@@ -1244,6 +1373,13 @@ public:
 
   ~FileSink() override
   {
+  #if defined(QUILL_NO_EXCEPTIONS)
+    // The sink can be destroyed on a thread that has no receiver for a failure, e.g. when the
+    // loggers are destroyed as the process exits, or by the application that holds it. What
+    // cannot be written or synced by now is given up, as the exceptions of these calls are
+    detail::DiscardedErrorsScope const discarded_errors_scope;
+  #endif
+
     _fsync_pending_noexcept();
     _close_file_noexcept();
   }
@@ -1262,6 +1398,9 @@ public:
   {
     bool const force_fsync = (flush_reason == SinkFlushReason::Final);
 
+    // Set again where the flush fails and returns, which it only does without exceptions
+    _flush_failed = false;
+
     if (_write_occurred && !is_open())
     {
       _reopen_file();
@@ -1277,38 +1416,39 @@ public:
       // Nothing new to write, but an fsync skipped by minimum_fsync_interval may still be owed
       if (_fsync_pending && _config.fsync_enabled())
       {
-        fsync_file(force_fsync);
+        _flush_failed = !fsync_file(force_fsync);
       }
 
       return;
     }
 
+    bool flushed{false};
+
     QUILL_TRY
     {
-      _flush_native_write_buffer();
-
-      // The stream has the records when the write buffer is disabled. Clears _write_occurred
-      flush();
+      // The stream has the records when the write buffer is disabled. flush() clears _write_occurred
+      flushed = _flush_native_write_buffer() && flush();
     }
   #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
-      // A file that was removed, e.g. to make room on a full disk, keeps its space until it is
-      // closed. What could not be written to it is lost with it, and the next records go to a
-      // new file
-      if (_is_file_removed())
-      {
-        _native_write_pos = 0;
-        _replace_removed_file();
-      }
-
+      _replace_file_removed_before_failed_flush();
       throw;
     }
   #endif
 
-    if (_config.fsync_enabled())
+    if (QUILL_UNLIKELY(!flushed))
     {
-      fsync_file(force_fsync);
+      // Without exceptions a flush that fails returns. The next flush tries again
+      _replace_file_removed_before_failed_flush();
+      _flush_failed = true;
+      return;
+    }
+
+    if (_config.fsync_enabled() && !fsync_file(force_fsync))
+    {
+      _flush_failed = true;
+      return;
     }
 
     if (_is_file_removed())
@@ -1419,7 +1559,11 @@ protected:
 
     if (_native_write_pos + size > _native_write_buffer_cap)
     {
-      _flush_native_write_buffer();
+      if (QUILL_UNLIKELY(!_flush_native_write_buffer()))
+      {
+        // Without exceptions a flush that fails returns, and the buffer has no room for the record
+        return;
+      }
     }
 
     if (QUILL_LIKELY(size <= _native_write_buffer_cap))
@@ -1454,7 +1598,11 @@ protected:
 
     if (_native_write_pos + size > _native_write_buffer_cap)
     {
-      _flush_native_write_buffer();
+      if (QUILL_UNLIKELY(!_flush_native_write_buffer()))
+      {
+        // Without exceptions a flush that fails returns, and the buffer has no room for the record
+        return;
+      }
     }
 
     if (QUILL_LIKELY(size <= _native_write_buffer_cap))
@@ -1476,6 +1624,19 @@ protected:
     return !ec && !file_exists;
   }
 
+  /**
+   * A file that was removed, e.g. to make room on a full disk, keeps its space until it is closed.
+   * What could not be written to it is lost with it, and the next records go to a new file
+   */
+  void _replace_file_removed_before_failed_flush()
+  {
+    if (_is_file_removed())
+    {
+      _native_write_pos = 0;
+      _replace_removed_file();
+    }
+  }
+
   /** Closes the open file, which was removed, and opens a new one at its path */
   void _replace_removed_file()
   {
@@ -1487,14 +1648,20 @@ protected:
 
   void _reopen_file()
   {
-    open_file(_filename, _config.open_mode());
+    if (!open_file(_filename, _config.open_mode()))
+    {
+      // Without exceptions an open that fails returns. The next flush tries again
+      return;
+    }
+
     std::error_code ec;
     uint64_t const reopened_file_size = fs::file_size(_filename, ec);
     _file_size = ec ? 0 : reopened_file_size;
     _write_occurred = false;
   }
 
-  void open_file(fs::path const& filename, std::string const& mode)
+  /** @return false if the file was not opened, which is only returned without exceptions */
+  bool open_file(fs::path const& filename, std::string const& mode)
   {
     if (_file_event_notifier.before_open)
     {
@@ -1530,8 +1697,10 @@ protected:
     {
       // Building the message can change errno
       int const open_errno = errno;
-      QUILL_THROW(QuillError{std::string{"fopen failed, path: "} + filename.string() + " mode: " + mode +
-                             " errno: " + std::to_string(open_errno) + " error: " + std::strerror(open_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(
+        QuillError{std::string{"fopen failed, path: "} + filename.string() + " mode: " + mode +
+                   " errno: " + std::to_string(open_errno) + " error: " + std::strerror(open_errno)},
+        false);
     }
 
     // A size of 0 disables the buffer: every record is then written to the file as it arrives
@@ -1548,12 +1717,15 @@ protected:
       _file_event_notifier.after_open(filename, opened_file_guard.file);
 
       // What the callback wrote to the stream is part of the size of the file
-      _flush_opened_file(opened_file_guard.file, filename);
+      if (!_flush_opened_file(opened_file_guard.file, filename))
+      {
+        return false;
+      }
     }
 
-    if (is_new_file && !_config.file_header().empty())
+    if (is_new_file && !_config.file_header().empty() && !_write_file_header(opened_file_guard.file, filename))
     {
-      _write_file_header(opened_file_guard.file, filename);
+      return false;
     }
 
     uint64_t const initial_file_size = is_new_file ? _opened_file_size(opened_file_guard.file) : 0;
@@ -1566,19 +1738,29 @@ protected:
 
     _file = opened_file_guard.release();
     _set_initial_file_size(initial_file_size);
+    return true;
   }
 
-  void close_file()
+  /**
+   * @return false if the file was closed without all that was written to it, which is only
+   * returned without exceptions
+   */
+  bool close_file()
   {
     if (!_file)
     {
-      return;
+      return true;
     }
+
+    bool flushed{true};
 
     if (_file_event_notifier.before_close)
     {
-      // Callbacks write through the stream, outside Quill's separate native buffer.
-      _flush_native_write_buffer();
+      // Callbacks write through the stream, outside Quill's separate native buffer. Without
+      // exceptions a flush that fails returns: what it did not write is dropped, so that it does
+      // not follow what the callback writes
+      flushed = _flush_native_write_buffer();
+      _native_write_pos = 0;
       QUILL_TRY { _file_event_notifier.before_close(_filename, _file); }
   #if !defined(QUILL_NO_EXCEPTIONS)
       QUILL_CATCH_ALL()
@@ -1592,7 +1774,8 @@ protected:
   #endif
     }
 
-    _flush_native_write_buffer();
+    // Without exceptions a flush that fails returns: the file is closed without those records
+    flushed = _flush_native_write_buffer() && flushed;
     FILE* file = _file;
     _file = nullptr;
     _native_write_pos = 0;
@@ -1600,14 +1783,17 @@ protected:
     if (std::fclose(file) != 0)
     {
       int const saved_errno = errno;
-      QUILL_THROW(QuillError{std::string{"fclose failed errno: "} + std::to_string(saved_errno) +
-                             " error: " + std::strerror(saved_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"fclose failed errno: "} + std::to_string(saved_errno) +
+                                             " error: " + std::strerror(saved_errno)},
+                                  false);
     }
 
     if (_file_event_notifier.after_close)
     {
       _file_event_notifier.after_close(_filename);
     }
+
+    return flushed;
   }
 
   /**
@@ -1624,9 +1810,10 @@ protected:
 
     QUILL_TRY
     {
-      _flush_native_write_buffer();
-      flush();
-      fsync_file(true);
+      if (_flush_native_write_buffer() && flush())
+      {
+        fsync_file(true);
+      }
     }
   #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL() {}
@@ -1649,11 +1836,12 @@ protected:
   #endif
   }
 
-  void fsync_file(bool force_fsync = false)
+  /** @return false if the file was not synced, which is only returned without exceptions */
+  bool fsync_file(bool force_fsync = false)
   {
     if (!_file)
     {
-      return;
+      return true;
     }
 
     // A forced fsync (rotation, the final flush) ignores minimum_fsync_interval
@@ -1663,7 +1851,7 @@ protected:
     {
       // Deferred: a later flush performs it once the interval has elapsed, or the final flush
       _fsync_pending = true;
-      return;
+      return true;
     }
 
     // Retry on EINTR — a signal delivered during fsync() causes it to fail transiently.
@@ -1677,8 +1865,9 @@ protected:
     {
       int const saved_errno = errno;
       _write_occurred = true;
-      QUILL_THROW(QuillError{std::string{"fsync failed errno: "} + std::to_string(saved_errno) +
-                             " error: " + std::strerror(saved_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"fsync failed errno: "} + std::to_string(saved_errno) +
+                                             " error: " + std::strerror(saved_errno)},
+                                  false);
     }
 
     _fsync_pending = false;
@@ -1687,6 +1876,8 @@ protected:
     {
       _last_fsync_timestamp = now;
     }
+
+    return true;
   }
 
   /** True if the previous fsync was less than minimum_fsync_interval before `now` */
@@ -1743,23 +1934,29 @@ protected:
    * Writes the write buffer of a file that open_file() is opening. A flush that fails is not
    * tried again, also when it was interrupted: the stream can have discarded what it had buffered,
    * and the next flush would then report success for bytes that are not in the file.
+   * @return false if the flush failed, which is only returned without exceptions
    */
-  static void _flush_opened_file(FILE* file, fs::path const& filename)
+  QUILL_NODISCARD static bool _flush_opened_file(FILE* file, fs::path const& filename)
   {
     if (std::fflush(file) != 0)
     {
       int const flush_errno = errno;
-      QUILL_THROW(QuillError{std::string{"fflush failed, path: "} + filename.string() + " errno: " +
-                             std::to_string(flush_errno) + " error: " + std::strerror(flush_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(
+        QuillError{std::string{"fflush failed, path: "} + filename.string() +
+                   " errno: " + std::to_string(flush_errno) + " error: " + std::strerror(flush_errno)},
+        false);
     }
+
+    return true;
   }
 
   /**
    * Writes the header of a new file, see FileSinkConfig::set_file_header(). It goes to the file
    * rather than to the write buffer, so that the size of the file includes it, and past the
    * stream, which has nothing buffered at this point.
+   * @return false if it was not written, which is only returned without exceptions
    */
-  void _write_file_header(FILE* file, fs::path const& filename)
+  QUILL_NODISCARD bool _write_file_header(FILE* file, fs::path const& filename)
   {
     std::string_view file_header = _config.file_header();
     std::string user_file_header;
@@ -1773,9 +1970,31 @@ protected:
     if (_write_to_descriptor(fileno(file), file_header.data(), file_header.size()) != file_header.size())
     {
       int const write_errno = errno;
-      QUILL_THROW(QuillError{std::string{"Failed to write the file header, path: "} + filename.string() +
-                             " errno: " + std::to_string(write_errno) + " error: " + std::strerror(write_errno)});
+
+      // The file was empty, and is made empty again: with a part of the header in it, the open
+      // that follows would take it for a file that has its header, and append the records to that
+      bool const is_emptied = _truncate_native_file(file);
+      int const truncate_errno = errno;
+
+      std::string error_message = std::string{"Failed to write the file header, path: "} +
+        filename.string() + " errno: " + std::to_string(write_errno) + " error: " + std::strerror(write_errno);
+
+      if (!is_emptied)
+      {
+        error_message += ". The part of it that was written is left in the file, errno: " +
+          std::to_string(truncate_errno) + " error: " + std::strerror(truncate_errno);
+      }
+
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{error_message}, false);
     }
+
+    return true;
+  }
+
+  /** @return false if the file was not emptied, with the reason in errno */
+  QUILL_NODISCARD static bool _truncate_native_file(FILE* file) noexcept
+  {
+    return ::ftruncate(fileno(file), 0) == 0;
   }
 
   /**
@@ -1787,10 +2006,9 @@ protected:
   {
     if (_native_write_buffer_cap == 0)
     {
-      // Through the stream, as the callbacks of the FileEventNotifier have configured it
-      _safe_fwrite(first, sizeof(char), first_size, _file, false);
-
-      if (second_size != 0)
+      // Through the stream, as the callbacks of the FileEventNotifier have configured it. The
+      // second part is not written without the first: it would be a record without its frame
+      if (_safe_fwrite(first, sizeof(char), first_size, _file, false) && (second_size != 0))
       {
         _safe_fwrite(second, sizeof(char), second_size, _file, false);
       }
@@ -1809,8 +2027,8 @@ protected:
     if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
     {
       int const write_errno = errno;
-      QUILL_THROW(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
-                             " error: " + std::strerror(write_errno)});
+      QUILL_THROW_OR_RETURN(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
+                                       " error: " + std::strerror(write_errno)});
     }
   }
 
@@ -1852,11 +2070,12 @@ protected:
     return total_bytes_written;
   }
 
-  void _flush_native_write_buffer()
+  /** @return false if the file did not take the records, which is only returned without exceptions */
+  QUILL_NODISCARD bool _flush_native_write_buffer()
   {
     if (!_file || (_native_write_pos == 0))
     {
-      return;
+      return true;
     }
 
     size_t const bytes_written =
@@ -1870,11 +2089,13 @@ protected:
       _native_write_pos -= bytes_written;
       std::memmove(_native_write_buffer.get(), _native_write_buffer.get() + bytes_written, _native_write_pos);
 
-      QUILL_THROW(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
-                             " error: " + std::strerror(write_errno)});
+      QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
+                                             " error: " + std::strerror(write_errno)},
+                                  false);
     }
 
     _native_write_pos = 0;
+    return true;
   }
 
 protected:
@@ -1885,6 +2106,7 @@ protected:
   size_t _native_write_pos{0};
   size_t _native_write_buffer_cap{0};
   bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
+  bool _flush_failed{false}; /**< The last flush_sink() returned without the records written and synced, which it only does without exceptions */
 };
 #endif
 
