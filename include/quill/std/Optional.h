@@ -29,13 +29,18 @@ QUILL_BEGIN_EXPORT
 template <typename T>
 struct Codec<std::optional<T>>
 {
+private:
+  // Strip cv qualifiers so that e.g. std::optional<int const> uses the codec of int
+  using UT = detail::remove_cvref_t<T>;
+
+public:
   static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, std::optional<T> const& arg)
   {
     size_t total_size{sizeof(bool)};
 
     if (arg.has_value())
     {
-      total_size += Codec<T>::compute_encoded_size(conditional_arg_size_cache, *arg);
+      total_size += Codec<UT>::compute_encoded_size(conditional_arg_size_cache, *arg);
     }
 
     return total_size;
@@ -51,23 +56,23 @@ struct Codec<std::optional<T>>
     {
       if constexpr (std::is_rvalue_reference_v<Arg&&>)
       {
-        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                         std::move(*arg));
+        Codec<UT>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
+                          std::move(*arg));
       }
       else
       {
-        Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
+        Codec<UT>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, *arg);
       }
     }
   }
 
   static auto decode_arg(std::byte*& buffer)
   {
-    using ReturnType = decltype(detail::decode_element<T>(buffer));
+    using ReturnType = decltype(detail::decode_element<UT>(buffer));
     bool const has_value = Codec<bool>::decode_arg(buffer);
     if (has_value)
     {
-      auto elem = detail::decode_element<T>(buffer);
+      auto elem = detail::decode_element<UT>(buffer);
 
       if constexpr (std::is_move_constructible_v<ReturnType>)
       {
