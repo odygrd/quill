@@ -402,6 +402,9 @@
 - `PrometheusSink::unregister_metric()` no longer removes a family from a registry that merges
   families by name, which `Registry::InsertBehavior::Merge` does by default. The application can
   have registered the same family, and lost it when the sink removed the last series it had added.
+- `PrometheusSink::linear_buckets()` and `exponential_buckets()` throw `QuillError` for NaN and
+  infinite arguments, e.g. a width computed from a division by zero, instead of returning
+  boundaries that are NaN.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
   boundaries before creating any state, so registering again with corrected buckets works instead
   of dropping samples or failing every publish.

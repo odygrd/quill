@@ -22,6 +22,7 @@
 #include <prometheus/summary.h>
 
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <map>
@@ -61,13 +62,14 @@ public:
    * Example: linear_buckets(0.0, 5.0, 5) -> {0, 5, 10, 15, 20}
    *
    * `start` may be negative. `width` must be > 0 so the sequence is strictly increasing, as
-   * Prometheus requires.
+   * Prometheus requires. Both must be finite.
    */
   QUILL_NODISCARD static HistogramBuckets linear_buckets(double start, double width, size_t count)
   {
-    if (width <= 0.0)
+    if (!std::isfinite(start) || !std::isfinite(width) || !(width > 0.0))
     {
-      QUILL_THROW(QuillError{"PrometheusSink::linear_buckets() requires width > 0"});
+      QUILL_THROW(QuillError{
+        "PrometheusSink::linear_buckets() requires a finite start and a finite width > 0"});
     }
 
     HistogramBuckets buckets;
@@ -89,17 +91,18 @@ public:
    *
    * Use this for quantities that span several orders of magnitude (latencies, sizes). `start` must
    * be > 0 and `factor` must be > 1 so the sequence is strictly increasing, as Prometheus requires.
+   * Both must be finite.
    */
   QUILL_NODISCARD static HistogramBuckets exponential_buckets(double start, double factor, size_t count)
   {
-    if (start <= 0.0)
+    if (!std::isfinite(start) || !(start > 0.0))
     {
-      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires start > 0"});
+      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires a finite start > 0"});
     }
 
-    if (factor <= 1.0)
+    if (!std::isfinite(factor) || !(factor > 1.0))
     {
-      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires factor > 1"});
+      QUILL_THROW(QuillError{"PrometheusSink::exponential_buckets() requires a finite factor > 1"});
     }
 
     HistogramBuckets buckets;
