@@ -7,6 +7,8 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Set.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <functional>
@@ -20,6 +22,24 @@ using namespace quill;
 struct CStringComparator
 {
   bool operator()(char const* a, char const* b) const { return std::strcmp(a, b) < 0; }
+};
+
+/**
+ * A comparator that exists for std::string only. The codec leaves the comparator of an
+ * application as it is, also when the keys are decoded as another type.
+ */
+template <typename T>
+struct CaseInsensitiveLess;
+
+template <>
+struct CaseInsensitiveLess<std::string>
+{
+  bool operator()(std::string_view lhs, std::string_view rhs) const
+  {
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                                        [](unsigned char a, unsigned char b)
+                                        { return std::tolower(a) < std::tolower(b); });
+  }
 };
 
 /***/
@@ -58,6 +78,13 @@ TEST_CASE("std_set_logging")
 
     std::set<int, std::greater<int>> greater_set = {1, 2, 3};
     LOG_INFO(logger, "greater_set {}", greater_set);
+
+    std::set<std::string, std::greater<std::string>> greater_string_set = {"alpha", "beta", "gamma"};
+    LOG_INFO(logger, "greater_string_set {}", greater_string_set);
+
+    std::set<std::string, CaseInsensitiveLess<std::string>> case_insensitive_set = {"beta", "Alpha",
+                                                                                    "Gamma"};
+    LOG_INFO(logger, "case_insensitive_set {}", case_insensitive_set);
 
     std::set<long> li = {9876, 1232};
     LOG_INFO(logger, "li {}", li);
@@ -164,6 +191,12 @@ TEST_CASE("std_set_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_set {3, 2, 1}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_string_set {\"gamma\", \"beta\", \"alpha\"}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       case_insensitive_set {\"Alpha\", \"beta\", \"Gamma\"}"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       li {1232, 9876}"}));

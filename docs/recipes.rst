@@ -281,8 +281,9 @@ To log STL types, include the relevant header from ``quill/std/``. There is supp
 
     Quill creates a temporary container on the backend when it formats the log message. Custom allocators,
     comparators, hash functions, and equality functions must work when default constructed; any settings stored in
-    the original objects are not copied. They must also accept the decoded element type. For example,
-    ``std::greater<int>`` works, but use ``std::greater<>`` rather than ``std::greater<std::string>`` for string keys.
+    the original objects are not copied. They must also accept the decoded element type. ``std::less<Key>`` and
+    ``std::greater<Key>`` work, as they are rebound to the decoded key type, but a custom comparator must accept the
+    decoded key, e.g. ``std::string_view`` for ``std::string`` keys.
 
 .. code:: cpp
 
