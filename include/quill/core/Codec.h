@@ -379,8 +379,12 @@ struct Codec
       // c strings or char array
       char const* arg = decode_arg(buffer);
 
+      // decode_arg() measured the string to step over it, and the buffer is now past its
+      // terminator, so the string is not measured a second time
+      size_t const length = static_cast<size_t>(reinterpret_cast<char const*>(buffer) - arg) - 1u;
+
       // Store a view of the decoded bytes instead of copying them into an owned string
-      args_store->push_back(fmtquill::string_view{arg, detail::safe_strnlen(arg)});
+      args_store->push_back(fmtquill::string_view{arg, length});
     }
     else if constexpr (std::disjunction_v<detail::is_std_string<Arg>, std::is_same<Arg, std::string_view>>)
     {
