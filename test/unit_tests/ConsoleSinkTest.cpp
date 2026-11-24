@@ -3,6 +3,18 @@
 #include "quill/core/LogLevel.h"
 #include "quill/sinks/ConsoleSink.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <string_view>
+#include <utility>
+
+#if !defined(_WIN32)
+  #include <fcntl.h>
+  #include <poll.h>
+  #include <unistd.h>
+#endif
+
 TEST_SUITE_BEGIN("ConsoleSink");
 
 using namespace quill;
@@ -128,6 +140,128 @@ TEST_CASE("coloured_console_applies_before_write_before_newline_handling")
   expected += ConsoleSinkConfig::Colours::reset;
   expected += '\n';
   REQUIRE_EQ(sink.contents(), expected);
+}
+
+/***/
+TEST_CASE("automatic_colour_mode_follows_the_no_color_environment_variable")
+{
+#if defined(_WIN32)
+  return;
+#else
+  // A pseudo terminal takes the place of stdout, so that the automatic mode finds a terminal
+  int const terminal_fd = ::posix_openpt(O_RDWR | O_NOCTTY);
+
+  if ((terminal_fd < 0) || (::grantpt(terminal_fd) != 0) || (::unlockpt(terminal_fd) != 0))
+  {
+    // No pseudo terminals here, e.g. in a container without /dev/pts
+    if (terminal_fd >= 0)
+    {
+      ::close(terminal_fd);
+    }
+
+    return;
+  }
+
+  char const* const terminal_name = ::ptsname(terminal_fd);
+  int const stdout_terminal_fd = terminal_name ? ::open(terminal_name, O_RDWR | O_NOCTTY) : -1;
+
+  // A read of what the sink wrote must not wait when there is nothing more to read
+  if ((stdout_terminal_fd < 0) || (::fcntl(terminal_fd, F_SETFL, O_NONBLOCK) != 0))
+  {
+    if (stdout_terminal_fd >= 0)
+    {
+      ::close(stdout_terminal_fd);
+    }
+
+    ::close(terminal_fd);
+    return;
+  }
+
+  char const* const previous_term = std::getenv("TERM");
+  std::string const term_to_restore{previous_term ? previous_term : ""};
+  char const* const previous_no_color = std::getenv("NO_COLOR");
+  std::string const no_color_to_restore{previous_no_color ? previous_no_color : ""};
+
+  std::fflush(stdout);
+  int const saved_stdout_fd = ::dup(STDOUT_FILENO);
+  ::dup2(stdout_terminal_fd, STDOUT_FILENO);
+  ::setenv("TERM", "xterm", 1);
+
+  // Whether a sink that is created with this value of NO_COLOR writes colour codes
+  auto const writes_colours = [terminal_fd](char const* no_color)
+  {
+    if (no_color)
+    {
+      ::setenv("NO_COLOR", no_color, 1);
+    }
+    else
+    {
+      ::unsetenv("NO_COLOR");
+    }
+
+    ConsoleSink sink{ConsoleSinkConfig{}};
+    sink.write_log(LogRecord{
+      nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, "message", "message\n", {}});
+    sink.flush_sink(SinkFlushReason::Explicit);
+
+    // The terminal passes on what is written to it a moment later. A mark after what the sink
+    // wrote tells where that ends, so the read waits for the mark instead of taking what is there
+    static constexpr char end_mark{'\x1f'};
+    ssize_t const mark_size = ::write(STDOUT_FILENO, &end_mark, 1);
+
+    std::string written;
+    pollfd terminal{terminal_fd, POLLIN, 0};
+
+    while ((mark_size == 1) && (written.find(end_mark) == std::string::npos) &&
+           (::poll(&terminal, 1, 10'000) > 0))
+    {
+      char chunk[128];
+      ssize_t const size = ::read(terminal_fd, chunk, sizeof(chunk));
+
+      if (size <= 0)
+      {
+        break;
+      }
+
+      written.append(chunk, static_cast<size_t>(size));
+    }
+
+    return written.find("\033[") != std::string::npos;
+  };
+
+  bool const without_variable = writes_colours(nullptr);
+  bool const with_empty_variable = writes_colours("");
+  bool const with_variable = writes_colours("1");
+
+  // Back to the stdout of the test, which reports to it
+  std::fflush(stdout);
+  ::dup2(saved_stdout_fd, STDOUT_FILENO);
+  ::close(saved_stdout_fd);
+  ::close(stdout_terminal_fd);
+  ::close(terminal_fd);
+
+  if (previous_term)
+  {
+    ::setenv("TERM", term_to_restore.c_str(), 1);
+  }
+  else
+  {
+    ::unsetenv("TERM");
+  }
+
+  if (previous_no_color)
+  {
+    ::setenv("NO_COLOR", no_color_to_restore.c_str(), 1);
+  }
+  else
+  {
+    ::unsetenv("NO_COLOR");
+  }
+
+  REQUIRE(without_variable);
+  REQUIRE(with_empty_variable);
+  REQUIRE_FALSE(with_variable);
+#endif
 }
 
 /***/
