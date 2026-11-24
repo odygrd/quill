@@ -363,6 +363,8 @@
   `DeferredFormatCodec` or inside a `std::array` is no longer wrapped in a one-element list on GCC.
 - `std::optional<T const>` and a `std::variant` with const alternatives, such as
   `std::variant<int const, std::string const>`, can be logged; they failed to compile.
+- A `std::variant` member with an alternative that has no formatter compiles with
+  `encode_members()` and `decode_members()`, when the type that holds it has a formatter of its own.
 - A `std::map`, `std::multimap`, `std::set` or `std::multiset` of strings with
   `std::greater<Key>` as its comparator, such as `std::set<std::string, std::greater<std::string>>`,
   can be logged; it failed to compile.

@@ -15,6 +15,7 @@
 #include "quill/std/Variant.h"
 #include "quill/std/Vector.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <string_view>
@@ -100,11 +101,25 @@ struct quill::Codec<CustomType>
 };
 
 /***/
+// Has no formatter of its own: the formatter of the type that holds it reads its member
+struct Venue
+{
+  uint32_t id{0};
+};
+
+/***/
+template <>
+struct quill::Codec<Venue> : quill::MemberwiseCodec<Venue, &Venue::id>
+{
+};
+
+/***/
 // A std::variant member decodes to DecodedVariant, which must convert to the member type
 struct TaggedType
 {
   std::vector<std::string> tags;
   std::variant<int, double> value;
+  std::variant<int, Venue> venue;
 };
 
 /***/
@@ -115,8 +130,8 @@ struct fmtquill::formatter<TaggedType>
 
   auto format(::TaggedType const& tagged, format_context& ctx) const
   {
-    return fmtquill::format_to(ctx.out(), "Tags: {}, Value: {}", tagged.tags,
-                               std::get<double>(tagged.value));
+    return fmtquill::format_to(ctx.out(), "Tags: {}, Value: {}, Venue: {}", tagged.tags,
+                               std::get<double>(tagged.value), std::get<::Venue>(tagged.venue).id);
   }
 };
 
@@ -126,14 +141,14 @@ struct quill::Codec<TaggedType>
 {
   static size_t compute_encoded_size(SizeCacheVector& conditional_arg_size_cache, ::TaggedType const& tagged)
   {
-    return compute_total_encoded_size(conditional_arg_size_cache, tagged.tags, tagged.value);
+    return compute_total_encoded_size(conditional_arg_size_cache, tagged.tags, tagged.value, tagged.venue);
   }
 
   static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, ::TaggedType const& tagged)
   {
     encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index,
-                   tagged.tags, tagged.value);
+                   tagged.tags, tagged.value, tagged.venue);
   }
 
   static ::TaggedType decode_arg(std::byte*& buffer)
@@ -145,7 +160,7 @@ struct quill::Codec<TaggedType>
     auto const tags = Codec<std::vector<std::string>>::decode_arg(buffer);
     tagged.tags.assign(tags.begin(), tags.end());
 
-    decode_members(buffer, tagged, tagged.value);
+    decode_members(buffer, tagged, tagged.value, tagged.venue);
     return tagged;
   }
 
@@ -228,7 +243,7 @@ TEST_CASE("custom_type_defined_type_logging")
     {"David", "Brown", 40, {"red", "blue", "yellow"}, {"Dave", 40}, {5, "Private"}}};
   LOG_INFO(logger, "The answers are {}", custom_types);
 
-  TaggedType const tagged{{"fast", "safe"}, 1.5};
+  TaggedType const tagged{{"fast", "safe"}, 1.5, Venue{7}};
   LOG_INFO(logger, "Tagged {}", tagged);
 
   MemberwiseType const memberwise{"AAPL", 1.5, {7, 9}};
@@ -248,7 +263,7 @@ TEST_CASE("custom_type_defined_type_logging")
     file_contents, std::string{"LOG_INFO      " + logger_name + "       Memberwise AAPL @ 1.5 on [7, 9]"}));
 
   REQUIRE(quill::testing::file_contains(
-    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tagged Tags: [\"fast\", \"safe\"], Value: 1.5"}));
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       Tagged Tags: [\"fast\", \"safe\"], Value: 1.5, Venue: 7"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       The answer is Name: Quill, Surname: Library, Age: 4, Favorite Colors: [\"red\", \"green\", \"blue\"], Nickname: (\"Q\", 42), Rank: (1, \"Captain\")"}));

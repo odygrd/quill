@@ -144,7 +144,7 @@ public:
     }
 
     char const c = *it;
-    if ((it != end) && (((c >= '0') && (c <= '9')) || (c == '{')))
+    if (((c >= '0') && (c <= '9')) || (c == '{'))
     {
       it = fmtquill::detail::parse_width(it, end, _specs, _width_ref, ctx);
     }

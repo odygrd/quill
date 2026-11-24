@@ -132,10 +132,6 @@ private:
   using DecodedVariantType = detail::DecodedVariant<detail::decoded_variant_alternative_t<Types>...>;
   static constexpr bool can_preserve_valueless_state = std::is_same_v<DecodedVariantValueType, VariantType>;
 
-  static_assert(fmtquill::detail::is_variant_formattable<DecodedVariantValueType, char>::value,
-                "Codec<std::variant<Types...>> requires the decoded variant type to be formattable "
-                "by bundled fmt.");
-
   template <size_t Index>
   static DecodedVariantType decode_alternative(std::byte*& buffer)
   {
@@ -256,6 +252,14 @@ public:
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
+    // The check lives here rather than at class scope so that decode-only nested use of this
+    // codec, e.g. for a member of a type with a formatter of its own, does not require a
+    // formatter for every alternative.
+    static_assert(
+      fmtquill::detail::is_variant_formattable<DecodedVariantValueType, char>::value,
+      "Codec<std::variant<Types...>> requires the decoded variant type to be formattable "
+      "by bundled fmt.");
+
     args_store->push_back(decode_arg(buffer));
   }
 };
