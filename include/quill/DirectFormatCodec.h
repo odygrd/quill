@@ -93,6 +93,9 @@ QUILL_BEGIN_EXPORT
  * formatter reads state that changes concurrently, and a throwing formatter fails the log call
  * before anything is queued. The thread-local size cache retains its capacity for later records
  * until the thread context is destroyed.
+ *
+ * The formatter runs while the log statement writes its record. It must not log through Quill,
+ * even through a different logger: the loggers of a thread share its queue and that size cache.
  */
 template <typename T>
 struct DirectFormatCodec

@@ -492,6 +492,15 @@ is inside another argument, such as an element of a ``std::vector`` or the value
 ``std::optional``, ``std::pair``, ``std::tuple`` or ``std::variant``, was already moved out of the
 queue and destroyed, so the record is decoded again from a destroyed object.
 
+No Logging Inside a Codec
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``compute_encoded_size()`` and ``encode()`` run on the calling thread while the log statement
+writes its record, and so do the formatter of a type that uses ``DirectFormatCodec`` and the copy
+or move constructor of one that uses ``DeferredFormatCodec``. None of them may log through Quill,
+even through a different logger: the loggers of a thread share its queue and the sizes that the
+statement has cached, so a nested log statement corrupts the record that is being written.
+
 Logging User-Defined Types in STL Containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
