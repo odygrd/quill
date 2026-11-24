@@ -216,7 +216,7 @@ TEST_CASE("windows_log_gmt_timestamp_has_utc_offset_and_zone")
 
 TEST_CASE("windows_unsupported_log_timestamp_directive_throws")
 {
-#if defined(_MSC_VER) && !defined(QUILL_NO_EXCEPTIONS)
+#if defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
   TimestampFormatter formatter{"%-H", quill::Timezone::GmtTime};
   REQUIRE_THROWS_AS((void)formatter.format_timestamp(std::chrono::nanoseconds{1'750'000'000'000'000'000ll}),
                     quill::QuillError);

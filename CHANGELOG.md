@@ -308,8 +308,9 @@
   instead of a stale cached one, and patterns with `%X` or `%c` are accepted instead of throwing
   `QuillError`. They are formatted with `strftime()`, which `BackendOptions::error_notifier`
   reports once.
-- MSVC builds report a formatting error for a timestamp or file name pattern with a specifier the C
-  runtime does not support, such as `%-H`, instead of terminating the process.
+- Windows builds, including MinGW ones, report a formatting error for a timestamp or file name
+  pattern with a specifier the C runtime does not support, such as `%-H`, instead of terminating
+  the process.
 - On macOS, `%(thread_name)` now shows thread names longer than 15 characters in full instead of
   only their first 15 characters.
 - A type using `DirectFormatCodec` is formatted once per log statement instead of twice, so a

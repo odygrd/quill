@@ -34,7 +34,7 @@ TEST_CASE("windows_filename_gmt_timestamp_has_utc_offset_and_zone")
 
 TEST_CASE("windows_unsupported_filename_timestamp_directive_throws")
 {
-#if defined(_MSC_VER) && !defined(QUILL_NO_EXCEPTIONS)
+#if defined(_WIN32) && !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE_THROWS_AS((void)quill::detail::format_datetime_string(1'750'000'000'000'000'000ull,
                                                                 Timezone::GmtTime, "%-H"),
                     QuillError);
