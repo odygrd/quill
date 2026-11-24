@@ -16,6 +16,11 @@ TEST_CASE("simple_format_string")
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus z"}, quill::QuillError);
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%Qms%S%Qus%Qns z"}, quill::QuillError);
   REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%S%Qus%Qns z"}, quill::QuillError);
+
+  // The one that is used can appear once
+  REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%I:%M%p%S.%Qms %Qms"}, quill::QuillError);
+  REQUIRE_THROWS_AS(TimestampFormatter ts_formatter{"%Qns%Qns"}, quill::QuillError);
+  REQUIRE_NOTHROW(TimestampFormatter{"%I:%M%p%S.%Qms %%Qms"});
 #endif
 
   // valid simple string

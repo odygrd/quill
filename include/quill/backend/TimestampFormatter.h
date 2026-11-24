@@ -35,8 +35,8 @@ namespace detail
  * 1) %Qms - Milliseconds
  * 2) %Qus - Microseconds
  * 3) %Qns - Nanoseconds
- * @note %Qms, %Qus, %Qns specifiers are mutually exclusive
- * e.g. given : "%I:%M.%Qms%p" the output would be "03:21.343PM"
+ * @note %Qms, %Qus, %Qns specifiers are mutually exclusive, and the one that is used can appear
+ * once e.g. given : "%I:%M.%Qms%p" the output would be "03:21.343PM"
  */
 class TimestampFormatter
 {
@@ -117,6 +117,14 @@ public:
       size_t const specifier_end = specifier_begin + specifier_length;
       std::string const format_part_2 =
         _time_format.substr(specifier_end, _time_format.length() - specifier_end);
+
+      // Another one of the three is rejected above. The same one again would reach strftime(),
+      // which does not know it
+      if (StringFromTime::_find_unescaped_modifier(
+            format_part_2, specifier_name[_additional_format_specifier]) != std::string::npos)
+      {
+        QUILL_THROW(QuillError{"format specifiers %Qms, %Qus and %Qns can be used only once"});
+      }
 
       if (!format_part_2.empty())
       {

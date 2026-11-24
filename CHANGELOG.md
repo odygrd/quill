@@ -329,6 +329,11 @@
   instead of a stale cached one, and patterns with `%X` or `%c` are accepted instead of throwing
   `QuillError`. They are formatted with `strftime()`, which `BackendOptions::error_notifier`
   reports once.
+- A timestamp pattern that repeats `%Qms`, `%Qus` or `%Qns`, such as `"%S.%Qms %Qms"`, is rejected
+  as a pattern with two of them is: the records of the logger are not written, and each is reported
+  through `BackendOptions::error_notifier`, which does not repeat its last message for five
+  seconds, while a `QUILL_NO_EXCEPTIONS` build ends at the first record. Before, the second one was
+  printed as it is on Linux and failed every record on Windows.
 - Timestamp patterns with `%r` follow the locale, as `strftime()` does, instead of always printing
   `%I:%M:%S %p`. They are formatted with `strftime()` for every timestamp.
 - Windows builds, including MinGW ones, report a formatting error for a timestamp or file name

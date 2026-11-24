@@ -83,6 +83,8 @@ public:
    * - %Qms : Milliseconds
    * - %Qus : Microseconds
    * - %Qns : Nanoseconds
+   *
+   * A pattern can have one of these specifiers, once.
    */
   std::string timestamp_pattern{"%H:%M:%S.%Qns"};
 

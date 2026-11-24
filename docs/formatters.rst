@@ -105,6 +105,13 @@ Specifier Description
 %Qns      Nanoseconds
 ========= ============
 
+A pattern can have one of these specifiers, once. With another one the backend cannot create the
+formatter of the logger, and the records of that logger are not written. Each of them reports the
+error through ``BackendOptions::error_notifier``, which does not repeat the message that it
+reported last for five seconds: the error is reported again after that time, or sooner when another
+error was reported in between. A build with ``QUILL_NO_EXCEPTIONS`` treats such a pattern as a fatal
+configuration error and ends the process at the first record of the logger.
+
 By default ``"%H:%M:%S.%Qns"`` is used.
 
 Use ``%%`` to write a literal percent sign in timestamp patterns, including escaped forms such as
