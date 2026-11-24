@@ -146,6 +146,9 @@ public:
    * is reached. If set to false, the oldest logs will not be overwritten when the maximum backup
    * count is reached, and log file rotation will stop until a backup file is removed. The default
    * value is true.
+   * When set to false, a rotation also does not rename a file over a backup that the sink does
+   * not track, e.g. one that an earlier run with open mode "w" and set_remove_old_files(false)
+   * left. The sink keeps writing to its current file until that backup is removed.
    * @param value True to overwrite the oldest logs, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_overwrite_rolled_files(bool value)
@@ -622,6 +625,29 @@ private:
   }
 
   /**
+   * Renames a file to the name that a rotation gives it. Every backup that the sink tracks has
+   * left that name by then, so a file that is there is one the sink does not know, e.g. the
+   * backup of a file name that was spelled in another case on a filesystem that ignores case.
+   * A rename would replace it, which set_overwrite_rolled_files(false) does not allow
+   * @return false if the file was not renamed
+   */
+  QUILL_NODISCARD bool _rename_for_rotation(fs::path const& existing_file, fs::path const& renamed_file)
+  {
+    if (!_config.overwrite_rolled_files())
+    {
+      // The status of the name itself: a link that leads nowhere is also a file that is there
+      std::error_code ec;
+
+      if (fs::exists(fs::symlink_status(renamed_file, ec)))
+      {
+        return false;
+      }
+    }
+
+    return rename_file(existing_file, renamed_file);
+  }
+
+  /**
    * @return false if a rename failed and the file was reopened without rotating, or if the file
    * could not be opened again, which is only returned without exceptions
    */
@@ -693,7 +719,7 @@ private:
 
         renamed_file = _get_filename(it->base_filename, new_index, datetime_suffix);
 
-        if (!rename_file(existing_file, renamed_file))
+        if (!_rename_for_rotation(existing_file, renamed_file))
         {
           rotation_succeeded = false;
           break;
@@ -709,7 +735,7 @@ private:
 
         renamed_file = _get_filename(it->base_filename, new_index, datetime_suffix);
 
-        if (!rename_file(existing_file, renamed_file))
+        if (!_rename_for_rotation(existing_file, renamed_file))
         {
           rotation_succeeded = false;
           break;
@@ -1036,123 +1062,15 @@ private:
     return _parse_uint32(value, parsed_value) && (parsed_value <= max_backup_index);
   }
 
-  /**
-   * False when two filenames cannot name the same file: both are ASCII and differ other than by
-   * case. Names with non-ASCII characters may differ by Unicode normalization, so they pass.
-   */
-  QUILL_NODISCARD static bool _may_be_filename_alias(fs::path::string_type const& lhs,
-                                                     fs::path::string_type const& rhs) noexcept
-  {
-    auto const is_ascii = [](fs::path::string_type const& name)
-    {
-      for (auto const c : name)
-      {
-        if ((static_cast<uint32_t>(c) & ~0x7Fu) != 0)
-        {
-          return false;
-        }
-      }
-      return true;
-    };
-
-    if (!is_ascii(lhs) || !is_ascii(rhs))
-    {
-      return true;
-    }
-
-    if (lhs.size() != rhs.size())
-    {
-      return false;
-    }
-
-    for (size_t i = 0; i < lhs.size(); ++i)
-    {
-      auto const to_lower = [](uint32_t c)
-      { return ((c >= 'A') && (c <= 'Z')) ? (c + ('a' - 'A')) : c; };
-      if (to_lower(static_cast<uint32_t>(lhs[i])) != to_lower(static_cast<uint32_t>(rhs[i])))
-      {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
                                                ParsedRotatedFileInfo& parsed_file_info) const
   {
     fs::path::string_type const base_extension = base_filename.extension().native();
     fs::path::string_type const base_stem = base_filename.stem().native();
-    fs::path::string_type candidate_name = candidate_filename.filename().native();
+    fs::path::string_type const candidate_name = candidate_filename.filename().native();
 
-    // Match "<stem>.<suffix><extension>", e.g. "app.1.log". The index/date is parsed below.
-    // Require a non-empty suffix before indexing the separator or comparing the extension.
-    bool const has_room_for_suffix = candidate_name.size() > base_stem.size() + base_extension.size() + 1u;
-    bool exact_name_match{false};
-    if (has_room_for_suffix)
-    {
-      bool const stem_matches = candidate_name.compare(0, base_stem.size(), base_stem) == 0;
-      bool const separator_matches = candidate_name[base_stem.size()] == '.';
-      bool const extension_matches = base_extension.empty() ||
-        (candidate_name.compare(candidate_name.size() - base_extension.size(),
-                                base_extension.size(), base_extension) == 0);
-
-      exact_name_match = stem_matches && separator_matches && extension_matches;
-    }
-
-    if (!exact_name_match)
-    {
-      // Let the filesystem resolve case/normalization aliases. Do not mistake an unrelated
-      // symlink to a backup for another backup, or collapse distinct hard-link names.
-      // A directory can hold many unrelated files, so test the cheap condition first: the name
-      // spelled with the base stem must exist. Only then compare inodes and canonical paths.
-      fs::path::string_type const candidate_stem_and_suffix =
-        base_extension.empty() ? candidate_name : candidate_filename.stem().native();
-      bool candidate_is_regular_file{false};
-      bool candidate_checked{false};
-
-      for (size_t separator = candidate_stem_and_suffix.find('.'); separator != fs::path::string_type::npos;
-           separator = candidate_stem_and_suffix.find('.', separator + 1u))
-      {
-        fs::path const alias = base_filename.parent_path() /
-          (base_stem + candidate_stem_and_suffix.substr(separator) + base_extension);
-
-        // Aliases differ only by case or Unicode normalization, so ASCII names must match
-        // case-insensitively. This skips unrelated files without touching the filesystem.
-        if (!_may_be_filename_alias(candidate_name, alias.filename().native()))
-        {
-          continue;
-        }
-
-        std::error_code ec;
-        fs::file_status const alias_status = fs::symlink_status(alias, ec);
-        if (ec || (alias_status.type() != fs::file_type::regular))
-        {
-          continue;
-        }
-
-        if (!candidate_checked)
-        {
-          candidate_checked = true;
-          fs::file_status const status = fs::symlink_status(candidate_filename, ec);
-          candidate_is_regular_file = !ec && (status.type() == fs::file_type::regular);
-        }
-
-        if (!candidate_is_regular_file || !fs::equivalent(candidate_filename, alias, ec) || ec)
-        {
-          continue;
-        }
-
-        // Same inode: an alias spelling of the same name, unless it is another hard link
-        fs::path const canonical_candidate = detail::get_canonical_path(candidate_filename);
-        if (!canonical_candidate.empty() && (detail::get_canonical_path(alias) == canonical_candidate))
-        {
-          candidate_name = alias.filename().native();
-          break;
-        }
-      }
-    }
-
+    // Match "<stem>.<suffix><extension>", e.g. "app.1.log", spelled as the sink writes it. The
+    // index/date is parsed below.
     NativeFilenameView candidate_stem{candidate_name};
 
     if (!base_extension.empty())

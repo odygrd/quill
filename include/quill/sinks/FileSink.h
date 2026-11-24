@@ -512,23 +512,6 @@ struct DiscardedErrorsScope
 };
 #endif
 
-/**
- * fs::canonical() of an existing path, spelled as the filesystem stores it with every standard
- * library: MinGW's fs::canonical() keeps the requested case of each name. On Windows the result
- * is in extended-length form. Empty on failure.
- */
-QUILL_NODISCARD inline fs::path get_canonical_path(fs::path const& path)
-{
-#if defined(_WIN32)
-  OpenedHandleGuard const file{::CreateFileW(
-    path.c_str(), FILE_READ_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-    nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr)};
-  return (file.handle == INVALID_HANDLE_VALUE) ? fs::path{} : get_final_path(file.handle);
-#else
-  std::error_code ec;
-  return fs::canonical(path, ec);
-#endif
-}
 } // namespace detail
 
 /**

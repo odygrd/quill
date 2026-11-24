@@ -1250,9 +1250,47 @@ TEST_CASE("rotating_file_sink_index_open_mode_append")
 }
 
 /***/
-TEST_CASE("rotating_file_sink_append_recovers_case_alias")
+TEST_CASE("rotating_file_sink_keeps_untracked_backup")
 {
-  fs::path const directory = "rotating_file_sink_append_recovers_case_alias";
+  fs::path const directory = "rotating_file_sink_keeps_untracked_backup";
+  fs::path const filename = directory / "app.log";
+  fs::path const backup_1 = directory / "app.1.log";
+
+  // A backup that the sink does not track: open mode 'w' without set_remove_old_files() neither
+  // removes nor recovers the backups of an earlier run
+  fs::create_directories(directory);
+  testing::create_file(backup_1, "earlier run");
+
+  RotatingFileSinkConfig config;
+  config.set_open_mode('w');
+  config.set_remove_old_files(false);
+  config.set_rotation_max_file_size(512);
+  config.set_overwrite_rolled_files(false);
+
+  auto write_record = [](RotatingFileSink& sink, char value)
+  {
+    sink.write_log(LogRecord{
+      nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, std::string(399, value) + '\n', {}});
+  };
+
+  {
+    RotatingFileSink sink{filename, config};
+    write_record(sink, 'A');
+
+    // The rotation that this record asks for would rename app.log over the backup
+    write_record(sink, 'B');
+  }
+
+  REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{"earlier run"});
+  REQUIRE(testing::file_contents(filename) ==
+          std::vector<std::string>{std::string(399, 'A'), std::string(399, 'B')});
+  fs::remove_all(directory);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_keeps_backup_of_case_alias")
+{
+  fs::path const directory = "rotating_file_sink_keeps_backup_of_case_alias";
   fs::path const filename = directory / "app.log";
   fs::path const alias_filename = directory / "App.log";
   fs::path const backup_1 = directory / "app.1.log";
@@ -1282,17 +1320,21 @@ TEST_CASE("rotating_file_sink_append_recovers_case_alias")
     fs::remove_all(directory);
     return;
   }
+
   REQUIRE(fs::equivalent(filename, alias_filename));
   REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'A')});
 
   {
+    // app.1.log is not recovered as a backup of App.log, and it is the file that the rotation
+    // for this record would rename App.log to
     RotatingFileSink sink{alias_filename, config};
     write_record(sink, 'C');
   }
 
-  REQUIRE(testing::file_contents(filename) == std::vector<std::string>{std::string(399, 'C')});
-  REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'B')});
-  REQUIRE(testing::file_contents(backup_2) == std::vector<std::string>{std::string(399, 'A')});
+  REQUIRE(testing::file_contents(backup_1) == std::vector<std::string>{std::string(399, 'A')});
+  REQUIRE(testing::file_contents(filename) ==
+          std::vector<std::string>{std::string(399, 'B'), std::string(399, 'C')});
+  REQUIRE_FALSE(fs::exists(backup_2));
   fs::remove_all(directory);
 }
 
@@ -6482,12 +6524,6 @@ TEST_CASE("rotating_file_sink_unicode_paths")
 
     REQUIRE(testing::file_contents(backup) == std::vector<std::string>{std::string(399, 'A')});
 
-    fs::path reopened_filename = filename;
-#if defined(__APPLE__)
-    fs::path const alias = directory / fs::path{u"\u65e5\u672c_e\u0301.log"};
-    REQUIRE(fs::equivalent(filename, alias));
-    reopened_filename = alias;
-#endif
 #if !defined(_WIN32)
     fs::path const unrelated_symlink = directory / "unrelated.1.log";
     std::error_code symlink_error;
@@ -6496,7 +6532,7 @@ TEST_CASE("rotating_file_sink_unicode_paths")
 
     {
       // Append-mode recovery must recognize the Unicode backup and enforce retention.
-      RotatingFileSink sink{reopened_filename, config, {}, start_time};
+      RotatingFileSink sink{filename, config, {}, start_time};
       write_record(sink, 'C');
     }
 
