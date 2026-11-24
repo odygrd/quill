@@ -161,13 +161,13 @@ public:
   };
 
   explicit PrometheusSink(Registry::InsertBehavior insert_behavior = Registry::InsertBehavior::Merge)
-    : _registry(insert_behavior)
+    : _registry(insert_behavior), _insert_behavior(insert_behavior)
   {
   }
 
   explicit PrometheusSink(ExposerConfiguration const& exposer_config,
                           Registry::InsertBehavior insert_behavior = Registry::InsertBehavior::Merge)
-    : _registry(insert_behavior)
+    : _registry(insert_behavior), _insert_behavior(insert_behavior)
   {
     if (exposer_config.uri.empty())
     {
@@ -337,7 +337,14 @@ public:
       });
   }
 
-  /** Removes a series and all pointer aliases; samples are ignored until it is registered again. */
+  /**
+   * Removes a series and all pointer aliases; samples are ignored until it is registered again.
+   *
+   * @note With Registry::InsertBehavior::Merge, the default, the family of the series stays in
+   * the registry after its last series is removed: the application can hold it. Its name stays
+   * reserved with its metric type and constant labels, so registering that name again with another
+   * type or other constant labels throws.
+   */
   bool unregister_metric(MetricMetadata const* metric_metadata)
   {
     MetricMetadata const& validated_metric = _validate_metric_metadata(metric_metadata);
@@ -623,7 +630,14 @@ private:
 
     if (family_it->second.metric_count == 0 && !family_it->second.keep_empty)
     {
-      std::visit([this](auto* family) { _registry.Remove(*family); }, family_it->second.family);
+      // A registry that merges gives the family of a name to every caller that registers it, so
+      // the application can hold this one, with or without series of its own. It is then left in
+      // the registry, where a family without series is not exposed
+      if (_insert_behavior != Registry::InsertBehavior::Merge)
+      {
+        std::visit([this](auto* family) { _registry.Remove(*family); }, family_it->second.family);
+      }
+
       _families.erase(family_it);
     }
   }
@@ -954,6 +968,7 @@ private:
 
 private:
   Registry _registry;
+  Registry::InsertBehavior _insert_behavior; /**< The one of _registry, which does not tell it */
   std::shared_ptr<prometheus::Collectable> _registry_collectable{
     &_registry, [](prometheus::Collectable*) noexcept {}};
   std::unique_ptr<Exposer> _exposer;
