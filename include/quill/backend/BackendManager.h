@@ -61,7 +61,7 @@ private:
 
   /***/
   BackendManager() = default;
-  ~BackendManager() { delete _start_once_flag.load(); }
+  ~BackendManager() = default;
 
   /***/
   QUILL_ATTRIBUTE_COLD void start_backend_thread(BackendOptions const& options)
@@ -70,10 +70,20 @@ private:
     _backend_worker.run(options);
   }
 
-  /***/
-  QUILL_ATTRIBUTE_COLD std::once_flag& get_start_once_flag() noexcept
+  /**
+   * Calls `start` unless the backend was started and has not been stopped since. The backend is
+   * not started when `start` throws, and callers that arrive meanwhile wait for it to return.
+   */
+  template <typename TStart>
+  QUILL_ATTRIBUTE_COLD void start_once(TStart&& start)
   {
-    return *_start_once_flag.load();
+    std::lock_guard<std::mutex> const start_lock{_start_mutex};
+
+    if (!_is_started)
+    {
+      start();
+      _is_started = true;
+    }
   }
 
   /***/
@@ -81,9 +91,8 @@ private:
   {
     _backend_worker.stop();
 
-    auto* new_flag = new std::once_flag();
-    std::once_flag* old_flag = _start_once_flag.exchange(new_flag);
-    delete old_flag;
+    std::lock_guard<std::mutex> const start_lock{_start_mutex};
+    _is_started = false;
   }
 
   /***/
@@ -125,10 +134,11 @@ private:
   // thread, through the whole drain and final flush, so a concurrent caller should sleep instead of
   // spinning. Spinlock exists so the frontend headers avoid <mutex>; the backend already uses it.
   std::mutex _stop_mutex;
+  std::mutex _start_mutex;
   BackendWorker _backend_worker;
   ManualBackendWorker _manual_backend_worker{&_backend_worker};
-  std::atomic<std::once_flag*> _start_once_flag{new std::once_flag{}};
   std::atomic<bool> _atexit_registered{false};
+  bool _is_started{false}; /**< Protected by _start_mutex */
 };
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)

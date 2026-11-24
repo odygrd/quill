@@ -42,38 +42,36 @@ public:
    */
   QUILL_ATTRIBUTE_COLD static void start(BackendOptions const& options = BackendOptions{})
   {
-    // Keep deterministic validation outside call_once: TSan's pthread_once interceptor cannot
-    // recover its once state when the callable exits with an exception.
     detail::BackendWorker::validate_options(options);
 
-    std::call_once(detail::BackendManager::instance().get_start_once_flag(),
-                   [options]()
-                   {
-                     // Static-destruction ordering matters here because Backend::stop() runs via
-                     // std::atexit. Any singleton the backend may touch during shutdown must be
-                     // constructed before we register the atexit handler, otherwise it could be
-                     // destroyed first and the backend could dereference freed state while draining
-                     // queues.
-                     //
-                     // BackendManager construction already pins ThreadContextManager,
-                     // SinkManager, and LoggerManager because BackendWorker stores references to
-                     // them as members. SignalHandlerContext and MetricManager are not pinned that
-                     // way, so construct them explicitly before atexit registration.
-                     (void)detail::SignalHandlerContext::instance();
-                     (void)detail::MetricManager::instance();
+    detail::BackendManager::instance().start_once(
+      [options]()
+      {
+        // Static-destruction ordering matters here because Backend::stop() runs via
+        // std::atexit. Any singleton the backend may touch during shutdown must be
+        // constructed before we register the atexit handler, otherwise it could be
+        // destroyed first and the backend could dereference freed state while draining
+        // queues.
+        //
+        // BackendManager construction already pins ThreadContextManager,
+        // SinkManager, and LoggerManager because BackendWorker stores references to
+        // them as members. SignalHandlerContext and MetricManager are not pinned that
+        // way, so construct them explicitly before atexit registration.
+        (void)detail::SignalHandlerContext::instance();
+        (void)detail::MetricManager::instance();
 
-                     // Run the backend worker thread, we wait here until the thread enters the main loop
-                     detail::BackendManager::instance().start_backend_thread(options);
+        // Run the backend worker thread, we wait here until the thread enters the main loop
+        detail::BackendManager::instance().start_backend_thread(options);
 
-                     // Set up an exit handler to call stop when the main application exits.
-                     // always call stop on destruction to log everything. std::atexit seems to be
-                     // working better with dll on windows compared to using ~LogManagerSingleton().
-                     if (!detail::BackendManager::instance().is_atexit_registered())
-                     {
-                       detail::BackendManager::instance().set_atexit_registered();
-                       std::atexit([]() { Backend::stop(); });
-                     }
-                   });
+        // Set up an exit handler to call stop when the main application exits.
+        // always call stop on destruction to log everything. std::atexit seems to be
+        // working better with dll on windows compared to using ~LogManagerSingleton().
+        if (!detail::BackendManager::instance().is_atexit_registered())
+        {
+          detail::BackendManager::instance().set_atexit_registered();
+          std::atexit([]() { Backend::stop(); });
+        }
+      });
   }
 
   /**
@@ -115,8 +113,7 @@ public:
     // application's loggers
     detail::check_frontend_options(detail::FrontendOptionsValues::of<TFrontendOptions>());
 
-    std::call_once(
-      detail::BackendManager::instance().get_start_once_flag(),
+    detail::BackendManager::instance().start_once(
       [backend_options, signal_handler_options]()
       {
         // These flags are only read in the catch block; unused in no-exception builds.
@@ -348,8 +345,7 @@ public:
     // for that fallback drain path.
     (void)detail::MetricManager::instance();
 
-    std::call_once(
-      detail::BackendManager::instance().get_start_once_flag(),
+    detail::BackendManager::instance().start_once(
       [&manual_backend_worker]() mutable
       { manual_backend_worker = detail::BackendManager::instance().get_manual_backend_worker(); });
 
