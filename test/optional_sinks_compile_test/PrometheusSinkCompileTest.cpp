@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <exception>
+#include <limits>
 #include <string>
 #include <utility>
 
@@ -184,6 +185,48 @@ int main()
   prometheus_sink->register_summary(response_size, "Response size", {{0.5, 0.05}});
   prometheus_sink->register_summary_family("request_size_bytes", "Request size", {{0.5, 0.05}});
 
+  // The bucket helpers reject NaN and infinite arguments, e.g. a width that was computed from a
+  // division by zero. prometheus-cpp takes boundaries that are NaN for sorted
+  double const not_a_number = std::numeric_limits<double>::quiet_NaN();
+  double const infinity = std::numeric_limits<double>::infinity();
+
+  struct BucketArguments
+  {
+    double first;
+    double second;
+  };
+
+  BucketArguments const invalid_bucket_arguments[] = {
+    {not_a_number, 1.0}, {infinity, 1.0}, {1.0, not_a_number}, {1.0, infinity}};
+
+  size_t accepted_invalid_buckets{0};
+  for (BucketArguments const& arguments : invalid_bucket_arguments)
+  {
+    try
+    {
+      (void)quill::PrometheusSink::linear_buckets(arguments.first, arguments.second, 3);
+      ++accepted_invalid_buckets;
+    }
+    catch (std::exception const&)
+    {
+    }
+
+    try
+    {
+      (void)quill::PrometheusSink::exponential_buckets(arguments.first, arguments.second + 1.0, 3);
+      ++accepted_invalid_buckets;
+    }
+    catch (std::exception const&)
+    {
+    }
+  }
+
+  if (quill::PrometheusSink::linear_buckets(-1.0, 0.5, 3) !=
+      quill::PrometheusSink::HistogramBuckets{-1.0, -0.5, 0.0})
+  {
+    ++accepted_invalid_buckets;
+  }
+
   quill::Logger* logger = quill::Frontend::create_or_get_logger("prometheus_logger", prometheus_sink);
 
   logger->publish_metric(requests_total, 1.0);
@@ -228,8 +271,13 @@ int main()
     std::fprintf(stderr, "%zu summaries with an invalid window were registered\n", accepted_invalid_summaries);
   }
 
+  if (accepted_invalid_buckets != 0)
+  {
+    std::fprintf(stderr, "%zu calls of the bucket helpers had an unexpected result\n", accepted_invalid_buckets);
+  }
+
   quill::Frontend::remove_logger(logger);
   quill::Backend::stop();
 
-  return ((missing_samples == 0) && (accepted_invalid_summaries == 0)) ? 0 : 1;
+  return ((missing_samples == 0) && (accepted_invalid_summaries == 0) && (accepted_invalid_buckets == 0)) ? 0 : 1;
 }
