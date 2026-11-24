@@ -86,7 +86,10 @@ The format output can be customised by providing a string of certain attributes.
        format string and remains empty otherwise.
 
 Literal ``{`` and ``}`` characters can be written directly in a format pattern. The traditional
-fmt spellings ``{{`` and ``}}`` remain supported and each produce one literal brace.
+fmt spellings ``{{`` and ``}}`` remain supported and each produce one literal brace, so two equal
+braces in a row have to be doubled. A pattern for nested JSON such as
+``{"app":{"msg":"%(message)"}}`` writes one closing brace: end it with ``}}}}``, or double every
+brace of the pattern.
 
 Customising the timestamp
 -------------------------
