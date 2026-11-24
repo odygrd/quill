@@ -91,6 +91,20 @@ TEST_CASE("manual_backend_worker_poll_flushes_sinks")
   REQUIRE_GT(sink_ptr->flushes.load(std::memory_order_relaxed), flushes_before_timeout_poll);
   REQUIRE_GT(sink_ptr->periodic_tasks.load(std::memory_order_relaxed), periodic_tasks_before_timeout_poll);
 
+  // The backend keeps the list of the sinks until a logger is created or removed. A sink that is
+  // created after it has listed them is flushed like the others, and no longer once its logger
+  // is removed
+  auto late_sink = Frontend::create_or_get_sink<PollSinkFlushCountingSink>(sink_name + "_late");
+  Logger* late_logger = Frontend::create_or_get_logger(logger_name + "_late", late_sink);
+  manual_backend_worker->poll();
+  REQUIRE_GT(late_sink->flushes.load(std::memory_order_relaxed), 0);
+
+  Frontend::remove_logger(late_logger);
+  manual_backend_worker->poll();
+  size_t const late_sink_flushes = late_sink->flushes.load(std::memory_order_relaxed);
+  manual_backend_worker->poll();
+  REQUIRE_EQ(late_sink->flushes.load(std::memory_order_relaxed), late_sink_flushes);
+
   // flush_log() also flushes the sinks of a logger that waits to be removed, which can hold
   // records written before the removal
   auto other_sink = Frontend::create_or_get_sink<PollSinkFlushCountingSink>(sink_name + "_other");

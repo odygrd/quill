@@ -252,6 +252,9 @@
   to a file costs more there. `FileSinkConfig::set_write_buffer_size()` sets another size.
 - On Linux the backend writes a further 5% more log statements per second to a `FileSink` with a
   typical pattern.
+- An idle backend lists the sinks only when a logger is created or removed, instead of on every
+  poll. With 1,000 loggers that each have their own sink it used 36% of a core, with a 99th
+  percentile of 83 us for `Frontend::get_logger()`, and now uses 3%.
 - With the default `check_printable_char`, the backend spends about 30% less time on messages with
   string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
 - Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
