@@ -7080,4 +7080,34 @@ TEST_CASE("rotating_file_sink_size_rotation_with_the_write_buffer_disabled")
   testing::remove_file(filename_2);
 }
 
+/**
+ * The rotation times of a sink that uses local time come from mktime(), which returns -1 for a
+ * time that it cannot represent
+ */
+TEST_CASE("mktime_throws_for_a_time_that_cannot_be_represented")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  tm local_time{};
+  local_time.tm_year = 120;
+  local_time.tm_mon = 5;
+  local_time.tm_mday = 15;
+  local_time.tm_hour = 12;
+  local_time.tm_isdst = -1;
+
+  tm expected_local_time = local_time;
+  REQUIRE_EQ(detail::mktime(&local_time), std::mktime(&expected_local_time));
+
+  // The month after the last one of the last year that a tm has
+  tm unrepresentable_time{};
+  unrepresentable_time.tm_year = (std::numeric_limits<int>::max)();
+  unrepresentable_time.tm_mon = 12;
+  unrepresentable_time.tm_mday = 1;
+  unrepresentable_time.tm_isdst = -1;
+
+  REQUIRE_THROWS_AS(detail::mktime(&unrepresentable_time), QuillError);
+#endif
+}
+
 TEST_SUITE_END();
