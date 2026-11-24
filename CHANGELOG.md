@@ -295,6 +295,9 @@
   `SIGALRM` handler installed.
 - With the built-in signal handler, a second handled signal on the thread that is already handling
   one, such as `SIGINT` during `SIGTERM`, no longer stalls the shutdown until the handler timeout.
+- On Windows, a `ConsoleSink` in a process without a console, such as a GUI application or a
+  service, discards its output. Before, every record was reported as a failed write, and the C
+  runtime could end the process for an invalid file descriptor.
 - On Windows, an unhandled-exception filter installed before `Backend::start()`, such as a crash
   reporter, runs again after Quill's filter.
 - Format strings that combine a dynamic width or precision with named arguments, such as

@@ -380,7 +380,9 @@ private:
   QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _is_terminal_output(FILE* file) noexcept
   {
 #ifdef _WIN32
-    return _isatty(_fileno(file)) != 0;
+    // The stream of a process without a console has no file descriptor
+    int const fd = _fileno(file);
+    return (fd >= 0) && (_isatty(fd) != 0);
 #else
     return ::isatty(fileno(file)) != 0;
 #endif
@@ -390,9 +392,10 @@ private:
   /***/
   QUILL_ATTRIBUTE_COLD static bool _activate_ansi_support(FILE* file) noexcept
   {
-    // Try to enable ANSI support for Windows console
-    auto const out_handle = reinterpret_cast<HANDLE>(_get_osfhandle(_fileno(file)));
-    if (out_handle == INVALID_HANDLE_VALUE)
+    // Try to enable ANSI support for Windows console. The stream of a process without a console
+    // has no handle
+    HANDLE const out_handle = _get_stream_handle(file);
+    if (out_handle == nullptr)
     {
       return false;
     }
