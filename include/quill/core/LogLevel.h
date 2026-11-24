@@ -11,6 +11,7 @@
 
 #ifndef QUILL_MODULE
   #include <cctype>
+  #include <cstddef>
   #include <cstdint>
   #include <string>
   #include <string_view>

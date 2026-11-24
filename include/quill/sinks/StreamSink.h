@@ -13,6 +13,7 @@
 #include "quill/sinks/Sink.h"
 
 #ifndef QUILL_MODULE
+  #include <algorithm>
   #include <cerrno>
   #include <cstdint>
   #include <cstdio>
