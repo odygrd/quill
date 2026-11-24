@@ -260,6 +260,31 @@ public:
   QUILL_NODISCARD size_t capacity() const noexcept { return _consumer->bounded_queue.capacity(); }
 
   /**
+   * @note consumer only
+   * @return how many bytes were read from the queue, a count that wraps around
+   */
+  QUILL_NODISCARD size_t bytes_read() const noexcept
+  {
+    return _bytes_read_from_previous_nodes + _consumer->bounded_queue.bytes_read();
+  }
+
+  /**
+   * @note consumer only
+   * @return how many bytes were written to the queue, a count that wraps around
+   */
+  QUILL_NODISCARD size_t bytes_written() const noexcept
+  {
+    size_t bytes{_bytes_read_from_previous_nodes};
+
+    for (Node const* node = _consumer; node != nullptr; node = node->next.load(std::memory_order_acquire))
+    {
+      bytes += node->bounded_queue.bytes_written();
+    }
+
+    return bytes;
+  }
+
+  /**
    * checks if the queue is empty
    * @note consumer only
    * @return true if empty, false otherwise
@@ -364,6 +389,7 @@ private:
 
     // switch to the new buffer, existing one is deleted
     auto const previous_capacity = _consumer->bounded_queue.capacity();
+    _bytes_read_from_previous_nodes += _consumer->bounded_queue.bytes_read();
     delete _consumer;
 
     _consumer = next_node;
@@ -383,6 +409,7 @@ private:
   /** Modified by either the producer or consumer but never both */
   alignas(QUILL_CACHE_LINE_ALIGNED) Node* _producer{nullptr};
   alignas(QUILL_CACHE_LINE_ALIGNED) Node* _consumer{nullptr};
+  size_t _bytes_read_from_previous_nodes{0}; /**< consumer only */
 };
 
 #if defined(_WIN32) && defined(_MSC_VER) && !defined(__GNUC__)

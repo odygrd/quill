@@ -291,8 +291,8 @@ public:
   }
 
   /***/
-  template <typename TCheckQueuesEmpty>
-  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(TCheckQueuesEmpty check_queues_empty,
+  template <typename TCanRemoveLogger>
+  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(TCanRemoveLogger can_remove_logger,
                                                                        std::vector<std::string>& removed_loggers)
   {
     // Return ownership so the backend can flush and destroy removed loggers outside _spinlock.
@@ -305,8 +305,8 @@ public:
         {
           if (!it->get()->is_valid_logger())
           {
-            // invalid logger, check if the logger has any pending records in the queue
-            if (!check_queues_empty())
+            // invalid logger, check if a record that refers to the logger is still pending
+            if (!can_remove_logger(it->get()))
             {
               // we have pending records in the queue, we can not remove the logger yet
               ++it;

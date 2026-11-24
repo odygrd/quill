@@ -217,6 +217,21 @@ public:
     return false;
   }
 
+  /**
+   * Only meant to be called by the reader
+   * @return how many bytes were read from the queue, a count that wraps around
+   */
+  QUILL_NODISCARD integer_type bytes_read() const noexcept { return _reader_pos; }
+
+  /**
+   * Only meant to be called by the reader
+   * @return how many bytes were written to the queue, a count that wraps around
+   */
+  QUILL_NODISCARD integer_type bytes_written() const noexcept
+  {
+    return _atomic_writer_pos.load(std::memory_order_acquire);
+  }
+
   QUILL_NODISCARD integer_type capacity() const noexcept
   {
     return static_cast<integer_type>(_capacity);

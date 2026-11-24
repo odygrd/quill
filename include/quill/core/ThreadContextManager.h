@@ -257,6 +257,7 @@ private:
   std::shared_ptr<TransitEventBuffer> _transit_event_buffer; /**< backend thread buffer. this could be unique_ptr but it is shared_ptr because of the forward declaration */
   std::shared_ptr<BackendMdcState> _backend_mdc_state; /**< backend-owned MDC state. shared_ptr keeps the forward declaration lightweight */
   uint64_t _timestamp_ordering_grace_deadline{0}; /**< backend-owned deadline for the current queue head */
+  size_t _logger_removal_target{0}; /**< backend-owned, see BackendWorker::_start_logger_removal() */
   QueueType _queue_type;
   bool _last_event_larger_than_queue{false}; /**< frontend only, see drop_event_if_larger_than_queue() */
   std::atomic<bool> _valid{true}; /**< is this context valid, set by the frontend, read by the backend thread */

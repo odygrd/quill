@@ -305,11 +305,13 @@ TEST_CASE("transit_event_buffer_shrink_and_regrow")
   }
 
   REQUIRE(bte.empty());
+  REQUIRE_EQ(bte.popped_events(), phase1_data.size());
 
   // Phase 3: Request shrink and verify
   bte.request_shrink();
   bte.try_shrink();
-  REQUIRE_EQ(bte.capacity(), 4); // Should shrink back to initial
+  REQUIRE_EQ(bte.capacity(), 4);                       // Should shrink back to initial
+  REQUIRE_EQ(bte.popped_events(), phase1_data.size()); // Does not start again
 
   // Phase 4: Regrow with large buffers and verify data integrity
   std::vector<std::pair<std::string, size_t>> phase4_data;
@@ -414,6 +416,9 @@ TEST_CASE("transit_event_buffer_interleaved_operations")
     }
 
     REQUIRE_EQ(bte.size(), active_data.size());
+
+    // The count of removed events does not start again when the buffer expands
+    REQUIRE_EQ(bte.popped_events(), total_operations - active_data.size());
   }
 
   // Final verification: drain remaining events

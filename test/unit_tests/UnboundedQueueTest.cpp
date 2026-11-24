@@ -28,12 +28,18 @@ TEST_CASE("unbounded_queue_shrink")
     buffer.commit_write();
   }
 
+  // The byte counts include every node of the queue
+  REQUIRE_EQ(buffer.bytes_written(), 5 * CHUNK);
+  REQUIRE_EQ(buffer.bytes_read(), 0);
+
   {
     UnboundedSPSCQueue::ReadResult res = buffer.prepare_read();
     REQUIRE(res.read_pos);
     buffer.finish_read(INITIAL_SIZE);
     buffer.commit_read();
   }
+
+  REQUIRE_EQ(buffer.bytes_read(), INITIAL_SIZE);
 
   {
     // Now read again the next part from the allocated queue
@@ -45,6 +51,9 @@ TEST_CASE("unbounded_queue_shrink")
     buffer.finish_read(CHUNK);
     buffer.commit_read();
   }
+
+  REQUIRE_EQ(buffer.bytes_written(), 5 * CHUNK);
+  REQUIRE_EQ(buffer.bytes_read(), 5 * CHUNK);
 
   // Shrink the queue
   REQUIRE_EQ(buffer.producer_capacity(), INITIAL_SIZE * 2);
@@ -61,6 +70,9 @@ TEST_CASE("unbounded_queue_shrink")
     // Note: finish_read()/commit_read() must not be called after a prepare_read() that returned
     // no data; it would publish a reader position ahead of the writer position
   }
+
+  REQUIRE_EQ(buffer.bytes_written(), 5 * CHUNK);
+  REQUIRE_EQ(buffer.bytes_read(), 5 * CHUNK);
 }
 
 TEST_CASE("unbounded_queue_allocation_within_limit")
