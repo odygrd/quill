@@ -1069,25 +1069,6 @@ private:
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
       // when the grace period is enabled
 
-#if defined(QUILL_ENABLE_ASSERTIONS) || !defined(NDEBUG)
-      // Check the timestamps we are comparing have the same digits
-      auto count_digits = [](uint64_t number)
-      {
-        uint32_t digits = 0;
-        do
-        {
-          digits++;
-          number /= 10;
-        } while (number != 0);
-        return digits;
-      };
-
-      QUILL_ASSERT(count_digits(transit_event->timestamp) == count_digits(ts_now),
-                   "Timestamp digits mismatch in "
-                   "BackendWorker::_populate_transit_event_from_frontend_queue(), log timestamp "
-                   "has different magnitude than current time");
-#endif
-
       uint64_t const grace_period_ns =
         static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count()) * 1'000u;
 
