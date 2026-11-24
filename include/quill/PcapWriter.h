@@ -162,7 +162,8 @@ public:
    *
    * @throws QuillError if the snapshot length is 0, if the sink would append to a file that is
    * not a capture with the same byte order, timestamp precision, snapshot length and link type,
-   * or if the file already has a sink that does not write the pcap file header of this writer.
+   * or if the file already has a sink that does not write the pcap file header of this writer or
+   * that has a binary record framing.
    * The sink checks every file that it opens later in the same way, e.g. after the file was
    * removed, and stays closed for a file that fails the check. Writers that are given the same
    * file name share its sink, as the other writers do.
@@ -308,10 +309,13 @@ private:
       frontend_t::template create_or_get_sink<TFileSink>(filename, sink_config, file_event_notifier);
 
     // A sink that exists for the file keeps the configuration that it was created with
-    if (sink->config().file_header() != sink_config.file_header())
+    if ((sink->config().file_header() != sink_config.file_header()) ||
+        (sink->config().binary_record_framing() != sink_config.binary_record_framing()))
     {
       QUILL_THROW(QuillError{
-        "The file already has a sink that does not write the pcap file header of this writer: " + filename});
+        "The file already has a sink that does not write the pcap file header of this writer, or "
+        "that frames its records: " +
+        filename});
     }
 
     return sink;

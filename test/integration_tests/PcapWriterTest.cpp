@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace quill;
@@ -137,6 +138,7 @@ TEST_CASE("pcap_writer")
   static constexpr char const* microseconds_filename = "pcap_writer_microseconds.pcap";
   static constexpr char const* link_type_filename = "pcap_writer_link_type.pcap";
   static constexpr char const* plain_sink_filename = "pcap_writer_plain_sink.pcap";
+  static constexpr char const* framed_sink_filename = "pcap_writer_framed_sink.pcap";
   static constexpr char const* packets_only_filename = "pcap_writer_packets_only.pcap";
   static constexpr char const* legacy_filename = "pcap_writer_legacy.pcap";
   static constexpr char const* write_only_filename = "pcap_writer_write_only.pcap";
@@ -152,6 +154,7 @@ TEST_CASE("pcap_writer")
   testing::remove_file(microseconds_filename);
   testing::remove_file(link_type_filename);
   testing::remove_file(plain_sink_filename);
+  testing::remove_file(framed_sink_filename);
   testing::remove_file(packets_only_filename);
   testing::remove_file(filename);
   testing::remove_file(rotating_filename);
@@ -337,6 +340,24 @@ TEST_CASE("pcap_writer")
     REQUIRE(plain_sink);
     REQUIRE_THROWS_AS(PcapWriter{plain_sink_filename}, QuillError);
   }
+
+  {
+    // The file has a sink that starts its files with the pcap file header, but writes the size
+    // of each record before it. A reader would take that size for the start of a packet, so the
+    // writer does not share the sink
+    detail::PcapFileHeader file_header;
+    file_header.snaplen = PcapWriter::default_snapshot_length;
+    file_header.network = PcapWriter::link_type_ethernet;
+
+    FileSinkConfig framed_sink_config;
+    framed_sink_config.set_file_header(
+      std::string_view{reinterpret_cast<char const*>(&file_header), sizeof(file_header)});
+    framed_sink_config.set_binary_record_framing(BinaryRecordFraming::Size);
+
+    auto const framed_sink = Frontend::create_or_get_sink<FileSink>(framed_sink_filename, framed_sink_config);
+    REQUIRE(framed_sink);
+    REQUIRE_THROWS_AS(PcapWriter{framed_sink_filename}, QuillError);
+  }
 #endif
 
 // A file that cannot be opened ends the process when exceptions are disabled
@@ -441,6 +462,7 @@ TEST_CASE("pcap_writer")
   testing::remove_file(microseconds_filename);
   testing::remove_file(link_type_filename);
   testing::remove_file(plain_sink_filename);
+  testing::remove_file(framed_sink_filename);
   testing::remove_file(packets_only_filename);
   testing::remove_file(legacy_filename);
   testing::remove_file(write_only_filename);
