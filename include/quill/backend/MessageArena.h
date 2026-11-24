@@ -10,6 +10,7 @@
 #include "quill/core/Common.h"
 
 #include "quill/bundled/fmt/base.h"
+#include "quill/bundled/fmt/format.h" // for assert_fail
 
 #ifndef QUILL_MODULE
   #include <cstddef>
