@@ -247,6 +247,19 @@ TEST_CASE("source_location_accepts_both_separators")
   REQUIRE_STREQ(backslashes.short_source_location(), "example.cpp:12");
 }
 
+TEST_CASE("source_location_ignores_a_colon_before_the_file_name")
+{
+  // The colon of a Windows drive, in a source location without a line, e.g. one of a
+  // MacroMetadata that an application builds for Logger::log_statement()
+  constexpr MacroMetadata drive_path{
+    "C:\\src\\nested\\example.cpp", "", "", nullptr, quill::LogLevel::Info,
+    MacroMetadata::Event::Log};
+  REQUIRE_EQ(drive_path.full_path(), "C:\\src\\nested\\example.cpp");
+  REQUIRE_EQ(drive_path.file_name(), "example.cpp");
+  REQUIRE_STREQ(drive_path.line(), "");
+  REQUIRE_STREQ(drive_path.short_source_location(), "example.cpp");
+}
+
 TEST_CASE("contains_named_args_accepts_fmt_identifier_start")
 {
   static_assert(MacroMetadata::contains_named_args("{name}"),
