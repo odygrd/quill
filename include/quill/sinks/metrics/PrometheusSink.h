@@ -274,6 +274,8 @@ public:
                         std::chrono::milliseconds max_age = std::chrono::seconds{60},
                         int age_buckets = 5, Labels constant_labels = {})
   {
+    _validate_summary_window(max_age, age_buckets);
+
     _register_metric<summary_family_t>(
       metric_metadata, prometheus::MetricType::Summary, std::move(help), std::move(constant_labels),
       [quantiles = _to_prometheus_quantiles(quantiles), max_age, age_buckets](
@@ -325,6 +327,8 @@ public:
                                std::chrono::milliseconds max_age = std::chrono::seconds{60},
                                int age_buckets = 5, Labels constant_labels = {})
   {
+    _validate_summary_window(max_age, age_buckets);
+
     _register_metric_family<summary_family_t>(
       metric_name, prometheus::MetricType::Summary, std::move(help), std::move(constant_labels),
       [quantiles = _to_prometheus_quantiles(quantiles), max_age, age_buckets](
@@ -754,6 +758,28 @@ private:
   {
     prometheus::Histogram const histogram{bucket_boundaries};
     (void)histogram;
+  }
+
+  /**
+   * Throws for a window that prometheus::Summary does not check: it divides max_age by
+   * age_buckets, and rotates its buckets without end when the result is not positive
+   */
+  static void _validate_summary_window(std::chrono::milliseconds max_age, int age_buckets)
+  {
+    // The duration that prometheus::Summary keeps max_age in
+    using summary_duration_t = std::chrono::steady_clock::duration;
+
+    // Checked before max_age is converted, which overflows for a duration that it cannot hold
+    bool const is_valid = (age_buckets > 0) && (max_age > std::chrono::milliseconds::zero()) &&
+      (max_age <= std::chrono::duration_cast<std::chrono::milliseconds>((summary_duration_t::max)())) &&
+      (summary_duration_t{max_age}.count() >= age_buckets);
+
+    if (!is_valid)
+    {
+      QUILL_THROW(
+        QuillError{"PrometheusSink summaries require age_buckets > 0 and a max_age of at least "
+                   "age_buckets clock ticks that std::chrono::steady_clock::duration can hold"});
+    }
   }
 
   static Labels _make_metric_labels(MetricMetadata const& metric_metadata)
