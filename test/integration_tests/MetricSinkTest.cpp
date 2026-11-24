@@ -81,13 +81,22 @@ TEST_CASE("metric_sink")
   static std::string const logger_name = "metric_sink_test_logger";
   static std::string const metric_key = "metric_sink_test_requests_total_01";
 
-  std::atomic<size_t> error_notifications{0};
+  // The backend does not repeat the message it has just reported, but a queue growth notice in
+  // between resets that, so the metric failure can be reported more than once depending on where
+  // the queue grows
+  std::atomic<size_t> log_failure_notifications{0};
+  std::atomic<size_t> metric_failure_notifications{0};
   BackendOptions backend_options;
-  backend_options.error_notifier = [&error_notifications](std::string const& message)
+  backend_options.error_notifier =
+    [&log_failure_notifications, &metric_failure_notifications](std::string const& message)
   {
-    if (message.find("Allocated a new SPSC queue") == std::string::npos)
+    if (message.find("simulated log sink failure") != std::string::npos)
     {
-      error_notifications.fetch_add(1, std::memory_order_relaxed);
+      log_failure_notifications.fetch_add(1, std::memory_order_relaxed);
+    }
+    else if (message.find("simulated metric sink failure") != std::string::npos)
+    {
+      metric_failure_notifications.fetch_add(1, std::memory_order_relaxed);
     }
   };
 
@@ -147,9 +156,11 @@ TEST_CASE("metric_sink")
   auto* sink_ptr = static_cast<MetricCapturingSink*>(metric_sink.get());
   REQUIRE_EQ(sink_ptr->log_writes.load(std::memory_order_relaxed), 1);
 #if !defined(QUILL_NO_EXCEPTIONS)
-  REQUIRE_EQ(error_notifications.load(std::memory_order_relaxed), 2);
+  REQUIRE_EQ(log_failure_notifications.load(std::memory_order_relaxed), 1);
+  REQUIRE_GE(metric_failure_notifications.load(std::memory_order_relaxed), 1);
 #else
-  REQUIRE_EQ(error_notifications.load(std::memory_order_relaxed), 0);
+  REQUIRE_EQ(log_failure_notifications.load(std::memory_order_relaxed), 0);
+  REQUIRE_EQ(metric_failure_notifications.load(std::memory_order_relaxed), 0);
 #endif
 
   std::lock_guard<std::mutex> const lock{sink_ptr->mutex};
