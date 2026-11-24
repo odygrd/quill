@@ -229,6 +229,32 @@ public:
   }
 
 protected:
+#if defined(_WIN32)
+  /**
+   * @return the handle of the stream, nullptr if it has none. In a process without a console,
+   * e.g. a GUI application or a service, a standard stream has no file descriptor, or one
+   * without a handle. A negative descriptor must not be passed on: the C runtime can end the
+   * process for an invalid parameter
+   */
+  QUILL_NODISCARD static HANDLE _get_stream_handle(FILE* stream) noexcept
+  {
+    int const fd = ::_fileno(stream);
+
+    if (fd < 0)
+    {
+      return nullptr;
+    }
+
+    HANDLE const handle = reinterpret_cast<HANDLE>(::_get_osfhandle(fd));
+
+    // -2 is what the C runtime gives for a descriptor that is not associated with a stream
+    bool const has_handle = (handle != INVALID_HANDLE_VALUE) &&
+      (handle != reinterpret_cast<HANDLE>(static_cast<intptr_t>(-2)));
+
+    return has_handle ? handle : nullptr;
+  }
+#endif
+
   QUILL_ATTRIBUTE_HOT static void _safe_fwrite(void const* ptr, size_t size, size_t count,
                                                FILE* stream, bool stream_is_unbuffered)
   {
@@ -245,31 +271,32 @@ protected:
       // Instead, use WriteFile for console streams
       if ((stream == stdout) || (stream == stderr))
       {
-        HANDLE const handle = reinterpret_cast<HANDLE>(::_get_osfhandle(::_fileno(stream)));
+        HANDLE const handle = _get_stream_handle(stream);
 
-        if (QUILL_LIKELY(handle != INVALID_HANDLE_VALUE))
+        if (QUILL_UNLIKELY(handle == nullptr))
         {
-          constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
-          auto const total_bytes_remaining = static_cast<DWORD>(std::min<size_t>(remaining, max_dword));
-          DWORD bytes_written_this_call = 0;
-
-          if (QUILL_UNLIKELY(::WriteFile(handle, current_ptr, total_bytes_remaining,
-                                         &bytes_written_this_call, nullptr) == 0))
-          {
-            QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
-                                   std::to_string(::GetLastError())});
-          }
-
-          if (QUILL_UNLIKELY(bytes_written_this_call == 0))
-          {
-            QUILL_THROW(QuillError{"WriteFile returned 0 bytes written without error"});
-          }
-
-          bytes_written += bytes_written_this_call;
-          continue;
+          // There is nothing to write to
+          return;
         }
 
-        // Fall through to fwrite if the handle is invalid (e.g., no console attached)
+        constexpr size_t max_dword = static_cast<size_t>(~DWORD{0});
+        auto const total_bytes_remaining = static_cast<DWORD>(std::min<size_t>(remaining, max_dword));
+        DWORD bytes_written_this_call = 0;
+
+        if (QUILL_UNLIKELY(::WriteFile(handle, current_ptr, total_bytes_remaining,
+                                       &bytes_written_this_call, nullptr) == 0))
+        {
+          QUILL_THROW(QuillError{std::string{"WriteFile failed. GetLastError: "} +
+                                 std::to_string(::GetLastError())});
+        }
+
+        if (QUILL_UNLIKELY(bytes_written_this_call == 0))
+        {
+          QUILL_THROW(QuillError{"WriteFile returned 0 bytes written without error"});
+        }
+
+        bytes_written += bytes_written_this_call;
+        continue;
       }
 #endif
 
