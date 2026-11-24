@@ -669,45 +669,12 @@ private:
       }
     }
 
-    // A backup at the greatest index cannot take the next one: one more would name a file that
-    // the sink does not write, and the one after that wraps to the active file. It stays where it
-    // is, and so does the backup below it, which would be renamed over it, and so on down the run
-    // of backups that ends at the greatest index. They stay tracked, as the oldest backups.
-    bool const renames_every_backup =
-      _config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Index;
-
-    auto const takes_next_index = [renames_every_backup, &datetime_suffix](FileInfo const& file_info)
-    { return renames_every_backup || (file_info.date_time == datetime_suffix); };
-
-    uint32_t first_kept_index = max_backup_index + 1u;
-
-    for (uint32_t index = max_backup_index; index > 0; --index)
-    {
-      bool const is_tracked =
-        std::any_of(_created_files.begin(), _created_files.end(),
-                    [&takes_next_index, index](FileInfo const& file_info)
-                    { return takes_next_index(file_info) && (file_info.index == index); });
-
-      if (!is_tracked)
-      {
-        break;
-      }
-
-      first_kept_index = index;
-    }
-
     // We need to rotate the files and rename them with an index.
     // Track completed renames so we can undo them if a later rename fails.
     std::vector<RenameRecord> completed_renames;
 
     for (auto it = _created_files.rbegin(); it != _created_files.rend(); ++it)
     {
-      if (takes_next_index(*it) && (it->index >= first_kept_index))
-      {
-        // One of the backups that stay where they are
-        continue;
-      }
-
       // Create each existing filename on disk with the existing index.
       // when the index is 0 we want to rename the latest file
       fs::path existing_file;
@@ -1013,8 +980,12 @@ private:
 
   using NativeFilenameView = std::basic_string_view<fs::path::value_type>;
 
-  /** The greatest index of a backup, so that the index of a rotated backup never wraps to zero */
-  static constexpr uint32_t max_backup_index{(std::numeric_limits<uint32_t>::max)() - 1u};
+  /**
+   * The greatest index of a backup that is recovered from an earlier run. Each rotation adds one
+   * to the index of a backup, and from half of the range it cannot wrap to zero, which names the
+   * active file.
+   */
+  static constexpr uint32_t max_backup_index{(std::numeric_limits<uint32_t>::max)() / 2u};
 
   // Date suffixes contain only validated ASCII digits and an optional underscore.
   static void _assign_date_suffix(std::string& result, NativeFilenameView suffix)
