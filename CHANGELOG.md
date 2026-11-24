@@ -425,6 +425,8 @@
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 - On NetBSD, a `%` in `BackendOptions::thread_name` is no longer read as a printf conversion.
+- On macOS, a `BackendOptions::thread_name` of 64 bytes or more is truncated to 63, as it is to 15
+  on Linux, instead of leaving the backend thread without a name.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.

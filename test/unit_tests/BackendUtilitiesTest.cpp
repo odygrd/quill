@@ -281,6 +281,13 @@ TEST_CASE("get_thread_name_returns_names_longer_than_15_characters")
   set_thread_name(long_thread_name.data());
 
   REQUIRE_EQ(get_thread_name(), long_thread_name);
+
+  // A name that macOS has no room for is truncated, as it is on the other platforms, and not
+  // rejected
+  std::string const too_long_thread_name(100, 'q');
+  set_thread_name(too_long_thread_name.data());
+
+  REQUIRE_EQ(get_thread_name(), std::string(63, 'q'));
 #else
   return;
 #endif
