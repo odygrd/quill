@@ -55,6 +55,7 @@ public:
   using quill::detail::RdtscClock::RdtscClock;
 
   int64_t& resync_interval_ticks() { return _resync_interval_ticks; }
+  uint32_t resync_lag_ticks() const { return _ticks_of(resync_lag_ns); }
   int64_t& resync_interval_original() { return _resync_interval_original; }
   double& ns_per_tick() { return _ns_per_tick; }
   std::atomic<uint32_t>& version() { return _version; }
@@ -203,6 +204,19 @@ TEST_CASE("resync_refines_tick_rate_from_previous_base")
   REQUIRE(tsc_clock.try_resync(std::numeric_limits<uint32_t>::max()));
   size_t const backward_index = tsc_clock.version().load() & (tsc_clock.base().size() - 1);
   REQUIRE_EQ(tsc_clock.base()[backward_index].ns_per_tick.load(), doctest::Approx(refined));
+}
+
+TEST_CASE("resync_lag_budget_is_the_same_time_for_every_counter")
+{
+  RdtscClockMock tsc_clock{std::chrono::milliseconds{500}};
+
+  // A 3 GHz x86 TSC
+  tsc_clock.ns_per_tick() = 1.0 / 3.0;
+  REQUIRE_EQ(tsc_clock.resync_lag_ticks(), 48'000u);
+
+  // The 24 MHz ARM generic timer of e.g. Apple Silicon, for which 48,000 ticks would be 2 ms
+  tsc_clock.ns_per_tick() = 1e9 / 24e6;
+  REQUIRE_EQ(tsc_clock.resync_lag_ticks(), 384u);
 }
 
 TEST_CASE("failed_idle_resync_does_not_lengthen_resync_interval")

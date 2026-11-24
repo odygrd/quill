@@ -139,10 +139,10 @@ public:
 
     _resync_interval_original = _resync_interval_ticks;
 
-    if (!resync(resync_lag_cycles))
+    if (!resync(_ticks_of(resync_lag_ns)))
     {
       // try to resync again with higher lag
-      if (!resync(resync_lag_cycles * 2u))
+      if (!resync(_ticks_of(resync_lag_ns * 2u)))
       {
         std::fprintf(stderr, "Failed to sync RdtscClock. Timestamps will be incorrect\n");
       }
@@ -165,7 +165,7 @@ public:
     // we need to sync after we calculated otherwise base_tsc value will be ahead of passed tsc value
     if (diff > _resync_interval_ticks)
     {
-      resync(resync_lag_cycles);
+      resync(_ticks_of(resync_lag_ns));
       index = _version.load(std::memory_order_relaxed) & (_base.size() - 1);
     }
 
@@ -229,8 +229,8 @@ public:
    */
   bool resync_when_idle() const noexcept
   {
-    constexpr uint32_t idle_resync_lag_cycles{2'500};
-    return try_resync(idle_resync_lag_cycles) || try_resync(resync_lag_cycles);
+    constexpr uint32_t idle_resync_lag_ns{800};
+    return try_resync(_ticks_of(idle_resync_lag_ns)) || try_resync(_ticks_of(resync_lag_ns));
   }
 
   /**
@@ -329,8 +329,19 @@ protected:
     return (x & y) + ((x ^ y) >> 1);
   }
 
+  /**
+   * @return the ticks of the counter in `nanoseconds`. The time that reading the system clock
+   * may take is the same for every counter, while their ticks differ: a 24 MHz ARM generic timer
+   * has one in the time that an x86 TSC has over a hundred
+   */
+  QUILL_NODISCARD uint32_t _ticks_of(uint32_t nanoseconds) const noexcept
+  {
+    return static_cast<uint32_t>(static_cast<double>(nanoseconds) / _ns_per_tick);
+  }
+
 protected:
-  static constexpr uint32_t resync_lag_cycles{50'000};
+  /** The longest that reading the system clock may take for a resync from the logging path */
+  static constexpr uint32_t resync_lag_ns{16'000};
   mutable int64_t _resync_interval_ticks{0};
   int64_t _resync_interval_original{0}; /**< stores the initial interval value as as if we fail to resync we increase the timer */
   double _ns_per_tick{0};

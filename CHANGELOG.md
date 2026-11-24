@@ -309,6 +309,9 @@
   time on a device that starts without a clock.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is
   slow, and drift less between resyncs.
+- On ARM64, with the TSC clock, a resync with the system clock that an interrupt delays is tried
+  again. With the 24 MHz counter of e.g. Apple Silicon a sample that took up to 2 ms was accepted,
+  which could shift the timestamps by about 1 ms until the next resync.
 - With `SignalHandlerOptions::timeout_seconds = 0`, `Backend::start()` leaves the application's
   `SIGALRM` handler installed.
 - With the built-in signal handler, a second handled signal on the thread that is already handling
