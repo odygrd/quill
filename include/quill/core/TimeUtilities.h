@@ -71,17 +71,17 @@ inline std::string prefixed_strftime_format(std::string_view pattern, QUILL_MAYB
 }
 
 /**
- * Calls strftime(). Sets `invalid_format` where the Windows CRT would otherwise terminate the
- * process for a specifier it does not support.
+ * Calls strftime(). Sets `invalid_format` for a directive that the Windows C runtime does not
+ * support, for which it would end the process.
  */
 inline size_t checked_strftime(char* buffer, size_t size, char const* format, tm const& time, bool& invalid_format) noexcept
 {
   invalid_format = false;
 
-#if defined(_MSC_VER)
-  #if defined(_DEBUG)
-  // The debug CRT can display an assertion before invoking the invalid parameter handler.
-  // Check the UCRT directive syntax before entering strftime.
+#if defined(_WIN32)
+  // The directives of the Universal C runtime, checked before strftime() is entered: its
+  // invalid parameter handler ends the process by default, and the debug runtime displays an
+  // assertion first. This also covers MinGW, which cannot replace the handler for the call
   constexpr char conversions[] = "aAbBcCdDeFgGhHIjmMnprRStTuwUWVxXyYzZ%";
   for (char const* spec = std::strchr(format, '%'); spec; spec = std::strchr(spec + 1, '%'))
   {
@@ -102,20 +102,9 @@ inline size_t checked_strftime(char* buffer, size_t size, char const* format, tm
       return 0;
     }
   }
-  #endif
-
-  // The default CRT handler terminates the process for unsupported directives.
-  // Suppress it on this thread only and restore the application's handler afterwards.
-  auto const previous = ::_set_thread_local_invalid_parameter_handler(
-    [](wchar_t const*, wchar_t const*, wchar_t const*, unsigned int, uintptr_t) {});
-  errno = 0;
-  size_t const result = std::strftime(buffer, size, format, &time);
-  invalid_format = (result == 0) && (errno == EINVAL);
-  ::_set_thread_local_invalid_parameter_handler(previous);
-  return result;
-#else
-  return std::strftime(buffer, size, format, &time);
 #endif
+
+  return std::strftime(buffer, size, format, &time);
 }
 
 /**
