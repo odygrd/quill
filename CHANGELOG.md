@@ -313,6 +313,8 @@
   formatter that reads concurrently changing state can no longer log truncated or stale text.
 - A type with a `std::initializer_list` constructor, such as `nlohmann::json`, logged through
   `DeferredFormatCodec` or inside a `std::array` is no longer wrapped in a one-element list on GCC.
+- `std::optional<T const>` and a `std::variant` with const alternatives, such as
+  `std::variant<int const, std::string const>`, can be logged; they failed to compile.
 - `decode_members()` can assign `std::variant` members whose alternatives are not strings, and on
   Windows a `std::tuple` or `std::variant` holding a wide string can be logged; both previously
   failed to compile.

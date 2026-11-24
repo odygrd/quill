@@ -37,12 +37,15 @@ QUILL_BEGIN_NAMESPACE
 
 namespace detail
 {
-/** decode_element() converts wide strings to UTF-8 on Windows, which the narrow variant formatter needs */
+/**
+ * decode_element() converts wide strings to UTF-8 on Windows, which the narrow variant formatter
+ * needs. The cv qualifiers of an alternative are stripped, so that e.g. int const uses the codec
+ * of int
+ */
 template <typename T>
 struct DecodedVariantAlternative
 {
-  using type =
-    std::remove_cv_t<std::remove_reference_t<decltype(decode_element<T>(std::declval<std::byte*&>()))>>;
+  using type = remove_cvref_t<decltype(decode_element<remove_cvref_t<T>>(std::declval<std::byte*&>()))>;
 };
 
 template <typename T>
@@ -136,7 +139,7 @@ private:
   template <size_t Index>
   static DecodedVariantType decode_alternative(std::byte*& buffer)
   {
-    using OriginalType = std::variant_alternative_t<Index, VariantType>;
+    using OriginalType = detail::remove_cvref_t<std::variant_alternative_t<Index, VariantType>>;
     auto decoded_value = detail::decode_element<OriginalType>(buffer);
     return detail::make_decoded_variant<Index, DecodedVariantType>(std::move(decoded_value));
   }

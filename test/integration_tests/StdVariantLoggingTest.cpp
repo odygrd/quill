@@ -102,6 +102,12 @@ TEST_CASE("std_variant_logging")
   LOG_INFO(logger, "temp_variant {}", std::variant<int, std::string>{std::string{"temporary_variant"}});
   LOG_INFO(logger, "nested_variants {}", nested_variants);
 
+  std::variant<int const, std::string const> const_int_variant{std::in_place_index<0>, 77};
+  std::variant<int const, std::string const> const_string_variant{std::in_place_index<1>,
+                                                                  "const_string"};
+  LOG_INFO(logger, "const_int_variant {}", const_int_variant);
+  LOG_INFO(logger, "const_string_variant {}", const_string_variant);
+
 #if !defined(QUILL_NO_EXCEPTIONS)
   std::variant<int, VariantThrowOnConstruction> valueless_variant{123};
   std::variant<std::string, VariantThrowOnConstruction> valueless_string_variant{
@@ -165,6 +171,11 @@ TEST_CASE("std_variant_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, logger_name + " nested_variants " + fmtquill::format("{}", nested_variants)));
+
+  REQUIRE(quill::testing::file_contains(file_contents, logger_name + " const_int_variant variant(77)"));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, logger_name + " const_string_variant variant(\"const_string\")"));
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE(quill::testing::file_contains(

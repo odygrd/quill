@@ -125,6 +125,12 @@ TEST_CASE("std_optional_logging")
 
     LOG_INFO(logger, "temp_copy_only_opt {}",
              std::optional<OptionalCopyOnlyType>{std::in_place, "temp_copy_only", 84});
+
+    std::optional<int const> const_int_opt{77};
+    LOG_INFO(logger, "const_int_opt {}", const_int_opt);
+
+    std::optional<std::string const> const_string_opt{"const_string"};
+    LOG_INFO(logger, "const_string_opt {}", const_string_opt);
   }
 
   logger->flush_log();
@@ -176,6 +182,12 @@ TEST_CASE("std_optional_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_copy_only_opt optional(OptionalCopyOnly(label: temp_copy_only, value: 84))"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       const_int_opt optional(77)"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       const_string_opt optional(\"const_string\")"}));
 
   testing::remove_file(filename);
 }
