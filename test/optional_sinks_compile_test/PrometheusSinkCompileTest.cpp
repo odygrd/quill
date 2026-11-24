@@ -105,6 +105,27 @@ int main()
     // prometheus-cpp rejects unsorted bucket boundaries
   }
 
+  // The series of the sink joins the family that the application registered. Unregistering it
+  // must leave that family, which still has the series of the application, in the registry
+  prometheus_sink->register_histogram(app_latency, "Application latency", {0.1, 0.5});
+  prometheus_sink->unregister_metric(app_latency);
+
+  // The application registers a family and keeps it, without a series yet. The series of the
+  // sink joins it and is unregistered, which leaves the family without series. It is still the
+  // family of the application, which adds its series to it afterwards
+  auto& app_owned_family = prometheus::BuildHistogram()
+                             .Name("app_owned_seconds")
+                             .Help("Application owned")
+                             .Register(prometheus_sink->registry());
+
+  quill::MetricMetadata const* app_owned =
+    quill::Frontend::create_metric("app_owned_seconds", "app_owned_seconds", {{"source", "quill"}});
+
+  prometheus_sink->register_histogram(app_owned, "Application owned", {0.1, 0.5});
+  prometheus_sink->unregister_metric(app_owned);
+
+  app_owned_family.Add({{"source", "app"}}, prometheus::Histogram::BucketBoundaries{0.1, 0.5}).Observe(0.2);
+
   // A family registration with invalid buckets must be rejected, because a later registration of
   // the family does not replace the buckets its runtime series are created with
   try
@@ -185,6 +206,7 @@ int main()
   ExpectedSample const expected_samples[] = {{"request_latency_seconds", "route", "a"},
                                              {"queue_latency_seconds", "queue", "orders"},
                                              {"app_latency_seconds", "source", "app"},
+                                             {"app_owned_seconds", "source", "app"},
                                              {"batch_size", "stage", "decode"}};
 
   size_t missing_samples{0};

@@ -399,6 +399,9 @@
   `age_buckets <= 0`, and for a `max_age` that is not positive or too long for a
   `std::chrono::steady_clock::duration`. prometheus-cpp divided by zero or never returned from the
   first sample for these.
+- `PrometheusSink::unregister_metric()` no longer removes a family from a registry that merges
+  families by name, which `Registry::InsertBehavior::Merge` does by default. The application can
+  have registered the same family, and lost it when the sink removed the last series it had added.
 - `PrometheusSink::register_histogram()` and `register_histogram_family()` reject unsorted bucket
   boundaries before creating any state, so registering again with corrected buckets works instead
   of dropping samples or failing every publish.
