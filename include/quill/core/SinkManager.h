@@ -37,7 +37,8 @@ namespace detail
 class SinkManager
 {
 private:
-  using FileSinkIdFunction = std::string (*)(fs::path const&);
+  // Returns the id of the file of a normalized path, and whether the path led to an existing file
+  using FileSinkIdFunction = std::string (*)(fs::path const&, bool&);
 
   // Windows file keys are UTF-8. Opaque sink names may use any encoding.
   struct SinkId
@@ -89,9 +90,6 @@ public:
   /***/
   QUILL_NODISCARD std::shared_ptr<Sink> get_sink(std::string const& sink_name) const
   {
-    // Keep a file sink alive while using its normalization code, including across DLL boundaries.
-    std::shared_ptr<Sink> file_sink;
-    FileSinkIdFunction file_sink_id{nullptr};
     {
       LockGuard const lock{_spinlock};
 
@@ -100,56 +98,30 @@ public:
       {
         return sink;
       }
-
-      for (auto const& entry : _sinks)
-      {
-        if (!entry.file_sink_id)
-        {
-          continue;
-        }
-
-        file_sink = entry.sink_ptr.lock();
-        if (file_sink)
-        {
-          file_sink_id = entry.file_sink_id;
-          break;
-        }
-      }
     }
 
     // Only a file sink can be registered under a different spelling of the requested name.
-    // Normalize outside the lock to avoid blocking filesystem calls under the spinlock, and
-    // without throwing: a name that is not a usable path simply does not match a file sink.
-    std::shared_ptr<Sink> sink;
-    if (file_sink_id)
-    {
-      std::string error;
-      fs::path const requested_path{sink_name};
-      if (_use_separate_file_ids() && requested_path.is_absolute())
-      {
-        // Preserve exact-name lookups of a Windows file sink while its path cannot be
-        // normalized, e.g. because its directory is temporarily inaccessible
-        std::string const name = detail::file_sink_path_string(requested_path);
-        LockGuard const lock{_spinlock};
-        sink = _find_sink_by_name(name, true);
-        if (sink)
-        {
-          return sink;
-        }
-      }
-
-      fs::path const path = detail::try_normalize_file_sink_path(requested_path, false, error);
-      if (error.empty() && !path.empty())
-      {
-        SinkId const id{file_sink_id(path), _use_separate_file_ids()};
-        LockGuard const lock{_spinlock};
-        sink = id.is_windows_file ? _find_sink_by_id(id) : _find_sink(id, id.value);
-      }
-    }
+    std::shared_ptr<Sink> sink = _find_file_sink(sink_name);
 
     if (QUILL_UNLIKELY(!sink))
     {
       QUILL_THROW(QuillError{"Sink with name \"" + sink_name + "\" does not exist"});
+    }
+
+    return sink;
+  }
+
+  /**
+   * @brief get_sink() for a file sink given by path. On Windows a path can hold characters that
+   * a narrow sink name, decoded with the active code page, cannot.
+   */
+  QUILL_NODISCARD std::shared_ptr<Sink> get_file_sink(fs::path const& file_path) const
+  {
+    std::shared_ptr<Sink> sink = _find_file_sink(file_path);
+
+    if (QUILL_UNLIKELY(!sink))
+    {
+      QUILL_THROW(QuillError{"Sink with name \"" + detail::file_sink_path_string(file_path) + "\" does not exist"});
     }
 
     return sink;
@@ -234,6 +206,86 @@ public:
   }
 
 private:
+  /**
+   * @param requested_name the name or the path of a file
+   * @return the file sink that is registered for the file, or nullptr
+   */
+  template <typename TName>
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_file_sink(TName const& requested_name) const
+  {
+    // Keep a file sink alive while using its normalization code, including across DLL boundaries.
+    std::shared_ptr<Sink> file_sink;
+    FileSinkIdFunction file_sink_id{nullptr};
+    {
+      LockGuard const lock{_spinlock};
+
+      for (auto const& entry : _sinks)
+      {
+        if (!entry.file_sink_id)
+        {
+          continue;
+        }
+
+        file_sink = entry.sink_ptr.lock();
+        if (file_sink)
+        {
+          file_sink_id = entry.file_sink_id;
+          break;
+        }
+      }
+    }
+
+    if (!file_sink_id)
+    {
+      return nullptr;
+    }
+
+    // Normalize outside the lock to avoid blocking filesystem calls under the spinlock, and
+    // without throwing: a name that is not a usable path simply does not match a file sink.
+    fs::path const requested_path{requested_name};
+
+    if (_use_separate_file_ids() && requested_path.is_absolute())
+    {
+      // Preserve exact-name lookups of a Windows file sink while its path cannot be
+      // normalized, e.g. because its directory is temporarily inaccessible
+      std::string const name = detail::file_sink_path_string(requested_path);
+      LockGuard const lock{_spinlock};
+      std::shared_ptr<Sink> sink = _find_sink_by_name(name, true);
+      if (sink)
+      {
+        return sink;
+      }
+    }
+
+    std::string error;
+    fs::path const path = detail::try_normalize_file_sink_path(requested_path, false, error);
+
+    // A path that cannot be normalized, e.g. its directory was renamed, is looked up as spelled
+    bool resolved{false};
+    SinkId id{detail::file_sink_path_string(requested_path), _use_separate_file_ids()};
+
+    if (error.empty() && !path.empty())
+    {
+      id.value = file_sink_id(path, resolved);
+    }
+
+    LockGuard const lock{_spinlock};
+
+    if constexpr (std::is_same_v<TName, fs::path>)
+    {
+      // A path names a file, and a sink of another kind can have that path as its name. A path
+      // that leads to a file only finds the sink of that file. A file sink whose path leads to
+      // none any more, e.g. a symlink whose target was removed, is still found by its name
+      std::shared_ptr<Sink> sink = _find_sink_by_id(id, true);
+
+      return (sink || resolved) ? sink : _find_sink_by_name(id.value, id.is_windows_file, true);
+    }
+    else
+    {
+      return id.is_windows_file ? _find_sink_by_id(id) : _find_sink(id, id.value);
+    }
+  }
+
   static constexpr bool _use_separate_file_ids() noexcept
   {
 #if defined(_WIN32)
@@ -254,13 +306,6 @@ private:
     return {static_cast<std::string&&>(id), _use_separate_file_ids() && _is_file_sink<TSink>};
   }
 
-  template <typename TSink>
-  static std::string _sink_id(fs::path const& path, std::string const& normalized_name)
-  {
-    auto const file_sink_id = _file_sink_id_function<TSink>();
-    return file_sink_id ? file_sink_id(path) : normalized_name;
-  }
-
   template <typename TSink, typename TFileSink = FileSink>
   static FileSinkIdFunction _file_sink_id_function()
   {
@@ -278,9 +323,11 @@ private:
     }
   }
 
-  static std::string _canonical_file_sink_id(fs::path const& path)
+  static std::string _canonical_file_sink_id(fs::path const& path, bool& resolved)
   {
     // Resolve existing file aliases for lookup without changing the configured I/O path.
+    resolved = false;
+
     if (!path.is_absolute())
     {
       return path.string();
@@ -288,7 +335,9 @@ private:
 
     std::error_code ec;
     fs::path const canonical_path = fs::canonical(path, ec);
-    return ec ? path.string() : canonical_path.string();
+    resolved = !ec;
+
+    return resolved ? canonical_path.string() : path.string();
   }
 
   /**
@@ -301,26 +350,9 @@ private:
   static std::string _sink_id(fs::path const& path, std::string const& normalized_name, bool& resolved)
   {
     resolved = false;
+    auto const file_sink_id = _file_sink_id_function<TSink>();
 
-#if !defined(_WIN32)
-    if constexpr (_is_file_sink<TSink>)
-    {
-      if (path.is_absolute())
-      {
-        std::error_code ec;
-        fs::path const canonical_path = fs::canonical(path, ec);
-        if (!ec)
-        {
-          resolved = true;
-          return canonical_path.string();
-        }
-      }
-
-      return normalized_name;
-    }
-#endif
-
-    return _sink_id<TSink>(path, normalized_name);
+    return file_sink_id ? file_sink_id(path, resolved) : normalized_name;
   }
 
   template <typename TSink>
@@ -482,7 +514,8 @@ private:
       sink = _create_sink_instance<TSink>(path, static_cast<Args&&>(args)...);
 
       // Opening the file may have created a symlink's target, so recompute the id now.
-      published_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value));
+      bool resolved{false};
+      published_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, resolved));
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
@@ -609,14 +642,16 @@ private:
     }
   }
 
-  /***/
-  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_id(SinkId const& sink_id) const noexcept
+  /** @param file_sinks_only true to find the sink only if it is registered as the sink of a file */
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_id(SinkId const& sink_id,
+                                                         bool file_sinks_only = false) const noexcept
   {
     auto search_it =
       std::lower_bound(_sinks.begin(), _sinks.end(), sink_id,
                        [](SinkInfo const& elem, SinkId const& b) { return elem.sink_id < b; });
 
-    if (search_it != std::end(_sinks) && search_it->sink_id == sink_id)
+    if (search_it != std::end(_sinks) && search_it->sink_id == sink_id &&
+        (!file_sinks_only || search_it->file_sink_id))
     {
       return search_it->sink_ptr.lock();
     }
@@ -632,11 +667,13 @@ private:
     return sink ? sink : _find_sink_by_name(name, id.is_windows_file);
   }
 
-  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_name(std::string const& name, bool is_windows_file) const noexcept
+  QUILL_NODISCARD std::shared_ptr<Sink> _find_sink_by_name(std::string const& name, bool is_windows_file,
+                                                           bool file_sinks_only = false) const noexcept
   {
     for (auto const& entry : _sinks)
     {
-      if (entry.sink_id.is_windows_file == is_windows_file && entry.sink_name == name)
+      if (entry.sink_id.is_windows_file == is_windows_file && entry.sink_name == name &&
+          (!file_sinks_only || entry.file_sink_id))
       {
         if (auto sink = entry.sink_ptr.lock())
         {

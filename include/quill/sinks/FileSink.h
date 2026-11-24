@@ -1028,8 +1028,11 @@ protected:
 private:
   friend class detail::SinkManager;
 
-  static std::string _file_sink_id(fs::path const& normalized_path)
+  static std::string _file_sink_id(fs::path const& normalized_path, bool& resolved)
   {
+    // The id does not depend on whether the file exists
+    resolved = false;
+
     fs::path path{normalized_path};
     if (path.is_absolute() || detail::is_extended_windows_path(path))
     {

@@ -210,6 +210,22 @@ public:
   }
 
   /**
+   * @brief Retrieves the existing file sink of the specified path.
+   *
+   * Use this overload for a path that a std::string sink name cannot spell, as with
+   * create_or_get_sink(). It finds the sink of the file whichever overload created it.
+   *
+   * @param file_path The path of the file.
+   * @return std::shared_ptr<Sink> A shared pointer to the retrieved sink.
+   * @throws QuillError if the file has no sink.
+   */
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  QUILL_NODISCARD static std::shared_ptr<Sink> get_sink(TPath const& file_path)
+  {
+    return detail::SinkManager::instance().get_file_sink(file_path);
+  }
+
+  /**
    * @brief Registers a new runtime metric and returns owned metadata for it.
    *
    * The MetricManager owns the returned MetricMetadata for the process lifetime, so the returned

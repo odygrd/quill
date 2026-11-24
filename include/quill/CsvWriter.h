@@ -8,6 +8,7 @@
 
 #include "quill/Frontend.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/Filesystem.h"
 #include "quill/core/QuillError.h"
 #include "quill/sinks/FileSink.h"
 #include "quill/sinks/RotatingFileSink.h"
@@ -20,6 +21,7 @@
   #include <cstring>
   #include <memory>
   #include <string>
+  #include <type_traits>
   #include <utility>
 #endif
 
@@ -89,10 +91,7 @@ public:
                      FilenameAppendOption filename_append = FilenameAppendOption::None,
                      clock_source_t clock = ClockSource::tsc())
   {
-    FileSinkConfig sink_config;
-    sink_config.set_open_mode(open_mode);
-    sink_config.set_filename_append_option(filename_append);
-
+    FileSinkConfig sink_config{_make_file_sink_config(open_mode, filename_append)};
     _create_file_logger<FileSink>(filename, sink_config, true, clock);
   }
 
@@ -119,6 +118,36 @@ public:
    * @param clock The clock of the timestamps that order the rows, see the constructor above.
    */
   CsvWriter(std::string const& filename, RotatingFileSinkConfig sink_config,
+            bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
+  {
+    _create_file_logger<RotatingFileSink>(filename, sink_config, should_write_header, clock);
+  }
+
+  /**
+   * The three constructors above for a file that is given by path. Use them for a path that a
+   * std::string cannot spell: on Windows a std::string name is decoded with the active code
+   * page, while a path built from a wide string keeps every character.
+   */
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  explicit CsvWriter(TPath const& filename, char open_mode = 'a',
+                     FilenameAppendOption filename_append = FilenameAppendOption::None,
+                     clock_source_t clock = ClockSource::tsc())
+  {
+    FileSinkConfig sink_config{_make_file_sink_config(open_mode, filename_append)};
+    _create_file_logger<FileSink>(filename, sink_config, true, clock);
+  }
+
+  /***/
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  CsvWriter(TPath const& filename, FileSinkConfig sink_config, bool should_write_header = true,
+            clock_source_t clock = ClockSource::tsc())
+  {
+    _create_file_logger<FileSink>(filename, sink_config, should_write_header, clock);
+  }
+
+  /***/
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  CsvWriter(TPath const& filename, RotatingFileSinkConfig sink_config,
             bool should_write_header = true, clock_source_t clock = ClockSource::tsc())
   {
     _create_file_logger<RotatingFileSink>(filename, sink_config, should_write_header, clock);
@@ -248,12 +277,21 @@ public:
   }
 
 private:
+  /** The configuration of the file sink of a writer that is given an open mode instead of one */
+  QUILL_NODISCARD static FileSinkConfig _make_file_sink_config(char open_mode, FilenameAppendOption filename_append)
+  {
+    FileSinkConfig sink_config;
+    sink_config.set_open_mode(open_mode);
+    sink_config.set_filename_append_option(filename_append);
+    return sink_config;
+  }
+
   /**
    * Creates the logger of a writer that is given a file name. The file sink writes the header
    * when it creates a file, so that it is also the first line of each file after a rotation.
    */
-  template <typename TFileSink, typename TFileSinkConfig>
-  void _create_file_logger(std::string const& filename, TFileSinkConfig& sink_config,
+  template <typename TFileSink, typename TFilename, typename TFileSinkConfig>
+  void _create_file_logger(TFilename const& filename, TFileSinkConfig& sink_config,
                            bool should_write_header, clock_source_t clock)
   {
     if (should_write_header)
@@ -272,11 +310,11 @@ private:
       QUILL_THROW(QuillError{
         "The file sink of a CsvWriter that writes the header must be created by that writer, "
         "before the writers that share the file with should_write_header=false: " +
-        filename});
+        detail::file_sink_name_string(filename)});
     }
 
     _logger = frontend_t::create_or_get_logger(
-      _make_logger_name(filename), std::move(sink),
+      _make_logger_name(detail::file_sink_name_string(filename)), std::move(sink),
       PatternFormatterOptions{"%(message)", "", Timezone::GmtTime}, clock);
   }
 

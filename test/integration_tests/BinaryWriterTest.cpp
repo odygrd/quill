@@ -147,13 +147,18 @@ TEST_CASE("binary_writer")
     FileSinkConfig truncating_sink_config;
     truncating_sink_config.set_open_mode('w');
 
-    BinaryWriter second_writer{shared_filename, truncating_sink_config};
+    // The file can also be given by path, and its sink is then found by the path as well
+    fs::path const shared_path{shared_filename};
+    BinaryWriter second_writer{shared_path, truncating_sink_config};
     REQUIRE(second_writer.write(second_record.data(), second_record.size()));
+    REQUIRE((Frontend::get_sink(shared_path) == Frontend::get_sink(std::string{shared_filename})));
 
 #if !defined(QUILL_NO_EXCEPTIONS)
     FileSinkConfig framed_sink_config;
     framed_sink_config.set_binary_record_framing(BinaryRecordFraming::Size);
     REQUIRE_THROWS_AS(BinaryWriter(shared_filename, framed_sink_config), QuillError);
+    REQUIRE_THROWS_AS(BinaryWriter(shared_path, framed_sink_config), QuillError);
+    REQUIRE_THROWS_AS((void)Frontend::get_sink(fs::path{"binary_writer_no_such_file.bin"}), QuillError);
 #endif
 
     writer.close();

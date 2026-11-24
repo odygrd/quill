@@ -214,9 +214,11 @@
 - Added `FrontendOptions::clock_type`, defaulting to `ClockSource` for runtime selection, with
   support for user-clock implementation types to inline timestamp reads.
   ([#1009](https://github.com/odygrd/quill/issues/1009))
-- Added `std::filesystem::path` overloads of `Frontend::create_sink<TSink>()` and
-  `Frontend::create_or_get_sink<TSink>()` for file sinks, so Windows applications can log to paths
-  with characters outside the active code page. ([#354](https://github.com/odygrd/quill/issues/354))
+- Added `std::filesystem::path` overloads of `Frontend::create_sink<TSink>()`,
+  `Frontend::create_or_get_sink<TSink>()` and `Frontend::get_sink()` for file sinks, and of the
+  constructors of `CsvWriter`, `BinaryWriter` and `PcapWriter`, so Windows applications can log to
+  paths with characters outside the active code page.
+  ([#354](https://github.com/odygrd/quill/issues/354))
 - Added `PatternFormatter::format(LogRecord const&)` for custom sinks that format records.
 - Added `quill::MemberwiseCodec<T, &T::a, &T::b>`, which generates a codec from a list of data
   members.
