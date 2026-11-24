@@ -156,9 +156,10 @@ if (QUILL_NO_EXCEPTIONS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif ()
 
-# address sanitizer flags
+# address and undefined behaviour sanitizer flags. A finding of either ends the program with an
+# error: the undefined behaviour sanitizer reports and carries on by default, which a test passes
 if (QUILL_SANITIZE_ADDRESS)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g")
 endif ()
 
 # thread sanitizer flags
