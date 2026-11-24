@@ -22,18 +22,21 @@ struct NonStdThrowingFormat
   int value{0};
 };
 
-struct ThrowingMoveOnBackendDecode
+/**
+ * Has no formatter: it is formatted through its conversion to std::string, which the backend
+ * makes when it decodes the record
+ */
+struct ThrowingConversionOnBackendDecode
 {
-  explicit ThrowingMoveOnBackendDecode(int in_value) : value(in_value) {}
-  ThrowingMoveOnBackendDecode(ThrowingMoveOnBackendDecode const&) = default;
-  ThrowingMoveOnBackendDecode& operator=(ThrowingMoveOnBackendDecode const&) = default;
+  explicit ThrowingConversionOnBackendDecode(int in_value) : value(in_value) {}
 
-  ThrowingMoveOnBackendDecode(ThrowingMoveOnBackendDecode&&)
+  // Not trivially copyable, so the object is constructed in the queue
+  ThrowingConversionOnBackendDecode(ThrowingConversionOnBackendDecode const& other)
+    : value(other.value)
   {
-    throw std::runtime_error{"backend_decode_throws"};
   }
 
-  ThrowingMoveOnBackendDecode& operator=(ThrowingMoveOnBackendDecode&&) = delete;
+  operator std::string() const { throw std::runtime_error{"backend_decode_throws"}; }
 
   int value{0};
 };
@@ -56,23 +59,15 @@ struct quill::Codec<NonStdThrowingFormat> : quill::DeferredFormatCodec<NonStdThr
 };
 
 template <>
-struct fmtquill::formatter<ThrowingMoveOnBackendDecode>
-{
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-  auto format(ThrowingMoveOnBackendDecode const& value, format_context& ctx) const
-  {
-    return fmtquill::format_to(ctx.out(), "{}", value.value);
-  }
-};
-
-template <>
-struct quill::Codec<ThrowingMoveOnBackendDecode> : quill::DeferredFormatCodec<ThrowingMoveOnBackendDecode>
+struct quill::Codec<ThrowingConversionOnBackendDecode>
+  : quill::DeferredFormatCodec<ThrowingConversionOnBackendDecode>
 {
 };
+#endif
 
 TEST_CASE("backend_formatter_non_std_exception_does_not_block_queue")
 {
+#if !defined(QUILL_NO_EXCEPTIONS)
   static constexpr char const* filename =
     "backend_formatter_non_std_exception_does_not_block_queue.log";
   static std::string const logger_name = "backend_formatter_non_std_exception_logger";
@@ -96,7 +91,7 @@ TEST_CASE("backend_formatter_non_std_exception_does_not_block_queue")
   Logger* logger = Frontend::create_or_get_logger(logger_name, std::move(file_sink));
 
   LOG_INFO(logger, "bad {}", NonStdThrowingFormat{1});
-  ThrowingMoveOnBackendDecode throwing_decode{7};
+  ThrowingConversionOnBackendDecode throwing_decode{7};
   LOG_INFO(logger, "decode {}", throwing_decode);
   LOG_INFO(logger, "good {}", 42);
 
@@ -112,5 +107,7 @@ TEST_CASE("backend_formatter_non_std_exception_does_not_block_queue")
   REQUIRE(testing::file_contains(file_contents, "good 42"));
 
   testing::remove_file(filename);
-}
+#else
+  return;
 #endif
+}

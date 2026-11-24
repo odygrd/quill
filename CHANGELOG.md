@@ -271,6 +271,11 @@
 - A transient allocation failure in the backend is reported through `error_notifier` and retried,
   instead of terminating the process, logging a record with duplicated arguments or disabling a
   sink's filters. `%(mdc)` also keeps its previous value instead of a truncated one.
+- When the backend cannot allocate memory for a record, an argument of a type using
+  `DeferredFormatCodec` is no longer decoded a second time from an object that was already
+  destroyed. The backend formats such an argument where it is in the queue, without copying or
+  moving it; an object inside a container, `std::optional`, `std::pair`, `std::tuple` or
+  `std::variant` is still moved out and is not covered.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is

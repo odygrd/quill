@@ -45,6 +45,12 @@ QUILL_BEGIN_NAMESPACE
  *          decoding, and the destructor, must not throw. A failed record remains uncommitted, but
  *          Quill cannot destroy an earlier deferred argument from that record.
  *
+ * The backend formats a non-trivially-copyable object that is an argument of the log statement
+ * where it is in the queue, and destroys it there once the record is formatted. An object inside
+ * another argument, e.g. an element of a std::vector or the value of a std::optional, is moved
+ * out of the queue and destroyed while the record is decoded. When the decoder of a later
+ * argument then throws, e.g. for lack of memory, the record is decoded again from that object.
+ *
  * Thread-Safety for non trivially copyable types:
  * It is the user's responsibility to ensure that an non trivially copyable type remains
  * thread-safe after being copied. For example, if the object contains a `shared_ptr`, ensure that
@@ -207,19 +213,45 @@ public:
 
   static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
-    QUILL_TRY { args_store->push_back(decode_arg(buffer)); }
-#if !defined(QUILL_NO_EXCEPTIONS)
-    QUILL_CATCH_ALL()
+    if constexpr (use_memcpy)
     {
-      // Fall back to a placeholder so the surrounding log line is still produced. Without this,
-      // a throwing decode would propagate up and discard the whole transit event.
-      static constexpr char fallback[] = "[Quill deferred decode failed]";
-      args_store->push_back(fmtquill::string_view{fallback, sizeof(fallback) - 1u});
-    }
+      QUILL_TRY { args_store->push_back(decode_arg(buffer)); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL() { _store_decode_failure(args_store); }
 #endif
+    }
+    else
+    {
+      // The object is formatted from where it is, in the queue, and is destroyed when the backend
+      // has consumed the record. It is not moved out and destroyed here: the backend decodes a
+      // record again when the decoder of a later argument throws, and must find the object as
+      // it was logged
+      auto* queued_object = std::launder(reinterpret_cast<T*>(align_pointer(buffer, alignof(T))));
+      buffer += sizeof(T) + alignof(T) - 1;
+
+      if constexpr (!std::is_trivially_destructible_v<T>)
+      {
+        args_store->defer_destruction(queued_object);
+      }
+
+      QUILL_TRY { args_store->push_back_queued(*queued_object); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL() { _store_decode_failure(args_store); }
+#endif
+    }
   }
 
 private:
+  /**
+   * Falls back to a placeholder so the surrounding log line is still produced. Without this, a
+   * throwing decode would propagate up and discard the whole transit event.
+   */
+  static void _store_decode_failure(DynamicFormatArgStore* args_store)
+  {
+    static constexpr char fallback[] = "[Quill deferred decode failed]";
+    args_store->push_back(fmtquill::string_view{fallback, sizeof(fallback) - 1u});
+  }
+
   static std::byte* align_pointer(void* pointer, size_t alignment) noexcept
   {
     return reinterpret_cast<std::byte*>((reinterpret_cast<uintptr_t>(pointer) + (alignment - 1ul)) &
