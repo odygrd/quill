@@ -85,6 +85,35 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   // The MSVC debug STL allocates a container proxy for a vector as it is constructed, which is
   // noexcept, and an injected bad_alloc there terminates the process
   #if !defined(_ITERATOR_DEBUG_LEVEL) || (_ITERATOR_DEBUG_LEVEL == 0)
+  // A poll lists the threads that have records to write, here two of them for the first time: the
+  // second producer, which keeps one of its two records after a poll, and this thread. The list
+  // has room for every thread that the backend has discovered, so that poll allocates nothing
+  // and writes a record. At Backend::stop() a failure there left the queued records unwritten
+  auto const log_from_this_thread = [logger]() { LOG_INFO(logger, "from the test thread"); };
+  log_from_this_thread();
+  worker->poll();
+
+  std::thread second_producer(
+    [logger]()
+    {
+      for (int i = 0; i < 2; ++i)
+      {
+        LOG_INFO(logger, "from the second producer");
+      }
+    });
+  second_producer.join();
+  worker->poll_one();
+  CHECK_EQ(sink->writes, 3u);
+
+  log_from_this_thread();
+  fail_next_allocation = true;
+  worker->poll_one();
+  CHECK(fail_next_allocation);
+  CHECK_EQ(sink->writes, 4u);
+  fail_next_allocation = false;
+  worker->poll();
+  CHECK_EQ(sink->writes, 5u);
+
   // A logger that is removed is collected by a poll. When that fails to allocate, here the list
   // of the names of the removed loggers, a later poll must still remove the logger
   auto* removed_logger =
