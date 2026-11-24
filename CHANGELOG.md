@@ -304,6 +304,9 @@
   unloaded afterwards.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
+- Builds with assertions enabled no longer abort when the system clock is set across a power of
+  ten of nanoseconds between a log call and the backend reading it, e.g. from 1970 to the current
+  time on a device that starts without a clock.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is
   slow, and drift less between resyncs.
 - With `SignalHandlerOptions::timeout_seconds = 0`, `Backend::start()` leaves the application's
