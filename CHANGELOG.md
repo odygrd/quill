@@ -271,6 +271,9 @@
 - A transient allocation failure in the backend is reported through `error_notifier` and retried,
   instead of terminating the process, logging a record with duplicated arguments or disabling a
   sink's filters. `%(mdc)` also keeps its previous value instead of a truncated one.
+- A logger that `Frontend::remove_logger()` removed is still released when the backend fails to
+  allocate memory while it collects it. Before, the logger stayed registered and
+  `Frontend::remove_logger_blocking()` never returned.
 - When the backend cannot allocate memory for a record, an argument of a type using
   `DeferredFormatCodec` is no longer decoded a second time from an object that was already
   destroyed. The backend formats such an argument where it is in the queue, without copying or

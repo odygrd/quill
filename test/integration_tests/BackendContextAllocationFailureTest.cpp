@@ -82,6 +82,25 @@ TEST_CASE("backend_retries_context_discovery_after_allocation_failure")
   CHECK_EQ(sink->writes, 1u);
   worker->poll();
 
+  // The MSVC debug STL allocates a container proxy for a vector as it is constructed, which is
+  // noexcept, and an injected bad_alloc there terminates the process
+  #if !defined(_ITERATOR_DEBUG_LEVEL) || (_ITERATOR_DEBUG_LEVEL == 0)
+  // A logger that is removed is collected by a poll. When that fails to allocate, here the list
+  // of the names of the removed loggers, a later poll must still remove the logger
+  auto* removed_logger =
+    quill::Frontend::create_or_get_logger("context_allocation_failure_logger_that_is_removed", sink);
+  size_t const number_of_loggers = quill::Frontend::get_number_of_loggers();
+  quill::Frontend::remove_logger(removed_logger);
+
+  fail_next_allocation = true;
+  worker->poll_one();
+  CHECK_FALSE(fail_next_allocation);
+  CHECK_EQ(quill::Frontend::get_number_of_loggers(), number_of_loggers);
+
+  worker->poll_one();
+  CHECK_EQ(quill::Frontend::get_number_of_loggers(), number_of_loggers - 1u);
+  #endif
+
   // A thread that only creates its queue and exits leaves a retired context with nothing to read
   std::thread idle_thread([]() { quill::Frontend::preallocate(); });
   idle_thread.join();

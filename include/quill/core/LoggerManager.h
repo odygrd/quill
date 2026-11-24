@@ -299,25 +299,42 @@ public:
     std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;
     if (_has_invalidated_loggers.exchange(false, std::memory_order_acq_rel))
     {
+      size_t const removed_loggers_before = removed_loggers.size();
+
+      QUILL_TRY
       {
         LockGuard const lock{_spinlock};
-        for (auto it = _loggers.begin(); it != _loggers.end();)
+
+        // In two stages. The names of the loggers that can be removed are copied first, which
+        // can fail to allocate: no logger has left the manager by then
+        for (auto const& logger : _loggers)
         {
-          if (!it->get()->is_valid_logger())
+          if (!logger->is_valid_logger())
           {
-            // invalid logger, check if a record that refers to the logger is still pending
-            if (!can_remove_logger(it->get()))
+            if (can_remove_logger(logger.get()))
             {
-              // we have pending records in the queue, we can not remove the logger yet
-              ++it;
-              _has_invalidated_loggers.store(true, std::memory_order_release);
+              removed_loggers.push_back(logger->get_logger_name());
             }
             else
             {
-              removed_loggers.push_back(it->get()->get_logger_name());
-              loggers_to_destroy.push_back(static_cast<std::unique_ptr<LoggerBase>&&>(*it));
-              it = _loggers.erase(it);
+              // a record that refers to the logger is still pending, it is removed by a later call
+              _has_invalidated_loggers.store(true, std::memory_order_release);
             }
+          }
+        }
+
+        loggers_to_destroy.reserve(removed_loggers.size() - removed_loggers_before);
+
+        // Nothing throws from here on. The loggers leave the manager in the order of their names
+        size_t next_removed_logger = removed_loggers_before;
+
+        for (auto it = _loggers.begin(); next_removed_logger != removed_loggers.size();)
+        {
+          if (it->get()->get_logger_name() == removed_loggers[next_removed_logger])
+          {
+            loggers_to_destroy.push_back(static_cast<std::unique_ptr<LoggerBase>&&>(*it));
+            it = _loggers.erase(it);
+            ++next_removed_logger;
           }
           else
           {
@@ -325,6 +342,15 @@ public:
           }
         }
       }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        // An allocation failed before a logger was removed. A later call removes them
+        removed_loggers.resize(removed_loggers_before);
+        _has_invalidated_loggers.store(true, std::memory_order_release);
+        throw;
+      }
+#endif
     }
 
     return loggers_to_destroy;
