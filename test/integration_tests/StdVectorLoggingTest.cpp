@@ -8,7 +8,10 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Vector.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -60,6 +63,39 @@ struct fmtquill::formatter<CustomTypeTC>
 template <>
 struct quill::Codec<CustomTypeTC> : quill::DeferredFormatCodec<CustomTypeTC>
 {
+};
+
+/**
+ * A codec of an application for an arithmetic type: a UTF-16 code unit is stored as it is and
+ * decoded to its number. A vector decodes each element with it
+ */
+template <>
+struct quill::Codec<char16_t>
+{
+  static size_t compute_encoded_size(quill::SizeCacheVector& /* conditional_arg_size_cache */, char16_t /* arg */) noexcept
+  {
+    return sizeof(char16_t);
+  }
+
+  static void encode(std::byte*& buffer, quill::SizeCacheVector const& /* conditional_arg_size_cache */,
+                     uint32_t& /* conditional_arg_size_cache_index */, char16_t arg) noexcept
+  {
+    std::memcpy(buffer, &arg, sizeof(arg));
+    buffer += sizeof(arg);
+  }
+
+  static uint32_t decode_arg(std::byte*& buffer)
+  {
+    char16_t arg;
+    std::memcpy(&arg, buffer, sizeof(arg));
+    buffer += sizeof(arg);
+    return arg;
+  }
+
+  static void decode_and_store_arg(std::byte*& buffer, quill::DynamicFormatArgStore* args_store)
+  {
+    args_store->push_back(decode_arg(buffer));
+  }
 };
 
 /***/
@@ -236,6 +272,10 @@ TEST_CASE("std_vector_logging")
 
     // Test with temporary vector
     LOG_INFO(logger, "temp_vec {}", std::vector<std::string>{"temp1", "temp2", "temp3"});
+
+    // The elements are decoded by the codec of their type, which widens them
+    std::vector<char16_t> code_units = {u'A', u'B'};
+    LOG_INFO(logger, "code_units {}", code_units);
   }
 
   logger->flush_log();
@@ -362,6 +402,9 @@ TEST_CASE("std_vector_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_vec [\"temp1\", \"temp2\", \"temp3\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       code_units [65, 66]"}));
 
   testing::remove_file(filename);
 }

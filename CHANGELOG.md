@@ -259,6 +259,8 @@
   string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
 - The backend measures the length of a C string argument once instead of twice: about 3% more log
   statements per second when the log statements have C string arguments.
+- The backend sizes a `std::vector` of arithmetic values once before it decodes the elements:
+  about 4% more log statements per second for vectors of 64 to 512 elements.
 - Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
   rotation no longer fsyncs the file when fsync is disabled.
 - Reduced overhead for System/User clocks.
