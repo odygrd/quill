@@ -107,18 +107,39 @@ public:
 
     // Read the size of the vector
     size_t const number_of_elements = Codec<size_t>::decode_arg(buffer);
-    arg.reserve(number_of_elements);
 
-    for (size_t i = 0; i < number_of_elements; ++i)
+    if constexpr (use_memcpy_fast_path && std::is_arithmetic_v<ReturnType>)
     {
-      auto elem = detail::decode_element<T>(buffer);
-      if constexpr (std::is_move_constructible_v<ReturnType>)
+      // Sized once and decoded in place: the loop has no capacity check, so the compiler can copy
+      // the elements of the built-in codec as a block. Each one is still decoded by Codec<T>,
+      // which an application can specialize
+      arg.resize(number_of_elements);
+
+      // Local copy improves generated code (avoids aliasing penalties)
+      std::byte* read_pos = buffer;
+
+      for (size_t i = 0; i < number_of_elements; ++i)
       {
-        arg.emplace_back(std::move(elem));
+        arg[i] = detail::decode_element<T>(read_pos);
       }
-      else
+
+      buffer = read_pos;
+    }
+    else
+    {
+      arg.reserve(number_of_elements);
+
+      for (size_t i = 0; i < number_of_elements; ++i)
       {
-        arg.emplace_back(elem);
+        auto elem = detail::decode_element<T>(buffer);
+        if constexpr (std::is_move_constructible_v<ReturnType>)
+        {
+          arg.emplace_back(std::move(elem));
+        }
+        else
+        {
+          arg.emplace_back(elem);
+        }
       }
     }
 
