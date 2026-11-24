@@ -1459,7 +1459,7 @@ private:
       {
         // Let mktime resolve the correct DST state for the configured wall-clock time.
         rotation_time_tm.tm_isdst = -1;
-        return std::mktime(&rotation_time_tm);
+        return detail::mktime(&rotation_time_tm);
       }
 
       return detail::timegm(&rotation_time_tm);
@@ -1519,7 +1519,7 @@ private:
 
     // convert back to timestamp
     time_t const rotation_time =
-      (config.timezone() == Timezone::GmtTime) ? detail::timegm(&date) : std::mktime(&date);
+      (config.timezone() == Timezone::GmtTime) ? detail::timegm(&date) : detail::mktime(&date);
 
     auto const interval_seconds =
       (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely)

@@ -226,6 +226,25 @@ inline time_t timegm(tm* tm)
   return ret_val;
 #endif
 }
+
+/**
+ * inverse of localtime
+ * @param tm struct tm to convert
+ * @throws when the time cannot be represented
+ */
+inline time_t mktime(tm* tm)
+{
+  // -1 is also a valid time. A conversion that succeeds sets the day of the week
+  tm->tm_wday = -1;
+  time_t const ret_val = ::mktime(tm);
+
+  if (QUILL_UNLIKELY((ret_val == static_cast<time_t>(-1)) && (tm->tm_wday == -1)))
+  {
+    QUILL_THROW(QuillError{"mktime failed."});
+  }
+
+  return ret_val;
+}
 } // namespace detail
 
 QUILL_END_NAMESPACE
