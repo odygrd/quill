@@ -199,6 +199,10 @@
 - A `RotatingFileSink` throws `QuillError` when its startup cleanup or recovery needs a directory
   scan and the directory of its file cannot be listed, e.g. one that the process may write to but
   not read. Before, it was created with rotation disabled and wrote one file without a size limit.
+- With open mode `'a'`, a `RotatingFileSink` recovers the backups of an earlier run only when their
+  names are spelled as the configured file name, also on a filesystem that ignores case or Unicode
+  normalization. With `set_overwrite_rolled_files(false)`, a rotation no longer renames a file over
+  a backup that the sink does not track: the sink keeps writing to its current file instead.
 - When regular output records arrive out of timestamp order, `BackendOptions::error_notifier`
   suggests a larger `log_timestamp_ordering_grace_period` for delayed publishers. It repeats the
   advice only when the estimate increases.
