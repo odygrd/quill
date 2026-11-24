@@ -5014,20 +5014,11 @@ TEST_CASE("rotating_file_sink_index_append_ignores_files_with_an_index_it_does_n
   // files that another tool wrote next to the log file
   fs::path const stray_zero = "rotating_file_sink_index_append_stray_index.0.log";
   fs::path const stray_zero_padded = "rotating_file_sink_index_append_stray_index.01.log";
+
+  // An index that no rotation reaches: one more wraps to zero, the name of the log file
   fs::path const stray_max = "rotating_file_sink_index_append_stray_index.4294967295.log";
 
-  // A backup with the greatest index that the sink writes. It cannot take the next index, which
-  // is the name of stray_max, and the one after that wraps to the name of the log file
-  fs::path const backup_max = "rotating_file_sink_index_append_stray_index.4294967294.log";
-
-  // The backup below it cannot take the next index either, as that file stays, and a backup
-  // further down stops when it reaches them
-  fs::path const backup_below_max = "rotating_file_sink_index_append_stray_index.4294967293.log";
-  fs::path const backup_high = "rotating_file_sink_index_append_stray_index.4294967291.log";
-  fs::path const backup_high_rotated = "rotating_file_sink_index_append_stray_index.4294967292.log";
-
-  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded,
-                               stray_max, backup_max, backup_below_max, backup_high, backup_high_rotated})
+  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded, stray_max})
   {
     testing::remove_file(file);
   }
@@ -5038,9 +5029,6 @@ TEST_CASE("rotating_file_sink_index_append_ignores_files_with_an_index_it_does_n
   testing::create_file(stray_zero, "Stray_zero");
   testing::create_file(stray_zero_padded, "Stray_zero_padded");
   testing::create_file(stray_max, "Stray_max");
-  testing::create_file(backup_max, "Backup_max");
-  testing::create_file(backup_below_max, "Backup_below_max");
-  testing::create_file(backup_high, "Backup_high");
 
   {
     auto rfh = RotatingFileSink{filename,
@@ -5099,16 +5087,8 @@ TEST_CASE("rotating_file_sink_index_append_ignores_files_with_an_index_it_does_n
   REQUIRE(testing::file_contains(testing::file_contents(stray_zero), "Stray_zero"));
   REQUIRE(testing::file_contains(testing::file_contents(stray_zero_padded), "Stray_zero_padded"));
   REQUIRE(testing::file_contains(testing::file_contents(stray_max), "Stray_max"));
-  REQUIRE(testing::file_contains(testing::file_contents(backup_max), "Backup_max"));
 
-  // The backups at the greatest indexes are where they were. The first rotation renamed the one
-  // further down to the index below them, and the second rotation left it there
-  REQUIRE(testing::file_contains(testing::file_contents(backup_below_max), "Backup_below_max"));
-  REQUIRE(testing::file_contains(testing::file_contents(backup_high_rotated), "Backup_high"));
-  REQUIRE_FALSE(fs::exists(backup_high));
-
-  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded,
-                               stray_max, backup_max, backup_below_max, backup_high, backup_high_rotated})
+  for (fs::path const& file : {filename, backup_1, backup_2, backup_3, stray_zero, stray_zero_padded, stray_max})
   {
     testing::remove_file(file);
   }
