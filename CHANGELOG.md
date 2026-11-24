@@ -109,9 +109,8 @@
 
 ### Performance
 
-- The backend formats records about three times faster with the default `PatternFormatterOptions`
-  pattern, or any pattern that pads attributes to a width such as `%(logger:<12)`, when the padded
-  values are ASCII.
+- With ASCII attribute values, `PatternFormatter` formats records about three times faster in the
+  default-pattern benchmark. Custom patterns that pad ASCII attributes can also benefit.
 
 ## v14.0.0
 

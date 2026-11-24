@@ -1322,12 +1322,33 @@ TEST_CASE("pattern_format_specifiers_pad_non_ascii_values_by_display_width")
                      &named_args, "hello", std::string_view{});
   REQUIRE_EQ(fmtquill::to_string(ascii_buffer), "|cafe     |**main***|hello|\n");
 
-  std::string const non_ascii_logger = "caf\xc3\xa9";
+  std::string const non_ascii_logger = "123456\xc3\xa9";
   auto const& non_ascii_buffer =
     formatter.format(ts, thread_id, "\xe4\xb8\xad", process_id, non_ascii_logger, "INFO", "I",
                      macro_metadata, &named_args, "hello", std::string_view{});
   REQUIRE_EQ(fmtquill::to_string(non_ascii_buffer),
              fmtquill::format("|{:<9}|{:*^9}|hello|\n", non_ascii_logger, "\xe4\xb8\xad"));
+}
+
+TEST_CASE("pattern_format_specifiers_pad_empty_and_wide_values")
+{
+  // An empty value is all fill, and a value as wide as the width or wider gets no padding
+  PatternFormatter formatter{PatternFormatterOptions{
+    "|%(logger:*<4)|%(thread_name:>4)|%(log_level:^4)|%(message)|", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Warning, MacroMetadata::Event::Log};
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, "main", process_id, std::string_view{}, "WARNING", "W",
+                     macro_metadata, &named_args, "hello", std::string_view{});
+
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer), "|****|main|WARNING|hello|\n");
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer),
+             fmtquill::format("|{:*<4}|{:>4}|{:^4}|hello|\n", "", "main", "WARNING"));
 }
 
 TEST_CASE("pattern_format_specifiers_pad_past_the_buffer_capacity")

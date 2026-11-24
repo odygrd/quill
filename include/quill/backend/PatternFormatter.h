@@ -471,7 +471,21 @@ private:
     _formatted_log_message_buffer.try_resize(offset + value.size() + padding);
 
     char* const dest = _formatted_log_message_buffer.data() + offset;
-    std::memset(dest, specs.fill_unit<char>(), value.size() + padding);
+    size_t const right_padding = padding - left_padding;
+
+    if ((left_padding != 0) && (right_padding != 0))
+    {
+      // Centred: one fill across the field costs less than two, and the copy overwrites the middle
+      std::memset(dest, specs.fill_unit<char>(), value.size() + padding);
+    }
+    else if (left_padding != 0)
+    {
+      std::memset(dest, specs.fill_unit<char>(), left_padding);
+    }
+    else if (right_padding != 0)
+    {
+      std::memset(dest + value.size(), specs.fill_unit<char>(), right_padding);
+    }
 
     if (!value.empty())
     {
