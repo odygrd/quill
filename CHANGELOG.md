@@ -369,6 +369,7 @@
   redefinition errors or internal compiler errors. ([#1012](https://github.com/odygrd/quill/issues/1012))
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
+- On NetBSD, a `%` in `BackendOptions::thread_name` is no longer read as a printf conversion.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
 - Various other fixes and performance improvements.

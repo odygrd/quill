@@ -185,7 +185,7 @@ TEST_CASE("set_cpu_affinity_accepts_current_cpu_and_rejects_invalid_cpu")
 
 TEST_CASE("set_thread_name_validates_length")
 {
-#if defined(__linux__) && !defined(__ANDROID__)
+#if defined(__linux__) && !defined(__ANDROID__) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
   set_thread_name("quill-test");
 
   char current_name[16]{};
@@ -195,6 +195,20 @@ TEST_CASE("set_thread_name_validates_length")
   set_thread_name("quill-thread-name-too-long");
   REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
   REQUIRE_EQ(std::string{current_name}, "quill-thread-na");
+#else
+  return;
+#endif
+}
+
+TEST_CASE("set_thread_name_keeps_percent_characters")
+{
+#if ((defined(__linux__) && !defined(__ANDROID__)) || defined(__NetBSD__)) && !defined(QUILL_NO_THREAD_NAME_SUPPORT)
+  // NetBSD sets the name from a printf format, which the name must not be taken for
+  set_thread_name("quill-%s-%d");
+
+  char current_name[32]{};
+  REQUIRE_EQ(::pthread_getname_np(::pthread_self(), current_name, sizeof(current_name)), 0);
+  REQUIRE_EQ(std::string{current_name}, "quill-%s-%d");
 #else
   return;
 #endif
