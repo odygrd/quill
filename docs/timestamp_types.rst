@@ -78,6 +78,9 @@ To inline a clock, set ``clock_type`` to the ``UserClockSource`` subclass implem
 factory argument. This expression retains the clock's type for compile-time checking.
 The frontend calls that implementation directly, without virtual dispatch. The selected type may
 be abstract if it already implements ``now()``; pass an instance of a derived class in that case.
+It must not inherit ``UserClockSource`` virtually: the frontend converts the clock of the logger
+to the selected type with a ``static_cast``, and with a virtual base the first log statement does
+not compile.
 Further overrides of ``now()`` in derived classes are bypassed; the backend still calls
 ``timestamp_type()`` virtually, so it must describe the selected ``now()`` implementation.
 The option selects dispatch; the argument supplies the clock object and its state.

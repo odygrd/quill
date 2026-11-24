@@ -45,6 +45,7 @@ struct FrontendOptions
    * Select frontend clock dispatch. ClockSource preserves per-logger runtime clock selection.
    * To call a UserClockSource implementation directly, set clock_type to that class and pass
    * ClockSource::custom(clock) when creating a logger. The object must outlive its loggers and records.
+   * The class must not inherit UserClockSource virtually: the first log statement would not compile.
    */
   using clock_type = ClockSource;
 
