@@ -14,6 +14,7 @@
   #include <array>
   #include <cstdint>
   #include <cstdio>
+  #include <cstdlib>
   #include <cstring>
   #include <string>
   #include <string_view>
@@ -34,9 +35,6 @@
   #include <io.h>
   #include <windows.h>
 #else
-  #ifndef QUILL_MODULE
-    #include <cstdlib>
-  #endif
   #include <unistd.h>
 #endif
 
@@ -163,7 +161,8 @@ public:
    * Valid options for the colour mode are:
    *   - Always: Colours are always enabled.
    *   - Automatic: Colours are enabled automatically based on the environment
-   *     (e.g., terminal support).
+   *     (e.g., terminal support), and are disabled when the NO_COLOR environment variable has a
+   *     value, see https://no-color.org.
    *   - Never: Colours are never enabled.
    *
    * The default value is 'Automatic'.
@@ -337,14 +336,29 @@ private:
       return true;
     }
 
-    return ansi_enabled && _is_terminal_output(file) && _supports_colour_output();
+    return ansi_enabled && !_is_no_colour_requested() && _is_terminal_output(file) &&
+      _supports_colour_output();
 #else
     if (colour_mode == ConsoleSinkConfig::ColourMode::Always)
     {
       return true;
     }
 
-    return _is_terminal_output(file) && _supports_colour_output();
+    return !_is_no_colour_requested() && _is_terminal_output(file) && _supports_colour_output();
+#endif
+  }
+
+  /** @return true if the NO_COLOR environment variable has a value, see https://no-color.org */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static bool _is_no_colour_requested() noexcept
+  {
+#if defined(_MSC_VER)
+    // Without a buffer the call only reports the size that the value needs, with its terminator
+    size_t required_size{0};
+    (void)::getenv_s(&required_size, nullptr, 0, "NO_COLOR");
+    return required_size > 1;
+#else
+    char const* const no_colour = std::getenv("NO_COLOR");
+    return (no_colour != nullptr) && (no_colour[0] != '\0');
 #endif
   }
 

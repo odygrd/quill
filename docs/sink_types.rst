@@ -9,6 +9,7 @@ ConsoleSink
 ~~~~~~~~~~~
 
 The `ConsoleSink` class sends logging output to streams `stdout` or `stderr`. Printing color codes to terminal or Windows console is also supported.
+With the default ``ConsoleSinkConfig::ColourMode::Automatic``, colours are written to a terminal that supports them, unless the ``NO_COLOR`` environment variable has a value.
 
 On Windows, the console interprets bytes written by ``ConsoleSink`` using its output code page.
 To display UTF-8 logs, set the console output code page to UTF-8 with ``SetConsoleOutputCP(CP_UTF8)``

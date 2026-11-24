@@ -219,6 +219,9 @@
   constructors of `CsvWriter`, `BinaryWriter` and `PcapWriter`, so Windows applications can log to
   paths with characters outside the active code page.
   ([#354](https://github.com/odygrd/quill/issues/354))
+- `ConsoleSink` honours the `NO_COLOR` environment variable: with the default
+  `ColourMode::Automatic` it writes no colours when the variable has a value.
+  `ColourMode::Always` still writes them.
 - Added `PatternFormatter::format(LogRecord const&)` for custom sinks that format records.
 - Added `quill::MemberwiseCodec<T, &T::a, &T::b>`, which generates a codec from a list of data
   members.
