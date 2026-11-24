@@ -842,6 +842,12 @@ private:
         return;
       }
 
+      // RotationNamingScheme::Date removes the backups that are named with the date of today
+      std::string const today_date =
+        (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
+        ? detail::format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d")
+        : std::string{};
+
       // Collect paths first, then remove — deleting during directory_iterator
       // traversal is implementation-defined and can skip entries on some platforms.
       std::vector<fs::path> files_to_remove;
@@ -866,9 +872,6 @@ private:
         }
         else if (_config.rotation_naming_scheme() == RotatingFileSinkConfig::RotationNamingScheme::Date)
         {
-          std::string const today_date =
-            detail::format_datetime_string(today_timestamp_ns, _config.timezone(), "%Y%m%d");
-
           if (parsed_file_info.date_time == today_date)
           {
             files_to_remove.push_back(entry.path());
