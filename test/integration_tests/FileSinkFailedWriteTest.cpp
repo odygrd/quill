@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <new>
 #include <string>
 #include <string_view>
 
@@ -27,6 +28,12 @@ namespace
 // does when the disk is full, the one before it writes ten bytes only, and the one before that
 // is interrupted before it writes anything
 int disturbed_writes{0};
+
+// Set to fail the first allocation that follows the write that the full disk fails
+bool fail_allocation_after_full_disk{false};
+
+// Set to fail the next allocation
+bool fail_next_allocation{false};
 
 /** Limits the size of the files that the process writes, as long as it exists */
 class FileSizeLimit
@@ -75,6 +82,12 @@ extern "C" ssize_t write(int file_descriptor, void const* buffer, size_t count)
 
     if (disturbed_writes == 0)
     {
+      if (fail_allocation_after_full_disk)
+      {
+        fail_allocation_after_full_disk = false;
+        fail_next_allocation = true;
+      }
+
       errno = ENOSPC;
       return -1;
     }
@@ -84,6 +97,32 @@ extern "C" ssize_t write(int file_descriptor, void const* buffer, size_t count)
 
   return static_cast<ssize_t>(::syscall(SYS_write, file_descriptor, buffer, count));
 }
+
+  // ThreadSanitizer supplies its own global new/delete definitions, which cannot be replaced.
+  #if !defined(QUILL_NO_EXCEPTIONS) && !QUILL_HAS_FEATURE(thread_sanitizer) && !defined(__SANITIZE_THREAD__)
+// This executable replaces global operator new to simulate a single allocation failure without
+// exhausting memory. Other test executables use their normal allocator.
+void* operator new(std::size_t size)
+{
+  if (fail_next_allocation)
+  {
+    // Consume the flag before throwing, so that the test can allocate again
+    fail_next_allocation = false;
+    throw std::bad_alloc{};
+  }
+
+  return ::operator new(size, std::align_val_t{alignof(std::max_align_t)});
+}
+
+void operator delete(void* memory) noexcept
+{
+  ::operator delete(memory, std::align_val_t{alignof(std::max_align_t)});
+}
+void operator delete(void* memory, std::size_t) noexcept
+{
+  ::operator delete(memory, std::align_val_t{alignof(std::max_align_t)});
+}
+  #endif
 #endif
 
 /***/
@@ -99,8 +138,10 @@ TEST_CASE("file_sink_failed_write")
   fs::path const limited_filename_1 = "file_sink_failed_write_limited.1.log";
   fs::path const sized_filename = "file_sink_failed_write_sized.log";
   fs::path const sized_filename_1 = "file_sink_failed_write_sized.1.log";
+  fs::path const no_memory_filename = "file_sink_failed_write_no_memory.log";
 
   testing::remove_file(filename);
+  testing::remove_file(no_memory_filename);
   testing::remove_file(framed_filename);
   testing::remove_file(removed_filename);
   testing::remove_file(limited_filename);
@@ -165,6 +206,30 @@ TEST_CASE("file_sink_failed_write")
   }
 
   REQUIRE_EQ(read_file_bytes(filename), expected_contents);
+
+  #if !QUILL_HAS_FEATURE(thread_sanitizer) && !defined(__SANITIZE_THREAD__)
+  {
+    // The message of a failed write needs memory. When there is none, what the file took has
+    // still left the buffer of the sink, so the next flush does not write those bytes again
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    FileSink file_sink{no_memory_filename, fsc};
+
+    std::string const log_statement(150, 'm');
+    write_log_statement(file_sink, log_statement);
+
+    // Ten bytes are accepted, then the disk is full, and then the message gets no memory
+    disturbed_writes = 2;
+    fail_allocation_after_full_disk = true;
+    REQUIRE_THROWS_AS(file_sink.flush_sink(SinkFlushReason::Explicit), std::bad_alloc);
+    REQUIRE_FALSE(fail_allocation_after_full_disk);
+    REQUIRE_FALSE(fail_next_allocation);
+    REQUIRE_EQ(read_file_bytes(no_memory_filename), log_statement.substr(0, 10));
+
+    file_sink.flush_sink(SinkFlushReason::Explicit);
+    REQUIRE_EQ(read_file_bytes(no_memory_filename), log_statement);
+  }
+  #endif
 
   // A framed binary record that the full buffer has no room for is dropped as a whole when the
   // buffer cannot be written to the file. Its frame is not kept without its bytes
@@ -319,6 +384,7 @@ TEST_CASE("file_sink_failed_write")
   testing::remove_file(limited_filename_1);
   testing::remove_file(sized_filename);
   testing::remove_file(sized_filename_1);
+  testing::remove_file(no_memory_filename);
 #else
   return;
 #endif

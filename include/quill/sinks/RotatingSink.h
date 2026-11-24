@@ -29,10 +29,6 @@
   #include <vector>
 #endif
 
-#if !defined(_WIN32)
-  #include <sys/stat.h>
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 QUILL_BEGIN_EXPORT
@@ -562,7 +558,8 @@ private:
       return false;
     }
 
-    if (!_holds_records(_get_open_file_size()))
+    // The size is taken from the open file, which, unlike the path, needs no fsync to be current
+    if (!_holds_records(this->_opened_file_size(this->_opened_file())))
     {
       // Also check the file has more than its header to better deal with full disk. The file holds
       // no records yet, so date the next backup from now rather than from when it was opened.
@@ -591,7 +588,7 @@ private:
    */
   bool _drop_records_after_failed_flush() noexcept
   {
-    if (!this->is_open() || !_holds_records(_get_open_file_size()))
+    if (!this->is_open() || !_holds_records(this->_opened_file_size(this->_opened_file())))
     {
       return false;
     }
@@ -969,20 +966,6 @@ private:
       QuillError{"Cannot list the directory of the rotating sink, where the backups of "
                  "previous runs are, path: " +
                  detail::file_sink_path_string(directory) + " error: " + ec.message()});
-  }
-
-  /** Size of the open file from its handle, which, unlike the path, needs no fsync to be current. */
-  QUILL_NODISCARD uint64_t _get_open_file_size() const noexcept
-  {
-#if defined(_WIN32)
-    LARGE_INTEGER size{};
-    return ::GetFileSizeEx(this->_native_file_handle, &size) ? static_cast<uint64_t>(size.QuadPart) : 0;
-#else
-    struct stat file_stat
-    {
-    };
-    return (::fstat(fileno(this->_file), &file_stat) == 0) ? static_cast<uint64_t>(file_stat.st_size) : 0;
-#endif
   }
 
   /**
