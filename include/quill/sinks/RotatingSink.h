@@ -274,6 +274,8 @@ public:
    * @param config The sink configuration.
    * @param file_event_notifier file event notifier
    * @param start_time start time
+   * @throws QuillError if the directory of the file cannot be listed. The sink finds the backups
+   * of previous runs there, and without them a rotation could overwrite one.
    */
   RotatingSink(fs::path const& filename, RotatingFileSinkConfig const& config,
                FileEventNotifier file_event_notifier = FileEventNotifier{},
@@ -294,26 +296,21 @@ public:
     uint64_t const start_time_ns = static_cast<uint64_t>(
       std::chrono::duration_cast<std::chrono::nanoseconds>(start_time.time_since_epoch()).count());
 
-    bool const recovery_succeeded =
-      _clean_and_recover_files(this->_filename, _config.open_mode(), start_time_ns);
+    _clean_and_recover_files(this->_filename, _config.open_mode(), start_time_ns);
 
-    if (recovery_succeeded && (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled))
+    if (_config.rotation_frequency() != RotatingFileSinkConfig::RotationFrequency::Disabled)
     {
       // Calculate next rotation time
       _next_rotation_time = _calculate_initial_rotation_tp(start_time_ns, config);
     }
 
     _open_file_timestamp = start_time_ns;
-
-    if (recovery_succeeded)
-    {
-      _created_files.emplace_front(this->_filename, 0, std::string{});
-    }
+    _created_files.emplace_front(this->_filename, 0, std::string{});
 
     // Rotate an existing startup file before the initial open so mode='w' does not truncate it.
     bool const rotation_on_creation_requested =
       _config.rotation_on_creation() && !this->is_null() && (_get_file_size(this->_filename) > 0);
-    bool const can_rotate_on_creation = _rotation_enabled() && rotation_on_creation_requested &&
+    bool const can_rotate_on_creation = rotation_on_creation_requested &&
       ((_created_files.size() <= _config.max_backup_files()) || _config.overwrite_rolled_files());
 
     if (can_rotate_on_creation)
@@ -344,7 +341,7 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void write_log(LogRecord const& record) override
   {
-    if (this->is_null() || !_rotation_enabled())
+    if (this->is_null())
     {
       base_type::write_log(record);
       return;
@@ -363,7 +360,7 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void write_binary(BinaryRecord const& record) override
   {
-    if (this->is_null() || !_rotation_enabled())
+    if (this->is_null())
     {
       base_type::write_binary(record);
       return;
@@ -388,9 +385,6 @@ protected:
   }
 
 private:
-  /***/
-  QUILL_NODISCARD bool _rotation_enabled() const noexcept { return !_created_files.empty(); }
-
   /**
    * @return true if the open file has records when it has this size. What the sink wrote when it
    * created the file is not a record: its header, see FileSinkConfig::set_file_header(), and the
@@ -809,13 +803,16 @@ private:
     return true;
   }
 
-  /***/
-  QUILL_NODISCARD bool _clean_and_recover_files(fs::path const& filename, std::string const& open_mode,
-                                                uint64_t today_timestamp_ns)
+  /**
+   * Removes or recovers the backups of previous runs, as the open mode asks for
+   * @throws QuillError if the directory of the file cannot be listed. Rotation without the
+   * backups that are in it could overwrite them
+   */
+  void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode, uint64_t today_timestamp_ns)
   {
     // The normalized filename is absolute in practice, so resolving against the current working
     // directory only matters for relative paths. fs::current_path() can throw when the working
-    // directory has been deleted, so use the non-throwing overload and skip clean-up on failure.
+    // directory has been deleted, so use the non-throwing overload.
     fs::path parent_dir = filename.parent_path();
 
     if (parent_dir.is_relative())
@@ -825,7 +822,7 @@ private:
 
       if (current_path_ec)
       {
-        return false;
+        _throw_directory_not_listed(parent_dir, current_path_ec);
       }
     }
 
@@ -834,14 +831,14 @@ private:
       bool const parent_exists = fs::exists(parent_dir, ec);
       if (ec)
       {
-        return false;
+        _throw_directory_not_listed(parent_dir, ec);
       }
 
       if (!parent_exists)
       {
         // Directory does not exist yet; nothing to clean or recover.
         // open_file will create it later.
-        return true;
+        return;
       }
     }
 
@@ -852,7 +849,7 @@ private:
       {
         // DateAndTime backups of previous runs are kept. A run that started in the same second
         // produces the same names, which _track_backups_with_date_time() handles on rotation
-        return true;
+        return;
       }
 
       // Collect paths first, then remove — deleting during directory_iterator
@@ -891,9 +888,8 @@ private:
 
       if (dir_ec)
       {
-        // Never remove a partially enumerated set. Unknown files could then be overwritten by a
-        // later rotation, so disable rotation for this sink instance instead.
-        return false;
+        // Never remove a partially enumerated set
+        _throw_directory_not_listed(parent_dir, dir_ec);
       }
 
       for (auto const& file_path : files_to_remove)
@@ -934,7 +930,7 @@ private:
       if (dir_ec)
       {
         // A partial view cannot safely drive index rotation or retention pruning.
-        return false;
+        _throw_directory_not_listed(parent_dir, dir_ec);
       }
 
       // sort the recovered files with the newest first; within the same date_time suffix a
@@ -963,8 +959,16 @@ private:
 
       _created_files = std::move(recovered_files);
     }
+  }
 
-    return true;
+  /***/
+  QUILL_ATTRIBUTE_COLD static void _throw_directory_not_listed(fs::path const& directory,
+                                                               std::error_code const& ec)
+  {
+    QUILL_THROW(
+      QuillError{"Cannot list the directory of the rotating sink, where the backups of "
+                 "previous runs are, path: " +
+                 detail::file_sink_path_string(directory) + " error: " + ec.message()});
   }
 
   /** Size of the open file from its handle, which, unlike the path, needs no fsync to be current. */
