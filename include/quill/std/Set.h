@@ -17,6 +17,7 @@
 #ifndef QUILL_MODULE
   #include <cstddef>
   #include <cstdint>
+  #include <functional>
   #include <memory>
   #include <set>
   #include <type_traits>
@@ -95,8 +96,12 @@ struct Codec<SetType<Key, Compare, Allocator>,
     {
       using ReturnType = decltype(Codec<Key>::decode_arg(buffer));
       using ReboundAllocator = typename std::allocator_traits<Allocator>::template rebind_alloc<ReturnType>;
+
+      // The keys can be decoded as another type, e.g. std::string_view for std::string, which
+      // the two standard comparators of the key type follow. Any other comparator is kept
       using ReboundCompare =
-        typename std::conditional<std::is_same<Compare, std::less<Key>>::value, std::less<ReturnType>, Compare>::type;
+        std::conditional_t<std::is_same_v<Compare, std::less<Key>>, std::less<ReturnType>,
+                           std::conditional_t<std::is_same_v<Compare, std::greater<Key>>, std::greater<ReturnType>, Compare>>;
 
       SetType<ReturnType, ReboundCompare, ReboundAllocator> arg;
 

@@ -7,6 +7,8 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Map.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <functional>
@@ -20,6 +22,24 @@ using namespace quill;
 struct CStringComparator
 {
   bool operator()(char const* a, char const* b) const { return std::strcmp(a, b) < 0; }
+};
+
+/**
+ * A comparator that exists for std::string only. The codec leaves the comparator of an
+ * application as it is, also when the keys are decoded as another type.
+ */
+template <typename T>
+struct CaseInsensitiveLess;
+
+template <>
+struct CaseInsensitiveLess<std::string>
+{
+  bool operator()(std::string_view lhs, std::string_view rhs) const
+  {
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end(),
+                                        [](unsigned char a, unsigned char b)
+                                        { return std::tolower(a) < std::tolower(b); });
+  }
 };
 
 /***/
@@ -52,6 +72,17 @@ TEST_CASE("std_map_logging")
 
     std::map<int, int, std::greater<int>> greater_map = {{1, 1}, {2, 2}, {3, 3}};
     LOG_INFO(logger, "greater_map {}", greater_map);
+
+    std::map<std::string, int, std::greater<std::string>> greater_string_map = {
+      {"alpha", 1}, {"beta", 2}, {"gamma", 3}};
+    LOG_INFO(logger, "greater_string_map {}", greater_string_map);
+
+    std::map<std::string, int, std::less<>> transparent_string_map = {{"beta", 2}, {"alpha", 1}};
+    LOG_INFO(logger, "transparent_string_map {}", transparent_string_map);
+
+    std::map<std::string, int, CaseInsensitiveLess<std::string>> case_insensitive_map = {
+      {"beta", 2}, {"Alpha", 1}, {"Gamma", 3}};
+    LOG_INFO(logger, "case_insensitive_map {}", case_insensitive_map);
 
     std::map<int, std::string> loopv;
     for (int iter = 0; iter < 25; ++iter)
@@ -97,6 +128,17 @@ TEST_CASE("std_map_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_map {3: 3, 2: 2, 1: 1}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       greater_string_map {\"gamma\": 3, \"beta\": 2, \"alpha\": 1}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       transparent_string_map {\"alpha\": 1, \"beta\": 2}"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents,
+    std::string{"LOG_INFO      " + logger_name +
+                "       case_insensitive_map {\"Alpha\": 1, \"beta\": 2, \"Gamma\": 3}"}));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       loopv {0: \"0\", 1: \"1\", 2: \"2\", 3: \"3\", 4: \"4\", 5: \"5\", 6: \"6\", 7: \"7\", 8: \"8\", 9: \"9\", 10: \"10\", 11: \"11\", 12: \"12\", 13: \"13\", 14: \"14\", 15: \"15\", 16: \"16\", 17: \"17\", 18: \"18\", 19: \"19\", 20: \"20\", 21: \"21\", 22: \"22\", 23: \"23\", 24: \"24\"}"}));
