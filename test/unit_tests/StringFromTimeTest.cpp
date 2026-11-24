@@ -700,6 +700,24 @@ TEST_CASE("next_noon_or_midnight_timestamp")
     time_t const res = StringFromTimeMock::next_noon_or_midnight_timestamp(timestamp);
     REQUIRE_EQ(res, expected_timestamp);
   }
+
+  // At noon and at midnight it is the one that follows, and a second earlier it is that one
+  REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(1599048000), 1599091200);
+  REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(1599091200), 1599134400);
+  REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(1599091199), 1599091200);
+
+  // A year that gmtime() does not convert on every platform: 5000-01-01 00:00:01
+  if constexpr (sizeof(time_t) > 4)
+  {
+    REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(static_cast<time_t>(95'617'584'001LL)),
+               static_cast<time_t>(95'617'627'200LL));
+  }
+
+  // The last half day that a time_t can hold has no next noon or midnight, as in 2038 for 32 bits
+  constexpr time_t max_timestamp{(std::numeric_limits<time_t>::max)()};
+  REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(max_timestamp), max_timestamp);
+  REQUIRE_EQ(StringFromTimeMock::next_noon_or_midnight_timestamp(max_timestamp - 1), max_timestamp);
+  REQUIRE_LT(StringFromTimeMock::next_noon_or_midnight_timestamp(max_timestamp - (24 * 60 * 60)), max_timestamp);
 }
 
 /***/
