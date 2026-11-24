@@ -228,7 +228,10 @@
        ": {}, " #k ": {}, " #j ": {}, " #i ": {}, " #h ": {}, " #g ": {}, " #f ": {}, " #e         \
        ": {}, " #d ": {}, " #c ": {}, " #b ": {}, " #a ": {}]"
 
-// Main macro to generate format strings (up to 26 variables plus the text)
+// Main macro to generate format strings (up to 26 variables plus the text). The 0 that ends the
+// list keeps the variadic part of QUILL_GET_FORMAT_GENERATOR_MACRO from being empty for a
+// statement without variables, which is not valid before C++20 and which clang reports under
+// -Wpedantic where the statement is written
 #define QUILL_GENERATE_FORMAT_STRING(...)                                                              \
   QUILL_EXPAND(QUILL_GET_FORMAT_GENERATOR_MACRO(                                                       \
     __VA_ARGS__, QUILL_GENERATE_FORMAT_STRING_26, QUILL_GENERATE_FORMAT_STRING_25,                     \
@@ -240,7 +243,7 @@
     QUILL_GENERATE_FORMAT_STRING_10, QUILL_GENERATE_FORMAT_STRING_9, QUILL_GENERATE_FORMAT_STRING_8,   \
     QUILL_GENERATE_FORMAT_STRING_7, QUILL_GENERATE_FORMAT_STRING_6, QUILL_GENERATE_FORMAT_STRING_5,    \
     QUILL_GENERATE_FORMAT_STRING_4, QUILL_GENERATE_FORMAT_STRING_3, QUILL_GENERATE_FORMAT_STRING_2,    \
-    QUILL_GENERATE_FORMAT_STRING_1, QUILL_GENERATE_FORMAT_STRING_0)(__VA_ARGS__))
+    QUILL_GENERATE_FORMAT_STRING_1, QUILL_GENERATE_FORMAT_STRING_0, 0)(__VA_ARGS__))
 
 /** -- LOGV_ helpers end -- **/
 
@@ -330,7 +333,8 @@
        "}, {" #q "}, {" #p "}, {" #o "}, {" #n "}, {" #m "}, {" #l "}, {" #k "}, {" #j "}, {" #i   \
        "}, {" #h "}, {" #g "}, {" #f "}, {" #e "}, {" #d "}, {" #c "}, {" #b "}, {" #a "}"
 
-// Main macro to generate format strings (up to 26 variables plus the text)
+// Main macro to generate format strings (up to 26 variables plus the text). The list ends with a
+// 0 for the same reason as the one of QUILL_GENERATE_FORMAT_STRING
 #define QUILL_GENERATE_NAMED_FORMAT_STRING(...)                                                                       \
   QUILL_EXPAND(QUILL_GET_FORMAT_GENERATOR_MACRO(                                                                      \
     __VA_ARGS__, QUILL_GENERATE_NAMED_FORMAT_STRING_26, QUILL_GENERATE_NAMED_FORMAT_STRING_25,                        \
@@ -345,7 +349,7 @@
     QUILL_GENERATE_NAMED_FORMAT_STRING_8, QUILL_GENERATE_NAMED_FORMAT_STRING_7,                                       \
     QUILL_GENERATE_NAMED_FORMAT_STRING_6, QUILL_GENERATE_NAMED_FORMAT_STRING_5,                                       \
     QUILL_GENERATE_NAMED_FORMAT_STRING_4, QUILL_GENERATE_NAMED_FORMAT_STRING_3, QUILL_GENERATE_NAMED_FORMAT_STRING_2, \
-    QUILL_GENERATE_NAMED_FORMAT_STRING_1, QUILL_GENERATE_NAMED_FORMAT_STRING_0)(__VA_ARGS__))
+    QUILL_GENERATE_NAMED_FORMAT_STRING_1, QUILL_GENERATE_NAMED_FORMAT_STRING_0, 0)(__VA_ARGS__))
 
 /** Tags helpers **/
 // Helper macro to prepend "#" to an argument
@@ -371,11 +375,13 @@
   QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO_IMPL(__VA_ARGS__))
 #define QUILL_GET_TAG_GENERATOR_MACRO_IMPL(_1, _2, _3, _4, _5, _6, NAME, ...) NAME
 
-// Main macro to generate tags, up to 6 tags
-#define QUILL_TAGS(...)                                                                               \
-  QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(__VA_ARGS__, QUILL_GENERATE_TAG_6, QUILL_GENERATE_TAG_5, \
-                                             QUILL_GENERATE_TAG_4, QUILL_GENERATE_TAG_3,              \
-                                             QUILL_GENERATE_TAG_2, QUILL_GENERATE_TAG_1)(__VA_ARGS__))
+// Main macro to generate tags, up to 6 tags. The 0 that ends the list keeps the variadic part of
+// QUILL_GET_TAG_GENERATOR_MACRO_IMPL from being empty for a single tag, which is not valid before
+// C++20 and which clang reports under -Wpedantic where the tag is written
+#define QUILL_TAGS(...)                                                                            \
+  QUILL_EXPAND(QUILL_GET_TAG_GENERATOR_MACRO(                                                      \
+    __VA_ARGS__, QUILL_GENERATE_TAG_6, QUILL_GENERATE_TAG_5, QUILL_GENERATE_TAG_4,                 \
+    QUILL_GENERATE_TAG_3, QUILL_GENERATE_TAG_2, QUILL_GENERATE_TAG_1, 0)(__VA_ARGS__))
 
 /** -- LOGJ_ helpers end -- **/
 
@@ -390,6 +396,16 @@
   {                                                                                                \
     QUILL_FILE_INFO, caller_function, fmt, tags, log_level, quill::MacroMetadata::Event::Log, true \
   }
+
+/**
+ * The macros from here to the end of the file pass their arguments on with `, ##__VA_ARGS__`,
+ * which every supported compiler implements. Clang reports each expansion of it under -Wpedantic,
+ * at the definition of the macro, so the warning is disabled for these definitions only.
+ */
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 
 // Public logger/level arguments may be stateful expressions, so capture them before reuse.
 #define QUILL_LOGGER_CALL(likelyhood, logger, tags, log_level, fmt, ...)                           \
@@ -1309,4 +1325,8 @@
   #define LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, file, line_number, function, tags, fmt, ...) \
     QUILL_LOG_RUNTIME_METADATA_SHALLOW(logger, log_level, file, line_number, function, tags, fmt, ##__VA_ARGS__)
 
+#endif
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
 #endif

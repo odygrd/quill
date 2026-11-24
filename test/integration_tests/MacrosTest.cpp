@@ -1,5 +1,12 @@
 #include "doctest/doctest.h"
 
+#if defined(__clang__) && !defined(__apple_build_version__) && (__clang_major__ >= 17)
+  // An application can build with -Wpedantic, and without the option that the build files of the
+  // library add for it: the log macros do not report the extension they are written with, also
+  // not for a statement without arguments or for a single tag
+  #pragma clang diagnostic error "-Wgnu-zero-variadic-macro-arguments"
+#endif
+
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
@@ -112,6 +119,8 @@ TEST_CASE("macros")
   LOGV_CRITICAL(logger, "D CRT", var);
   LOGV_BACKTRACE(logger, "D BT", var);
   LOGV_DYNAMIC(logger, quill::LogLevel::Critical, "D DYN", var);
+  LOGV_INFO(logger, "D NO VARS");
+  QUILL_LOGV_INFO(logger, "D NO VARS PREFIXED");
 
   LOGV_TRACE_L3_LIMIT(std::chrono::nanoseconds{0}, logger, "E L3", var);
   LOGV_TRACE_L2_LIMIT(std::chrono::nanoseconds{0}, logger, "E L2", var);
@@ -154,6 +163,8 @@ TEST_CASE("macros")
   LOGJ_CRITICAL(logger, "G CRT", var);
   LOGJ_BACKTRACE(logger, "G BT", var);
   LOGJ_DYNAMIC(logger, quill::LogLevel::Critical, "G DYN", var);
+  LOGJ_INFO(logger, "G NO VARS");
+  QUILL_LOGJ_INFO(logger, "G NO VARS PREFIXED");
 
   LOGJ_TRACE_L3_LIMIT(std::chrono::nanoseconds{0}, logger, "H L3", var);
   LOGJ_TRACE_L2_LIMIT(std::chrono::nanoseconds{0}, logger, "H L2", var);
@@ -278,6 +289,10 @@ TEST_CASE("macros")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"I LOG_INFO      logger       D INF [var: 1337]"}));
   REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       D NO VARS [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       D NO VARS PREFIXED [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"N LOG_NOTICE    logger       D NTC [var: 1337]"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"W LOG_WARNING   logger       D WRN [var: 1337]"}));
@@ -357,6 +372,10 @@ TEST_CASE("macros")
     file_contents, std::string{"D LOG_DEBUG     logger       G DBG 1337 [ ] [var: 1337]"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"I LOG_INFO      logger       G INF 1337 [ ] [var: 1337]"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       G NO VARS [ ] []"}));
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"I LOG_INFO      logger       G NO VARS PREFIXED [ ] []"}));
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"N LOG_NOTICE    logger       G NTC 1337 [ ] [var: 1337]"}));
   REQUIRE(quill::testing::file_contains(

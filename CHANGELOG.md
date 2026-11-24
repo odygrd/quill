@@ -281,6 +281,9 @@
 
 ### Bug Fixes
 
+- With Clang and `-Wpedantic`, a log macro no longer reports
+  `-Wgnu-zero-variadic-macro-arguments` in an application that is built without the compile
+  options of the Quill CMake, Meson or Bazel target.
 - The signal handler flushes the sinks of an application whose only loggers are those of
   `CsvWriter`s, which it does not log its messages to. Before, the rows that were not yet flushed
   were lost on `SIGINT`, `SIGTERM` or a crash.
