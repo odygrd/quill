@@ -72,13 +72,26 @@ TEST_CASE("monotonic_output_timestamps")
   LOG_BACKTRACE(logger, "historical");
   logger->flush_backtrace();
 
+  // The record of a logger that uses wall time does not move the time of the custom clock, whose
+  // next record keeps its timestamp
+  Logger* wall_clock_logger = Frontend::create_or_get_logger(
+    logger_name + "_wall_clock", logger->get_sinks(),
+    PatternFormatterOptions{"%(time) %(log_level) %(message)", "%Y-%m-%d %H:%M:%S.%Qns", Timezone::GmtTime, false},
+    ClockSource::system());
+  LOG_INFO(wall_clock_logger, "wall clock");
+
+  user_clock.set_timestamp(std::chrono::seconds{3});
+  LOG_INFO(logger, "third");
+
   Backend::stop();
 
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), 3);
+  REQUIRE_EQ(file_contents.size(), 5);
   REQUIRE_EQ(file_contents[0], "1970-01-01 00:00:02.000000000 INFO first");
   REQUIRE_EQ(file_contents[1], "1970-01-01 00:00:02.000000001 INFO second");
   REQUIRE_EQ(file_contents[2], "1970-01-01 00:00:01.000000000 BACKTRACE historical");
+  REQUIRE_NE(file_contents[3].find("INFO wall clock"), std::string::npos);
+  REQUIRE_EQ(file_contents[4], "1970-01-01 00:00:03.000000000 INFO third");
 
   testing::remove_file(filename);
 }

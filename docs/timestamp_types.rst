@@ -33,6 +33,7 @@ The backend adds the observed timestamp difference in whole microseconds to the 
 It reports again only when the estimate exceeds the last suggestion. A larger grace period can help a delayed publisher, but cannot correct a clock that moves backwards.
 The notification is disabled when the grace period is zero or monotonic output correction is enabled.
 Custom epoch timestamps are excluded from the comparison, so simulation loggers can use their own timeline alongside wall-clock loggers.
+For the same reason :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` keeps the records of custom epoch clocks in order among themselves, apart from those of the other loggers.
 
 Timestamp Methods
 -----------------

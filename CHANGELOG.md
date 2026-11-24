@@ -290,6 +290,9 @@
   sleeps while records wait for the grace period, instead of using a full core.
 - `Logger::flush_log()` also flushes the sinks of a logger that `Frontend::remove_logger()` has not
   removed yet, so the records that logger wrote before its removal are on disk when it returns.
+- With `BackendOptions::ensure_monotonic_output_timestamps`, the records of a logger with a custom
+  epoch clock, such as the time of a simulation, keep their timestamps when another logger uses
+  wall time. They were overwritten with the wall time of that logger's last record.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is
