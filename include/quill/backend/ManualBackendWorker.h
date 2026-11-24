@@ -116,6 +116,7 @@ public:
 
     _backend_worker->_exit();
     _backend_worker->_worker_thread_id.store(0);
+    _backend_worker->_release_option_callables();
     _started = false;
   }
 
