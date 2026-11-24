@@ -1488,7 +1488,9 @@ private:
       // Reset the flush flag as TransitEvents are re-used, preventing incorrect flag reuse.
       transit_event.reset_payload();
 
-      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit);
+      // The sinks of a logger that waits to be removed can hold records that were written
+      // before the removal, so an explicit flush includes them
+      _flush_and_run_active_sinks(false, std::chrono::milliseconds{0}, SinkFlushReason::Explicit, true);
 
       // We defer notifying the caller until after this function completes.
     }

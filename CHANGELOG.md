@@ -285,6 +285,8 @@
   application that logs continuously.
 - With a `log_timestamp_ordering_grace_period` of `sleep_duration` or longer, the backend thread
   sleeps while records wait for the grace period, instead of using a full core.
+- `Logger::flush_log()` also flushes the sinks of a logger that `Frontend::remove_logger()` has not
+  removed yet, so the records that logger wrote before its removal are on disk when it returns.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is
