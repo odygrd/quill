@@ -890,13 +890,15 @@ private:
                  "transit_event_buffer is nullptr in "
                  "BackendWorker::_populate_transit_event_from_frontend_queue()");
 
-    // Clear the decoded arguments on every exit. If formatting throws, the record stays in the
-    // queue and is decoded again on the next poll, which must not append to stale arguments.
+    // Clear the decoded arguments on every exit. If decoding throws, the record stays in the
+    // queue and is decoded again on the next poll, which must not append to stale arguments,
+    // and must find the objects that a DeferredFormatCodec formats in the queue alive.
     struct FormatArgsStoreClearer
     {
-      ~FormatArgsStoreClearer() { store.clear(); }
+      ~FormatArgsStoreClearer() { store.clear(destroy_queued_objects); }
       DynamicFormatArgStore& store;
-    } const format_args_store_clearer{_format_args_store};
+      bool destroy_queued_objects;
+    } format_args_store_clearer{_format_args_store, false};
 
     // Allocate a new TransitEvent or use an existing one to store the message from the queue
     TransitEvent* transit_event{nullptr};
@@ -1115,46 +1117,63 @@ private:
           fmtquill::detail::buffer<char>& formatted_msg =
             thread_context->_transit_event_buffer->back_message();
 
-          if (!macro_metadata.has_named_args())
+          // The arguments are decoded. A failure from here on, e.g. to allocate, is written in
+          // place of the message, and the record is not decoded a second time
+          QUILL_TRY
           {
-            // The metadata stores the length of its format string. fmt measures a string that is
-            // passed as a pointer alone for every record, one byte at a time with MSVC
-            _populate_formatted_log_message(transit_event, formatted_msg, macro_metadata.message_format(),
-                                            macro_metadata.message_format_size(), nullptr);
+            if (!macro_metadata.has_named_args())
+            {
+              // The metadata stores the length of its format string. fmt measures a string that is
+              // passed as a pointer alone for every record, one byte at a time with MSVC
+              _populate_formatted_log_message(transit_event, formatted_msg, macro_metadata.message_format(),
+                                              macro_metadata.message_format_size(), nullptr);
+            }
+            else if (runtime_metadata_event)
+            {
+              // Runtime metadata format strings are user generated and can be unique per call;
+              // caching them would grow the cache without bound for the lifetime of the backend, so
+              // process them without caching
+              auto const [message_format, arg_names] = process_named_args_format_message(std::string_view{
+                macro_metadata.message_format(), macro_metadata.message_format_size()});
+
+              (void)_populate_formatted_named_args(transit_event, arg_names);
+              _populate_formatted_log_message(transit_event, formatted_msg, message_format.data(),
+                                              message_format.size(), nullptr);
+              _sanitize_named_arg_values(transit_event);
+            }
+            else
+            {
+              NamedArgsTemplate const& named_args_template =
+                _named_args_template_cache.get(macro_metadata.message_format());
+
+              // Each argument is formatted once into the value of its named argument, and the
+              // message is built from these values
+              bool const has_all_values =
+                _populate_formatted_named_args(transit_event, named_args_template.arg_names());
+
+              std::string const& positional_format = named_args_template.format();
+
+              _populate_formatted_log_message(
+                transit_event, formatted_msg, positional_format.data(), positional_format.size(),
+                (has_all_values && named_args_template.can_build_from_values()) ? &named_args_template : nullptr);
+
+              _sanitize_named_arg_values(transit_event);
+            }
+
+            _set_transit_event_mdc(*thread_context, transit_event);
           }
-          else if (runtime_metadata_event)
+#if !defined(QUILL_NO_EXCEPTIONS)
+          QUILL_CATCH(std::exception const& e)
           {
-            // Runtime metadata format strings are user generated and can be unique per call;
-            // caching them would grow the cache without bound for the lifetime of the backend, so
-            // process them without caching
-            auto const [message_format, arg_names] = process_named_args_format_message(
-              std::string_view{macro_metadata.message_format(), macro_metadata.message_format_size()});
-
-            (void)_populate_formatted_named_args(transit_event, arg_names);
-            _populate_formatted_log_message(transit_event, formatted_msg, message_format.data(),
-                                            message_format.size(), nullptr);
-            _sanitize_named_arg_values(transit_event);
+            _set_format_error_message(transit_event, formatted_msg, e.what());
+            _clear_named_args(transit_event);
           }
-          else
+          QUILL_CATCH_ALL()
           {
-            NamedArgsTemplate const& named_args_template =
-              _named_args_template_cache.get(macro_metadata.message_format());
-
-            // Each argument is formatted once into the value of its named argument, and the
-            // message is built from these values
-            bool const has_all_values =
-              _populate_formatted_named_args(transit_event, named_args_template.arg_names());
-
-            std::string const& positional_format = named_args_template.format();
-
-            _populate_formatted_log_message(
-              transit_event, formatted_msg, positional_format.data(), positional_format.size(),
-              (has_all_values && named_args_template.can_build_from_values()) ? &named_args_template : nullptr);
-
-            _sanitize_named_arg_values(transit_event);
+            _set_format_error_message(transit_event, formatted_msg, "Caught unhandled exception.");
+            _clear_named_args(transit_event);
           }
-
-          _set_transit_event_mdc(*thread_context, transit_event);
+#endif
         }
         else if (transit_event->macro_metadata->event() == MacroMetadata::Event::Binary)
         {
@@ -1227,6 +1246,9 @@ private:
       // commit this transit event
       thread_context->_transit_event_buffer->push_back();
     }
+
+    // The record is consumed and is not decoded again
+    format_args_store_clearer.destroy_queued_objects = true;
 
     return true;
   }
@@ -2374,8 +2396,7 @@ private:
     QUILL_CATCH(std::exception const&)
     {
       // The message is then formatted from the arguments, and _populate_formatted_log_message
-      // reports an error of the log statement. An allocation failure is not rethrown to decode
-      // the record again: a value that never gets its memory would hold up every record behind it.
+      // reports an error of the log statement
     }
     QUILL_CATCH_ALL() { _notify_error(std::string{"Caught unhandled exception."}); }
 #endif
@@ -2399,9 +2420,7 @@ private:
       QUILL_CATCH_ALL()
       {
         // The sanitized value did not get its memory. It is left empty, like a value that fails
-        // to format, rather than written with the characters it must not have. The exception is
-        // not rethrown to decode the record again: a value that never gets its memory would hold
-        // up every record behind it.
+        // to format, rather than written with the characters it must not have
         named_arg.second.clear();
       }
 #endif
@@ -2459,26 +2478,49 @@ private:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH(std::exception const& e)
     {
-      formatted_msg.clear();
-      std::string const error =
-        fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
-                         transit_event->macro_metadata->message_format(),
-                         transit_event->macro_metadata->short_source_location(), e.what());
-
-      formatted_msg.append(error.data(), error.data() + error.size());
-      _notify_error(error);
+      _set_format_error_message(transit_event, formatted_msg, e.what());
     }
     QUILL_CATCH_ALL()
     {
-      formatted_msg.clear();
-      std::string const error = fmtquill::format(
-        R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
-        transit_event->macro_metadata->message_format(),
-        transit_event->macro_metadata->short_source_location(), "Caught unhandled exception.");
+      _set_format_error_message(transit_event, formatted_msg, "Caught unhandled exception.");
+    }
+#endif
+  }
+
+  /**
+   * For a record whose formatting failed before its named arguments were all set: the transit
+   * event can still hold the ones of an earlier record, which are not written with this one
+   */
+  QUILL_ATTRIBUTE_COLD static void _clear_named_args(TransitEvent* transit_event) noexcept
+  {
+    if (transit_event->extra_data)
+    {
+      transit_event->extra_data->named_args.clear();
+    }
+  }
+
+  /**
+   * Writes the error in place of the message of an event that could not be formatted, and reports
+   * it. It does not throw: the text needs memory too, and without it the message is left empty.
+   */
+  QUILL_ATTRIBUTE_COLD void _set_format_error_message(TransitEvent const* transit_event,
+                                                      fmtquill::detail::buffer<char>& formatted_msg,
+                                                      char const* error_description)
+  {
+    formatted_msg.clear();
+
+    QUILL_TRY
+    {
+      std::string const error =
+        fmtquill::format(R"([Could not format log statement. message: "{}", location: "{}", error: "{}"])",
+                         transit_event->macro_metadata->message_format(),
+                         transit_event->macro_metadata->short_source_location(), error_description);
 
       formatted_msg.append(error.data(), error.data() + error.size());
       _notify_error(error);
     }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
 #endif
   }
 

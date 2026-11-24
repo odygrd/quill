@@ -6,6 +6,7 @@
 #include "quill/bundled/fmt/format.h"
 
 #include <cstdlib>
+#include <new>
 #include <stdexcept>
 #include <string>
 
@@ -70,7 +71,33 @@ struct NonConstFormatterConvertibleToString
   // The formatter below takes a non-const reference, the stored value must still be formatted with it
   operator std::string() const { return "converted"; }
 };
+
+/** Lives in a buffer, as the object of a DeferredFormatCodec lives in the frontend queue */
+struct QueuedValue
+{
+  explicit QueuedValue(int in_value) : value(in_value) {}
+  QueuedValue(QueuedValue const& other) : value(other.value) { ++copies; }
+  ~QueuedValue() { ++destructions; }
+
+  int value;
+  static int copies;
+  static int destructions;
+};
+
+int QueuedValue::copies{0};
+int QueuedValue::destructions{0};
 } // namespace
+
+template <>
+struct fmtquill::formatter<QueuedValue>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(::QueuedValue const& queued_value, format_context& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "queued {}", queued_value.value);
+  }
+};
 
 template <>
 struct fmtquill::formatter<PriceConvertibleToString>
@@ -154,6 +181,59 @@ TEST_CASE("dynamic_format_arg_store_tells_an_argument_with_its_own_formatter")
 
   store.clear();
   REQUIRE_FALSE(store.has_custom_type());
+}
+
+/***/
+TEST_CASE("dynamic_format_arg_store_formats_a_queued_object_where_it_is")
+{
+  alignas(QueuedValue) unsigned char storage[sizeof(QueuedValue)];
+  auto* object = new (static_cast<void*>(storage)) QueuedValue{7};
+
+  DynamicFormatArgStore store;
+
+  // The store refers to the object, so it formats the value that the object has by then
+  store.defer_destruction(object);
+  store.push_back_queued(*object);
+  REQUIRE(store.has_custom_type());
+  object->value = 8;
+
+  std::string const result = fmtquill::vformat(
+    "{}", fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
+
+  REQUIRE_EQ(result, std::string{"queued 8"});
+  REQUIRE_EQ(QueuedValue::copies, 0);
+
+  // The record of the object was not consumed: the object stays alive
+  store.clear();
+  REQUIRE_FALSE(store.has_custom_type());
+  REQUIRE_EQ(QueuedValue::destructions, 0);
+
+  // The record is consumed
+  store.defer_destruction(object);
+  store.push_back_queued(*object);
+  store.clear(true);
+  REQUIRE_EQ(QueuedValue::destructions, 1);
+
+  // Nothing is left to destroy
+  store.clear(true);
+  REQUIRE_EQ(QueuedValue::destructions, 1);
+}
+
+/***/
+TEST_CASE("dynamic_format_arg_store_converts_a_queued_object_without_a_formatter")
+{
+  NoFormatterConvertibleToString object;
+
+  DynamicFormatArgStore store;
+
+  // The store keeps the std::string that the object converts to, as push_back() does
+  store.push_back_queued(object);
+  REQUIRE_FALSE(store.has_custom_type());
+
+  std::string const result = fmtquill::vformat(
+    "{}", fmtquill::basic_format_args<fmtquill::format_context>{store.data(), store.size()});
+
+  REQUIRE_EQ(result, std::string{"converted"});
 }
 
 TEST_SUITE_END();

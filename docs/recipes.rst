@@ -483,6 +483,14 @@ Custom backend decoders must also consume their complete payload without throwin
 byte length, so the backend cannot skip a decoder-poisoned record; catch recoverable errors and
 store a fallback value when possible.
 
+When a backend decoder does throw, e.g. the decoder of a ``std::vector`` argument that cannot
+allocate memory, the record stays in the queue and is decoded again. An object of a
+``DeferredFormatCodec`` type that is an argument of the log statement is intact by then: the
+backend formats it where it is in the queue and destroys it once the record is formatted. One that
+is inside another argument, such as an element of a ``std::vector`` or the value of a
+``std::optional``, ``std::pair``, ``std::tuple`` or ``std::variant``, was already moved out of the
+queue and destroyed, so the record is decoded again from a destroyed object.
+
 Logging User-Defined Types in STL Containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -1,15 +1,18 @@
 #include "doctest/doctest.h"
 
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/Sink.h"
 #include "quill/std/Vector.h"
 
 #include <cstddef>
+#include <memory>
 #include <new>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 // ThreadSanitizer supplies its own global new/delete definitions, which cannot be replaced.
@@ -18,7 +21,183 @@ namespace
 {
 // Only the calling thread's next allocation fails; producer allocations are unaffected.
 thread_local bool fail_next_allocation{false};
+
+// Set to fail the first allocation that follows the formatting of a payload
+bool fail_allocation_after_payload_format{false};
+
+// Set to fail the next allocation of a FailingAllocator
+bool fail_next_failing_allocator_allocation{false};
+
+/** Fails an allocation on request, to make the decoder of a std::vector throw */
+template <typename T>
+struct FailingAllocator
+{
+  using value_type = T;
+
+  FailingAllocator() = default;
+
+  template <typename U>
+  FailingAllocator(FailingAllocator<U> const&) noexcept
+  {
+  }
+
+  T* allocate(std::size_t count)
+  {
+    if (fail_next_failing_allocator_allocation)
+    {
+      fail_next_failing_allocator_allocation = false;
+      throw std::bad_alloc{};
+    }
+
+    return std::allocator<T>{}.allocate(count);
+  }
+
+  void deallocate(T* memory, std::size_t count) noexcept
+  {
+    std::allocator<T>{}.deallocate(memory, count);
+  }
+
+  template <typename U>
+  bool operator==(FailingAllocator<U> const&) const noexcept
+  {
+    return true;
+  }
+
+  template <typename U>
+  bool operator!=(FailingAllocator<U> const&) const noexcept
+  {
+    return false;
+  }
+};
+
+/** Owns heap memory and can only be copied */
+struct CopyOnlyPayload
+{
+  explicit CopyOnlyPayload(std::string value) : text(std::move(value)) { ++live_count; }
+  CopyOnlyPayload(CopyOnlyPayload const& other) : text(other.text) { ++live_count; }
+  CopyOnlyPayload(CopyOnlyPayload&&) = delete;
+  CopyOnlyPayload& operator=(CopyOnlyPayload const&) = delete;
+  CopyOnlyPayload& operator=(CopyOnlyPayload&&) = delete;
+  ~CopyOnlyPayload() { --live_count; }
+
+  std::string text;
+  static int live_count;
+};
+
+int CopyOnlyPayload::live_count{0};
+
+/** Owns heap memory and can be moved: a decoder that moved it out of the queue would leave it empty there */
+struct MovablePayload
+{
+  explicit MovablePayload(std::string value) : text(std::move(value)) { ++live_count; }
+  MovablePayload(MovablePayload&& other) noexcept : text(std::move(other.text)) { ++live_count; }
+  MovablePayload(MovablePayload const&) = delete;
+  MovablePayload& operator=(MovablePayload const&) = delete;
+  MovablePayload& operator=(MovablePayload&&) = delete;
+  ~MovablePayload() { --live_count; }
+
+  std::string text;
+  static int live_count;
+};
+
+int MovablePayload::live_count{0};
+
+/** Owns heap memory and has no formatter: it is formatted through its conversion to std::string */
+struct TextPayload
+{
+  explicit TextPayload(std::string value) : text(std::move(value)) { ++live_count; }
+  TextPayload(TextPayload&& other) noexcept : text(std::move(other.text)) { ++live_count; }
+  TextPayload(TextPayload const&) = delete;
+  TextPayload& operator=(TextPayload const&) = delete;
+  TextPayload& operator=(TextPayload&&) = delete;
+  ~TextPayload() { --live_count; }
+
+  operator std::string() const { return text; }
+
+  std::string text;
+  static int live_count;
+};
+
+int TextPayload::live_count{0};
+
+/** Owns heap memory and has no formatter: it is formatted as the number that format_as() returns */
+struct NumberPayload
+{
+  explicit NumberPayload(int value) : numbers(64, value) { ++live_count; }
+  NumberPayload(NumberPayload&& other) noexcept : numbers(std::move(other.numbers))
+  {
+    ++live_count;
+  }
+  NumberPayload(NumberPayload const&) = delete;
+  NumberPayload& operator=(NumberPayload const&) = delete;
+  NumberPayload& operator=(NumberPayload&&) = delete;
+  ~NumberPayload() { --live_count; }
+
+  std::vector<int> numbers;
+  static int live_count;
+};
+
+int NumberPayload::live_count{0};
+
+int format_as(NumberPayload const& payload) { return payload.numbers.front(); }
+
+/** Formats the text of a payload, and fails the allocation that follows when the test asks for it */
+template <typename TPayload>
+auto format_payload(TPayload const& payload, fmtquill::format_context& ctx)
+{
+  auto out = fmtquill::format_to(ctx.out(), "{}", payload.text);
+
+  if (fail_allocation_after_payload_format)
+  {
+    fail_allocation_after_payload_format = false;
+    fail_next_allocation = true;
+  }
+
+  return out;
+}
 } // namespace
+
+template <>
+struct fmtquill::formatter<CopyOnlyPayload>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(CopyOnlyPayload const& payload, format_context& ctx) const
+  {
+    return format_payload(payload, ctx);
+  }
+};
+
+template <>
+struct quill::Codec<CopyOnlyPayload> : quill::DeferredFormatCodec<CopyOnlyPayload>
+{
+};
+
+template <>
+struct fmtquill::formatter<MovablePayload>
+{
+  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  auto format(MovablePayload const& payload, format_context& ctx) const
+  {
+    return format_payload(payload, ctx);
+  }
+};
+
+template <>
+struct quill::Codec<MovablePayload> : quill::DeferredFormatCodec<MovablePayload>
+{
+};
+
+template <>
+struct quill::Codec<TextPayload> : quill::DeferredFormatCodec<TextPayload>
+{
+};
+
+template <>
+struct quill::Codec<NumberPayload> : quill::DeferredFormatCodec<NumberPayload>
+{
+};
 
 // This executable replaces global operator new to simulate a single allocation failure
 // without exhausting memory. Other test executables use their normal allocator.
@@ -59,6 +238,7 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
     void write_log(quill::LogRecord const& record) override
     {
       messages.emplace_back(record.log_message);
+      mdcs.emplace_back(record.mdc);
 
       if (record.named_args)
       {
@@ -70,6 +250,7 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
     }
     void flush_sink(quill::SinkFlushReason) override {}
     std::vector<std::string> messages;
+    std::vector<std::string> mdcs;
     std::vector<std::string> named_args;
   };
 
@@ -171,6 +352,120 @@ TEST_CASE("backend_decode_allocation_failure_retries_with_fresh_arguments")
   CHECK_EQ(sink->named_args[0], "tag=");
   CHECK_EQ(sink->named_args[1], "id=53");
   CHECK_EQ(sink->named_args[2], "user=short");
+  sink->messages.clear();
+
+  // A statement that is new to the backend needs memory for the template of its named arguments.
+  // When there is none, the record is written with the error in place of its message, and
+  // without the named arguments that its transit event has kept from an earlier record
+  auto const log_thing = [logger](std::string const& thing)
+  { LOG_INFO(logger, "one {thing}", thing); };
+  sink->named_args.clear();
+  log_thing("x");
+  fail_next_allocation = true;
+  worker->poll();
+
+  REQUIRE_FALSE(fail_next_allocation);
+  REQUIRE_EQ(sink->messages.size(), 1u);
+  CHECK_EQ(sink->messages[0].rfind("[Could not format log statement. message: \"one {thing}\"", 0), 0u);
+  CHECK(sink->named_args.empty());
+  sink->messages.clear();
+
+  // A CopyOnlyPayload is formatted where it is in the queue. The MDC of the record is copied
+  // after the message is formatted; when that allocation fails the record is not decoded a second
+  // time, and the payload in the queue is destroyed once
+  std::string const request_id(64, 'r');
+  logger->set_mdc("request", request_id);
+  worker->poll();
+
+  {
+    CopyOnlyPayload const payload{std::string(64, 'p')};
+    LOG_INFO(logger, "payload {}", payload);
+    LOG_INFO(logger, "after payload");
+    fail_allocation_after_payload_format = true;
+    worker->poll();
+  }
+
+  REQUIRE_FALSE(fail_allocation_after_payload_format);
+  REQUIRE_FALSE(fail_next_allocation);
+  REQUIRE_EQ(sink->messages.size(), 2u);
+  CHECK_EQ(sink->messages[0].rfind("[Could not format log statement. message: \"payload {}\"", 0), 0u);
+  CHECK_EQ(sink->messages[1], "after payload");
+  CHECK_EQ(CopyOnlyPayload::live_count, 0);
+  sink->messages.clear();
+
+  // The decoder of the vector throws after the decoder of the CopyOnlyPayload. The record stays
+  // in the queue and is decoded again, so the payload must still be alive there
+  {
+    CopyOnlyPayload const payload{std::string(64, 'q')};
+    std::vector<int, FailingAllocator<int>> const numbers{1, 2, 3};
+    LOG_INFO(logger, "payload {} numbers {}", payload, numbers);
+    fail_next_failing_allocator_allocation = true;
+    worker->poll_one();
+    REQUIRE_FALSE(fail_next_failing_allocator_allocation);
+    REQUIRE(sink->messages.empty());
+    worker->poll();
+  }
+
+  REQUIRE_EQ(sink->messages.size(), 1u);
+  CHECK_EQ(sink->messages[0], "payload " + std::string(64, 'q') + " numbers [1, 2, 3]");
+  CHECK_EQ(CopyOnlyPayload::live_count, 0);
+  sink->messages.clear();
+
+  // A MovablePayload is not moved out of the queue either: the record that is decoded again is
+  // written with the text that was logged
+  {
+    std::vector<int, FailingAllocator<int>> const numbers{1, 2, 3};
+    LOG_INFO(logger, "payload {} numbers {}", MovablePayload{std::string(64, 'm')}, numbers);
+    fail_next_failing_allocator_allocation = true;
+    worker->poll_one();
+    REQUIRE_FALSE(fail_next_failing_allocator_allocation);
+    REQUIRE(sink->messages.empty());
+    worker->poll();
+  }
+
+  REQUIRE_EQ(sink->messages.size(), 1u);
+  CHECK_EQ(sink->messages[0], "payload " + std::string(64, 'm') + " numbers [1, 2, 3]");
+  CHECK_EQ(MovablePayload::live_count, 0);
+  sink->messages.clear();
+
+  // An object without a formatter of its own stays alive in the queue as well: one that is
+  // formatted through its conversion to std::string, and one that format_as() maps to a number
+  {
+    std::vector<int, FailingAllocator<int>> const numbers{1, 2, 3};
+    LOG_INFO(logger, "text {} number {} numbers {}", TextPayload{std::string(64, 't')},
+             NumberPayload{42}, numbers);
+    fail_next_failing_allocator_allocation = true;
+    worker->poll_one();
+    REQUIRE_FALSE(fail_next_failing_allocator_allocation);
+    REQUIRE(sink->messages.empty());
+    CHECK_EQ(TextPayload::live_count, 1);
+    CHECK_EQ(NumberPayload::live_count, 1);
+    worker->poll();
+  }
+
+  REQUIRE_EQ(sink->messages.size(), 1u);
+  CHECK_EQ(sink->messages[0], "text " + std::string(64, 't') + " number 42 numbers [1, 2, 3]");
+  CHECK_EQ(TextPayload::live_count, 0);
+  CHECK_EQ(NumberPayload::live_count, 0);
+  sink->messages.clear();
+  sink->mdcs.clear();
+
+  // The value of an MDC field is formatted from the queue as well. Keeping the field allocates
+  // after the arguments were decoded; when that fails the request stays in the queue and is
+  // decoded again, and the field must get the value that was set
+  logger->set_mdc("payload", MovablePayload{"mdc value"});
+  fail_allocation_after_payload_format = true;
+  worker->poll_one();
+  REQUIRE_FALSE(fail_allocation_after_payload_format);
+  REQUIRE_FALSE(fail_next_allocation);
+  worker->poll();
+
+  LOG_INFO(logger, "with mdc");
+  worker->poll();
+
+  REQUIRE_EQ(sink->mdcs.size(), 1u);
+  CHECK_NE(sink->mdcs[0].find("payload: mdc value"), std::string::npos);
+  CHECK_EQ(MovablePayload::live_count, 0);
 
   worker->shutdown();
   quill::Frontend::remove_logger(logger);
