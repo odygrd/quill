@@ -210,12 +210,12 @@ public:
                      &bytes_written, nullptr) ||
         (bytes_written != std::strlen(TCsvSchema::header)))
     {
-      QUILL_THROW(QuillError{"CsvWriter failed to write header"});
+      QUILL_THROW_OR_RETURN(QuillError{"CsvWriter failed to write header"});
     }
 
     if (!::WriteFile(file, "\n", 1, &bytes_written, nullptr) || (bytes_written != 1))
     {
-      QUILL_THROW(QuillError{"CsvWriter failed to write newline"});
+      QUILL_THROW_OR_RETURN(QuillError{"CsvWriter failed to write newline"});
     }
 #else
     StreamSink::safe_fwrite(TCsvSchema::header, sizeof(char), std::strlen(TCsvSchema::header), file);
