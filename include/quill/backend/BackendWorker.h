@@ -379,6 +379,7 @@ public:
     _format_args_store = DynamicFormatArgStore{};
     _named_args_template_cache.clear();
     _dynamic_metric_labels = {};
+    _release_option_callables();
   }
 
   /**
@@ -406,6 +407,18 @@ public:
   }
 
 private:
+  /**
+   * Destroys the callables of the options once the backend has stopped. They can be code of a
+   * shared library that is unloaded before the next start, or before the process exits
+   */
+  void _release_option_callables() noexcept
+  {
+    _options.error_notifier = nullptr;
+    _options.backend_worker_on_poll_begin = nullptr;
+    _options.backend_worker_on_poll_end = nullptr;
+    _options.check_printable_char = nullptr;
+  }
+
   /** check_printable_char() evaluated once for each byte value */
   struct PrintableChars
   {

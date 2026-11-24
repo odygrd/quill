@@ -8,6 +8,7 @@
 
 #include <cstdio>
 #include <future>
+#include <memory>
 #include <string>
 #include <thread>
 #include <vector>
@@ -17,6 +18,10 @@ using namespace quill;
 /***/
 TEST_CASE("start_stop_backend_worker")
 {
+  // The callables of the options can be code of a shared library that is unloaded after stop(),
+  // so the backend does not keep them
+  auto const callable_token = std::make_shared<int>(0);
+
   for (size_t iter = 0; iter < 4; ++iter)
   {
     static constexpr size_t number_of_messages = 200;
@@ -24,8 +29,14 @@ TEST_CASE("start_stop_backend_worker")
     static std::string const logger_name = "logger";
 
     // Start the logging backend thread
-    Backend::start();
+    {
+      BackendOptions backend_options;
+      backend_options.backend_worker_on_poll_begin = [callable_token]() {};
+      Backend::start(backend_options);
+    }
+
     REQUIRE_EQ(Backend::is_running(), true);
+    REQUIRE_GT(callable_token.use_count(), 1);
 
     // Set writing logging to a file
     auto file_sink = Frontend::create_or_get_sink<FileSink>(
@@ -57,6 +68,7 @@ TEST_CASE("start_stop_backend_worker")
     REQUIRE_EQ(Backend::get_thread_id(), 0);
     REQUIRE_EQ(Backend::is_running(), false);
     REQUIRE_EQ(Frontend::get_number_of_loggers(), 0);
+    REQUIRE_EQ(callable_token.use_count(), 1);
 
     // Read file and check
     std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
