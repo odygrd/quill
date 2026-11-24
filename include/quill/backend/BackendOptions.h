@@ -141,6 +141,14 @@ struct BackendOptions
    * stays ahead of the cutoff (for example after a backward wall-clock correction), the check
    * stops deferring it once one grace period of steady time has elapsed since its first observation.
    *
+   * When a poll finds nothing to write because the records in the queues wait for the grace
+   * period, the backend thread does not go idle. It checks the queues again without a pause when
+   * the grace period is shorter than `sleep_duration`, and otherwise sleeps for `sleep_duration`
+   * first. A poll that finds older records writes them instead, so a record can wait in one queue
+   * while the backend writes a backlog from another.
+   *
+   * The grace period is not applied while `Backend::stop()` drains the queues.
+   *
    * The frontend timestamps a record after reserving queue space and encoding its arguments.
    * If the frontend thread is preempted between that clock read and the queue commit, the
    * backend may have already written newer records by the time the delayed record arrives.

@@ -371,6 +371,8 @@ public:
     // from a fresh empty instance both clears the contents and releases any reserved capacity.
     _logger_removal_flags = {};
     _removed_loggers = {};
+    _loggers_pending_removal = {};
+    _logger_removal_reads_queues = false;
     _active_thread_contexts_cache = {};
     _active_sinks_cache = {};
     _named_arg_value_buffer = fmtquill::memory_buffer{};
@@ -540,8 +542,13 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
+    // On every poll, not only an idle one: threads that keep logging can leave no idle poll for
+    // as long as they do. Both return after one load when nothing waits to be removed
+    _cleanup_invalidated_thread_contexts();
+    _cleanup_invalidated_loggers();
+
     // Read all frontend queues and cache the log statements and the metadata as TransitEvents
-    size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
+    size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues(true);
 
     if (cached_transit_events_count != 0)
     {
@@ -581,18 +588,25 @@ private:
       bool const queues_and_events_empty = _check_frontend_queues_and_cached_transit_events_empty();
       if (queues_and_events_empty)
       {
-        _cleanup_invalidated_thread_contexts();
-        _cleanup_invalidated_loggers();
         _try_shrink_empty_transit_event_buffers();
+      }
 
+      // No record was read, so a queue that is not empty holds a record that waits for its grace
+      // period. A grace period of sleep_duration or longer is slept through, instead of spinning
+      // until it ends
+      bool const waiting_for_grace_period = !queues_and_events_empty &&
+        (_options.sleep_duration.count() != 0) &&
+        (_options.log_timestamp_ordering_grace_period >= _options.sleep_duration);
+
+      if (queues_and_events_empty || waiting_for_grace_period)
+      {
         // poll hook
         if (QUILL_UNLIKELY(static_cast<bool>(_options.backend_worker_on_poll_end)))
         {
           _invoke_poll_end_once(poll_end_called);
         }
 
-        // There is nothing left to do, and we can let this thread sleep for a while
-        // buffer events are 0 here and also all the producer queues are empty
+        // There is nothing to do for now, and we can let this thread sleep for a while
         if (_options.sleep_duration.count() != 0)
         {
           std::unique_lock<std::mutex> lock{_wake_up_mutex};
@@ -736,7 +750,8 @@ private:
         continue;
       }
 
-      uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues();
+      // The frontend threads are expected to have stopped logging, so there is nothing to wait for
+      uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues(false);
       if (cached_transit_events_count > 0)
       {
         while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
@@ -764,12 +779,14 @@ private:
 
   /**
    * Populates the local transit event buffer
+   * @param apply_grace_period false to read the records that are still within
+   * log_timestamp_ordering_grace_period as well
    */
-  QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues()
+  QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues(bool apply_grace_period)
   {
     uint64_t ts_now = (std::numeric_limits<uint64_t>::max)();
     uint64_t steady_ts_now{0};
-    if (_options.log_timestamp_ordering_grace_period.count())
+    if (apply_grace_period && _options.log_timestamp_ordering_grace_period.count())
     {
       // Reuse both clock samples for every queue. Sample steady time first so a pause between
       // these reads cannot make deadline checks use a later instant than the wall-clock cutoff.
@@ -778,6 +795,7 @@ private:
       uint64_t const grace_period_ns = static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
           .count());
+
       ts_now = (system_time_ns > grace_period_ns) ? (system_time_ns - grace_period_ns) : 0u;
     }
 
@@ -2095,6 +2113,87 @@ private:
   }
 
   /**
+   * Remembers the loggers that wait to be removed, and how much each thread has logged. A removed
+   * logger is not used again, so the records that refer to these loggers are among the ones
+   * logged so far, and the loggers can be removed when these records are processed. The threads
+   * can keep logging in the meantime, which never leaves every queue empty at the same moment
+   */
+  QUILL_ATTRIBUTE_COLD void _start_logger_removal()
+  {
+    std::vector<LoggerBase const*> loggers_pending_removal;
+
+    _logger_manager.for_each_logger(
+      [&loggers_pending_removal](LoggerBase const* logger)
+      {
+        if (!logger->is_valid_logger())
+        {
+          loggers_pending_removal.push_back(logger);
+        }
+
+        return false;
+      });
+
+    std::sort(loggers_pending_removal.begin(), loggers_pending_removal.end());
+
+    // After the loggers were looked at, for the queue of a thread that has just started
+    _update_active_thread_contexts_cache();
+
+    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    {
+      thread_context->_logger_removal_target = thread_context->has_unbounded_queue_type()
+        ? thread_context->get_spsc_queue_union().unbounded_spsc_queue.bytes_written()
+        : thread_context->get_spsc_queue_union().bounded_spsc_queue.bytes_written();
+    }
+
+    _logger_removal_reads_queues = true;
+    _loggers_pending_removal.swap(loggers_pending_removal);
+  }
+
+  /**
+   * @return true when the records that were logged before _start_logger_removal() are processed:
+   * first they are read from the queues, and then the events that are cached by then are processed
+   */
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool _has_processed_records_before_logger_removal() noexcept
+  {
+    // The counts wrap around, and a count has reached its target when it is not behind it
+    auto const has_reached = [](size_t count, size_t target)
+    { return static_cast<std::ptrdiff_t>(count - target) >= 0; };
+
+    if (_logger_removal_reads_queues)
+    {
+      for (ThreadContext const* thread_context : _active_thread_contexts_cache)
+      {
+        size_t const bytes_read = thread_context->has_unbounded_queue_type()
+          ? thread_context->get_spsc_queue_union().unbounded_spsc_queue.bytes_read()
+          : thread_context->get_spsc_queue_union().bounded_spsc_queue.bytes_read();
+
+        if (!has_reached(bytes_read, thread_context->_logger_removal_target))
+        {
+          return false;
+        }
+      }
+
+      for (ThreadContext* thread_context : _active_thread_contexts_cache)
+      {
+        thread_context->_logger_removal_target = thread_context->_transit_event_buffer->popped_events() +
+          thread_context->_transit_event_buffer->size();
+      }
+
+      _logger_removal_reads_queues = false;
+    }
+
+    for (ThreadContext const* thread_context : _active_thread_contexts_cache)
+    {
+      if (!has_reached(thread_context->_transit_event_buffer->popped_events(), thread_context->_logger_removal_target))
+      {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Cleans up any invalidated loggers
    */
   QUILL_ATTRIBUTE_HOT bool _cleanup_invalidated_loggers(bool sinks_already_flushed = false)
@@ -2104,12 +2203,33 @@ private:
       return false;
     }
 
+    // Checked before taking the manager lock, as this runs on every poll
+    if (!_check_frontend_queues_and_cached_transit_events_empty())
     {
+      if (_loggers_pending_removal.empty())
+      {
+        _start_logger_removal();
+      }
+
+      if (!_has_processed_records_before_logger_removal())
+      {
+        // A record may still refer to the logger
+        return false;
+      }
+    }
+
+    {
+      // The pointers must not be kept after the loggers are destroyed, also when this throws
+      std::vector<LoggerBase const*> loggers_pending_removal;
+      loggers_pending_removal.swap(_loggers_pending_removal);
+
       auto const loggers_to_destroy = _logger_manager.cleanup_invalidated_loggers(
-        [this]()
+        [this, &loggers_pending_removal](LoggerBase const* logger)
         {
-          // Recheck under the manager lock before detaching each logger.
-          return _check_frontend_queues_and_cached_transit_events_empty();
+          // The records of a logger that _start_logger_removal() has seen are processed. For
+          // any other logger, recheck under the manager lock before detaching it
+          return std::binary_search(loggers_pending_removal.begin(), loggers_pending_removal.end(), logger) ||
+            _check_frontend_queues_and_cached_transit_events_empty();
         },
         _removed_loggers);
 
@@ -2666,6 +2786,7 @@ private:
   NamedArgsTemplateCache _named_args_template_cache; /** Named-args format strings, rewritten once */
   std::vector<MetricLabel> _dynamic_metric_labels;   /** Runtime metric label scratch storage */
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
+  std::vector<LoggerBase const*> _loggers_pending_removal; /** Sorted. The loggers that are removed when the records logged before their removal are processed */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
   std::vector<Sink*> _active_sinks_cache; /** Member to avoid re-allocating **/
   std::vector<std::pair<std::string, std::string>> _mdc_fields; /** MDC set scratch storage */
@@ -2683,6 +2804,7 @@ private:
   std::atomic<bool> _is_rdtsc_clock_config_valid{true}; /** Cached for concurrent clock conversions. */
   bool _thread_context_cache_refresh_pending{false};
   bool _draining_shutdown_diagnostics{false};
+  bool _logger_removal_reads_queues{false}; /** See _has_processed_records_before_logger_removal() */
 
   alignas(QUILL_CACHE_LINE_ALIGNED) std::atomic<RdtscClock*> _rdtsc_clock{
     nullptr}; /** rdtsc clock if enabled, can be accessed by any thread **/

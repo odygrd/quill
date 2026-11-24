@@ -276,6 +276,15 @@
   destroyed. The backend formats such an argument where it is in the queue, without copying or
   moving it; an object inside a container, `std::optional`, `std::pair`, `std::tuple` or
   `std::variant` is still moved out and is not covered.
+- `Frontend::remove_logger_blocking()` and `close()` of a `CsvWriter`, `BinaryWriter` or `PcapWriter`
+  return eventually while other threads keep logging with timestamps that advance: the backend
+  removes the logger once it has written the records that were queued when it noticed the removal,
+  which can include newer ones. Before, they waited for every queue to be empty at the same time.
+- The queue of a thread that has exited is released while other threads keep logging, instead of
+  once all queues are empty at the same time, so short-lived threads no longer grow the memory of an
+  application that logs continuously.
+- With a `log_timestamp_ordering_grace_period` of `sleep_duration` or longer, the backend thread
+  sleeps while records wait for the grace period, instead of using a full core.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
 - With the TSC clock, timestamps keep following the system clock on hosts where reading it is

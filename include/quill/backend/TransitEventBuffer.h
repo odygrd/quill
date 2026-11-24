@@ -45,7 +45,8 @@ public:
       _writer_pos(other._writer_pos),
       _shrink_requested(other._shrink_requested),
       _storage(std::move(other._storage)),
-      _message_arena(std::move(other._message_arena))
+      _message_arena(std::move(other._message_arena)),
+      _popped_events_before_reset(other._popped_events_before_reset)
   {
     other._mask = 0;
     other._reader_pos = 0;
@@ -64,6 +65,7 @@ public:
       _mask = other._mask;
       _reader_pos = other._reader_pos;
       _writer_pos = other._writer_pos;
+      _popped_events_before_reset = other._popped_events_before_reset;
       _shrink_requested = other._shrink_requested;
 
       other._mask = 0;
@@ -146,6 +148,12 @@ public:
     return _reader_pos == _writer_pos;
   }
 
+  /** @return how many events pop_front() removed, a count that wraps around */
+  QUILL_NODISCARD size_t popped_events() const noexcept
+  {
+    return _popped_events_before_reset + _reader_pos;
+  }
+
   void request_shrink() noexcept { _shrink_requested = true; }
 
   void try_shrink()
@@ -157,6 +165,7 @@ public:
       {
         _storage = std::vector<TransitEvent>(_initial_capacity);
         _mask = _initial_capacity - 1;
+        _popped_events_before_reset += _reader_pos;
         _writer_pos = 0;
         _reader_pos = 0;
       }
@@ -191,6 +200,7 @@ private:
 
     _storage = std::move(new_storage);
     _mask = new_capacity - 1;
+    _popped_events_before_reset += _reader_pos;
     _writer_pos = current_size;
     _reader_pos = 0;
   }
@@ -208,6 +218,9 @@ private:
 
   /** The formatted messages of the buffered events, in the order of the events */
   MessageArena _message_arena{message_block_capacity};
+
+  /** _reader_pos starts again from 0 when the storage is replaced */
+  size_t _popped_events_before_reset{0};
 };
 
 } // namespace detail

@@ -474,6 +474,10 @@ public:
    * @note This function is thread-safe. However, removing the same logger (`logger_t*`) from multiple threads is not allowed. You must ensure that remove_logger_blocking is only called by a single thread for a given logger.
    * @note This function should only be called when the backend worker is running after Backend::start(...).
    * @note This function must not be called from backend-thread callbacks because it waits for the backend worker.
+   * @note The logger is removed eventually, also while other threads keep logging through other
+   * loggers, as long as the timestamps of their records advance: the backend removes it when it
+   * has processed the records that were queued or cached by the time it noticed the removal.
+   * Records that were logged after the call can be among them, and are then written first.
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.

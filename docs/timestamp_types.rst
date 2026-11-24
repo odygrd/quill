@@ -15,6 +15,9 @@ A thread can still be preempted between reading the clock and publishing the rec
 :cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` delays the backend by a short window (5 μs by default)
 to allow older records from other threads to arrive.
 A queue head that stays ahead of the wall-clock cutoff becomes eligible once one grace period of steady time has elapsed since its first backend observation. Backward clock corrections therefore do not require waiting for wall time to catch up.
+When a poll finds nothing to write because the records wait for the grace period, the backend sleeps for :cpp:member:`BackendOptions::sleep_duration` before its next check when the grace period is that long or longer, and otherwise checks again without a pause.
+A poll that finds older records writes them instead, so a record can wait in one queue while the backend writes a backlog from another.
+The grace period is not applied while ``Backend::stop()`` drains the queues.
 The backend assumes timestamps produced within a single frontend queue are normally non-decreasing.
 If a wall clock or user-provided clock moves backwards, :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` can be enabled to correct regular log, metric and binary record output.
 Backtrace records preserve their original capture timestamps and may still appear out of timestamp order when flushed later.
