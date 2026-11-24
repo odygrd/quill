@@ -4,6 +4,8 @@
 #include "quill/core/LoggerManager.h"
 #include "quill/sinks/ConsoleSink.h"
 
+#include <new>
+
 TEST_SUITE_BEGIN("LoggerManager");
 
 using namespace quill;
@@ -552,6 +554,59 @@ TEST_CASE("create_logger_rejects_different_frontend_options")
   lm.remove_logger(logger);
   std::vector<std::string> removed_loggers;
   lm.cleanup_invalidated_loggers([](LoggerBase const*) { return true; }, removed_loggers);
+}
+
+/***/
+TEST_CASE("cleanup_removes_no_logger_when_it_throws")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  std::shared_ptr<ConsoleSink> sink = std::make_unique<ConsoleSink>();
+  LoggerManager& lm = LoggerManager::instance();
+  size_t const number_of_loggers = lm.get_number_of_loggers();
+
+  LoggerBase* first_logger =
+    lm.create_or_get_logger<Logger>("cleanup_throws_logger_1", std::vector<std::shared_ptr<Sink>>{sink},
+                                    PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr);
+  LoggerBase* second_logger =
+    lm.create_or_get_logger<Logger>("cleanup_throws_logger_2", std::vector<std::shared_ptr<Sink>>{sink},
+                                    PatternFormatterOptions{}, ClockSourceType::Tsc, nullptr);
+
+  lm.remove_logger(first_logger);
+  lm.remove_logger(second_logger);
+
+  // The cleanup fails at the second logger, as it does when the name of that logger cannot be
+  // copied. The first logger must still be in the manager: a logger that leaves it and is not
+  // returned to the backend is destroyed without its sinks being flushed
+  size_t checked_loggers{0};
+  auto const fail_at_second_logger = [&checked_loggers](LoggerBase const*)
+  {
+    ++checked_loggers;
+
+    if (checked_loggers == 2)
+    {
+      throw std::bad_alloc{};
+    }
+
+    return true;
+  };
+
+  std::vector<std::string> removed_loggers;
+  REQUIRE_THROWS_AS(lm.cleanup_invalidated_loggers(fail_at_second_logger, removed_loggers), std::bad_alloc);
+
+  REQUIRE_EQ(checked_loggers, 2);
+  REQUIRE(removed_loggers.empty());
+  REQUIRE_EQ(lm.get_number_of_loggers(), number_of_loggers + 2);
+
+  // A later call removes both
+  lm.cleanup_invalidated_loggers([](LoggerBase const*) { return true; }, removed_loggers);
+
+  REQUIRE_EQ(removed_loggers.size(), 2);
+  REQUIRE_EQ(removed_loggers[0], "cleanup_throws_logger_1");
+  REQUIRE_EQ(removed_loggers[1], "cleanup_throws_logger_2");
+  REQUIRE_EQ(lm.get_number_of_loggers(), number_of_loggers);
+#endif
 }
 
 TEST_SUITE_END();

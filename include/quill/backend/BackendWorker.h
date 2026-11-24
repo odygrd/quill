@@ -1429,7 +1429,8 @@ private:
       // calls before `FreeLibrary` leaves no `ThreadContext` of an exited thread behind. It must
       // not be called from `DllMain`: when the process exits, the backend thread was already
       // terminated by then and the call waits forever.
-      _cleanup_invalidated_thread_contexts();
+      // Guarded, so that the caller is released also when the cleanup fails.
+      _run_guarded([&]() { _cleanup_invalidated_thread_contexts(); });
 
       // Now it’s safe to notify the caller to continue execution.
       flush_flag->store(true);
