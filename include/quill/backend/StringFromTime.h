@@ -575,31 +575,16 @@ protected:
     return next_quarter_hour_ts;
   }
 
-  /***/
+  /**
+   * In UTC noon and midnight are the multiples of 12 hours since epoch
+   * @return the greatest time_t in the last half day that it can hold, which has no next one
+   */
   QUILL_NODISCARD static time_t _next_noon_or_midnight_timestamp(time_t timestamp) noexcept
   {
-    // Get the current date and time now as time_info
-    tm time_info;
-    gmtime_rs(&timestamp, &time_info);
-
-    if (time_info.tm_hour < 12)
-    {
-      // we are before noon, so calculate noon
-      time_info.tm_hour = 11;
-      time_info.tm_min = 59;
-      time_info.tm_sec = 59; // we add 1 second later
-    }
-    else
-    {
-      // we are after noon so we calculate midnight
-      time_info.tm_hour = 23;
-      time_info.tm_min = 59;
-      time_info.tm_sec = 59; // we add 1 second later
-    }
-
-    // Seconds since epoch of the next noon or midnight. A system_clock time_point would overflow
-    // here for timestamps after the year 2262
-    return detail::timegm(&time_info) + 1;
+    constexpr time_t half_day{12 * 60 * 60};
+    constexpr time_t max_timestamp{(std::numeric_limits<time_t>::max)()};
+    return ((timestamp / half_day) < (max_timestamp / half_day)) ? ((timestamp / half_day) + 1) * half_day
+                                                                 : max_timestamp;
   }
 
   /***/
