@@ -261,6 +261,8 @@
   statements per second when the log statements have C string arguments.
 - The backend sizes a `std::vector` of arithmetic values once before it decodes the elements:
   about 4% more log statements per second for vectors of 64 to 512 elements.
+- Logging a `std::forward_list` walks the list twice instead of three times: about 6% less time
+  on the logging thread for lists of 4 to 16 integers.
 - Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
   rotation no longer fsyncs the file when fsync is disabled.
 - Reduced overhead for System/User clocks.

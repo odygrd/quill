@@ -100,6 +100,10 @@ TEST_CASE("std_forward_list_logging")
     // Test with temporary forward_list
     LOG_INFO(logger, "temp_forward_list {}",
              std::forward_list<std::string>{"temp1", "temp2", "temp3"});
+
+    // Each list writes its own number of elements, also when it is an element of another list
+    std::forward_list<std::forward_list<std::string>> nested = {{"one", "two"}, {}, {"three"}};
+    LOG_INFO(logger, "nested {} i {}", nested, i);
   }
 
   logger->flush_log();
@@ -170,6 +174,9 @@ TEST_CASE("std_forward_list_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       temp_forward_list [\"temp1\", \"temp2\", \"temp3\"]"}));
+
+  REQUIRE(quill::testing::file_contains(
+    file_contents, std::string{"LOG_INFO      " + logger_name + "       nested [[\"one\", \"two\"], [], [\"three\"]] i [-123, 1]"}));
 
   testing::remove_file(filename);
 }

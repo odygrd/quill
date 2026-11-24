@@ -49,23 +49,21 @@ struct Codec<std::forward_list<T, Allocator>>
   static void encode(std::byte*& buffer, SizeCacheVector const& conditional_arg_size_cache,
                      uint32_t& conditional_arg_size_cache_index, Arg&& arg)
   {
-    // First encode the number of elements of the forward list.
-    // The wire format stores this as size_t; do not put it in SizeCacheVector, which is uint32_t
-    // and is reserved for nested codecs such as strings.
-    size_t elems_num{0};
-    for (auto const& ignored : arg)
-    {
-      (void)ignored;
-      ++elems_num;
-    }
+    // The number of elements comes first in the buffer, as a size_t. A forward list does not
+    // store it, so the elements are counted while they are encoded and the count is written last.
+    // Do not put it in SizeCacheVector, which is uint32_t and is reserved for nested codecs such
+    // as strings.
+    std::byte* elems_num_buffer = buffer;
+    buffer += sizeof(size_t);
 
-    Codec<size_t>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elems_num);
+    size_t elems_num{0};
 
     if constexpr (std::is_rvalue_reference_v<Arg&&>)
     {
       for (auto&& elem : arg)
       {
         Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, std::move(elem));
+        ++elems_num;
       }
     }
     else
@@ -73,8 +71,12 @@ struct Codec<std::forward_list<T, Allocator>>
       for (auto const& elem : arg)
       {
         Codec<T>::encode(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, elem);
+        ++elems_num;
       }
     }
+
+    Codec<size_t>::encode(elems_num_buffer, conditional_arg_size_cache,
+                          conditional_arg_size_cache_index, elems_num);
   }
 
   static auto decode_arg(std::byte*& buffer)
