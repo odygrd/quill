@@ -253,14 +253,7 @@ public:
       {
         uint64_t const tsc = _fast_average(beg, end);
         BaseTimeTsc const& current = _base[_version.load(std::memory_order_relaxed) & (_base.size() - 1)];
-        double const ns_per_tick = _refined_ns_per_tick(current, wall_time, tsc);
-
-        // update the next index
-        auto const index = (_version.load(std::memory_order_relaxed) + 1) & (_base.size() - 1);
-        _base[index].base_time.store(wall_time, std::memory_order_relaxed);
-        _base[index].base_tsc.store(tsc, std::memory_order_relaxed);
-        _base[index].ns_per_tick.store(ns_per_tick, std::memory_order_relaxed);
-        _version.fetch_add(1, std::memory_order_release);
+        _publish(wall_time, tsc, _refined_ns_per_tick(current, wall_time, tsc));
         return true;
       }
     }
@@ -279,6 +272,26 @@ protected:
     std::atomic<uint64_t> base_tsc{0};  /**< Get the initial base tsc time */
     std::atomic<double> ns_per_tick{0}; /**< Tick rate used from this base */
   };
+
+  /**
+   * Publishes a base for time_since_epoch_safe(), in the slot that the current version does not
+   * use. Called by the backend thread only.
+   */
+  void _publish(int64_t base_time, uint64_t base_tsc, double ns_per_tick) const noexcept
+  {
+    auto const index = (_version.load(std::memory_order_relaxed) + 1) & (_base.size() - 1);
+
+    // The slot was the one of the version before the current one, and a reader that loaded that
+    // version can still be reading it. The fence orders the stores below after the increment that
+    // ended that version: a reader that sees one of them then also finds the version changed, and
+    // reads again. Without it only the increment below is ordered, after these stores
+    std::atomic_thread_fence(std::memory_order_release);
+
+    _base[index].base_time.store(base_time, std::memory_order_relaxed);
+    _base[index].base_tsc.store(base_tsc, std::memory_order_relaxed);
+    _base[index].ns_per_tick.store(ns_per_tick, std::memory_order_relaxed);
+    _version.fetch_add(1, std::memory_order_release);
+  }
 
   /** Converts a tick value using a published base; the caller ensures the base is consistent */
   QUILL_NODISCARD static uint64_t _convert(BaseTimeTsc const& base, uint64_t rdtsc_value) noexcept

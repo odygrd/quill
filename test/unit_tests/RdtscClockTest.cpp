@@ -61,13 +61,10 @@ public:
   std::atomic<uint32_t>& version() { return _version; }
   std::array<BaseTimeTsc, 2>& base() { return _base; }
 
+  // Published as a resync does, so that the tests exercise the stores of the backend
   void publish_snapshot(int64_t base_time, uint64_t base_tsc)
   {
-    auto const index = (_version.load(std::memory_order_relaxed) + 1u) & (_base.size() - 1u);
-    _base[index].base_time = base_time;
-    _base[index].base_tsc = base_tsc;
-    _base[index].ns_per_tick = _ns_per_tick;
-    _version.fetch_add(1u, std::memory_order_release);
+    _publish(base_time, base_tsc, _ns_per_tick);
   }
 };
 
