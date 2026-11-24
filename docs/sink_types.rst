@@ -86,8 +86,11 @@ The :cpp:type:`RotatingFileSink` is built on top of the `FileSink` and provides 
    rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its own
    independent set of files.
 
-   If the startup directory cannot be enumerated safely, existing rotated files are left untouched
-   and rotation is disabled for that sink instance. Writes to the active file continue normally.
+   When startup cleanup or recovery needs a directory scan and the directory of the file cannot
+   be listed, e.g. because the process may write to it but not read it, the sink throws
+   ``QuillError`` and leaves the files as they are: it finds the rotated files of previous runs
+   there, and a rotation without them could overwrite one. A sink with open mode ``w`` and
+   ``set_remove_old_files(false)`` does not scan the directory.
 
 .. literalinclude:: ../examples/rotating_file_logging.cpp
    :language: cpp

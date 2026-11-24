@@ -6395,9 +6395,9 @@ TEST_CASE("rotating_file_sink_reopen_failure_does_not_crash")
 }
 
 /***/
-TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups")
+TEST_CASE("rotating_file_sink_directory_scan_failure_throws")
 {
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(QUILL_NO_EXCEPTIONS)
   // Removing directory-list permission portably requires ACL manipulation on Windows.
   return;
 #else
@@ -6445,26 +6445,15 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
     return;
   }
 
+  // The sink cannot find the backups of the previous run, and a rotation that does not know of
+  // application.1.log would rename the active file over it. It is not created, in either mode
+  for (char const open_mode : {'a', 'w'})
   {
     RotatingFileSinkConfig cfg;
     cfg.set_rotation_max_file_size(512);
-    cfg.set_open_mode('a');
+    cfg.set_open_mode(open_mode);
 
-    RotatingFileSink sink{filename, cfg, FileEventNotifier{}};
-    std::string const appended_record(64, 'B');
-    sink.write_log(LogRecord{nullptr,
-                             0,
-                             std::string_view{},
-                             std::string_view{},
-                             std::string{},
-                             std::string_view{},
-                             LogLevel::Info,
-                             "INFO",
-                             "I",
-                             nullptr,
-                             "",
-                             appended_record,
-                             {}});
+    REQUIRE_THROWS_AS(RotatingFileSink(filename, cfg, FileEventNotifier{}), QuillError);
   }
 
   directory_cleanup.restore_permissions();
@@ -6475,7 +6464,7 @@ TEST_CASE("rotating_file_sink_directory_scan_failure_preserves_existing_backups"
 
   std::vector<std::string> const active_contents = testing::file_contents(filename);
   REQUIRE_EQ(active_contents.size(), 1u);
-  REQUIRE_EQ(active_contents[0], active_prefix + std::string(64, 'B'));
+  REQUIRE_EQ(active_contents[0], active_prefix);
 #endif
 }
 
