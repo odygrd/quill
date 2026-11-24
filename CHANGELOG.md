@@ -252,6 +252,9 @@
   to a file costs more there. `FileSinkConfig::set_write_buffer_size()` sets another size.
 - On Linux the backend writes a further 5% more log statements per second to a `FileSink` with a
   typical pattern.
+- In a batch, above `BackendOptions::transit_events_soft_limit`, the backend picks the next record
+  among the threads that have records cached, instead of among every thread that has logged. With
+  64 other threads alive it writes about 25% more log statements per second.
 - An idle backend lists the sinks only when a logger is created or removed, instead of on every
   poll. With 1,000 loggers that each have their own sink it used 36% of a core, with a 99th
   percentile of 83 us for `Frontend::get_logger()`, and now uses 3%.

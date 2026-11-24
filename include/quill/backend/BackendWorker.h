@@ -374,6 +374,7 @@ public:
     _loggers_pending_removal = {};
     _logger_removal_reads_queues = false;
     _active_thread_contexts_cache = {};
+    _thread_contexts_with_cached_transit_events = {};
     _active_sinks_cache = {};
     _active_sinks_cache_generation = 0;
     _named_arg_value_buffer = fmtquill::memory_buffer{};
@@ -856,21 +857,30 @@ private:
     }
 
     size_t total_cached_transit_events_count{0};
+    _thread_contexts_with_cached_transit_events.clear();
 
     for (ThreadContext* thread_context : _active_thread_contexts_cache)
     {
       QUILL_ASSERT(thread_context->has_unbounded_queue_type() || thread_context->has_bounded_queue_type(),
                    "Invalid queue type in BackendWorker::_read_and_decode_frontend_queues()");
 
+      size_t cached_transit_events_count{0};
+
       if (thread_context->has_unbounded_queue_type())
       {
-        total_cached_transit_events_count += _read_and_decode_frontend_queue(
+        cached_transit_events_count = _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now, steady_ts_now);
       }
       else if (thread_context->has_bounded_queue_type())
       {
-        total_cached_transit_events_count += _read_and_decode_frontend_queue(
+        cached_transit_events_count = _read_and_decode_frontend_queue(
           thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now, steady_ts_now);
+      }
+
+      if (cached_transit_events_count != 0)
+      {
+        _thread_contexts_with_cached_transit_events.push_back(thread_context);
+        total_cached_transit_events_count += cached_transit_events_count;
       }
     }
 
@@ -1348,40 +1358,35 @@ private:
    */
   QUILL_ATTRIBUTE_HOT bool _process_lowest_timestamp_transit_event()
   {
-    // Get the lowest timestamp
-    uint64_t min_ts{(std::numeric_limits<uint64_t>::max)()};
-    ThreadContext* thread_context{
-      _active_thread_contexts_cache.size() == 1 ? _active_thread_contexts_cache.front() : nullptr};
-
-    if (!thread_context)
-    {
-      for (ThreadContext* tc : _active_thread_contexts_cache)
-      {
-        QUILL_ASSERT(tc->_transit_event_buffer,
-                     "transit_event_buffer is nullptr in "
-                     "BackendWorker::_process_lowest_timestamp_transit_event(), should be valid in "
-                     "_active_thread_contexts_cache");
-
-        TransitEvent const* te = tc->_transit_event_buffer->front();
-        if (te && (min_ts > te->timestamp))
-        {
-          min_ts = te->timestamp;
-          thread_context = tc;
-        }
-      }
-    }
-
-    if (!thread_context || !thread_context->_transit_event_buffer->front())
+    if (_thread_contexts_with_cached_transit_events.empty())
     {
       // all transit event buffers are empty
       return false;
     }
 
+    // Get the lowest timestamp. Only the threads with cached events are compared, so that the
+    // cost of an event does not grow with the number of the threads that are not logging
+    size_t lowest_timestamp_index{0};
+    uint64_t min_ts{_thread_contexts_with_cached_transit_events[0]->_transit_event_buffer->front()->timestamp};
+
+    for (size_t i = 1; i < _thread_contexts_with_cached_transit_events.size(); ++i)
+    {
+      uint64_t const timestamp =
+        _thread_contexts_with_cached_transit_events[i]->_transit_event_buffer->front()->timestamp;
+
+      if (min_ts > timestamp)
+      {
+        min_ts = timestamp;
+        lowest_timestamp_index = i;
+      }
+    }
+
+    ThreadContext* thread_context = _thread_contexts_with_cached_transit_events[lowest_timestamp_index];
     TransitEvent* transit_event = thread_context->_transit_event_buffer->front();
     QUILL_ASSERT(
       transit_event,
-      "transit_event is nullptr in BackendWorker::_process_lowest_timestamp_transit_event() when "
-      "transit_buffer is set");
+      "transit_event is nullptr in BackendWorker::_process_lowest_timestamp_transit_event() for a "
+      "thread context of _thread_contexts_with_cached_transit_events");
 
     // The event that follows is usually processed next. Its named arguments, its MDC and the
     // metadata of a macro-free record are in allocations of their own, anywhere in memory, and
@@ -1417,6 +1422,12 @@ private:
     // Log path free of an extra variant assignment.
 
     thread_context->_transit_event_buffer->pop_front();
+
+    if (QUILL_UNLIKELY(thread_context->_transit_event_buffer->empty()))
+    {
+      _thread_contexts_with_cached_transit_events.erase(_thread_contexts_with_cached_transit_events.begin() +
+                                                        static_cast<std::ptrdiff_t>(lowest_timestamp_index));
+    }
 
     if (flush_flag)
     {
@@ -2093,6 +2104,10 @@ private:
         _thread_context_manager.for_each_thread_context(
           [this](ThreadContext* thread_context)
           { _active_thread_contexts_cache.push_back(thread_context); });
+
+        // Room for every context, so that listing the ones with cached events never allocates.
+        // A failure there would end the exit with the queued records unwritten
+        _thread_contexts_with_cached_transit_events.reserve(_active_thread_contexts_cache.size());
 
         // Only the backend removes thread contexts, so they stay valid after the manager lock is
         // released. Allocate transit buffers outside it to avoid blocking registering threads.
@@ -2867,6 +2882,7 @@ private:
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<LoggerBase const*> _loggers_pending_removal; /** Sorted. The loggers that are removed when the records logged before their removal are processed */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
+  std::vector<ThreadContext*> _thread_contexts_with_cached_transit_events; /** Subset of _active_thread_contexts_cache, in its order */
   std::vector<ActiveSink> _active_sinks_cache; /** The sinks of the loggers, see _update_active_sinks_cache() **/
   std::vector<std::pair<std::string, std::string>> _mdc_fields; /** MDC set scratch storage */
   std::vector<std::string> _mdc_keys;                           /** MDC erase scratch storage */
