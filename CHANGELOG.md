@@ -308,6 +308,8 @@
   instead of a stale cached one, and patterns with `%X` or `%c` are accepted instead of throwing
   `QuillError`. They are formatted with `strftime()`, which `BackendOptions::error_notifier`
   reports once.
+- Timestamp patterns with `%r` follow the locale, as `strftime()` does, instead of always printing
+  `%I:%M:%S %p`. They are formatted with `strftime()` for every timestamp.
 - Windows builds, including MinGW ones, report a formatting error for a timestamp or file name
   pattern with a specifier the C runtime does not support, such as `%-H`, instead of terminating
   the process.
@@ -327,6 +329,10 @@
 - On Windows, `Frontend::create_or_get_sink<FileSink>()` returns the existing sink for another
   spelling of the same file, such as `app.log.` or, in MinGW builds, a directory differing only in
   letter case, instead of opening the file again, which could truncate it in `w` mode.
+- `Frontend::get_valid_logger()` throws `QuillError` for a logger that was created with another
+  `FrontendOptions` type, as `get_logger()` does, instead of calling `std::terminate()`.
+- The time at the start of the backend's `error_notifier` messages is `HH:MM:SS` in every locale.
+  A locale with a long `%X` could add unrelated bytes to it.
 - In `QUILL_NO_EXCEPTIONS` builds, an I/O failure of a `FileSink`, `RotatingFileSink`, `StreamSink`
   or `SystemdSink` while the backend thread writes or flushes, such as a full disk or a log file
   whose directory was removed, is reported through `BackendOptions::error_notifier` instead of

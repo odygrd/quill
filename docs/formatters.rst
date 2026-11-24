@@ -112,8 +112,8 @@ Use ``%%`` to write a literal percent sign in timestamp patterns, including esca
 as Quill's fractional-second extension or as a cached time modifier.
 
 .. note:: Quill's cached timestamp formatter only updates the plain time-of-day specifiers
-   (``%H``, ``%I``, ``%k``, ``%l``, ``%M``, ``%S``, ``%s``, ``%R``, ``%r``, ``%T``). A pattern that
-   embeds the time of day in another way, with ``%X``, ``%EX``, ``%c``, ``%Ec`` or BSD ``%+``, or a
+   (``%H``, ``%I``, ``%k``, ``%l``, ``%M``, ``%S``, ``%s``, ``%R``, ``%T``). A pattern that embeds
+   the time of day in another way, with ``%X``, ``%EX``, ``%c``, ``%Ec``, ``%r`` or BSD ``%+``, or a
    time-of-day specifier with a flag, width or ``E``/``O`` modifier such as ``%-H``, ``%_M``,
    ``%10S`` or ``%OH``, is formatted with ``strftime()`` for every timestamp instead, which is
    slower. The backend reports this once through ``BackendOptions::error_notifier``. Date

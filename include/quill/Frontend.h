@@ -571,8 +571,9 @@ public:
    * std::vector<logger_t*> return value of get_all_loggers.
    *
    * @return A pointer to the first valid logger, or nullptr if no valid logger is found.
+   * @throws QuillError if the logger was created with other FrontendOptions
    */
-  QUILL_NODISCARD static logger_t* get_valid_logger() noexcept
+  QUILL_NODISCARD static logger_t* get_valid_logger()
   {
     detail::LoggerBase* logger = detail::LoggerManager::instance().get_valid_logger();
     return logger ? _cast_to_logger(logger) : nullptr;

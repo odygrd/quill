@@ -30,7 +30,7 @@
  * - When using dlopen/dlclose: you MUST flush all loggers and call Backend::stop() before
  *   calling dlclose() on any DSO that used Quill. Otherwise, the backend thread may
  *   dereference pointers into unmapped memory (MacroMetadata, decode functions, Sink vtables)
- *   causing SIGSEGV. See the flush_before_dlclose() example pattern below.
+ *   causing SIGSEGV. See the dlopen/dlclose usage below.
  *
  * --- macOS ---
  * - macOS uses two-level namespaces by default (since macOS 10.2). This means each dylib
@@ -48,48 +48,49 @@
  *   consuming it. CMake's WINDOWS_EXPORT_ALL_SYMBOLS is an optional CMake auto-export
  *   mechanism for projects without explicit dllexport annotations; it is not required by
  *   this example and has no direct preprocessor equivalent in MSBuild.
- * - When using LoadLibrary/FreeLibrary: call flush_log() in DllMain during
- *   DLL_PROCESS_DETACH before the DLL is unloaded:
- *
- *   BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
- *   {
- *     switch (ul_reason_for_call)
- *     {
- *     case DLL_PROCESS_ATTACH:
- *       break;
- *     case DLL_THREAD_ATTACH:
- *     case DLL_THREAD_DETACH:
- *       break;
- *     case DLL_PROCESS_DETACH:
- *       global_logger_a->flush_log();
- *       break;
- *     }
- *     return TRUE;
- *   }
+ * - When using LoadLibrary/FreeLibrary: call a function that the DLL exports to stop the
+ *   backend, such as stop_quill() of this example, before FreeLibrary(). Do not call
+ *   flush_log() or Backend::stop() from DllMain during DLL_PROCESS_DETACH: the loader lock is
+ *   held there, which the backend thread needs to exit, and when the process is exiting that
+ *   thread was already terminated, so the call waits forever.
  *
  * === dlopen/dlclose Usage (Linux/macOS) ===
  *
- * If you dynamically load a shared library that uses Quill via dlopen(), you must ensure
- * all log messages are flushed before calling dlclose():
+ * If you dynamically load a shared library that uses Quill via dlopen(), shut its logging down
+ * before calling dlclose(), with a function that the library exports with C linkage, such as
+ * stop_quill() of this example. Unload the library only after that function has returned:
  *
  *   void* handle = dlopen("libmy_plugin.so", RTLD_NOW);
  *   // ... use the plugin, which logs via Quill ...
  *
- *   // Option A: Flush and stop before unloading
- *   auto flush_fn = (void(*)()) dlsym(handle, "flush_quill_logs");
- *   if (flush_fn) flush_fn();  // plugin exports a flush wrapper
- *   dlclose(handle);
+ *   // Option A: Shut the logging of the plugin down, then unload it
+ *   auto stop_fn = (void(*)()) dlsym(handle, "stop_quill");
+ *   if (stop_fn)
+ *   {
+ *     stop_fn();
+ *     dlclose(handle);
+ *   }
  *
  *   // Option B: Use RTLD_NODELETE to prevent actual unloading (keeps DSO mapped)
  *   // dlclose(handle);  // with RTLD_NODELETE flag at dlopen time
  *
- * Inside the plugin shared library, you can use __attribute__((destructor)) on Linux/macOS
- * as a safety net:
+ * The function has to release the sink pointers that the library holds, then remove the
+ * loggers that the library created, with Frontend::remove_logger_blocking() while the backend
+ * still runs, and then stop the backend. A sink is unregistered when a logger is removed and
+ * nothing holds the sink any more, so one that the library releases later stays registered.
+ * Backend::stop() keeps the loggers and the sinks registered for the next start, and those of
+ * the library must not outlive its code. It then writes the log messages that are still queued.
  *
- *   __attribute__((destructor)) void on_unload()
- *   {
- *     if (global_logger) global_logger->flush_log();
- *   }
+ * This is for a library that owns its loggers, as the one of this example does. A plugin that
+ * logs through a logger of the host application has no logger to remove. The records that its
+ * threads logged have to be written before the plugin is unloaded: a record refers to the log
+ * statement that made it, which is in the plugin. Each thread of the plugin calls flush_log() on
+ * the logger after its last log statement of the plugin, and then the thread that unloads the
+ * plugin calls flush_backtrace(), for a logger that stores a backtrace, and flush_log().
+ *
+ * Do not flush or stop from a function of the library that runs when it is unloaded, such as
+ * one declared with __attribute__((destructor)): when the process exits, it runs after the
+ * objects that Quill keeps were destroyed.
  */
 
 QUILL_EXPORT extern quill::Logger* global_logger_a;
@@ -116,4 +117,7 @@ int main()
   LOG_CRITICAL(global_logger_a, "This is a log critical example {}", 118);
 
   global_logger_a->flush_log();
+
+  // Before the library is unloaded
+  stop_quill();
 }
