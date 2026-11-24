@@ -193,6 +193,10 @@ public:
    * @note On macOS, fsync() flushes data to the disk controller's write cache but does not
    * guarantee write-through to persistent storage.
    *
+   * @note `/dev/null` cannot be synced. With fsync enabled, a sink of `/dev/null` on POSIX reports
+   * through BackendOptions::error_notifier that fsync failed. On Windows it opens no file, so
+   * there is nothing to sync.
+   *
    * @param value True to perform fsync, false otherwise.
    */
   QUILL_ATTRIBUTE_COLD void set_fsync_enabled(bool value) { _fsync_enabled = value; }
