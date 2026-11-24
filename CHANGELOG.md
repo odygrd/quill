@@ -257,6 +257,8 @@
   percentile of 83 us for `Frontend::get_logger()`, and now uses 3%.
 - With the default `check_printable_char`, the backend spends about 30% less time on messages with
   string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
+- The backend measures the length of a C string argument once instead of twice: about 3% more log
+  statements per second when the log statements have C string arguments.
 - Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
   rotation no longer fsyncs the file when fsync is disabled.
 - Reduced overhead for System/User clocks.
