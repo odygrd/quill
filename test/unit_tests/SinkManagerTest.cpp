@@ -224,9 +224,24 @@ TEST_CASE("get_sink_finds_non_path_sink_names_while_a_file_sink_exists")
 #if !defined(QUILL_NO_EXCEPTIONS)
     REQUIRE_THROWS_AS((void)SinkManager::instance().get_sink("missing/sink"), QuillError);
 #endif
+
+    // A sink that is not a file sink can have the path of a file as its name. It is found by
+    // that name, and it is not the sink of that file
+    std::error_code ec;
+    fs::path const non_file_sink_path =
+      fs::canonical(fs::temp_directory_path(), ec) / "sink_manager_non_file_sink";
+    REQUIRE_FALSE(ec);
+
+    std::shared_ptr<Sink> path_named_sink =
+      SinkManager::instance().create_or_get_sink<NullSink>(non_file_sink_path.string());
+    REQUIRE_EQ(SinkManager::instance().get_sink(non_file_sink_path.string()), path_named_sink);
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+    REQUIRE_THROWS_AS((void)SinkManager::instance().get_file_sink(non_file_sink_path), QuillError);
+#endif
   }
 
-  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 3);
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 4);
   std::remove(file_name.data());
 }
 
@@ -291,6 +306,11 @@ TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")
     fs::create_symlink(second_target.filename(), symlink_path, ec);
     REQUIRE_FALSE(ec);
 
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    // Nor does the path, which names a file that has no sink yet
+    REQUIRE_THROWS_AS((void)SinkManager::instance().get_file_sink(symlink_path), QuillError);
+  #endif
+
     std::shared_ptr<Sink> second_sink =
       SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), FileSinkConfig{});
     REQUIRE_NE(second_sink, first_sink);
@@ -311,6 +331,87 @@ TEST_CASE("file_sink_retargeted_symlink_returns_sink_of_new_target")
   fs::remove(first_target, ec);
   fs::remove(second_target, ec);
   fs::remove(base_dir, ec);
+  REQUIRE_FALSE(ec);
+#endif
+}
+
+/***/
+TEST_CASE("file_sink_is_found_by_path_after_its_symlink_target_was_removed")
+{
+#if !defined(_WIN32)
+  fs::path const base_dir = fs::path{"sink_manager_removed_symlink_target_dir"};
+  fs::path const target = base_dir / "daily.log";
+  fs::path const symlink_path = base_dir / "current.log";
+
+  std::error_code ec;
+  fs::create_directories(base_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  std::ofstream{target}.close();
+
+  fs::create_symlink(target.filename(), symlink_path, ec);
+  if (ec)
+  {
+    fs::remove(target, ec);
+    fs::remove(base_dir, ec);
+    return;
+  }
+
+  {
+    std::shared_ptr<Sink> sink =
+      SinkManager::instance().create_or_get_sink<FileSink>(symlink_path.string(), FileSinkConfig{});
+    REQUIRE_EQ(SinkManager::instance().get_file_sink(symlink_path), sink);
+
+    // The link leads nowhere now. The sink still has the file open, and is found by the path
+    // that it was created with, as it is by that name
+    fs::remove(target, ec);
+    REQUIRE_FALSE(ec);
+
+    REQUIRE_EQ(SinkManager::instance().get_sink(symlink_path.string()), sink);
+    REQUIRE_EQ(SinkManager::instance().get_file_sink(symlink_path), sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  fs::remove(symlink_path, ec);
+  fs::remove(base_dir, ec);
+  REQUIRE_FALSE(ec);
+#endif
+}
+
+/***/
+TEST_CASE("file_sink_is_found_by_path_after_its_directory_was_renamed")
+{
+#if !defined(_WIN32)
+  fs::path const base_dir = fs::path{"sink_manager_renamed_dir"};
+  fs::path const renamed_dir = fs::path{"sink_manager_renamed_dir_moved"};
+
+  std::error_code ec;
+  fs::remove_all(renamed_dir, ec);
+  fs::create_directories(base_dir, ec);
+  REQUIRE_FALSE(ec);
+
+  // The path as the sink is registered with it
+  fs::path const file = fs::canonical(base_dir, ec) / "app.log";
+  REQUIRE_FALSE(ec);
+
+  {
+    std::shared_ptr<Sink> sink =
+      SinkManager::instance().create_or_get_sink<FileSink>(file.string(), FileSinkConfig{});
+    REQUIRE_EQ(SinkManager::instance().get_file_sink(file), sink);
+
+    // The path cannot be normalized without its directory. The sink still has the file open,
+    // and is found by the path that it was created with, as it is by that name
+    fs::rename(base_dir, renamed_dir, ec);
+    REQUIRE_FALSE(ec);
+
+    REQUIRE_EQ(SinkManager::instance().get_sink(file.string()), sink);
+    REQUIRE_EQ(SinkManager::instance().get_file_sink(file), sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1);
+
+  fs::remove_all(renamed_dir, ec);
   REQUIRE_FALSE(ec);
 #endif
 }
@@ -365,11 +466,13 @@ TEST_CASE("file_sink_path_and_name_overloads_share_sinks")
     auto unicode_sink = manager.create_or_get_file_sink<FileSink>(unicode_file);
     REQUIRE(fs::equivalent(unicode_sink->get_filename(), unicode_file));
     REQUIRE_EQ(manager.create_or_get_file_sink<FileSink>(fs::absolute(unicode_file)), unicode_sink);
+    REQUIRE_EQ(manager.get_file_sink(unicode_file), unicode_sink);
 
     // A path and a narrow name that spell the same file share one sink
     auto ascii_sink = manager.create_file_sink<FileSink>(ascii_file);
     REQUIRE_EQ(manager.create_or_get_sink<FileSink>(ascii_file.string()), ascii_sink);
     REQUIRE_EQ(manager.get_sink(ascii_file.string()), ascii_sink);
+    REQUIRE_EQ(manager.get_file_sink(ascii_file), ascii_sink);
 
 #if !defined(QUILL_NO_EXCEPTIONS)
     REQUIRE_THROWS_AS((void)manager.create_file_sink<FileSink>(unicode_file), QuillError);

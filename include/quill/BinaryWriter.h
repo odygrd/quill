@@ -8,6 +8,7 @@
 
 #include "quill/Frontend.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/Filesystem.h"
 #include "quill/core/FrontendOptions.h"
 #include "quill/core/LogLevel.h"
 #include "quill/core/MacroMetadata.h"
@@ -21,6 +22,7 @@
   #include <cstdint>
   #include <memory>
   #include <string>
+  #include <type_traits>
   #include <utility>
   #include <vector>
 #endif
@@ -87,6 +89,28 @@ public:
                    clock_source_t clock = ClockSource::tsc())
   {
     _create_logger(filename, _create_file_sink<RotatingFileSink>(filename, sink_config), clock);
+  }
+
+  /**
+   * The two constructors above for a file that is given by path. Use them for a path that a
+   * std::string cannot spell: on Windows a std::string name is decoded with the active code
+   * page, while a path built from a wide string keeps every character.
+   */
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  explicit BinaryWriterImpl(TPath const& filename, FileSinkConfig const& sink_config = FileSinkConfig{},
+                            clock_source_t clock = ClockSource::tsc())
+  {
+    _create_logger(detail::file_sink_name_string(filename),
+                   _create_file_sink<FileSink>(filename, sink_config), clock);
+  }
+
+  /***/
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  BinaryWriterImpl(TPath const& filename, RotatingFileSinkConfig const& sink_config,
+                   clock_source_t clock = ClockSource::tsc())
+  {
+    _create_logger(detail::file_sink_name_string(filename),
+                   _create_file_sink<RotatingFileSink>(filename, sink_config), clock);
   }
 
   /**
@@ -187,8 +211,8 @@ private:
    * file name share its sink. A shared sink writes the records of this writer as this
    * configuration does: the file header and the framing of the records are the same.
    */
-  template <typename TFileSink, typename TSinkConfig>
-  QUILL_NODISCARD static std::shared_ptr<Sink> _create_file_sink(std::string const& filename,
+  template <typename TFileSink, typename TFilename, typename TSinkConfig>
+  QUILL_NODISCARD static std::shared_ptr<Sink> _create_file_sink(TFilename const& filename,
                                                                  TSinkConfig const& sink_config)
   {
     std::shared_ptr<TFileSink> sink = frontend_t::template create_or_get_sink<TFileSink>(filename, sink_config);
@@ -200,7 +224,7 @@ private:
       QUILL_THROW(QuillError{
         "The file already has a sink that does not write the records of this writer as its "
         "configuration asks, e.g. one with another file header or framing: " +
-        filename});
+        detail::file_sink_name_string(filename)});
     }
 
     return sink;

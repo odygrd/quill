@@ -26,6 +26,7 @@
   #include <string>
   #include <string_view>
   #include <system_error>
+  #include <type_traits>
 #endif
 
 QUILL_BEGIN_NAMESPACE
@@ -197,6 +198,32 @@ public:
   }
 
   /**
+   * The two constructors above for a file that is given by path. Use them for a path that a
+   * std::string cannot spell: on Windows a std::string name is decoded with the active code
+   * page, while a path built from a wide string keeps every character.
+   */
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  explicit PcapWriterImpl(TPath const& filename, FileSinkConfig const& sink_config = FileSinkConfig{},
+                          uint32_t link_type = link_type_ethernet, uint32_t snapshot_length = default_snapshot_length,
+                          clock_source_t clock = ClockSource::tsc())
+    : _writer(detail::file_sink_name_string(filename),
+              _create_sink<FileSink>(filename, sink_config, link_type, snapshot_length), clock),
+      _snapshot_length(snapshot_length)
+  {
+  }
+
+  /***/
+  template <typename TPath, std::enable_if_t<std::is_same_v<TPath, fs::path>, int> = 0>
+  PcapWriterImpl(TPath const& filename, RotatingFileSinkConfig const& sink_config,
+                 uint32_t link_type = link_type_ethernet, uint32_t snapshot_length = default_snapshot_length,
+                 clock_source_t clock = ClockSource::tsc())
+    : _writer(detail::file_sink_name_string(filename),
+              _create_sink<RotatingFileSink>(filename, sink_config, link_type, snapshot_length), clock),
+      _snapshot_length(snapshot_length)
+  {
+  }
+
+  /**
    * Writes a packet of which every byte was captured. This function is thread safe.
    *
    * The bytes are copied, so `packet` may be changed or destroyed after it returns.
@@ -280,13 +307,14 @@ private:
    * of every file, and checks that the packets of this writer can follow what is in a file that
    * it opens.
    */
-  template <typename TFileSink, typename TSinkConfig>
-  QUILL_NODISCARD static std::shared_ptr<Sink> _create_sink(std::string const& filename, TSinkConfig sink_config,
+  template <typename TFileSink, typename TFilename, typename TSinkConfig>
+  QUILL_NODISCARD static std::shared_ptr<Sink> _create_sink(TFilename const& filename, TSinkConfig sink_config,
                                                             uint32_t link_type, uint32_t snapshot_length)
   {
     if (snapshot_length == 0)
     {
-      QUILL_THROW(QuillError{"The snapshot length of a pcap file must be greater than 0: " + filename});
+      QUILL_THROW(QuillError{"The snapshot length of a pcap file must be greater than 0: " +
+                             detail::file_sink_name_string(filename)});
     }
 
     detail::PcapFileHeader file_header;
@@ -315,7 +343,7 @@ private:
       QUILL_THROW(QuillError{
         "The file already has a sink that does not write the pcap file header of this writer, or "
         "that frames its records: " +
-        filename});
+        detail::file_sink_name_string(filename)});
     }
 
     return sink;

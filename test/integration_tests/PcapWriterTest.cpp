@@ -253,8 +253,8 @@ TEST_CASE("pcap_writer")
     writer.flush();
 
     // A second writer that is given the name shares the sink of the file, as the other writers
-    // do, and its packets follow in the same capture
-    PcapWriter second_writer{appended_filename};
+    // do, and its packets follow in the same capture. The file can also be given by path
+    PcapWriter second_writer{fs::path{appended_filename}};
     REQUIRE(second_writer.write_packet(second_packet.data(), second_packet.size(), second_timestamp));
 
     writer.close();
@@ -331,6 +331,7 @@ TEST_CASE("pcap_writer")
 
     // A capture that keeps no byte of its packets
     REQUIRE_THROWS_AS(PcapWriter(link_type_filename, FileSinkConfig{}, 147, 0), QuillError);
+    REQUIRE_THROWS_AS(PcapWriter(fs::path{link_type_filename}, RotatingFileSinkConfig{}, 147, 0), QuillError);
   }
 
   {

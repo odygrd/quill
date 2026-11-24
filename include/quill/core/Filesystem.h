@@ -87,6 +87,21 @@ QUILL_NODISCARD inline std::string file_sink_path_string(fs::path const& path)
 }
 
 /**
+ * The name of a file as text, for a logger name or an error message: a name that is a string is
+ * kept as it is, and a path is spelled as file_sink_path_string() does.
+ */
+QUILL_NODISCARD inline std::string const& file_sink_name_string(std::string const& filename) noexcept
+{
+  return filename;
+}
+
+/***/
+QUILL_NODISCARD inline std::string file_sink_name_string(fs::path const& filename)
+{
+  return file_sink_path_string(filename);
+}
+
+/**
  * Resolves a file sink path to an absolute path with a canonical parent directory.
  * On failure returns an empty path and stores the reason in `error` instead of throwing.
  */

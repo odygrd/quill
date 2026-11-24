@@ -178,8 +178,16 @@ TEST_CASE("csv_writing")
 
     auto csv_writer_a = std::make_unique<quill::CsvWriter<DeviceCsvSchema, quill::FrontendOptions>>(
       filename_7, file_sink_config, true);
+    // The file can also be given by path, and the writer then shares the sink of its name
     auto csv_writer_b = std::make_unique<quill::CsvWriter<DeviceCsvSchema, quill::FrontendOptions>>(
-      filename_7, file_sink_config, false);
+      fs::path{filename_7}, file_sink_config, false);
+
+#if !defined(QUILL_NO_EXCEPTIONS)
+    // A writer of another header cannot share the sink
+    REQUIRE_THROWS_AS((quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions>{
+                        fs::path{filename_7}, quill::FileSinkConfig{}, true}),
+                      quill::QuillError);
+#endif
 
     csv_writer_a->append_row("dev-001", "ward-a", "online", 21.5);
     csv_writer_a->close();
@@ -203,7 +211,7 @@ TEST_CASE("csv_writing")
 
   {
     quill::CsvWriter<OrderCsvSchema, quill::FrontendOptions> csv_writter{
-      filename_8, 'a', FilenameAppendOption::StartDate};
+      fs::path{filename_8}, 'a', FilenameAppendOption::StartDate};
     csv_writter.append_row(132121123, "META", 300, 478.32321, "SELL");
     csv_writter.close();
   }
