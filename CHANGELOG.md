@@ -318,6 +318,9 @@
   runtime could end the process for an invalid file descriptor.
 - On Windows, an unhandled-exception filter installed before `Backend::start()`, such as a crash
   reporter, runs again after Quill's filter.
+- A `MacroMetadata` that an application builds for `Logger::log_statement()` or
+  `Logger::log_binary()` can have a source location with a Windows drive and no line, such as
+  `"C:\\src\\file.cpp"`. Before, `%(file_name)` read past the end of it.
 - Format strings that combine a dynamic width or precision with named arguments, such as
   `"{:{}} {unit}"`, no longer fail with "argument not found".
 - Arguments beyond the named fields of a format string get unique keys in `LogRecord::named_args`

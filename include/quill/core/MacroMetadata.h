@@ -191,15 +191,26 @@ private:
     return 0;
   }
 
-  /** @return the position of the last ':' of `str`, its length without one */
+  /**
+   * @return the position of the last ':' after the last path separator of `str`, its length
+   * without one. A ':' before the file name is not the one of the line, e.g. the one of a Windows
+   * drive in a source location that has no line
+   */
   QUILL_NODISCARD static constexpr uint16_t _calc_colon_separator_pos(std::string_view str) noexcept
   {
     // std::string_view::rfind is only constexpr from C++20
     for (size_t i = str.size(); i > 0; --i)
     {
-      if (str[i - 1] == ':')
+      char const cur = str[i - 1];
+
+      if (cur == ':')
       {
         return static_cast<uint16_t>(i - 1);
+      }
+
+      if ((cur == '/') || (cur == '\\'))
+      {
+        break;
       }
     }
 
