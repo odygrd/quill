@@ -437,6 +437,9 @@
 - A `%s` in the file name pattern of `FileSinkConfig::set_filename_append_option()` gives the epoch
   seconds with `Timezone::GmtTime` too, where it was shifted by the local UTC offset, and is
   accepted on Windows.
+- A `std::unordered_map` or `std::unordered_set` keyed by `std::error_code` can be logged with
+  `quill/std/UnorderedMap.h` or `quill/std/UnorderedSet.h` and `quill/std/SystemError.h`; it
+  failed to compile.
 
 ## v13.1.0
 

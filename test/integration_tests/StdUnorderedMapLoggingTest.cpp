@@ -5,12 +5,14 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/std/SystemError.h"
 #include "quill/std/UnorderedMap.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <unordered_map>
 #include <vector>
 
@@ -64,6 +66,11 @@ TEST_CASE("std_unordered_map_logging")
     std::unordered_map<char const*, int> cim = {{"4", 4}};
     LOG_INFO(logger, "cim {}", cim);
 
+    std::unordered_map<std::error_code, int> ecm = {
+      {std::make_error_code(std::errc::invalid_argument), 1},
+      {std::make_error_code(std::errc::no_such_file_or_directory), 2}};
+    LOG_INFO(logger, "ecm {}", ecm);
+
     // Test rvalue references with unordered_map
     std::unordered_map<int, std::string> rvalue_unordered_map = {
       {1, "one"}, {2, "two"}, {3, "three"}};
@@ -97,6 +104,11 @@ TEST_CASE("std_unordered_map_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       cim {\"4\": 4}"}));
+
+  REQUIRE((quill::testing::file_contains(
+             file_contents, std::string{"LOG_INFO      " + logger_name + "       ecm {\"generic:22\": 1, \"generic:2\": 2}"}) ||
+           quill::testing::file_contains(
+             file_contents, std::string{"LOG_INFO      " + logger_name + "       ecm {\"generic:2\": 2, \"generic:22\": 1}"})));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       rvalue_unordered_map {"}));

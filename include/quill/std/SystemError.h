@@ -194,3 +194,14 @@ public:
     return fmtquill::detail::write<char>(ctx.out(), str, specs);
   }
 };
+
+/** Lets a decoded error code be the key of a decoded std::unordered_map or std::unordered_set */
+template <>
+struct std::hash<quill::detail::DecodedErrorCode>
+{
+  size_t operator()(quill::detail::DecodedErrorCode const& error_code) const noexcept
+  {
+    // The message is left out, as equal codes of one category have equal messages
+    return std::hash<std::string>{}(error_code.category_name()) ^ static_cast<size_t>(error_code.value());
+  }
+};
