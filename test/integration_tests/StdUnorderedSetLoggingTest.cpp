@@ -5,12 +5,14 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/sinks/FileSink.h"
+#include "quill/std/SystemError.h"
 #include "quill/std/UnorderedSet.h"
 
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <unordered_set>
 #include <vector>
 
@@ -79,6 +81,10 @@ TEST_CASE("std_unordered_set_logging")
 
     std::unordered_set<int>& ci = i;
     LOG_INFO(logger, "ci {}", ci);
+
+    std::unordered_set<std::error_code> ecs = {std::make_error_code(std::errc::invalid_argument),
+                                               std::make_error_code(std::errc::no_such_file_or_directory)};
+    LOG_INFO(logger, "ecs {}", ecs);
 
     std::unordered_set<std::string> sa = {"test"};
     LOG_INFO(logger, "sa {}", sa);
@@ -166,6 +172,11 @@ TEST_CASE("std_unordered_set_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       ci {-123}"}));
+
+  REQUIRE((quill::testing::file_contains(
+             file_contents, std::string{"LOG_INFO      " + logger_name + "       ecs {\"generic:22\", \"generic:2\"}"}) ||
+           quill::testing::file_contains(
+             file_contents, std::string{"LOG_INFO      " + logger_name + "       ecs {\"generic:2\", \"generic:22\"}"})));
 
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{"LOG_INFO      " + logger_name + "       sa {\"test\"}"}));
