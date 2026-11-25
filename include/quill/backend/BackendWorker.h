@@ -363,24 +363,8 @@ public:
     _worker_thread_id.store(0);
     _backend_worker_lock.reset(nullptr);
 
-    // Release scratch state owned by the worker so a subsequent start() begins from a clean
-    // slate and we don't hold on to memory grown during the previous run. The frontend queues,
-    // sinks, and loggers themselves are owned by the singleton managers and intentionally
-    // survive restarts; only the worker's own scratch state is freed here. The worker thread
-    // has already joined above so these members are not concurrently accessed. Reassigning
-    // from a fresh empty instance both clears the contents and releases any reserved capacity.
-    _logger_removal_flags = {};
-    _removed_loggers = {};
-    _loggers_pending_removal = {};
-    _logger_removal_reads_queues = false;
-    _active_thread_contexts_cache = {};
-    _thread_contexts_with_cached_transit_events = {};
-    _active_sinks_cache = {};
-    _active_sinks_cache_generation = 0;
-    _named_arg_value_buffer = fmtquill::memory_buffer{};
-    _format_args_store = DynamicFormatArgStore{};
-    _named_args_template_cache.clear();
-    _dynamic_metric_labels = {};
+    // The worker thread has joined, so nothing else accesses this state
+    _release_scratch_state();
     _release_option_callables();
   }
 
@@ -409,6 +393,54 @@ public:
   }
 
 private:
+  /**
+   * Frees the worker's own state once the backend has stopped, so a later start() begins clean
+   * and the memory grown during the run is released. The queues, sinks and loggers belong to the
+   * managers and stay
+   */
+  void _release_scratch_state() noexcept
+  {
+    _release_memory(_logger_removal_flags);
+    _release_memory(_removed_loggers);
+    _release_memory(_loggers_pending_removal);
+    _logger_removal_reads_queues = false;
+    _release_memory(_active_thread_contexts_cache);
+    _release_memory(_thread_contexts_with_cached_transit_events);
+    _release_memory(_batch_idle_thread_contexts);
+    _release_memory(_new_thread_contexts);
+    _batch_drained_thread_context = nullptr;
+    _batch_interrupted = false;
+    _release_memory(_active_sinks_cache);
+    _active_sinks_cache_generation = 0;
+    _named_arg_value_buffer = fmtquill::memory_buffer{};
+    _named_args_template_cache.clear();
+    _release_memory(_dynamic_metric_labels);
+    _release_memory(_mdc_fields);
+    _release_memory(_mdc_keys);
+
+    // Empty after each record. A new store frees its memory, best effort as below
+    QUILL_TRY { _format_args_store = DynamicFormatArgStore{}; }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+#endif
+  }
+
+  /**
+   * Empties a container and frees its memory. Freeing is best effort: the empty container that
+   * takes its place can allocate, e.g. an unordered_map with MSVC, and without memory for it the
+   * container is only cleared
+   */
+  template <typename TContainer>
+  static void _release_memory(TContainer& container) noexcept
+  {
+    container.clear();
+
+    QUILL_TRY { TContainer{}.swap(container); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+#endif
+  }
+
   /**
    * Destroys the callables of the options once the backend has stopped. They can be code of a
    * shared library that is unloaded before the next start, or before the process exits

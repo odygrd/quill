@@ -297,6 +297,9 @@
 - `Backend::stop()` destroys the callables of `BackendOptions`, such as `error_notifier`, instead of
   keeping them until the next `Backend::start()`, so a shared library that provides them can be
   unloaded afterwards.
+- `Backend::stop()` and `ManualBackendWorker::shutdown()` free the memory the backend thread grew
+  for MDC fields and dynamic metric labels, so an application that keeps running without the
+  backend no longer holds it.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` now sleeps until
   `Backend::notify()` wakes the backend, instead of busy-spinning.
 - Builds with assertions enabled no longer abort when the system clock is set across a power of
