@@ -1265,8 +1265,10 @@ protected:
       detail::sleep_for_ns(retry_delay_ns);
     }
 
-    // The writes to the file that is being opened follow it
-    _append_mode = !mode.empty() && mode[0] == 'a';
+    // The writes to the file that is being opened follow it. Only a file on disk takes the offset
+    // of its end: a pipe or a device needs offsets of zero
+    _append_mode = !mode.empty() && (mode[0] == 'a') &&
+      (::GetFileType(opened_file_guard.handle) == FILE_TYPE_DISK);
     return true;
   }
 
@@ -1277,7 +1279,7 @@ protected:
    */
   QUILL_NODISCARD bool _notify_after_open(HANDLE file_handle, fs::path const& filename)
   {
-    if (_append_mode && ::GetFileType(file_handle) == FILE_TYPE_DISK)
+    if (_append_mode)
     {
       LARGE_INTEGER offset{};
       if (!::SetFilePointerEx(file_handle, offset, nullptr, FILE_END))

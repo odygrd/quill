@@ -637,6 +637,27 @@ TEST_CASE("windows_append_mode_appends_after_external_writer")
 }
 
 /***/
+TEST_CASE("windows_append_mode_writes_to_a_device")
+{
+#if defined(_WIN32)
+  // A device, like the null device or a pipe, opens in append mode as a file on disk does, but
+  // takes a write only at offset zero, not at the end of the file
+  FileSinkConfig fsc;
+  fsc.set_open_mode('a');
+
+  FileSinkTestHarness file_sink{"NUL", fsc};
+  REQUIRE_NE(file_sink.file_handle(), FileSinkTestHarness::closed_file_handle());
+  REQUIRE_EQ(::GetFileType(file_sink.file_handle()), static_cast<DWORD>(FILE_TYPE_CHAR));
+
+  // A write that the device does not take fails the test
+  write_log_statement(file_sink, "record to the null device\n");
+  file_sink.flush_sink(SinkFlushReason::Explicit);
+#else
+  return;
+#endif
+}
+
+/***/
 TEST_CASE("reopen_deleted_file_uses_configured_open_mode")
 {
 #if defined(__linux__)

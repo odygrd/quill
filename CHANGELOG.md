@@ -442,6 +442,8 @@
   failed to compile.
 - A `std::variant` with a move-only alternative that its codec decodes back into its own type, e.g.
   with `MemberwiseCodec`, can be logged by `const&` with `quill/std/Variant.h`; it failed to compile.
+- On Windows, a `FileSink` in append mode, the default, can write to a pipe or a device such as
+  `NUL`, where `WriteFile` rejected the end-of-file offset that only a file on disk takes.
 
 ## v13.1.0
 
