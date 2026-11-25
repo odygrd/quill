@@ -8,7 +8,9 @@
 using namespace quill;
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-namespace
+// GCC 8 can warn about the defaulted LoggerImpl destructor when the options type has internal
+// linkage and the specialization is used only for RTTI.
+namespace frontend_options_queue_mismatch_test
 {
 struct BoundedDroppingFrontendOptions : FrontendOptions
 {
@@ -19,13 +21,15 @@ struct BoundedDroppingFrontendOptions : FrontendOptions
 struct RenamedFrontendOptions : FrontendOptions
 {
 };
-} // namespace
+} // namespace frontend_options_queue_mismatch_test
 #endif
 
 /***/
 TEST_CASE("frontend_options_queue_mismatch")
 {
 #if !defined(QUILL_NO_EXCEPTIONS)
+  using namespace frontend_options_queue_mismatch_test;
+
   // Querying the capacity creates this thread's queue with the default FrontendOptions, before
   // any logger exists. A logger with another queue type would reinterpret that queue.
   REQUIRE_EQ(Frontend::get_thread_local_queue_capacity(), FrontendOptions::initial_queue_capacity);
