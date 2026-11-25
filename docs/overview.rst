@@ -144,6 +144,8 @@ Latency of the First Log Message
 
 Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with the initial log, consider calling :cpp:func:`FrontendImpl::preallocate`.
 
+The backend thread reads the queue of every thread, so it keeps up with a limited number of short-lived logging threads per second, which depends on the host: an application that starts many thousands of logging threads per second, e.g. one per request, should log from a thread pool.
+
 Configuration
 -------------
 

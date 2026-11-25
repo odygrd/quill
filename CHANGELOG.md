@@ -286,6 +286,10 @@
   application that logs continuously.
 - With a `log_timestamp_ordering_grace_period` of `sleep_duration` or longer, the backend thread
   sleeps while records wait for the grace period, instead of using a full core.
+- An application that starts thousands of short-lived logging threads per second no longer stops
+  writing, with memory growing until it stops logging, after a slow sink delays the backend for a
+  few seconds. A thread that starts logging while the backend works through a backlog no longer
+  interrupts it.
 - `Logger::flush_log()` flushes buffered output from loggers pending asynchronous removal.
 - With `BackendOptions::ensure_monotonic_output_timestamps`, the records of a logger with a custom
   epoch clock, such as the time of a simulation, keep their timestamps when another logger uses

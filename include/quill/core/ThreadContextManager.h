@@ -349,6 +349,12 @@ public:
     return _invalid_thread_context_count.load(std::memory_order_relaxed) != 0;
   }
 
+  /** @return whether a thread context was added, without clearing the flag */
+  QUILL_NODISCARD bool has_new_thread_context() const noexcept
+  {
+    return _new_thread_context_flag.load(std::memory_order_relaxed);
+  }
+
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT bool new_thread_context_flag() noexcept
   {
