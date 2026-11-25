@@ -10,7 +10,6 @@
 #include "quill/core/QuillError.h"
 
 #ifndef QUILL_MODULE
-  #include <cctype>
   #include <cstddef>
   #include <cstdint>
   #include <string>
@@ -84,10 +83,14 @@ QUILL_BEGIN_EXPORT
  */
 QUILL_NODISCARD inline LogLevel log_level_from_string(std::string log_level)
 {
-  // Convert to lowercase
+  // Convert to lowercase. Only ASCII letters: std::tolower() follows the locale, which in Turkish
+  // has no lowercase 'i' for 'I'
   for (char& c : log_level)
   {
-    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    if ((c >= 'A') && (c <= 'Z'))
+    {
+      c = static_cast<char>(c - 'A' + 'a');
+    }
   }
 
   if (log_level == "tracel3" || log_level == "trace_l3")

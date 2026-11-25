@@ -432,6 +432,8 @@
   `Timezone::GmtTime`, when the time of its next rotation cannot be represented, e.g. past 2038
   with a 32-bit `time_t`. It took the -1 that `mktime()` returns for that time.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
+- `log_level_from_string()` and the `QUILL_LOG_LEVEL` environment variable accept upper-case
+  names such as `INFO` under a Turkish or Azerbaijani locale, where they threw `QuillError`.
 
 ## v13.1.0
 
