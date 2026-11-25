@@ -21,7 +21,8 @@ QUILL_BEGIN_NAMESPACE
  *
  * It is particularly useful for simulations or scenarios where time manipulation is necessary,
  * such as simulating time in the past and displaying past timestamps in logs. It can also supply
- * raw TSC ticks or epoch nanoseconds by reporting the corresponding TimestampType.
+ * raw TSC ticks, or the time of a clock that follows real time such as a PTP or NIC hardware clock,
+ * by reporting the corresponding TimestampType.
  *
  * @note now() runs on logging threads; timestamp_type() runs on the backend and may overlap with
  * now() or application clock updates. Keep the timestamp representation fixed while the logger
@@ -46,16 +47,22 @@ public:
    * through a different logger. Loggers on one thread share that queue.
    *
    * @note Values returned by successive calls to now() should be monotonically non-decreasing.
-   *       For custom epoch timestamps, the backend bypasses strict ordering. A clock that steps
-   *       backwards can therefore produce log lines that appear out of timestamp order.
+   *       For TimestampType::EpochNanoseconds, the backend bypasses strict ordering. A clock that
+   *       steps backwards can therefore produce log lines that appear out of timestamp order.
    *
    * @return The current timestamp as raw TSC ticks or epoch nanoseconds
    */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT virtual uint64_t now() const noexcept = 0;
 
   /**
-   * Defaults to epoch nanoseconds, the common case, preserving existing clock implementations.
-   * Override for raw TSC ticks; keep the format fixed for the logger and its queued records.
+   * Reports what now() returns; keep it fixed for the logger and its queued records:
+   * - TimestampType::EpochNanoseconds, the default, for simulated or replayed time. The records
+   *   keep the clock's own timeline and do not wait for the grace period.
+   * - TimestampType::WallClockNanoseconds for a clock that follows real time, such as a PTP or NIC
+   *   hardware clock. The records wait for the grace period and are ordered with the other loggers,
+   *   like those of ClockSource::system(). Never use it for simulated or replayed time.
+   * - TimestampType::TscTicks for raw TSC ticks. The backend converts them and orders the records
+   *   like those of ClockSource::tsc().
    */
   QUILL_NODISCARD virtual TimestampType timestamp_type() const noexcept
   {

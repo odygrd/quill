@@ -148,7 +148,8 @@ struct BackendOptions
    * first. A poll that finds older records writes them instead, so a record can wait in one queue
    * while the backend writes a backlog from another.
    *
-   * The grace period is not applied while `Backend::stop()` drains the queues.
+   * The grace period is not applied while `Backend::stop()` drains the queues, nor to the records
+   * of user clocks that return `TimestampType::EpochNanoseconds`, which keep their own timeline.
    *
    * The frontend timestamps a record after reserving queue space and encoding its arguments.
    * If the frontend thread is preempted between that clock read and the queue commit, the
@@ -161,7 +162,8 @@ struct BackendOptions
    *
    * If regular output records arrive out of timestamp order, `error_notifier` suggests a larger
    * grace period based on the observed difference. Another message is emitted only when the
-   * suggestion increases. Custom epoch clocks are excluded from the comparison.
+   * suggestion increases. User clocks that return `TimestampType::EpochNanoseconds` are excluded
+   * from the comparison.
    *
    * A grace period of zero disables both the delay and the notification. The notification is
    * also suppressed when `ensure_monotonic_output_timestamps` corrects the output.
@@ -198,9 +200,9 @@ struct BackendOptions
    * logger removal, backtrace setup/flush, and MDC changes are also excluded because they are not
    * written as output records.
    *
-   * The records of loggers with a custom epoch clock are kept in order among themselves and are
-   * not compared with those of the other loggers, so that e.g. a simulation keeps its own
-   * timeline next to loggers that use wall time.
+   * The records of loggers whose user clock returns `TimestampType::EpochNanoseconds` are kept in
+   * order among themselves and are not compared with those of the other loggers, so that e.g. a
+   * simulation keeps its own timeline next to loggers that use wall time.
    *
    * This option changes the timestamp displayed in the output for corrected records. It does not
    * affect frontend timestamp capture or the timestamp used to select the next cached event for

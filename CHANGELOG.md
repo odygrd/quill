@@ -246,6 +246,9 @@ Windows.
   name a `UserClockSource` implementation so that the frontend inlines its timestamp reads. The
   `CsvWriter` constructors take the clock as a last argument, for frontend options with a
   `clock_type`. ([#1009](https://github.com/odygrd/quill/issues/1009))
+- Added `TimestampType::WallClockNanoseconds` for a `UserClockSource` that returns real wall time,
+  such as a PTP or NIC clock, so its records wait for the grace period and are ordered with the
+  other loggers like `ClockSource::system()`.
 - Added `std::filesystem::path` overloads of `Frontend::create_sink<TSink>()`,
   `Frontend::create_or_get_sink<TSink>()` and `Frontend::get_sink()` for file sinks, and of the
   constructors of `CsvWriter`, `BinaryWriter` and `PcapWriter`, so Windows applications can log to

@@ -115,8 +115,17 @@ enum class ClockSourceType : uint8_t
 /** Representation returned by a clock's now() function. */
 enum class TimestampType : uint8_t
 {
+  /** Raw TSC ticks. The backend converts them and orders the records like ClockSource::tsc() */
   TscTicks,
-  EpochNanoseconds
+
+  /** Nanoseconds since the Unix epoch on the clock's own timeline, for simulated or replayed time */
+  EpochNanoseconds,
+
+  /**
+   * Nanoseconds since the Unix epoch from a clock that follows real time, such as a PTP clock. The
+   * backend orders the records like ClockSource::system()
+   */
+  WallClockNanoseconds
 };
 
 /**
