@@ -23,6 +23,7 @@
   #include <chrono>
   #include <cstddef>
   #include <cstdint>
+  #include <cstring>
   #include <string>
   #include <string_view>
   #include <utility>
@@ -270,6 +271,9 @@ private:
     Attribute attribute{Attribute::ATTR_NR_ITEMS};
     fmtquill::format_specs specs;
     bool has_format_specs{false};
+
+    /** The specs only pad the value to a width, which _format() does itself for ASCII values */
+    bool is_padding_only{false};
   };
 
   /** Attribute names, at the same index as the Attribute enum **/
@@ -367,6 +371,7 @@ private:
       {
         part.specs = _parse_format_specs(attr.substr(colon_pos + 1u));
         part.has_format_specs = true;
+        part.is_padding_only = _is_padding_only(part.specs);
       }
 
       _format_parts.push_back(part);
@@ -414,6 +419,78 @@ private:
 #endif
 
     return specs;
+  }
+
+  /**
+   * @return true if `specs` only set a width, with an optional single-byte fill and an alignment.
+   * fmt pads a string by its display width, which it measures by decoding every code point. The
+   * display width of ASCII text is its length, so _format() pads ASCII values itself.
+   */
+  QUILL_NODISCARD static bool _is_padding_only(fmtquill::format_specs const& specs) noexcept
+  {
+    return (specs.width > 0) && (specs.precision < 0) &&
+      (specs.dynamic_width() == fmtquill::arg_id_kind::none) &&
+      (specs.dynamic_precision() == fmtquill::arg_id_kind::none) &&
+      ((specs.type() == fmtquill::presentation_type::none) ||
+       (specs.type() == fmtquill::presentation_type::string)) &&
+      (specs.sign() == fmtquill::sign::none) && !specs.alt() && !specs.localized() &&
+      (specs.fill_size() == 1) && (specs.align() != fmtquill::align::numeric);
+  }
+
+  /** @return true if every byte of `text` is ASCII */
+  QUILL_NODISCARD static bool _is_ascii(std::string_view text) noexcept
+  {
+    uint64_t bits{0};
+    size_t pos{0};
+
+    for (; (pos + sizeof(uint64_t)) <= text.size(); pos += sizeof(uint64_t))
+    {
+      uint64_t block;
+      std::memcpy(&block, text.data() + pos, sizeof(block));
+      bits |= block;
+    }
+
+    for (; pos < text.size(); ++pos)
+    {
+      bits |= static_cast<unsigned char>(text[pos]);
+    }
+
+    return (bits & 0x8080808080808080ull) == 0;
+  }
+
+  /** Appends an ASCII `value` padded as fmt pads a string: aligned left unless specified */
+  void _append_padded(std::string_view value, fmtquill::format_specs const& specs)
+  {
+    auto const width = static_cast<size_t>(specs.width);
+    size_t const padding = (width > value.size()) ? (width - value.size()) : 0;
+    size_t const left_padding = (specs.align() == fmtquill::align::right) ? padding
+      : (specs.align() == fmtquill::align::center)                        ? padding / 2
+                                                                          : 0;
+
+    size_t const offset = _formatted_log_message_buffer.size();
+    _formatted_log_message_buffer.try_resize(offset + value.size() + padding);
+
+    char* const dest = _formatted_log_message_buffer.data() + offset;
+    size_t const right_padding = padding - left_padding;
+
+    if ((left_padding != 0) && (right_padding != 0))
+    {
+      // Centred: one fill across the field costs less than two, and the copy overwrites the middle
+      std::memset(dest, specs.fill_unit<char>(), value.size() + padding);
+    }
+    else if (left_padding != 0)
+    {
+      std::memset(dest, specs.fill_unit<char>(), left_padding);
+    }
+    else if (right_padding != 0)
+    {
+      std::memset(dest + value.size(), specs.fill_unit<char>(), right_padding);
+    }
+
+    if (!value.empty())
+    {
+      std::memcpy(dest + left_padding, value.data(), value.size());
+    }
   }
 
   /***/
@@ -571,6 +648,10 @@ private:
       {
         // All pattern attributes are string views, so the common case needs no fmt dispatch.
         detail::append_to_buffer(_formatted_log_message_buffer, value);
+      }
+      else if (part.is_padding_only && _is_ascii(value))
+      {
+        _append_padded(value, part.specs);
       }
       else
       {

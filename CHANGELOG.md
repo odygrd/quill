@@ -107,6 +107,11 @@
 
 ## Unreleased
 
+### Performance
+
+- With ASCII attribute values, `PatternFormatter` formats records about three times faster in the
+  default-pattern benchmark. Custom patterns that pad ASCII attributes can also benefit.
+
 ## v14.0.0
 
 This release adds binary logging with `LOG_BINARY`, `BinaryWriter` and `PcapWriter`, user clocks

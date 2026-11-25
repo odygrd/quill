@@ -1303,6 +1303,75 @@ TEST_CASE("pattern_format_specifiers")
              "|  test_logger|   INFO   |**test_thread**|hello|\n");
 }
 
+TEST_CASE("pattern_format_specifiers_pad_non_ascii_values_by_display_width")
+{
+  // Padded ASCII values are padded without fmt; a padded value with other characters still goes
+  // through fmt, which pads it by its display width
+  PatternFormatter formatter{PatternFormatterOptions{"|%(logger:<9)|%(thread_name:*^9)|%(message)|",
+                                                     "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  std::string const ascii_logger = "cafe";
+  auto const& ascii_buffer =
+    formatter.format(ts, thread_id, "main", process_id, ascii_logger, "INFO", "I", macro_metadata,
+                     &named_args, "hello", std::string_view{});
+  REQUIRE_EQ(fmtquill::to_string(ascii_buffer), "|cafe     |**main***|hello|\n");
+
+  std::string const non_ascii_logger = "123456\xc3\xa9";
+  auto const& non_ascii_buffer =
+    formatter.format(ts, thread_id, "\xe4\xb8\xad", process_id, non_ascii_logger, "INFO", "I",
+                     macro_metadata, &named_args, "hello", std::string_view{});
+  REQUIRE_EQ(fmtquill::to_string(non_ascii_buffer),
+             fmtquill::format("|{:<9}|{:*^9}|hello|\n", non_ascii_logger, "\xe4\xb8\xad"));
+}
+
+TEST_CASE("pattern_format_specifiers_pad_empty_and_wide_values")
+{
+  // An empty value is all fill, and a value as wide as the width or wider gets no padding
+  PatternFormatter formatter{PatternFormatterOptions{
+    "|%(logger:*<4)|%(thread_name:>4)|%(log_level:^4)|%(message)|", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Warning, MacroMetadata::Event::Log};
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, "main", process_id, std::string_view{}, "WARNING", "W",
+                     macro_metadata, &named_args, "hello", std::string_view{});
+
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer), "|****|main|WARNING|hello|\n");
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer),
+             fmtquill::format("|{:*<4}|{:>4}|{:^4}|hello|\n", "", "main", "WARNING"));
+}
+
+TEST_CASE("pattern_format_specifiers_pad_past_the_buffer_capacity")
+{
+  // The padding is wider than the formatter's inline buffer, which has to grow
+  PatternFormatter formatter{PatternFormatterOptions{"%(logger:>600)|%(message:_<700)|",
+                                                     "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  std::string const logger_name = "test_logger";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  auto const& formatted_buffer =
+    formatter.format(ts, thread_id, thread_name, process_id, logger_name, "INFO", "I",
+                     macro_metadata, &named_args, "hello", std::string_view{});
+
+  REQUIRE_EQ(fmtquill::to_string(formatted_buffer),
+             std::string(589, ' ') + "test_logger|hello" + std::string(695, '_') + "|\n");
+}
+
 TEST_CASE("pattern_with_literal_braces")
 {
   // Literal '{' and '}' in the format pattern must appear verbatim in the output. Previously
