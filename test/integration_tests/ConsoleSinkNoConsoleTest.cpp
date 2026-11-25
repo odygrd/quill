@@ -7,7 +7,10 @@
 
 #include <atomic>
 #include <cstdint>
+#include <fstream>
+#include <iterator>
 #include <string>
+#include <system_error>
 #include <utility>
 
 using namespace quill;
@@ -59,8 +62,15 @@ TEST_CASE("console_sink_no_console")
   startup_info.cb = sizeof(startup_info);
   startup_info.dwFlags = STARTF_USESTDHANDLES;
 
+  // Keep doctest itself away from the standard streams we are testing. Its Windows colour
+  // detection calls _isatty() on stdout, and the report needs somewhere to write.
+  static constexpr char const* child_report = "console_sink_no_console_child.txt";
+  std::error_code remove_error{};
+  fs::remove(child_report, remove_error);
+
   PROCESS_INFORMATION process_information{};
-  std::string command_line = std::string{"\""} + executable_path + "\"";
+  std::string command_line =
+    std::string{"\""} + executable_path + "\" --dt-no-colors=true --dt-out=" + child_report;
 
   BOOL const created = ::CreateProcessA(nullptr, command_line.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS,
                                         nullptr, nullptr, &startup_info, &process_information);
@@ -83,6 +93,12 @@ TEST_CASE("console_sink_no_console")
   ::CloseHandle(process_information.hThread);
   ::CloseHandle(process_information.hProcess);
 
+  std::ifstream report_stream{child_report};
+  std::string const report{std::istreambuf_iterator<char>{report_stream}, std::istreambuf_iterator<char>{}};
+  report_stream.close();
+  fs::remove(child_report, remove_error);
+
+  INFO(report);
   REQUIRE_EQ(exit_code, 0u);
 #else
   return;
