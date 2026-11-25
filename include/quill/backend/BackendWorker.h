@@ -594,6 +594,9 @@ private:
     // load all contexts locally
     _update_active_thread_contexts_cache();
 
+    // A batch starts with a full check, so only a batch in progress needs the new threads
+    _new_thread_contexts.clear();
+
     // On every poll, not only an idle one: threads that keep logging can leave no idle poll for
     // as long as they do. Both return after one load when nothing waits to be removed
     _cleanup_invalidated_thread_contexts();
@@ -605,7 +608,7 @@ private:
     if (cached_transit_events_count != 0)
     {
       // there are cached events to process
-      if (cached_transit_events_count < _options.transit_events_soft_limit)
+      if ((cached_transit_events_count < _options.transit_events_soft_limit) && !_batch_interrupted)
       {
         // process a single transit event, then give priority to reading the frontend queues again
         _process_lowest_timestamp_transit_event();
@@ -613,14 +616,7 @@ private:
       else
       {
         // we want to process a batch of events.
-        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
-               _process_lowest_timestamp_transit_event())
-        {
-          // We need to be cautious because there are log messages in the lock-free queues
-          // that have not yet been cached in the transit event buffer. Logging only the cached
-          // messages can result in out-of-order log entries, as messages with lower timestamps
-          // in the queue might be missed.
-        }
+        _process_transit_events_batch(cached_transit_events_count, true);
       }
     }
     else
@@ -808,17 +804,10 @@ private:
       }
 
       // The frontend threads are expected to have stopped logging, so there is nothing to wait for
-      uint64_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues(false);
+      size_t const cached_transit_events_count = _populate_transit_events_from_frontend_queues(false);
       if (cached_transit_events_count > 0)
       {
-        while (!has_pending_events_for_caching_when_transit_event_buffer_empty() &&
-               _process_lowest_timestamp_transit_event())
-        {
-          // We need to be cautious because there are log messages in the lock-free queues
-          // that have not yet been cached in the transit event buffer. Logging only the cached
-          // messages can result in out-of-order log entries, as messages with lower timestamps
-          // in the queue might be missed.
-        }
+        _process_transit_events_batch(cached_transit_events_count, false);
       }
     }
 
@@ -841,20 +830,7 @@ private:
    */
   QUILL_ATTRIBUTE_HOT size_t _populate_transit_events_from_frontend_queues(bool apply_grace_period)
   {
-    uint64_t ts_now = (std::numeric_limits<uint64_t>::max)();
-    uint64_t steady_ts_now{0};
-    if (apply_grace_period && _options.log_timestamp_ordering_grace_period.count())
-    {
-      // Reuse both clock samples for every queue. Sample steady time first so a pause between
-      // these reads cannot make deadline checks use a later instant than the wall-clock cutoff.
-      steady_ts_now = detail::get_steady_time_ns();
-      uint64_t const system_time_ns = detail::get_system_time_ns();
-      uint64_t const grace_period_ns = static_cast<uint64_t>(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
-          .count());
-
-      ts_now = (system_time_ns > grace_period_ns) ? (system_time_ns - grace_period_ns) : 0u;
-    }
+    auto const [ts_now, steady_ts_now] = _grace_period_cutoffs(apply_grace_period);
 
     size_t total_cached_transit_events_count{0};
     _thread_contexts_with_cached_transit_events.clear();
@@ -866,15 +842,21 @@ private:
 
       size_t cached_transit_events_count{0};
 
+      // A record that waits here is newer than every cached one, so only a batch needs to know,
+      // see _batch_timestamp_limit
+      bool head_deferred{false};
+
       if (thread_context->has_unbounded_queue_type())
       {
-        cached_transit_events_count = _read_and_decode_frontend_queue(
-          thread_context->get_spsc_queue_union().unbounded_spsc_queue, thread_context, ts_now, steady_ts_now);
+        cached_transit_events_count =
+          _read_and_decode_frontend_queue(thread_context->get_spsc_queue_union().unbounded_spsc_queue,
+                                          thread_context, ts_now, steady_ts_now, head_deferred);
       }
       else if (thread_context->has_bounded_queue_type())
       {
-        cached_transit_events_count = _read_and_decode_frontend_queue(
-          thread_context->get_spsc_queue_union().bounded_spsc_queue, thread_context, ts_now, steady_ts_now);
+        cached_transit_events_count =
+          _read_and_decode_frontend_queue(thread_context->get_spsc_queue_union().bounded_spsc_queue,
+                                          thread_context, ts_now, steady_ts_now, head_deferred);
       }
 
       if (cached_transit_events_count != 0)
@@ -888,17 +870,43 @@ private:
   }
 
   /**
+   * @param apply_grace_period false to read the records that are still within
+   * log_timestamp_ordering_grace_period as well
+   * @return the cutoffs of a read of the queues: the newest timestamp that can be read, which is
+   * the greatest value when there is no grace period, and the steady time of the read
+   */
+  QUILL_NODISCARD std::pair<uint64_t, uint64_t> _grace_period_cutoffs(bool apply_grace_period) const noexcept
+  {
+    if (!apply_grace_period || !_options.log_timestamp_ordering_grace_period.count())
+    {
+      return {(std::numeric_limits<uint64_t>::max)(), 0};
+    }
+
+    // Reuse both clock samples for every queue. Sample steady time first so a pause between
+    // these reads cannot make deadline checks use a later instant than the wall-clock cutoff.
+    uint64_t const steady_ts_now = detail::get_steady_time_ns();
+    uint64_t const system_time_ns = detail::get_system_time_ns();
+    uint64_t const grace_period_ns = static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(_options.log_timestamp_ordering_grace_period)
+        .count());
+
+    return {(system_time_ns > grace_period_ns) ? (system_time_ns - grace_period_ns) : 0u, steady_ts_now};
+  }
+
+  /**
    * Deserialize messages from the raw SPSC queue
    * @param frontend_queue queue
    * @param thread_context thread context
    * @param ts_now timestamp now
    * @param steady_ts_now steady-clock cutoff shared by this scan
+   * @param head_deferred set to true when the reading stops at a record that waits for the grace
+   * period, which is newer than ts_now
    * @return size of the transit_event_buffer
    */
   template <typename TFrontendQueue>
   QUILL_ATTRIBUTE_HOT size_t _read_and_decode_frontend_queue(TFrontendQueue& frontend_queue,
-                                                             ThreadContext* thread_context,
-                                                             uint64_t ts_now, uint64_t steady_ts_now)
+                                                             ThreadContext* thread_context, uint64_t ts_now,
+                                                             uint64_t steady_ts_now, bool& head_deferred)
   {
     // Note: The producer commits only complete messages to the queue.
     // Therefore, if even a single byte is present in the queue, it signifies a full message.
@@ -930,7 +938,7 @@ private:
 
       std::byte const* const read_begin = read_pos;
 
-      if (!_populate_transit_event_from_frontend_queue(read_pos, thread_context, ts_now, steady_ts_now))
+      if (!_populate_transit_event_from_frontend_queue(read_pos, thread_context, ts_now, steady_ts_now, head_deferred))
       {
         // If _get_transit_event_from_queue returns false, stop reading
         break;
@@ -968,7 +976,8 @@ private:
   /***/
   QUILL_ATTRIBUTE_HOT bool _populate_transit_event_from_frontend_queue(std::byte*& read_pos,
                                                                        ThreadContext* thread_context,
-                                                                       uint64_t ts_now, uint64_t steady_ts_now)
+                                                                       uint64_t ts_now, uint64_t steady_ts_now,
+                                                                       bool& head_deferred)
   {
     QUILL_ASSERT(thread_context->_transit_event_buffer,
                  "transit_event_buffer is nullptr in "
@@ -1072,8 +1081,13 @@ private:
         _rdtsc_clock.load(std::memory_order_relaxed)->time_since_epoch(transit_event->timestamp);
     }
 
-    // Custom epoch time is authoritative; raw ticks and built-in clocks use normal ordering.
-    if ((clock_source != ClockSourceType::User || timestamp_type == TimestampType::TscTicks) &&
+    bool const is_mdc_event = (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcSet) ||
+      (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcErase) ||
+      (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcClear);
+
+    // Custom epoch time is authoritative; raw ticks and built-in clocks use normal ordering. An
+    // MDC event changes the state of its thread and is not written, so it does not wait either
+    if (!is_mdc_event && (clock_source != ClockSourceType::User || timestamp_type == TimestampType::TscTicks) &&
         (ts_now != (std::numeric_limits<uint64_t>::max)()))
     {
       // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
@@ -1093,6 +1107,7 @@ private:
       if (QUILL_UNLIKELY(defer_timestamp))
       {
         // Leave this record queued until the grace window expires.
+        head_deferred = true;
         return false;
       }
     }
@@ -1141,10 +1156,6 @@ private:
       }
 #endif
     }
-
-    bool const is_mdc_event = (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcSet) ||
-      (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcErase) ||
-      (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcClear);
 
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Metric)
     {
@@ -1319,44 +1330,278 @@ private:
   }
 
   /**
-   * Checks if there are pending events for caching based on the state of transit event buffers and queues.
-   * @return True if there are pending events for caching when the _transit_event_buffer is empty, false otherwise.
+   * Writes the cached events in timestamp order, and reads on the way the queues that can hold an
+   * older record, see has_pending_events_for_caching_when_transit_event_buffer_empty()
+   *
+   * A read that leaves a record waiting for the grace period limits the rest of the batch to the
+   * events up to its cutoff, see _batch_timestamp_limit
+   * @param max_events the most events the batch writes: the number cached when it starts. The
+   * records read during the batch do not extend it, so that the threads that keep logging cannot
+   * keep the backend from its other work, e.g. removing a logger, or from returning from a poll.
+   * It is also the most queue reads that take records in the batch, as such a read formats them
+   * @param apply_grace_period false to read the records that are still within
+   * log_timestamp_ordering_grace_period as well
    */
-  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty()
+  QUILL_ATTRIBUTE_HOT void _process_transit_events_batch(size_t max_events, bool apply_grace_period)
   {
-    _update_active_thread_contexts_cache();
+    _batch_full_check_needed = true;
+    _batch_timestamp_limit = (std::numeric_limits<uint64_t>::max)();
+    _batch_reads_left = max_events;
+    size_t processed_events{0};
 
-    for (ThreadContext* thread_context : _active_thread_contexts_cache)
+    // We need to be cautious because there are log messages in the lock-free queues that have
+    // not yet been cached in the transit event buffer. Logging only the cached messages can
+    // result in out-of-order log entries, as messages with lower timestamps in the queue might
+    // be missed.
+    while ((processed_events < max_events) &&
+           !has_pending_events_for_caching_when_transit_event_buffer_empty(apply_grace_period) &&
+           _process_lowest_timestamp_transit_event(_batch_timestamp_limit))
     {
-      QUILL_ASSERT(thread_context->_transit_event_buffer,
-                   "transit_event_buffer is nullptr in "
-                   "BackendWorker::has_pending_events_for_caching_when_transit_event_buffer_empty()"
-                   ", should be valid in _active_thread_contexts_cache");
+      ++processed_events;
+    }
 
-      if (thread_context->_transit_event_buffer->empty())
+    // A batch that ran out of its budget goes on at the next poll, also with fewer events cached
+    // than transit_events_soft_limit. Writing one event per poll instead costs a read of every
+    // queue for each event, which does not keep up with a backlog of many threads
+    _batch_interrupted = ((processed_events == max_events) || (_batch_reads_left == 0)) &&
+      !_thread_contexts_with_cached_transit_events.empty();
+  }
+
+  /** The queue reads of one batch check */
+  struct BatchReads
+  {
+    uint64_t ts_now{0};        /** The cutoffs of the reads, sampled at the first read */
+    uint64_t steady_ts_now{0}; /** See _grace_period_cutoffs() */
+    bool apply_grace_period{true};
+    bool cutoffs_sampled{false};
+    bool look_again{false}; /** A queue was read or the contexts were listed in the current pass */
+  };
+
+  /**
+   * Called before a batch writes its next event. A thread that has nothing cached but has records
+   * in its queue is read now, as at the start of a poll, so that its oldest record is among the
+   * events that the next one is picked from. A thread that starts logging during a backlog is
+   * read this way and does not end the batch.
+   *
+   * The records in the queue of a thread with cached events are newer than those, so only the
+   * threads with nothing cached are looked at. The first call of a batch looks at every thread.
+   * After it, only the valid threads with empty queues, the threads that register and the thread
+   * whose cached events ran out are looked at, so that the cost of an event does not grow with
+   * the number of threads. A read takes time, in which one of these threads can log a record
+   * older than those that are cached, so they are looked at again after a read, until a pass
+   * finds that none has logged.
+   *
+   * The first record of a queue that waits for the grace period is newer than the cutoff of the
+   * read, and the records after it are newer still. The batch then goes on with the events up to
+   * the lowest such cutoff, see _batch_timestamp_limit.
+   *
+   * Threads that keep starting to log, each with a record or an MDC value that is slow to format,
+   * could keep these reads going for as long as they do. A batch that has read as many queues as
+   * it may write events ends instead, and the next poll reads the queues.
+   * @param apply_grace_period false to read the records that are still within
+   * log_timestamp_ordering_grace_period as well
+   * @return true to end the batch, when a queue keeps a record that could not be read, e.g. after
+   * an allocation failure, or when the batch has no reads left
+   */
+  QUILL_ATTRIBUTE_HOT bool has_pending_events_for_caching_when_transit_event_buffer_empty(bool apply_grace_period)
+  {
+    BatchReads reads;
+    reads.apply_grace_period = apply_grace_period;
+
+    if (_batch_full_check_needed)
+    {
+      _batch_full_check_needed = false;
+      _batch_idle_thread_contexts.clear();
+      _batch_drained_thread_context = nullptr;
+
+      _update_active_thread_contexts_cache();
+      _new_thread_contexts.clear();
+
+      for (ThreadContext* thread_context : _active_thread_contexts_cache)
       {
-        // if there is no _transit_event_buffer yet then check only the queue
-        if (thread_context->has_unbounded_queue_type() &&
-            !thread_context->get_spsc_queue_union().unbounded_spsc_queue.empty())
-        {
-          return true;
-        }
-
-        if (thread_context->has_bounded_queue_type() &&
-            !thread_context->get_spsc_queue_union().bounded_spsc_queue.empty())
+        if (!_batch_add_thread_context(*thread_context, reads))
         {
           return true;
         }
       }
     }
+    else if (_batch_drained_thread_context)
+    {
+      ThreadContext* const drained = _batch_drained_thread_context;
+      _batch_drained_thread_context = nullptr;
+
+      if (!_batch_add_thread_context(*drained, reads))
+      {
+        return true;
+      }
+    }
+
+    // A thread that starts logging during the batch is read here, so a backlog, e.g. after a slow
+    // sink, is written while new threads keep starting to log. The backend still does work per
+    // thread context: before each event it scans the contexts with cached events for the lowest
+    // timestamp, and it lists all the contexts again when a thread registers. So one backend
+    // thread keeps up with a reasonable number of short-lived logging threads, but not with many
+    // thousands of new ones per second; the limit depends on the host. Supporting that would need
+    // a min-heap of the contexts with cached events, keyed by the timestamp of their front event,
+    // and a context list that new contexts are appended to. Applications that start that many
+    // threads should log from a thread pool
+    do
+    {
+      reads.look_again = false;
+
+      if (QUILL_UNLIKELY(_thread_context_manager.has_new_thread_context()))
+      {
+        _update_active_thread_contexts_cache();
+        reads.look_again = true;
+
+        for (ThreadContext* thread_context : _new_thread_contexts)
+        {
+          if (!_batch_add_thread_context(*thread_context, reads))
+          {
+            return true;
+          }
+        }
+
+        _new_thread_contexts.clear();
+      }
+
+      // From the back, so that a thread that is watched again after its read is not looked at
+      // again in the same pass
+      for (size_t i = _batch_idle_thread_contexts.size(); i != 0; --i)
+      {
+        ThreadContext* const thread_context = _batch_idle_thread_contexts[i - 1];
+
+        if (_is_queue_empty(*thread_context))
+        {
+          continue;
+        }
+
+        // The thread logged. It is watched again if it still has nothing cached after the read
+        _batch_idle_thread_contexts[i - 1] = _batch_idle_thread_contexts.back();
+        _batch_idle_thread_contexts.pop_back();
+
+        if (!_batch_add_thread_context(*thread_context, reads))
+        {
+          return true;
+        }
+      }
+    } while (reads.look_again);
 
     return false;
   }
 
   /**
-   * Processes the cached transit event with the minimum timestamp
+   * Accounts for a thread context in the current batch. A thread with cached events is skipped,
+   * one with records in its queue is read, and a valid one with an empty queue is watched. An
+   * exited thread with an empty queue cannot get records any more.
+   * @return false when its queue keeps a record that could not be read, or that the batch has no
+   * reads left for
    */
-  QUILL_ATTRIBUTE_HOT bool _process_lowest_timestamp_transit_event()
+  QUILL_NODISCARD bool _batch_add_thread_context(ThreadContext& thread_context, BatchReads& reads)
+  {
+    QUILL_ASSERT(thread_context._transit_event_buffer,
+                 "transit_event_buffer is nullptr in BackendWorker::_batch_add_thread_context()");
+
+    if (!thread_context._transit_event_buffer->empty())
+    {
+      return true;
+    }
+
+    // Read before the queue: a thread is invalidated after its last record is in its queue, so
+    // an invalid thread with an empty queue cannot log any more
+    bool const is_valid = thread_context.is_valid();
+
+    if (!_is_queue_empty(thread_context))
+    {
+      if (_batch_reads_left == 0)
+      {
+        // Its records can be older than the next event, which is written after the next poll
+        // reads them
+        return false;
+      }
+
+      if (!reads.cutoffs_sampled)
+      {
+        auto const [ts_now, steady_ts_now] = _grace_period_cutoffs(reads.apply_grace_period);
+        reads.ts_now = ts_now;
+        reads.steady_ts_now = steady_ts_now;
+        reads.cutoffs_sampled = true;
+      }
+
+      reads.look_again = true;
+      bool head_deferred{false};
+      size_t const bytes_read_before = _queue_bytes_read(thread_context);
+
+      size_t const cached_transit_events_count = thread_context.has_unbounded_queue_type()
+        ? _read_and_decode_frontend_queue(thread_context.get_spsc_queue_union().unbounded_spsc_queue,
+                                          &thread_context, reads.ts_now, reads.steady_ts_now, head_deferred)
+        : _read_and_decode_frontend_queue(thread_context.get_spsc_queue_union().bounded_spsc_queue,
+                                          &thread_context, reads.ts_now, reads.steady_ts_now, head_deferred);
+
+      // A read that takes records formats them, also MDC events, which are not cached. A record
+      // that waits for the grace period at once stays in the queue, and the read is not counted
+      if (_queue_bytes_read(thread_context) != bytes_read_before)
+      {
+        --_batch_reads_left;
+      }
+
+      if (head_deferred)
+      {
+        // The records left in its queue are newer than the cutoff, also when the read cached some
+        // before them, so the events up to the cutoff are written first
+        _batch_timestamp_limit = (std::min)(_batch_timestamp_limit, reads.ts_now);
+      }
+
+      if (cached_transit_events_count != 0)
+      {
+        _thread_contexts_with_cached_transit_events.push_back(&thread_context);
+        return true;
+      }
+
+      if (head_deferred)
+      {
+        // Not watched, as its queue is not empty. The next poll reads it again
+        return true;
+      }
+
+      // Nothing was cached. Unless the queue held only MDC events, its first record failed to be
+      // read
+      if (!_is_queue_empty(thread_context))
+      {
+        return false;
+      }
+    }
+
+    if (is_valid)
+    {
+      _batch_idle_thread_contexts.push_back(&thread_context);
+    }
+
+    return true;
+  }
+
+  QUILL_NODISCARD static bool _is_queue_empty(ThreadContext& thread_context) noexcept
+  {
+    return thread_context.has_unbounded_queue_type()
+      ? thread_context.get_spsc_queue_union().unbounded_spsc_queue.empty()
+      : thread_context.get_spsc_queue_union().bounded_spsc_queue.empty();
+  }
+
+  /** @return the bytes that were read from the queue of the thread so far, a count that wraps */
+  QUILL_NODISCARD static size_t _queue_bytes_read(ThreadContext const& thread_context) noexcept
+  {
+    return thread_context.has_unbounded_queue_type()
+      ? thread_context.get_spsc_queue_union().unbounded_spsc_queue.bytes_read()
+      : thread_context.get_spsc_queue_union().bounded_spsc_queue.bytes_read();
+  }
+
+  /**
+   * Processes the cached transit event with the minimum timestamp
+   * @param max_timestamp the newest timestamp that can be processed, see _batch_timestamp_limit
+   * @return false when there is no cached event, or when the oldest is newer than max_timestamp
+   */
+  QUILL_ATTRIBUTE_HOT bool _process_lowest_timestamp_transit_event(
+    uint64_t max_timestamp = (std::numeric_limits<uint64_t>::max)())
   {
     if (_thread_contexts_with_cached_transit_events.empty())
     {
@@ -1379,6 +1624,11 @@ private:
         min_ts = timestamp;
         lowest_timestamp_index = i;
       }
+    }
+
+    if (min_ts > max_timestamp)
+    {
+      return false;
     }
 
     ThreadContext* thread_context = _thread_contexts_with_cached_transit_events[lowest_timestamp_index];
@@ -1427,6 +1677,9 @@ private:
     {
       _thread_contexts_with_cached_transit_events.erase(_thread_contexts_with_cached_transit_events.begin() +
                                                         static_cast<std::ptrdiff_t>(lowest_timestamp_index));
+
+      // Records still in its queue can be older than the next cached event
+      _batch_drained_thread_context = thread_context;
     }
 
     if (flush_flag)
@@ -1445,6 +1698,10 @@ private:
       // terminated by then and the call waits forever.
       // Guarded, so that the caller is released also when the cleanup fails.
       _run_guarded([&]() { _cleanup_invalidated_thread_contexts(); });
+
+      // The cleanup can remove contexts that a batch refers to
+      _batch_full_check_needed = true;
+      _batch_drained_thread_context = nullptr;
 
       // Now it’s safe to notify the caller to continue execution.
       flush_flag->store(true);
@@ -2105,9 +2362,12 @@ private:
           [this](ThreadContext* thread_context)
           { _active_thread_contexts_cache.push_back(thread_context); });
 
-        // Room for every context, so that listing the ones with cached events never allocates.
-        // A failure there would end the exit with the queued records unwritten
+        // Room for every context, so that listing the ones with cached events, or the idle or new
+        // ones of a batch, never allocates. A failure there would end the exit with the queued
+        // records unwritten
         _thread_contexts_with_cached_transit_events.reserve(_active_thread_contexts_cache.size());
+        _batch_idle_thread_contexts.reserve(_active_thread_contexts_cache.size());
+        _new_thread_contexts.reserve(_new_thread_contexts.size() + _active_thread_contexts_cache.size());
 
         // Only the backend removes thread contexts, so they stay valid after the manager lock is
         // released. Allocate transit buffers outside it to avoid blocking registering threads.
@@ -2118,6 +2378,9 @@ private:
             // Lazy initialise the _transit_event_buffer for this thread_context
             thread_context->_transit_event_buffer =
               std::make_shared<TransitEventBuffer>(_options.transit_event_buffer_initial_capacity);
+
+            // A batch in progress has not seen this thread yet
+            _new_thread_contexts.push_back(thread_context);
           }
         }
       }
@@ -2258,11 +2521,7 @@ private:
     {
       for (ThreadContext const* thread_context : _active_thread_contexts_cache)
       {
-        size_t const bytes_read = thread_context->has_unbounded_queue_type()
-          ? thread_context->get_spsc_queue_union().unbounded_spsc_queue.bytes_read()
-          : thread_context->get_spsc_queue_union().bounded_spsc_queue.bytes_read();
-
-        if (!has_reached(bytes_read, thread_context->_logger_removal_target))
+        if (!has_reached(_queue_bytes_read(*thread_context), thread_context->_logger_removal_target))
         {
           return false;
         }
@@ -2882,7 +3141,25 @@ private:
   std::vector<std::string> _removed_loggers; /** Even an empty vector causes an allocation on Windows */
   std::vector<LoggerBase const*> _loggers_pending_removal; /** Sorted. The loggers that are removed when the records logged before their removal are processed */
   std::vector<ThreadContext*> _active_thread_contexts_cache;
-  std::vector<ThreadContext*> _thread_contexts_with_cached_transit_events; /** Subset of _active_thread_contexts_cache, in its order */
+  std::vector<ThreadContext*> _thread_contexts_with_cached_transit_events; /** Subset of _active_thread_contexts_cache */
+  std::vector<ThreadContext*> _batch_idle_thread_contexts; /** Valid threads with nothing cached or queued, looked at before each batch event */
+  std::vector<ThreadContext*> _new_thread_contexts; /** Threads whose transit buffer was created since the last batch check */
+  ThreadContext* _batch_drained_thread_context{nullptr}; /** Thread whose cached events ran out in the last batch event */
+  // _batch_timestamp_limit is used only while a batch writes a backlog, when at least
+  // transit_events_soft_limit events are cached or the last batch did not finish. A normal poll
+  // writes one event and does not use it.
+  // While a batch writes a backlog it also reads the queues again. When such a read leaves a record
+  // waiting for its grace period, the batch writes nothing newer than that read's cutoff, since the
+  // waiting record could be older. The limit is reset when the next batch starts. A normal poll
+  // needs no limit: with a normal clock, a record that is still waiting is newer than any record
+  // already read.
+  // When the clock jumps backwards, the records already written are newer than the ones that
+  // follow, so the order cannot be kept anyway, and custom clocks keep their own time. Keeping the
+  // limit across polls for them only made records wait as long as the clock jump.
+  uint64_t _batch_timestamp_limit{(std::numeric_limits<uint64_t>::max)()}; /** The newest timestamp that the current batch writes, see above */
+  size_t _batch_reads_left{0}; /** The queue reads that the current batch can still take records with */
+  bool _batch_full_check_needed{true};
+  bool _batch_interrupted{false}; /** The last batch ran out of its budget with events left to write */
   std::vector<ActiveSink> _active_sinks_cache; /** The sinks of the loggers, see _update_active_sinks_cache() **/
   std::vector<std::pair<std::string, std::string>> _mdc_fields; /** MDC set scratch storage */
   std::vector<std::string> _mdc_keys;                           /** MDC erase scratch storage */

@@ -4,6 +4,7 @@
 #include "quill/Backend.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/UserClockSource.h"
 #include "quill/core/FrontendOptions.h"
 #include "quill/core/ThreadContextManager.h"
 #include "quill/sinks/FileSink.h"
@@ -12,12 +13,29 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
 
 using namespace quill;
+
+namespace
+{
+/** Gives each record a timestamp after the one of the record before it, of any thread */
+class SequenceClock : public UserClockSource
+{
+public:
+  uint64_t now() const noexcept override
+  {
+    return _timestamp.fetch_add(1, std::memory_order_relaxed) + 1;
+  }
+
+private:
+  mutable std::atomic<uint64_t> _timestamp{0};
+};
+} // namespace
 
 /***/
 TEST_CASE("backend_transit_buffer_hard_limit")
@@ -111,8 +129,11 @@ TEST_CASE("backend_transit_buffer_hard_limit")
 
   auto null_sink =
     Frontend::create_sink<NullSink>("backend_transit_buffer_hard_limit_boundary_null_sink");
+
+  SequenceClock clock;
   Logger* boundary_logger =
-    Frontend::create_logger("backend_transit_buffer_hard_limit_boundary_logger", std::move(null_sink));
+    Frontend::create_logger("backend_transit_buffer_hard_limit_boundary_logger", std::move(null_sink),
+                            PatternFormatterOptions{}, ClockSource::custom(clock));
 
   std::array<std::atomic<detail::ThreadContext*>, 2> producer_contexts{};
   for (auto& context : producer_contexts)
@@ -120,17 +141,26 @@ TEST_CASE("backend_transit_buffer_hard_limit")
     context.store(nullptr, std::memory_order_relaxed);
   }
 
+  // The producers log one after the other, so that both records of the first are older than the
+  // records of the second
+  std::atomic<size_t> logged_producers{0};
   std::atomic<bool> release_producers{false};
   std::array<std::thread, 2> producers;
   for (size_t i = 0; i < producers.size(); ++i)
   {
     producers[i] = std::thread(
-      [i, boundary_logger, &producer_contexts, &release_producers]()
+      [i, boundary_logger, &producer_contexts, &logged_producers, &release_producers]()
       {
+        while (logged_producers.load(std::memory_order_acquire) != i)
+        {
+          std::this_thread::yield();
+        }
+
         LOG_INFO(boundary_logger, "hard-limit boundary {} first", i);
         LOG_INFO(boundary_logger, "hard-limit boundary {} second", i);
 
         producer_contexts[i].store(detail::get_local_thread_context<FrontendOptions>(), std::memory_order_release);
+        logged_producers.store(i + 1, std::memory_order_release);
 
         while (!release_producers.load(std::memory_order_acquire))
         {
@@ -147,6 +177,9 @@ TEST_CASE("backend_transit_buffer_hard_limit")
     }
   }
 
+  // Each poll writes the events cached when it starts. The first caches one record of each
+  // producer, and writes both records of the first producer, so that the transit buffer of the
+  // second is still full when the second poll reads the queues. The second poll writes its record
   manual_backend_worker->poll_one();
   manual_backend_worker->poll_one();
 
