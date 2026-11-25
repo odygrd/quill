@@ -588,6 +588,7 @@ public:
 
     // Set again where the flush fails and returns, which it only does without exceptions
     _flush_failed = false;
+    _sync_failed = false;
 
     if (_write_occurred && !is_open())
     {
@@ -910,9 +911,11 @@ protected:
     if (QUILL_UNLIKELY(!_sync_native_file()))
     {
       _write_occurred = true;
+      _sync_failed = true;
       QUILL_THROW_OR_RETURN_VALUE(QuillError{_sync_failed_message + _last_error_message()}, false);
     }
 
+    _sync_failed = false;
     _fsync_pending = false;
 
     if (!force_fsync)
@@ -1715,6 +1718,7 @@ protected:
   uint64_t _initial_file_size{0}; /**< Size of the open file when open_file() had created it, 0 if it had content */
   bool _fsync_pending{false}; /**< An fsync was skipped because of minimum_fsync_interval, or a header is not synced */
   bool _flush_failed{false}; /**< The last flush_sink() returned without the records written and synced, which it only does without exceptions */
+  bool _sync_failed{false}; /**< The last fsync of the file failed, also one of the last flush_sink() */
 #if defined(_WIN32)
   HANDLE _native_file_handle{INVALID_HANDLE_VALUE};
 #endif
