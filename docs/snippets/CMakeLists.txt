@@ -23,6 +23,7 @@ set(EXAMPLE_TARGETS
         quill_docs_custom_clock
         quill_docs_immediate_flush
         quill_docs_custom_tsc_clock
+        quill_docs_custom_wall_clock
 )
 
 # Add example executables

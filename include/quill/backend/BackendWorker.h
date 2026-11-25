@@ -1081,7 +1081,8 @@ private:
       : (transit_event->logger_base->_user_clock ? transit_event->logger_base->_user_clock->timestamp_type()
                                                  : TimestampType::EpochNanoseconds);
 
-    QUILL_ASSERT(timestamp_type == TimestampType::TscTicks || timestamp_type == TimestampType::EpochNanoseconds,
+    QUILL_ASSERT(timestamp_type == TimestampType::TscTicks || timestamp_type == TimestampType::EpochNanoseconds ||
+                   timestamp_type == TimestampType::WallClockNanoseconds,
                  "Clock returned an invalid TimestampType");
 
     if (timestamp_type == TimestampType::TscTicks)
@@ -1117,13 +1118,15 @@ private:
       (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcErase) ||
       (transit_event->macro_metadata->event() == MacroMetadata::Event::MdcClear);
 
-    // Custom epoch time is authoritative; raw ticks and built-in clocks use normal ordering. An
-    // MDC event changes the state of its thread and is not written, so it does not wait either
-    if (!is_mdc_event && (clock_source != ClockSourceType::User || timestamp_type == TimestampType::TscTicks) &&
+    // Custom epoch time is authoritative; built-in clocks and custom clocks of raw ticks or of wall
+    // time use normal ordering. An MDC event changes the state of its thread and is not written,
+    // so it does not wait either
+    if (!is_mdc_event &&
+        (clock_source != ClockSourceType::User || timestamp_type != TimestampType::EpochNanoseconds) &&
         (ts_now != (std::numeric_limits<uint64_t>::max)()))
     {
-      // We only check against `ts_now` for real timestamps, not custom timestamps by the user, and
-      // when the grace period is enabled
+      // We only check against `ts_now` for real timestamps, not custom epoch timestamps by the
+      // user, and when the grace period is enabled
 
       uint64_t const grace_period_ns =
         static_cast<uint64_t>(_options.log_timestamp_ordering_grace_period.count()) * 1'000u;
@@ -1856,7 +1859,8 @@ private:
   QUILL_ATTRIBUTE_HOT void _check_output_timestamp_order(TransitEvent& transit_event)
   {
     // A simulation can use an arbitrary epoch while another logger in the same process uses wall
-    // time, so the timestamps of custom epoch clocks are not compared with the other ones.
+    // time, so the timestamps of custom epoch clocks are not compared with the other ones. Custom
+    // wall clocks use the normal timeline.
     auto const* user_clock = transit_event.logger_base->_user_clock;
     bool const has_custom_epoch_clock =
       user_clock && (user_clock->timestamp_type() == TimestampType::EpochNanoseconds);
@@ -3186,8 +3190,8 @@ private:
   // needs no limit: with a normal clock, a record that is still waiting is newer than any record
   // already read.
   // When the clock jumps backwards, the records already written are newer than the ones that
-  // follow, so the order cannot be kept anyway, and custom clocks keep their own time. Keeping the
-  // limit across polls for them only made records wait as long as the clock jump.
+  // follow, so the order cannot be kept anyway, and custom epoch clocks keep their own time.
+  // Keeping the limit across polls for them only made records wait as long as the clock jump.
   uint64_t _batch_timestamp_limit{(std::numeric_limits<uint64_t>::max)()}; /** The newest timestamp that the current batch writes, see above */
   size_t _batch_reads_left{0}; /** The queue reads that the current batch can still take records with */
   bool _batch_full_check_needed{true};
