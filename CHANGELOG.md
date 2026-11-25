@@ -434,6 +434,9 @@
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - `log_level_from_string()` and the `QUILL_LOG_LEVEL` environment variable accept upper-case
   names such as `INFO` under a Turkish or Azerbaijani locale, where they threw `QuillError`.
+- A `%s` in the file name pattern of `FileSinkConfig::set_filename_append_option()` gives the epoch
+  seconds with `Timezone::GmtTime` too, where it was shifted by the local UTC offset, and is
+  accepted on Windows.
 
 ## v13.1.0
 

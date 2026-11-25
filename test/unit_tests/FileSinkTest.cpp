@@ -6,8 +6,11 @@
 #include "quill/core/DynamicFormatArgStore.h"
 #include "quill/sinks/FileSink.h"
 
+#include <chrono>
 #include <clocale>
 #include <cstdint>
+#include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -263,6 +266,64 @@ TEST_CASE("append_custom_timestamp_to_file")
     FileSink file_sink{filename, fsc, FileEventNotifier{}, true,
                        std::chrono::time_point<std::chrono::system_clock>(
                          std::chrono::seconds(timestamp_20230612 / 1000000000))};
+
+    REQUIRE_EQ(file_sink.get_filename().filename(), expected_filename);
+    REQUIRE(fs::exists(expected_filename));
+  }
+
+  testing::remove_file(expected_filename);
+}
+
+/***/
+TEST_CASE("append_epoch_to_gmt_time_file_name")
+{
+#if !defined(_WIN32)
+  // %s is the epoch value whatever the local timezone, here five hours behind UTC
+  struct ScopedTimezone
+  {
+    explicit ScopedTimezone(char const* time_zone)
+    {
+      char const* const current_time_zone = std::getenv("TZ");
+
+      if (current_time_zone)
+      {
+        previous_time_zone = current_time_zone;
+        had_time_zone = true;
+      }
+
+      setenv("TZ", time_zone, 1);
+      tzset();
+    }
+
+    ~ScopedTimezone()
+    {
+      if (had_time_zone)
+      {
+        setenv("TZ", previous_time_zone.c_str(), 1);
+      }
+      else
+      {
+        unsetenv("TZ");
+      }
+
+      tzset();
+    }
+
+    std::string previous_time_zone;
+    bool had_time_zone{false};
+  } const scoped_timezone{"EST5"};
+#endif
+
+  fs::path const filename = "append_epoch_to_gmt_time_file_name.log";
+  fs::path const expected_filename = "append_epoch_to_gmt_time_file_name_1704067200_%s.log";
+
+  FileSinkConfig fsc;
+  fsc.set_filename_append_option(FilenameAppendOption::StartCustomTimestampFormat, "_%s_%%s");
+  fsc.set_timezone(Timezone::GmtTime);
+
+  {
+    FileSink file_sink{filename, fsc, FileEventNotifier{}, true,
+                       std::chrono::system_clock::time_point{std::chrono::seconds{1704067200}}};
 
     REQUIRE_EQ(file_sink.get_filename().filename(), expected_filename);
     REQUIRE(fs::exists(expected_filename));
