@@ -5,6 +5,7 @@
 #include "quill/DeferredFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
+#include "quill/MemberwiseCodec.h"
 #include "quill/sinks/FileSink.h"
 
 #include "quill/std/Variant.h"
@@ -17,6 +18,45 @@
 #include <vector>
 
 using namespace quill;
+
+namespace
+{
+/** Can only be moved. MemberwiseCodec decodes it back into its own type */
+struct VariantMoveOnly
+{
+  VariantMoveOnly() = default;
+  explicit VariantMoveOnly(int in_value) : value(in_value) {}
+
+  VariantMoveOnly(VariantMoveOnly const&) = delete;
+  VariantMoveOnly(VariantMoveOnly&&) noexcept = default;
+
+  VariantMoveOnly& operator=(VariantMoveOnly const&) = delete;
+  VariantMoveOnly& operator=(VariantMoveOnly&&) noexcept = default;
+
+  int value{0};
+};
+} // namespace
+
+template <>
+struct fmtquill::formatter<VariantMoveOnly>
+{
+  template <typename FormatContext>
+  constexpr auto parse(FormatContext& ctx)
+  {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  auto format(::VariantMoveOnly const& value, FormatContext& ctx) const
+  {
+    return fmtquill::format_to(ctx.out(), "VariantMoveOnly({})", value.value);
+  }
+};
+
+template <>
+struct quill::Codec<VariantMoveOnly> : quill::MemberwiseCodec<VariantMoveOnly, &VariantMoveOnly::value>
+{
+};
 
 #if !defined(QUILL_NO_EXCEPTIONS)
 namespace
@@ -108,6 +148,10 @@ TEST_CASE("std_variant_logging")
   LOG_INFO(logger, "const_int_variant {}", const_int_variant);
   LOG_INFO(logger, "const_string_variant {}", const_string_variant);
 
+  // The variant cannot be copied, so it is logged without the copy that keeps a valueless variant
+  std::variant<int, VariantMoveOnly> const move_only_variant{std::in_place_index<1>, 4};
+  LOG_INFO(logger, "move_only_variant {}", move_only_variant);
+
 #if !defined(QUILL_NO_EXCEPTIONS)
   std::variant<int, VariantThrowOnConstruction> valueless_variant{123};
   std::variant<std::string, VariantThrowOnConstruction> valueless_string_variant{
@@ -176,6 +220,8 @@ TEST_CASE("std_variant_logging")
 
   REQUIRE(quill::testing::file_contains(
     file_contents, logger_name + " const_string_variant variant(\"const_string\")"));
+
+  REQUIRE(quill::testing::file_contains(file_contents, logger_name + " move_only_variant variant(VariantMoveOnly(4))"));
 
 #if !defined(QUILL_NO_EXCEPTIONS)
   REQUIRE(quill::testing::file_contains(

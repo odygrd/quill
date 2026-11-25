@@ -130,7 +130,9 @@ private:
   using VariantType = std::variant<Types...>;
   using DecodedVariantValueType = std::variant<detail::decoded_variant_alternative_t<Types>...>;
   using DecodedVariantType = detail::DecodedVariant<detail::decoded_variant_alternative_t<Types>...>;
-  static constexpr bool can_preserve_valueless_state = std::is_same_v<DecodedVariantValueType, VariantType>;
+  // The valueless state is kept by a copy of the variant
+  static constexpr bool can_preserve_valueless_state =
+    std::is_same_v<DecodedVariantValueType, VariantType> && std::is_copy_constructible_v<VariantType>;
 
   template <size_t Index>
   static DecodedVariantType decode_alternative(std::byte*& buffer)
