@@ -17,6 +17,11 @@
 #include <string_view>
 #include <vector>
 
+#if defined(__linux__)
+  #include <csignal>
+  #include <sys/resource.h>
+#endif
+
 using namespace quill;
 
 namespace
@@ -145,10 +150,12 @@ TEST_CASE("pcap_writer")
   static constexpr char const* reopened_directory = "pcap_writer_reopened";
   QUILL_MAYBE_UNUSED static constexpr char const* reopened_filename =
     "pcap_writer_reopened/capture.pcap";
+  static constexpr char const* short_write_filename = "pcap_writer_short_write.pcap";
 
   testing::remove_file(legacy_filename);
   testing::remove_file(write_only_filename);
   fs::remove_all(reopened_directory);
+  testing::remove_file(short_write_filename);
 
   testing::remove_file(appended_filename);
   testing::remove_file(microseconds_filename);
@@ -391,6 +398,45 @@ TEST_CASE("pcap_writer")
   }
 #endif
 
+#if defined(__linux__)
+  {
+    // Without the write buffer, a write past the file size limit of the process cuts a packet
+    // short. The rest of it is written once the limit is lifted, before the next packet. A
+    // buffered FILE* discarded it, so that the next packet was read as a part of the first
+    FileSinkConfig sink_config;
+    sink_config.set_open_mode('w');
+    sink_config.set_write_buffer_size(0);
+
+    PcapWriter writer{short_write_filename, sink_config};
+    std::string const short_written_packet(1500, 'S');
+
+    rlimit previous_limit{};
+    REQUIRE_EQ(::getrlimit(RLIMIT_FSIZE, &previous_limit), 0);
+
+    // The process is not ended when a write goes past the limit, which then fails with EFBIG
+    auto const previous_handler = std::signal(SIGXFSZ, SIG_IGN);
+
+    rlimit limit = previous_limit;
+    limit.rlim_cur = 1024;
+    REQUIRE_EQ(::setrlimit(RLIMIT_FSIZE, &limit), 0);
+
+    REQUIRE(writer.write_packet(short_written_packet.data(), short_written_packet.size(), first_timestamp));
+    writer.flush();
+
+    REQUIRE_EQ(::setrlimit(RLIMIT_FSIZE, &previous_limit), 0);
+    std::signal(SIGXFSZ, previous_handler);
+
+    REQUIRE(writer.write_packet(first_packet.data(), first_packet.size(), second_timestamp));
+    writer.close();
+
+    PcapFile const short_write_pcap_file = read_pcap_file(short_write_filename);
+    REQUIRE(short_write_pcap_file.valid);
+    REQUIRE_EQ(short_write_pcap_file.packets.size(), 2);
+    REQUIRE(short_write_pcap_file.packets[0].bytes == short_written_packet);
+    REQUIRE(short_write_pcap_file.packets[1].bytes == first_packet);
+  }
+#endif
+
   // Wait until the backend thread stops for test stability
   Backend::stop();
 
@@ -468,4 +514,5 @@ TEST_CASE("pcap_writer")
   testing::remove_file(legacy_filename);
   testing::remove_file(write_only_filename);
   fs::remove_all(reopened_directory);
+  testing::remove_file(short_write_filename);
 }

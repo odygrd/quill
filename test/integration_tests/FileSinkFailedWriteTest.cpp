@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iterator>
@@ -128,11 +129,12 @@ void operator delete(void* memory, std::size_t) noexcept
 /***/
 TEST_CASE("file_sink_failed_write")
 {
-#if defined(__linux__) && !defined(QUILL_NO_EXCEPTIONS)
+#if defined(__linux__)
   using namespace quill;
 
   fs::path const filename = "file_sink_failed_write.log";
   fs::path const framed_filename = "file_sink_failed_write_framed.bin";
+  fs::path const framed_large_filename = "file_sink_failed_write_framed_large.bin";
   fs::path const removed_filename = "file_sink_failed_write_removed.log";
   fs::path const limited_filename = "file_sink_failed_write_limited.log";
   fs::path const limited_filename_1 = "file_sink_failed_write_limited.1.log";
@@ -143,6 +145,7 @@ TEST_CASE("file_sink_failed_write")
   testing::remove_file(filename);
   testing::remove_file(no_memory_filename);
   testing::remove_file(framed_filename);
+  testing::remove_file(framed_large_filename);
   testing::remove_file(removed_filename);
   testing::remove_file(limited_filename);
   testing::remove_file(limited_filename_1);
@@ -155,6 +158,79 @@ TEST_CASE("file_sink_failed_write")
     return std::string{std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
   };
 
+  auto const write_binary_record = [](FileSink& file_sink, std::string const& bytes)
+  {
+    file_sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
+                                        std::string_view{}, std::string_view{},
+                                        reinterpret_cast<std::byte const*>(bytes.data()), bytes.size()});
+  };
+
+  // The bytes of a record after its size, as BinaryRecordFraming::Size writes them
+  auto const framed = [](std::string const& bytes)
+  {
+    uint32_t const size = static_cast<uint32_t>(bytes.size());
+    std::string framed_bytes(sizeof(size), '\0');
+    std::memcpy(framed_bytes.data(), &size, sizeof(size));
+    return framed_bytes + bytes;
+  };
+
+  std::string const large_record(16384, 'l');
+  std::string const record_after_recovery{"record after the recovery"};
+  std::string const record_larger_than_buffer(8192, 'b');
+
+  // A record larger than the buffer is written past it. What the full file does not take of it
+  // is kept and written before the next record, so the frames still follow each other. With the
+  // buffer disabled, every record is written through the stream, which the sink opens unbuffered
+  // for framed records: a buffered one can discard a part of the record that it counted as taken
+  for (size_t const write_buffer_size : {size_t{4096}, size_t{0}})
+  {
+    FileSinkConfig fsc;
+    fsc.set_open_mode('w');
+    fsc.set_write_buffer_size(write_buffer_size);
+    fsc.set_binary_record_framing(BinaryRecordFraming::Size);
+
+    {
+      FileSink file_sink{framed_large_filename, fsc};
+
+      {
+        FileSizeLimit const file_size_limit{4096};
+
+  #if defined(QUILL_NO_EXCEPTIONS)
+        // Outside a poll of the backend, a failure goes to the receiver of this thread
+        size_t write_errors{0};
+        detail::ErrorReceiver const receiver{
+          [](void* context, char const*) { ++*static_cast<size_t*>(context); }, &write_errors};
+
+        detail::error_receiver() = &receiver;
+        write_binary_record(file_sink, large_record);
+        detail::error_receiver() = nullptr;
+
+        REQUIRE_EQ(write_errors, 1u);
+  #else
+        REQUIRE_THROWS_AS(write_binary_record(file_sink, large_record), QuillError);
+  #endif
+
+        REQUIRE_EQ(fs::file_size(framed_large_filename), 4096u);
+      }
+
+      write_binary_record(file_sink, record_after_recovery);
+      file_sink.flush_sink(SinkFlushReason::Explicit);
+
+      // The buffer that grew for the rest of the large record is back at its size, so a record
+      // larger than that is written to the file at once again
+      write_binary_record(file_sink, record_larger_than_buffer);
+      REQUIRE_EQ(fs::file_size(framed_large_filename),
+                 framed(large_record).size() + framed(record_after_recovery).size() +
+                   framed(record_larger_than_buffer).size());
+    }
+
+    REQUIRE(read_file_bytes(framed_large_filename) ==
+            framed(large_record) + framed(record_after_recovery) + framed(record_larger_than_buffer));
+
+    testing::remove_file(framed_large_filename);
+  }
+
+  #if !defined(QUILL_NO_EXCEPTIONS)
   auto const write_log_statement_at = [](FileSink& file_sink, uint64_t timestamp, std::string_view log_statement)
   {
     file_sink.write_log(LogRecord{nullptr,
@@ -207,7 +283,7 @@ TEST_CASE("file_sink_failed_write")
 
   REQUIRE_EQ(read_file_bytes(filename), expected_contents);
 
-  #if !QUILL_HAS_FEATURE(thread_sanitizer) && !defined(__SANITIZE_THREAD__)
+    #if !QUILL_HAS_FEATURE(thread_sanitizer) && !defined(__SANITIZE_THREAD__)
   {
     // The message of a failed write needs memory. When there is none, what the file took has
     // still left the buffer of the sink, so the next flush does not write those bytes again
@@ -229,26 +305,10 @@ TEST_CASE("file_sink_failed_write")
     file_sink.flush_sink(SinkFlushReason::Explicit);
     REQUIRE_EQ(read_file_bytes(no_memory_filename), log_statement);
   }
-  #endif
+    #endif
 
   // A framed binary record that the full buffer has no room for is dropped as a whole when the
   // buffer cannot be written to the file. Its frame is not kept without its bytes
-  auto const write_binary_record = [](FileSink& file_sink, std::string const& bytes)
-  {
-    file_sink.write_binary(BinaryRecord{nullptr, 0, std::string_view{}, std::string_view{},
-                                        std::string_view{}, std::string_view{},
-                                        reinterpret_cast<std::byte const*>(bytes.data()), bytes.size()});
-  };
-
-  // The bytes of a record after its size, as BinaryRecordFraming::Size writes them
-  auto const framed = [](std::string const& bytes)
-  {
-    uint32_t const size = static_cast<uint32_t>(bytes.size());
-    std::string framed_bytes(sizeof(size), '\0');
-    std::memcpy(framed_bytes.data(), &size, sizeof(size));
-    return framed_bytes + bytes;
-  };
-
   std::string const record(1000, 'r');
 
   {
@@ -376,9 +436,11 @@ TEST_CASE("file_sink_failed_write")
   }
 
   REQUIRE_EQ(read_file_bytes(removed_filename), "record after\n");
+  #endif
 
   testing::remove_file(filename);
   testing::remove_file(framed_filename);
+  testing::remove_file(framed_large_filename);
   testing::remove_file(removed_filename);
   testing::remove_file(limited_filename);
   testing::remove_file(limited_filename_1);

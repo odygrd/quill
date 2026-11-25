@@ -20,6 +20,7 @@
 #ifndef QUILL_MODULE
   #include <cstddef>
   #include <cstdint>
+  #include <cstdio>
   #include <cstring>
   #include <fstream>
   #include <memory>
@@ -119,6 +120,9 @@ QUILL_BEGIN_EXPORT
  * sink are each a capture that can be read on its own, and a packet is not split between two.
  *
  * The files have timestamps in nanoseconds, and their fields are in the byte order of the machine.
+ *
+ * With FileSinkConfig::set_write_buffer_size(0), the `FILE*` of the file is unbuffered on POSIX,
+ * so that the rest of a packet that a failed write cuts short is written before the next one.
  *
  * Call close() before Backend::stop() when deterministic logger removal and file closure
  * are required. The destructor performs best-effort asynchronous cleanup and does not block.
@@ -330,8 +334,27 @@ private:
     // The sink checks each file that it opens, with the file as it was opened: the path can have
     // another capture by the time the sink opens it again, e.g. after the file was removed
     FileEventNotifier file_event_notifier;
+
+#if defined(_WIN32)
     file_event_notifier.after_open = [file_header](fs::path const& file_path, FileEventNotifierHandle)
     { detail::check_pcap_file_for_append(file_path, file_header); };
+#else
+    // Without the write buffer the packets go through the FILE*. Unbuffered, it takes only what
+    // reaches the file, so that the rest of a packet that a write cuts short is kept for the next
+    // flush, as with a binary record framing
+    bool const is_unbuffered = (sink_config.write_buffer_size() == 0);
+
+    file_event_notifier.after_open =
+      [file_header, is_unbuffered](fs::path const& file_path, FileEventNotifierHandle file)
+    {
+      if (is_unbuffered)
+      {
+        std::setvbuf(file, nullptr, _IONBF, 0);
+      }
+
+      detail::check_pcap_file_for_append(file_path, file_header);
+    };
+#endif
 
     std::shared_ptr<TFileSink> sink =
       frontend_t::template create_or_get_sink<TFileSink>(filename, sink_config, file_event_notifier);

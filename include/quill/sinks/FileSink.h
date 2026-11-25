@@ -243,7 +243,10 @@ public:
    * A size of 0 disables the buffer. The sink then writes every record through that handle as it
    * arrives, so the callbacks decide how the file is buffered and can keep the handle. On Windows
    * each record is then written to the file at once. On other platforms the handle is a `FILE*`,
-   * which has the default buffering of the C library until `after_open` changes it with `setvbuf`.
+   * which has the default buffering of the C library, or none with a binary record framing other
+   * than BinaryRecordFraming::None, until `after_open` changes it with `setvbuf`. When a write
+   * fails, the rest of the record is kept for the next flush if the `FILE*` is unbuffered; a
+   * buffered one can discard what it holds.
    *
    * @note By default, a buffer of 64 KiB is used, or of 256 KiB on Windows.
    * @param value Size of the buffer in bytes, 4096 at least, or 0 to disable the buffer.
@@ -837,8 +840,16 @@ protected:
 
     // A size of 0 disables the buffer: every record is then written to the file as it arrives
     _native_write_buffer_cap = _config.write_buffer_size();
-    _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
     _native_write_pos = 0;
+
+    if (_native_write_buffer_cap == 0)
+    {
+      _native_write_buffer.reset();
+    }
+    else
+    {
+      _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap);
+    }
 
     // A file that is empty gets its start here: what after_open writes to it, and the header
     bool const is_new_file = _is_empty_file(opened_file_guard.handle);
@@ -1022,7 +1033,68 @@ protected:
     }
 
     _native_write_pos = 0;
+
+    if (QUILL_UNLIKELY(_native_write_buffer_cap != _config.write_buffer_size()))
+    {
+      // The buffer grew to keep the rest of a record that a write cut short. Back at its size, the
+      // records larger than it, or every record when it is disabled, are written past it again
+      _restore_native_write_buffer_size();
+    }
+
     return true;
+  }
+
+  /**
+   * Gives the write buffer its configured size again. Without the memory for a smaller buffer,
+   * the larger one is kept, and used up to the configured size
+   */
+  void _restore_native_write_buffer_size() noexcept
+  {
+    _native_write_buffer_cap = _config.write_buffer_size();
+
+    if (_native_write_buffer_cap == 0)
+    {
+      _native_write_buffer.reset();
+      return;
+    }
+
+    QUILL_TRY { _native_write_buffer = std::make_unique<char[]>(_native_write_buffer_cap); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+#endif
+  }
+
+  /**
+   * Keeps in the write buffer what a write past it did not put in the file, growing the buffer if
+   * it does not fit. The next flush writes it before any later record, so a binary record keeps
+   * its frame. The buffer is empty here: a record is written past it only after it was flushed
+   */
+  void _keep_unwritten_part(char const* first, size_t first_size, char const* second,
+                            size_t second_size, size_t bytes_written)
+  {
+    size_t const unwritten_size = first_size + second_size - bytes_written;
+
+    if (unwritten_size > _native_write_buffer_cap)
+    {
+      _native_write_buffer = std::make_unique<char[]>(unwritten_size);
+      _native_write_buffer_cap = unwritten_size;
+    }
+
+    if (bytes_written < first_size)
+    {
+      std::memcpy(_native_write_buffer.get(), first + bytes_written, first_size - bytes_written);
+
+      if (second_size != 0)
+      {
+        std::memcpy(_native_write_buffer.get() + first_size - bytes_written, second, second_size);
+      }
+    }
+    else
+    {
+      std::memcpy(_native_write_buffer.get(), second + (bytes_written - first_size), unwritten_size);
+    }
+
+    _native_write_pos = unwritten_size;
   }
 
   // The functions from here to the member variables are what differs between Windows and POSIX
@@ -1329,7 +1401,8 @@ protected:
   /**
    * Writes a record past the write buffer: one that is larger than it, and every record when the
    * buffer is disabled. The record can come in two parts, the frame of a binary record and its
-   * bytes. When a write fails, what was written of the record stays in the file.
+   * bytes. When a write fails, what was written of the record stays in the file, and the buffer
+   * keeps the rest for the next flush, also when it is disabled.
    */
   void _write_to_file(char const* first, size_t first_size, char const* second, size_t second_size)
   {
@@ -1343,6 +1416,8 @@ protected:
     if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
     {
       DWORD const last_error = ::GetLastError();
+      _keep_unwritten_part(first, first_size, second, second_size, bytes_written);
+
       QUILL_THROW_OR_RETURN(
         QuillError{std::string{"WriteFile failed. GetLastError: "} + std::to_string(last_error)});
     }
@@ -1461,6 +1536,13 @@ protected:
         int const fdopen_errno = errno;
         ::close(fd);
         errno = fdopen_errno;
+      }
+      else if ((_config.write_buffer_size() == 0) &&
+               (_config.binary_record_framing() != BinaryRecordFraming::None))
+      {
+        // Unbuffered, the stream takes only what reaches the file, so that the rest of a binary
+        // record that a write cuts short is kept for the next flush, see _write_to_stream()
+        std::setvbuf(opened_file_guard.handle, nullptr, _IONBF, 0);
       }
     }
 
@@ -1635,19 +1717,14 @@ protected:
   /**
    * Writes a record past the write buffer: one that is larger than it, and every record when the
    * buffer is disabled. The record can come in two parts, the frame of a binary record and its
-   * bytes. When a write fails, what was written of the record stays in the file.
+   * bytes. When a write fails, what was written of the record stays in the file, and the buffer
+   * keeps the rest for the next flush, also when it is disabled.
    */
   void _write_to_file(char const* first, size_t first_size, char const* second, size_t second_size)
   {
     if (_native_write_buffer_cap == 0)
     {
-      // Through the stream, as the callbacks of the FileEventNotifier have configured it. The
-      // second part is not written without the first: it would be a record without its frame
-      if (_safe_fwrite(first, sizeof(char), first_size, _file, false) && (second_size != 0))
-      {
-        _safe_fwrite(second, sizeof(char), second_size, _file, false);
-      }
-
+      _write_to_stream(first, first_size, second, second_size);
       return;
     }
 
@@ -1662,9 +1739,42 @@ protected:
     if (QUILL_UNLIKELY(bytes_written != (first_size + second_size)))
     {
       int const write_errno = errno;
+      _keep_unwritten_part(first, first_size, second, second_size, bytes_written);
       QUILL_THROW_OR_RETURN(QuillError{std::string{"write failed errno: "} + std::to_string(write_errno) +
                                        " error: " + std::strerror(write_errno)});
     }
+  }
+
+  /**
+   * Writes a record through the stream, as the callbacks of the FileEventNotifier have configured
+   * it, when the buffer is disabled. When a write fails, the buffer keeps what the stream did not
+   * take, as for a write to the file. An unbuffered stream has written what it took; a buffered
+   * one can have discarded a part of it, which is then missing from the file
+   */
+  void _write_to_stream(char const* first, size_t first_size, char const* second, size_t second_size)
+  {
+    size_t first_written{0};
+    size_t second_written{0};
+
+    QUILL_TRY
+    {
+      // The second part is not written without the first: it would be a record without its frame
+      if (_safe_fwrite(first, sizeof(char), first_size, _file, false, first_written) &&
+          ((second_size == 0) || _safe_fwrite(second, sizeof(char), second_size, _file, false, second_written)))
+      {
+        return;
+      }
+    }
+  #if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL()
+    {
+      _keep_unwritten_part(first, first_size, second, second_size, first_written + second_written);
+      throw;
+    }
+  #endif
+
+    // Without exceptions a write that fails returns
+    _keep_unwritten_part(first, first_size, second, second_size, first_written + second_written);
   }
 
   /** Writes to a file that is open or that open_file() is opening, see _write_to_descriptor() */
