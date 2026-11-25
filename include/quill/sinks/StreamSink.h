@@ -260,8 +260,20 @@ protected:
   QUILL_ATTRIBUTE_HOT static bool _safe_fwrite(void const* ptr, size_t size, size_t count,
                                                FILE* stream, bool stream_is_unbuffered)
   {
+    size_t bytes_written{0};
+    return _safe_fwrite(ptr, size, count, stream, stream_is_unbuffered, bytes_written);
+  }
+
+  /**
+   * @param bytes_written 0 when called. It counts the bytes that the stream takes, also when the
+   * write fails: an unbuffered stream has written them, while a buffered one can have discarded
+   * some of them when its flush failed
+   * @return false if the write failed, which is only returned without exceptions
+   */
+  QUILL_ATTRIBUTE_HOT static bool _safe_fwrite(void const* ptr, size_t size, size_t count, FILE* stream,
+                                               bool stream_is_unbuffered, size_t& bytes_written)
+  {
     size_t const total_bytes = size * count;
-    size_t bytes_written = 0;
 
     while (bytes_written < total_bytes)
     {
@@ -312,10 +324,11 @@ protected:
         {
           int const saved_errno = errno;
           std::clearerr(stream); // Reset error state
+          bytes_written += written;
+
           // Buffered fwrite can count bytes that were discarded by a failed flush.
           if (saved_errno == EINTR && stream_is_unbuffered)
           {
-            bytes_written += written;
             continue;
           }
           QUILL_THROW_OR_RETURN_VALUE(QuillError{std::string{"fwrite failed errno: "} + std::to_string(saved_errno) +

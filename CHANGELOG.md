@@ -187,8 +187,9 @@
 - `FileSinkConfig::set_write_buffer_size(0)` disables the sink's buffer on every platform. Use it
   when configuring the `FILE*` buffer with `setvbuf()` in `FileEventNotifier::after_open`.
 - When a write to the file fails, e.g. on a full disk, a `FileSink` keeps the records that are in
-  its write buffer and writes them once a later write succeeds, where the C library could discard
-  them on Linux and macOS. A `RotatingFileSink` that rotates the file in the meantime drops them.
+  its write buffer, and the rest of a record larger than the buffer, and writes them once a later
+  write succeeds, where the C library could discard them on Linux and macOS. A `RotatingFileSink`
+  that rotates the file in the meantime drops them.
 - A `RotatingFileSink` throws `QuillError` when its startup cleanup or recovery needs a directory
   scan and the directory of its file cannot be listed, e.g. one that the process may write to but
   not read. Before, it was created with rotation disabled and wrote one file without a size limit.

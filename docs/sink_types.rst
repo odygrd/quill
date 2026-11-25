@@ -36,15 +36,18 @@ size of the buffer, which is 64 KiB by default and 256 KiB on Windows. The handl
 this: what a callback writes through it stays in order with the records, but configuring it, e.g.
 with ``setvbuf``, does not change how the records are buffered.
 
-When a write to the file fails, e.g. on a full disk, the sink keeps what is in its buffer and
-writes it once a later write succeeds; what it cannot keep is lost, so a file can end with a part
-of a record.
+When a write to the file fails, e.g. on a full disk, the sink keeps what is in its buffer, and the
+rest of a record larger than the buffer, and writes it once a later write succeeds; what it cannot
+keep is lost, so a file can end with a part of a record.
 
 ``FileSinkConfig::set_write_buffer_size(0)`` turns the buffer of the sink off. Every record
 is then written through that handle as it arrives, so the callbacks decide how the file is
 buffered and can keep the handle. On Windows each record is written to the file at once; on other
-platforms the handle is a ``FILE*`` with the default buffering of the C library, until
-``after_open`` changes it with ``setvbuf``. This is slower than the buffer of the sink.
+platforms the handle is a ``FILE*`` with the default buffering of the C library, or unbuffered
+with a binary record framing other than ``BinaryRecordFraming::None`` and for a ``PcapWriter``,
+until ``after_open`` changes it with ``setvbuf``. This is slower than the buffer of the sink. When a
+write fails, the sink keeps the rest of the record as well if the ``FILE*`` is unbuffered; a
+buffered one can discard what it holds, so that a part of a record is missing from the file.
 
 On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
 characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
@@ -162,7 +165,8 @@ same setup sequence applies to a POSIX pipe stream opened with ``fdopen()``:
 
    ``FileSink`` uses a write buffer of 64 KiB by default, and of 256 KiB on Windows.
    ``FileSinkConfig::set_write_buffer_size(0)`` disables that buffer, so that the records go
-   through the ``FILE*``; it does not make the stream unbuffered.
+   through the ``FILE*``. That stream is unbuffered only with a binary record framing and for a
+   ``PcapWriter``, and the retry flag stays off.
 
 Buffered short writes retain the existing error reporting. This feature does not provide
 lossless recovery for buffered streams: some C libraries discard pending buffered data on
