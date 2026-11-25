@@ -181,18 +181,11 @@
   sink that does not write that header, e.g. the one of a writer with `should_write_header=false`:
   only the sink can start every file it opens with the header. Create the writer that writes the
   header first.
-- `CsvWriter(filename)` appends to the file by default, as `BinaryWriter` and `PcapWriter` do,
-  instead of truncating it: a new file gets the header, and a file that has rows keeps them. Pass
-  `'w'` as the open mode to truncate the file.
-- `SignalHandlerOptions::excluded_logger_substrings` also excludes the loggers of `BinaryWriter`
-  and `PcapWriter` by default, so the signal handler does not write its messages to their files.
-- On Linux and macOS a `FileSink` keeps the records in a write buffer of its own, as it does on
-  Windows, so calling `setvbuf()` on the `FILE*` in `FileEventNotifier::after_open` no longer
-  changes how records are buffered. `FileSinkConfig::set_write_buffer_size()` sizes the buffer.
-- `FileSinkConfig::set_write_buffer_size(0)` disables the write buffer of a `FileSink` on every
-  platform: each record is written through the handle that the `FileEventNotifier` callbacks
-  receive, for an application that configures that handle itself or keeps it. On Windows `0`
-  selected the default size before.
+- `CsvWriter(filename)` now appends by default. Pass `'w'` to truncate an existing file.
+- `FileSink` now uses its own write buffer on Linux and macOS as well as Windows. The default is
+  64 KiB on Linux and macOS and 256 KiB on Windows.
+- `FileSinkConfig::set_write_buffer_size(0)` disables the sink's buffer on every platform. Use it
+  when configuring the `FILE*` buffer with `setvbuf()` in `FileEventNotifier::after_open`.
 - When a write to the file fails, e.g. on a full disk, a `FileSink` keeps the records that are in
   its write buffer and writes them once a later write succeeds, where the C library could discard
   them on Linux and macOS. A `RotatingFileSink` that rotates the file in the meantime drops them.
@@ -229,15 +222,13 @@
 - Added `LOG_BINARY(logger, data, size)` and `Logger::log_binary()`, which write bytes to the sinks
   of a logger as they are, e.g. to record a market data feed to a `FileSink` or `RotatingFileSink`.
   Custom sinks receive the bytes in the new `Sink::write_binary(BinaryRecord const&)`.
-- Added `quill::BinaryWriter`, which creates the file sink and the logger of a binary file, so that
-  a record is written with `writer.write(data, size)`. It takes a `FileSinkConfig`, a
-  `RotatingFileSinkConfig`, or one or several custom sinks.
+- Added `quill::BinaryWriter` for writing binary records with `writer.write(data, size)` to a file,
+  rotating file or custom sink.
 - Added `FileSinkConfig::set_binary_record_framing()`, which makes a file sink write the size of
   each binary record, or its timestamp and size, before its bytes, so that a reader can tell
   records of different sizes apart.
-- Added `quill::PcapWriter`, which writes network packets to pcap files that Wireshark and tcpdump
-  read: `writer.write_packet(packet, size, timestamp_ns)`. With a `RotatingFileSinkConfig` each
-  file is a capture that can be read on its own.
+- Added `quill::PcapWriter` for writing captures that Wireshark and tcpdump can read. With a
+  `RotatingFileSinkConfig`, every rotated file is a self-contained capture.
 - Added `FileSinkConfig::set_file_header()`, which starts every file of a `FileSink` or
   `RotatingFileSink` with the given bytes, including each file created by a rotation, e.g. a csv
   header row or the global header of a pcap file.
@@ -250,34 +241,16 @@
 
 ### Performance
 
-- Improved backend worker throughput: about 20% more log statements per second on Linux and 35% more
-  on Windows with `FileSink` and a typical pattern, 75% more with `JsonFileSink`, and twice as many
-  with `JsonFileSink` and named arguments. On Windows the gain is about 70% when an application
-  mixes many different log statements.
-- The backend worker processes records of the macro-free logging functions faster: about 10% more
-  log statements per second on Linux, and 45% more on Windows with source files compiled with long
-  paths, such as the absolute paths that CMake passes.
-- On Windows, `FileSink` now uses a 256 KiB write buffer by default instead of 64 KiB, as each write
-  to a file costs more there. `FileSinkConfig::set_write_buffer_size()` sets another size.
-- On Linux the backend writes a further 5% more log statements per second to a `FileSink` with a
-  typical pattern.
-- In a batch, above `BackendOptions::transit_events_soft_limit`, the backend picks the next record
-  among the threads that have records cached, instead of among every thread that has logged. With
-  64 other threads alive it writes about 25% more log statements per second.
-- An idle backend lists the sinks only when a logger is created or removed, instead of on every
-  poll. With 1,000 loggers that each have their own sink it used 36% of a core, with a 99th
-  percentile of 83 us for `Frontend::get_logger()`, and now uses 3%.
-- With the default `check_printable_char`, the backend spends about 30% less time on messages with
-  string arguments, and the TSC clock calibrates in 10 ms instead of busy-spinning for 50 ms.
-- The backend measures the length of a C string argument once instead of twice: about 3% more log
-  statements per second when the log statements have C string arguments.
-- The backend sizes a `std::vector` of arithmetic values once before it decodes the elements:
-  about 4% more log statements per second for vectors of 64 to 512 elements.
-- Logging a `std::forward_list` walks the list twice instead of three times: about 6% less time
-  on the logging thread for lists of 4 to 16 integers.
-- Growing an unbounded queue no longer stalls the logging thread to pre-fault the new memory, and
-  rotation no longer fsyncs the file when fsync is disabled.
-- Reduced overhead for System/User clocks.
+- Increased backend throughput for `FileSink` and `JsonFileSink`, including structured logging
+  with named arguments and records from macro-free logging functions.
+- During batch processing, the backend selects the next record from threads with cached records.
+  This reduces the cost of merging records in applications with many idle producer threads.
+- Reduced idle backend CPU use and contention with frontend logger lookups in applications with
+  many loggers and sinks.
+- Reduced the cost of reading system and user clocks, calibrating the TSC clock, and checking
+  string arguments with the default `BackendOptions::check_printable_char`.
+- Reduced the cost of logging C strings, arithmetic vectors and `std::forward_list` values.
+- Growing an unbounded queue avoids touching every page of the new buffer on the logging thread.
 
 ### Bug Fixes
 
@@ -306,17 +279,14 @@
   destroyed. The backend formats such an argument where it is in the queue, without copying or
   moving it; an object inside a container, `std::optional`, `std::pair`, `std::tuple` or
   `std::variant` is still moved out and is not covered.
-- `Frontend::remove_logger_blocking()` and `close()` of a `CsvWriter`, `BinaryWriter` or `PcapWriter`
-  return eventually while other threads keep logging with timestamps that advance: the backend
-  removes the logger once it has written the records that were queued when it noticed the removal,
-  which can include newer ones. Before, they waited for every queue to be empty at the same time.
+- `Frontend::remove_logger_blocking()` and `CsvWriter::close()` can finish while other threads keep
+  logging with advancing timestamps. They previously waited for every queue to be empty at once.
 - The queue of a thread that has exited is released while other threads keep logging, instead of
   once all queues are empty at the same time, so short-lived threads no longer grow the memory of an
   application that logs continuously.
 - With a `log_timestamp_ordering_grace_period` of `sleep_duration` or longer, the backend thread
   sleeps while records wait for the grace period, instead of using a full core.
-- `Logger::flush_log()` also flushes the sinks of a logger that `Frontend::remove_logger()` has not
-  removed yet, so the records that logger wrote before its removal are on disk when it returns.
+- `Logger::flush_log()` flushes buffered output from loggers pending asynchronous removal.
 - With `BackendOptions::ensure_monotonic_output_timestamps`, the records of a logger with a custom
   epoch clock, such as the time of a simulation, keep their timestamps when another logger uses
   wall time. They were overwritten with the wall time of that logger's last record.
@@ -353,13 +323,9 @@
   instead of a stale cached one, and patterns with `%X` or `%c` are accepted instead of throwing
   `QuillError`. They are formatted with `strftime()`, which `BackendOptions::error_notifier`
   reports once.
-- A timestamp pattern that repeats `%Qms`, `%Qus` or `%Qns`, such as `"%S.%Qms %Qms"`, is rejected
-  as a pattern with two of them is: the records of the logger are not written, and each is reported
-  through `BackendOptions::error_notifier`, which does not repeat its last message for five
-  seconds, while a `QUILL_NO_EXCEPTIONS` build ends at the first record. Before, the second one was
-  printed as it is on Linux and failed every record on Windows.
-- Timestamp patterns with `%r` follow the locale, as `strftime()` does, instead of always printing
-  `%I:%M:%S %p`. They are formatted with `strftime()` for every timestamp.
+- `PatternFormatter` rejects repeated fractional-second specifiers such as `"%S.%Qms %Qms"`
+  consistently across platforms.
+- `PatternFormatter` uses the locale's time format for `%r`.
 - Windows builds, including MinGW ones, report a formatting error for a timestamp or file name
   pattern with a specifier the C runtime does not support, such as `%-H`, instead of terminating
   the process.
@@ -381,9 +347,9 @@
   failed to compile.
 - `Frontend::create_or_get_sink()` no longer opens a second `FileSink` on the same file, truncating
   it in `"w"` mode, when the path is a symlink whose target the first sink created.
-- On Windows, `Frontend::create_or_get_sink<FileSink>()` returns the existing sink for another
-  spelling of the same file, such as `app.log.` or, in MinGW builds, a directory differing only in
-  letter case, instead of opening the file again, which could truncate it in `w` mode.
+- On Windows, `Frontend::create_or_get_sink<FileSink>()` reuses the sink for paths such as
+  `app.log.` and `app.log`, including paths that differ only in directory casing under MinGW.
+  This prevents an unintended second open from truncating the file in `'w'` mode.
 - `Frontend::get_valid_logger()` throws `QuillError` for a logger that was created with another
   `FrontendOptions` type, as `get_logger()` does, instead of calling `std::terminate()`.
 - The time at the start of the backend's `error_notifier` messages is `HH:MM:SS` in every locale.
@@ -403,6 +369,7 @@
 - `FileSink` with `minimum_fsync_interval` now performs a skipped fsync once the interval elapses
   and on the final flush, so the last records are synced, including the first fsync on a system up
   for less than the interval.
+- `RotatingFileSink` skips fsync during rotation when fsync is disabled.
 - A missing log directory no longer stalls the backend for 400 ms on every flush while `FileSink`
   retries opening the file.
 - `RotatingSink` keeps rotating after a backup file is deleted or compressed outside Quill, instead
@@ -424,9 +391,6 @@
 - `RotatingFileSink` counts what `FileEventNotifier::after_open` writes to a new file towards
   `rotation_max_file_size`. Before, each file after a rotation could exceed the limit by those
   bytes.
-- `PcapWriter` throws `QuillError` when the file already has a sink with a
-  `BinaryRecordFraming`, e.g. one created for a `BinaryWriter`, instead of sharing it and writing
-  the size of each packet into the capture.
 - A `CsvWriter` defined at namespace scope gets the `__csv__` logger name prefix in GCC builds, so
   the signal handler no longer writes its messages to the CSV file.
 - A `CsvWriter` that is given a sink no longer leaves its logger registered when its constructor
@@ -457,8 +421,6 @@
   `Timezone::GmtTime`, when the time of its next rotation cannot be represented, e.g. past 2038
   with a 32-bit `time_t`. It took the -1 that `mktime()` returns for that time.
 - Fixed a DragonFlyBSD build error with `QUILL_USE_SEQUENTIAL_THREAD_ID`.
-- Various Windows fixes for MSVC and MinGW builds, mostly in file sinks, rotation and timestamps.
-- Various other fixes and performance improvements.
 
 ## v13.1.0
 
