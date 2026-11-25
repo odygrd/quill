@@ -501,9 +501,23 @@ private:
         return false;
       }
 
-      _next_rotation_attempt = {};
-      _open_file_timestamp = record_timestamp_ns;
       this->_file_size = _get_file_size(this->_filename);
+
+      if (_retry_rotation_after_close_failure)
+      {
+        // Keep the original backup timestamp, and the rotation due even if the failed flush left
+        // the file below its size limit. The close can fail again, e.g. on a full disk, so the
+        // rotation is retried after the interval rather than for every record
+        this->_file_size =
+          std::max<uint64_t>(this->_file_size, _config.rotation_max_file_size() + uint64_t{1});
+        _retry_rotation_after_close_failure = false;
+      }
+      else
+      {
+        _next_rotation_attempt = {};
+        _open_file_timestamp = record_timestamp_ns;
+      }
+
       return false;
     }
 
@@ -533,11 +547,26 @@ private:
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
     {
+      if (this->_sync_failed)
+      {
+        // A sync that fails, e.g. on a failing disk, fails again for the next record, so the
+        // rotation is retried after the interval. From the failure: a slow sync, e.g. on a
+        // network file system, would take up the interval otherwise
+        _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
+      }
+
       // The next record rotates the file
       _drop_records_after_failed_flush();
       throw;
     }
 #endif
+
+    if (QUILL_UNLIKELY(this->_sync_failed))
+    {
+      // Without exceptions a sync that fails returns. The rotation is retried after the interval
+      _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
+      return false;
+    }
 
     if (QUILL_UNLIKELY(!this->is_open()))
     {
@@ -555,10 +584,26 @@ private:
       return false;
     }
 
-    // The rotated file is closed next, so fsync it now regardless of minimum_fsync_interval
-    if (_config.fsync_enabled() && !base_type::fsync_file(true))
+    // The rotated file is closed next, so fsync it now regardless of minimum_fsync_interval. A
+    // sync that fails is retried after the interval, as above
+    if (_config.fsync_enabled())
     {
-      return false;
+      bool synced{false};
+
+      QUILL_TRY { synced = base_type::fsync_file(true); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+      QUILL_CATCH_ALL()
+      {
+        _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
+        throw;
+      }
+#endif
+
+      if (!synced)
+      {
+        _next_rotation_attempt = std::chrono::steady_clock::now() + rotation_retry_interval;
+        return false;
+      }
     }
 
     // The size is taken from the open file, which, unlike the path, needs no fsync to be current
@@ -570,6 +615,11 @@ private:
       return true;
     }
 
+    // Only rotation should reopen this file. An idle flush would use the configured mode,
+    // which can truncate the active file after a failed close.
+    this->_write_occurred = false;
+    _retry_rotation_after_close_failure = true;
+
     if (!this->close_file())
     {
       // Without exceptions a close that fails returns. The file lacks a part of what was written
@@ -578,6 +628,7 @@ private:
       return false;
     }
 
+    _retry_rotation_after_close_failure = false;
     return _rotate_closed_file(record_timestamp_ns);
   }
 
@@ -1539,6 +1590,7 @@ protected:
   uint64_t _next_rotation_time{0};     /**< The next rotation time point */
   uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
   RotatingFileSinkConfig _config;
+  bool _retry_rotation_after_close_failure{false};
 };
 
 QUILL_END_EXPORT

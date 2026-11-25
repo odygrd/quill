@@ -34,6 +34,15 @@ bool disk_is_full{false};
 // Set for the disk to be full after the first four bytes of the next call to write()
 bool disk_fills_up{false};
 
+// While this is set every call to fsync() fails as it does on a failing disk
+bool sync_fails{false};
+
+// The calls to fsync() that failed
+size_t failed_syncs{0};
+
+// How long a call to fsync() takes to fail
+std::chrono::milliseconds sync_failure_duration{0};
+
 /** Limits the size of the files that the process writes, as long as it exists */
 class FileSizeLimit
 {
@@ -92,6 +101,20 @@ extern "C" ssize_t write(int file_descriptor, void const* buffer, size_t count)
   }
 
   return static_cast<ssize_t>(::syscall(SYS_write, file_descriptor, buffer, count));
+}
+
+// And fsync() to simulate a failing disk
+extern "C" int fsync(int file_descriptor)
+{
+  if (sync_fails)
+  {
+    ++failed_syncs;
+    std::this_thread::sleep_for(sync_failure_duration);
+    errno = EIO;
+    return -1;
+  }
+
+  return static_cast<int>(::syscall(SYS_fsync, file_descriptor));
 }
 #endif
 
@@ -370,10 +393,14 @@ TEST_CASE("rotating_sink_io_failure")
     // the size that the process may write. The file is not complete, so it does not take the
     // place of the backup, which is the only one that is kept. The rotation stays due
     std::string const footer{"footer\n"};
+    size_t close_attempts{0};
 
     FileEventNotifier file_event_notifier;
-    file_event_notifier.before_close = [&footer](fs::path const&, FILE* file)
-    { std::fputs(footer.c_str(), file); };
+    file_event_notifier.before_close = [&footer, &close_attempts](fs::path const&, FILE* file)
+    {
+      ++close_attempts;
+      std::fputs(footer.c_str(), file);
+    };
 
     RotatingFileSinkConfig config;
     config.set_open_mode('w');
@@ -388,12 +415,14 @@ TEST_CASE("rotating_sink_io_failure")
     std::string const second(300, 'b');
     std::string const third(300, 'c');
     std::string const fourth(300, 'd');
+    std::string const fifth(300, 'e');
 
     LOG_INFO(logger, "{}", first);
     manual_backend_worker->poll();
     LOG_INFO(logger, "{}", second);
     manual_backend_worker->poll();
 
+    REQUIRE_EQ(close_attempts, 1u);
     REQUIRE_EQ(read_file_bytes(close_backup_filename), first + "\n" + footer);
     REQUIRE_EQ(read_file_bytes(close_filename), second + "\n");
 
@@ -404,21 +433,169 @@ TEST_CASE("rotating_sink_io_failure")
       // The file has the size that the process may write, so its footer does not fit
       FileSizeLimit const file_size_limit{second.size() + 1};
       manual_backend_worker->poll_one();
+      REQUIRE_EQ(close_attempts, 2u);
+
+      // The next records open the file again and wait in its write buffer. The close would fail
+      // in the same way, so it is not tried again before the retry interval
+      LOG_INFO(logger, "{}", fourth);
+      LOG_INFO(logger, "{}", fifth);
+      manual_backend_worker->poll_one();
+      manual_backend_worker->poll_one();
+      REQUIRE_EQ(close_attempts, 2u);
     }
 
     REQUIRE_EQ(count_errors_with("fclose failed"), close_errors + 1);
     REQUIRE_EQ(read_file_bytes(close_backup_filename), first + "\n" + footer);
 
-    // The next record opens the file again, and the rotation that is still due gives it its footer
-    LOG_INFO(logger, "{}", fourth);
+    // After the retry interval of one second, the rotation that is still due gives the file its footer
+    std::this_thread::sleep_for(std::chrono::milliseconds{1100});
+    LOG_INFO(logger, "record after");
     manual_backend_worker->poll();
 
-    REQUIRE_EQ(read_file_bytes(close_backup_filename), second + "\n" + footer);
-    REQUIRE_EQ(read_file_bytes(close_filename), fourth + "\n");
+    REQUIRE_EQ(close_attempts, 3u);
+    REQUIRE_EQ(read_file_bytes(close_backup_filename), second + "\n" + fourth + "\n" + fifth + "\n" + footer);
+    REQUIRE_EQ(read_file_bytes(close_filename), "record after\n");
 
     Frontend::remove_logger(logger);
     manual_backend_worker->poll();
   }
+
+  for (bool const defer_periodic_sync : {false, true})
+  {
+    // A rotation whose sync fails, e.g. on a failing disk: the sync of the flush before it, or,
+    // when minimum_fsync_interval defers that one, the sync that the rotation forces. The sync
+    // would fail in the same way for every record, so the rotation is retried after the retry
+    // interval instead. The interval starts when the sync fails, here after longer than the
+    // interval, as it can on a network file system
+    std::string const name =
+      std::string{"rotating_sink_io_failure_sync_"} + (defer_periodic_sync ? "deferred" : "periodic");
+    fs::path const filename = name + ".log";
+    fs::path const backup_filename = name + ".1.log";
+    fs::remove(filename);
+    fs::remove(backup_filename);
+
+    RotatingFileSinkConfig config;
+    config.set_open_mode('w');
+    config.set_rotation_max_file_size(512);
+    config.set_fsync_enabled(true);
+
+    if (defer_periodic_sync)
+    {
+      config.set_minimum_fsync_interval(std::chrono::hours{1});
+    }
+
+    auto sink = Frontend::create_or_get_sink<RotatingFileSink>(filename, config, FileEventNotifier{});
+    Logger* logger = Frontend::create_or_get_logger(name, std::move(sink), pattern_formatter_options);
+
+    std::string const record(300, 'a');
+    LOG_INFO(logger, "{}", record);
+    manual_backend_worker->poll();
+
+    failed_syncs = 0;
+    sync_fails = true;
+    sync_failure_duration = std::chrono::milliseconds{1050};
+
+    // A record that waits in the write buffer, so that the flush before the rotation writes it
+    // and syncs the file, unless minimum_fsync_interval defers that
+    LOG_INFO(logger, "{}", std::string(100, 'b'));
+    manual_backend_worker->poll_one();
+
+    // Each record is due for a rotation by size
+    for (size_t i = 0; i < 4; ++i)
+    {
+      LOG_INFO(logger, "{}", record);
+      manual_backend_worker->poll_one();
+    }
+
+    sync_fails = false;
+    sync_failure_duration = std::chrono::milliseconds{0};
+
+    REQUIRE_EQ(failed_syncs, 1u);
+    REQUIRE_FALSE(fs::exists(backup_filename));
+
+    // After the retry interval of one second, the rotation that is still due succeeds
+    std::this_thread::sleep_for(std::chrono::milliseconds{1100});
+    LOG_INFO(logger, "record after");
+    manual_backend_worker->poll();
+
+    REQUIRE(fs::exists(backup_filename));
+    REQUIRE_EQ(read_file_bytes(filename), "record after\n");
+
+    Frontend::remove_logger(logger);
+    manual_backend_worker->poll();
+    testing::remove_file(filename);
+    testing::remove_file(backup_filename);
+  }
+
+  #if defined(QUILL_NO_EXCEPTIONS)
+  for (size_t const buffer_size : {FileSinkConfig::default_write_buffer_size, size_t{0}})
+  {
+    std::string const name = "rotating_sink_io_failure_retry_" + std::to_string(buffer_size);
+    fs::path const filename = name + ".log";
+    fs::path const backup_filename = name + ".1.log";
+    fs::remove(filename);
+    fs::remove(backup_filename);
+
+    // A failed stream flush can leave bytes buffered on some platforms. On Linux, put bytes
+    // back into the stream before fclose() to exercise the same close failure.
+    bool leave_bytes_in_stream{true};
+    FileEventNotifier notifier;
+    notifier.before_close = [&leave_bytes_in_stream](fs::path const&, FILE* file)
+    {
+      if (leave_bytes_in_stream)
+      {
+        std::fputs("unwritten bytes", file);
+        leave_bytes_in_stream = false;
+      }
+    };
+
+    RotatingFileSinkConfig config;
+    config.set_open_mode('w');
+    config.set_rotation_max_file_size(1024);
+    config.set_write_buffer_size(buffer_size);
+
+    auto sink = Frontend::create_or_get_sink<RotatingFileSink>(filename, config, notifier);
+    Logger* logger = Frontend::create_or_get_logger(name, std::move(sink), pattern_formatter_options);
+
+    std::string const in_file(600, 'a');
+    LOG_INFO(logger, "{}", in_file);
+    manual_backend_worker->poll();
+    REQUIRE_EQ(read_file_bytes(filename), in_file + "\n");
+
+    LOG_INFO(logger, "{}", std::string(300, 'b'));
+    manual_backend_worker->poll_one();
+    LOG_INFO(logger, "{}", std::string(600, 'c'));
+
+    {
+      FileSizeLimit const file_size_limit{in_file.size() + 1};
+      manual_backend_worker->poll_one();
+      REQUIRE_FALSE(leave_bytes_in_stream);
+      REQUIRE_FALSE(fs::exists(backup_filename));
+
+      manual_backend_worker->poll();
+      REQUIRE_EQ(read_file_bytes(filename), in_file + "\n");
+    }
+
+    // The next record opens the file again without truncating it, and is written to it. The
+    // rotation is retried after the retry interval of one second
+    LOG_INFO(logger, "record after");
+    manual_backend_worker->poll();
+    REQUIRE_FALSE(fs::exists(backup_filename));
+    REQUIRE_EQ(read_file_bytes(filename), in_file + "\nrecord after\n");
+
+    // Then even a record below the size threshold rotates the file
+    std::this_thread::sleep_for(std::chrono::milliseconds{1100});
+    LOG_INFO(logger, "record after the interval");
+    manual_backend_worker->poll();
+    REQUIRE_EQ(read_file_bytes(backup_filename), in_file + "\nrecord after\n");
+    REQUIRE_EQ(read_file_bytes(filename), "record after the interval\n");
+
+    Frontend::remove_logger(logger);
+    manual_backend_worker->poll();
+    testing::remove_file(filename);
+    testing::remove_file(backup_filename);
+  }
+  #endif
 
   manual_backend_worker->shutdown();
 
