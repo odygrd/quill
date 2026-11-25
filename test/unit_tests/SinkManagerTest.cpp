@@ -1,5 +1,11 @@
 #include "doctest/doctest.h"
 
+// ArchiveFileSink hides the get_filename() of FileSink, as a sink of an application may. GCC
+// reports it at the hidden function, so the warning is disabled before the includes
+#if defined(__GNUC__) || defined(__clang__)
+  #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 #include "quill/core/Filesystem.h"
 #include "quill/core/QuillError.h"
 #include "quill/core/SinkManager.h"
@@ -531,7 +537,10 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
 
     fs::path actual_filename;
     fs::path distinct_case_filename;
-    uint32_t expected_cleanup_count{1};
+
+    // A sink is registered by its path and also by the file it opened, when the two differ
+    uint32_t const entries_per_sink = (append_option == FilenameAppendOption::StartDate) ? 2u : 1u;
+    uint32_t expected_cleanup_count{entries_per_sink};
     {
       auto file_sink = SinkManager::instance().create_or_get_sink<FileSink>(
         (directory / "case_alias.log").string(), config);
@@ -553,7 +562,7 @@ TEST_CASE("file_sink_windows_case_aliases_return_same_sink")
       if (!aliases)
       {
         distinct_case_filename = case_sink->get_filename();
-        ++expected_cleanup_count;
+        expected_cleanup_count += entries_per_sink;
       }
     }
 
@@ -686,13 +695,57 @@ TEST_CASE("file_sink_windows_extended_path_aliases_return_same_sink")
         REQUIRE_EQ(fs::file_size(actual_filename), 10u);
       }
 
-      REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+      // A sink is registered by its path and also by the file it opened, when the two differ
+      uint32_t const expected_cleanup_count = (append_option == FilenameAppendOption::StartDate) ? 2u : 1u;
+      REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), expected_cleanup_count);
       REQUIRE(fs::remove(actual_filename));
     }
   }
 
   REQUIRE(fs::remove(directory));
 #endif
+}
+
+/***/
+TEST_CASE("file_sink_with_a_date_suffix_is_found_by_the_file_it_opened")
+{
+  std::string const configured_name{"sink_manager_date_suffix.log"};
+
+  FileSinkConfig dated_config;
+  dated_config.set_open_mode('w');
+  dated_config.set_filename_append_option(FilenameAppendOption::StartDate);
+
+  FileSinkConfig truncating_config;
+  truncating_config.set_open_mode('w');
+
+  fs::path opened_filename;
+
+  {
+    auto& manager = SinkManager::instance();
+    auto file_sink = manager.create_or_get_sink<FileSink>(configured_name, dated_config);
+    opened_filename = file_sink->get_filename();
+    REQUIRE(opened_filename.filename() != fs::path{configured_name});
+
+    file_sink->write_log(LogRecord{
+      nullptr, 0, {}, {}, {}, {}, LogLevel::Info, "INFO", "I", nullptr, {}, "preserved\n", {}});
+    file_sink->flush_sink(SinkFlushReason::Explicit);
+
+    REQUIRE_EQ(manager.get_sink(configured_name), file_sink);
+    REQUIRE_EQ(manager.get_sink(opened_filename.string()), file_sink);
+    REQUIRE_EQ(manager.get_file_sink(opened_filename), file_sink);
+
+    // Each creation by the opened file returns its sink instead of truncating the file
+    REQUIRE_EQ(manager.create_or_get_sink<FileSink>(opened_filename.string(), truncating_config), file_sink);
+    REQUIRE_EQ(manager.create_or_get_file_sink<FileSink>(opened_filename, truncating_config), file_sink);
+#if !defined(QUILL_NO_EXCEPTIONS)
+    REQUIRE_THROWS_AS((void)manager.create_sink<FileSink>(opened_filename.string(), truncating_config), QuillError);
+#endif
+    REQUIRE_EQ(fs::file_size(opened_filename), 10u);
+  }
+
+  // The sink is registered by its path and by the file it opened
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 2u);
+  REQUIRE(fs::remove(opened_filename));
 }
 
 TEST_CASE("recreating_expired_sink_with_same_name_keeps_single_registry_entry")
@@ -885,6 +938,36 @@ TEST_CASE("file_sink_with_string_lvalue_constructor_can_be_created")
       SinkManager::instance().create_or_get_sink<StringLvalueFileSink>(filename);
     REQUIRE(sink);
     REQUIRE_EQ(SinkManager::instance().create_or_get_file_sink<StringLvalueFileSink>(fs::path{filename}), sink);
+  }
+
+  REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);
+  REQUIRE(fs::remove(filename));
+}
+
+/***/
+class ArchiveFileSink : public FileSink
+{
+public:
+  using FileSink::FileSink;
+
+  // An overload that hides the get_filename() of FileSink
+  fs::path get_filename(uint32_t archive_index) const
+  {
+    return FileSink::get_filename().string() + "." + std::to_string(archive_index);
+  }
+};
+
+/***/
+TEST_CASE("file_sink_with_a_get_filename_overload_can_be_created")
+{
+  std::string const filename{"file_sink_with_a_get_filename_overload.log"};
+
+  {
+    std::shared_ptr<ArchiveFileSink> const sink =
+      SinkManager::instance().create_or_get_sink<ArchiveFileSink>(filename);
+    REQUIRE(sink);
+    REQUIRE_EQ(SinkManager::instance().get_sink(filename), sink);
+    REQUIRE_EQ(sink->get_filename(1).filename(), fs::path{filename + ".1"});
   }
 
   REQUIRE_EQ(SinkManager::instance().cleanup_unused_sinks(), 1u);

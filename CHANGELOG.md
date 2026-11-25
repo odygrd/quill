@@ -355,6 +355,9 @@
   failed to compile.
 - `Frontend::create_or_get_sink()` no longer opens a second `FileSink` on the same file, truncating
   it in `"w"` mode, when the path is a symlink whose target the first sink created.
+- A file sink with a date or time suffix from `FileSinkConfig::set_filename_append_option()` is
+  found by the file it opened, e.g. `Frontend::get_sink(sink->get_filename())`. Before,
+  `get_sink()` threw and `create_or_get_sink()` in `'w'` mode opened a second sink that truncated it.
 - On Windows, `Frontend::create_or_get_sink<FileSink>()` reuses the sink for paths such as
   `app.log.` and `app.log`, including paths that differ only in directory casing under MinGW.
   This prevents an unintended second open from truncating the file in `'w'` mode.
