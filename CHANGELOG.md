@@ -440,6 +440,8 @@
 - A `std::unordered_map` or `std::unordered_set` keyed by `std::error_code` can be logged with
   `quill/std/UnorderedMap.h` or `quill/std/UnorderedSet.h` and `quill/std/SystemError.h`; it
   failed to compile.
+- A `std::variant` with a move-only alternative that its codec decodes back into its own type, e.g.
+  with `MemberwiseCodec`, can be logged by `const&` with `quill/std/Variant.h`; it failed to compile.
 
 ## v13.1.0
 
