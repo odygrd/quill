@@ -29,6 +29,7 @@ QUILL_BEGIN_EXPORT
 /** Forward declarations **/
 class FileSink;
 class Sink;
+class StreamSink;
 
 QUILL_END_EXPORT
 
@@ -503,12 +504,14 @@ private:
     }
   }
 
-  template <typename TSink, typename... Args>
+  template <typename TSink, typename TStreamSink = StreamSink, typename... Args>
   std::shared_ptr<TSink> _create_reserved_sink(SinkId const& reserved_id, SinkId const& name_id,
                                                fs::path const& path, Args&&... args)
   {
     std::shared_ptr<TSink> sink;
     SinkId published_id;
+    SinkId opened_file_id;
+    std::string opened_file_name;
     QUILL_TRY
     {
       sink = _create_sink_instance<TSink>(path, static_cast<Args&&>(args)...);
@@ -516,6 +519,20 @@ private:
       // Opening the file may have created a symlink's target, so recompute the id now.
       bool resolved{false};
       published_id = _make_sink_id<TSink>(_sink_id<TSink>(path, name_id.value, resolved));
+
+      if constexpr (_is_file_sink<TSink>)
+      {
+        // The sink can open another file than its path, e.g. with a date suffix. That file is
+        // published too, so that a lookup or a creation by its path finds the sink. The getter is
+        // called through the base class, as a get_filename() overload of the sink hides it
+        fs::path const& opened_path = static_cast<TStreamSink const&>(*sink).get_filename();
+
+        if (opened_path != path)
+        {
+          opened_file_name = detail::file_sink_path_string(opened_path);
+          opened_file_id = _make_sink_id<TSink>(_sink_id<TSink>(opened_path, opened_file_name, resolved));
+        }
+      }
     }
 #if !defined(QUILL_NO_EXCEPTIONS)
     QUILL_CATCH_ALL()
@@ -525,7 +542,8 @@ private:
     }
 #endif
 
-    _publish_created_sink(reserved_id, published_id, name_id, sink, _file_sink_id_function<TSink>());
+    _publish_created_sink(reserved_id, published_id, name_id, opened_file_id, opened_file_name,
+                          sink, _file_sink_id_function<TSink>());
     return sink;
   }
 
@@ -552,13 +570,21 @@ private:
     }
   }
 
+  /** `opened_file_id` is empty unless the sink opened another file than its configured path */
   void _publish_created_sink(SinkId const& reserved_id, SinkId const& sink_id, SinkId const& name_id,
+                             SinkId const& opened_file_id, std::string const& opened_file_name,
                              std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
     QUILL_TRY
     {
       LockGuard const lock{_spinlock};
       _insert_sink(sink_id, name_id.value, sink, file_sink_id);
+
+      if (!opened_file_id.value.empty() && (opened_file_id != sink_id))
+      {
+        _insert_sink(opened_file_id, opened_file_name, sink, file_sink_id);
+      }
+
       _erase_pending_sink(reserved_id);
       _erase_pending_sink(name_id);
     }
