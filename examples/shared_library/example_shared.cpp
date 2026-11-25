@@ -27,10 +27,9 @@
  *   These flags prevent the dynamic linker from merging inline symbols across DSOs, causing
  *   Quill's singletons (LoggerManager, BackendManager, etc.) to be duplicated — which breaks
  *   the library (invisible loggers, multiple backend threads, lost log messages).
- * - When using dlopen/dlclose: you MUST flush all loggers and call Backend::stop() before
- *   calling dlclose() on any DSO that used Quill. Otherwise, the backend thread may
- *   dereference pointers into unmapped memory (MacroMetadata, decode functions, Sink vtables)
- *   causing SIGSEGV. See the dlopen/dlclose usage below.
+ * - Before calling dlclose(), follow the shutdown sequence below for the loggers that the
+ *   library uses. The backend can still hold pointers into the library until that sequence
+ *   completes.
  *
  * --- macOS ---
  * - macOS uses two-level namespaces by default (since macOS 10.2). This means each dylib
@@ -40,8 +39,7 @@
  * - The "single owner" pattern shown here is the recommended solution on macOS.
  * - Alternatively, you can pass -flat_namespace to the linker, but this has global side
  *   effects and is generally not recommended.
- * - The same dlclose guidance as Linux applies (use dlclose(handle, RTLD_NODELETE) or
- *   flush + stop before unloading).
+ * - The same dlclose guidance as Linux applies.
  *
  * --- Windows ---
  * - Set QUILL_DLL_EXPORT when building the shared library and QUILL_DLL_IMPORT when
@@ -76,8 +74,8 @@
  *
  * The function has to release the sink pointers that the library holds, then remove the
  * loggers that the library created, with Frontend::remove_logger_blocking() while the backend
- * still runs, and then stop the backend. A sink is unregistered when a logger is removed and
- * nothing holds the sink any more, so one that the library releases later stays registered.
+ * still runs. If the library started the backend, it then stops it. Removing the logger
+ * unregisters its sink once nothing holds the sink. A sink released later stays registered.
  * Backend::stop() keeps the loggers and the sinks registered for the next start, and those of
  * the library must not outlive its code. It then writes the log messages that are still queued.
  *
