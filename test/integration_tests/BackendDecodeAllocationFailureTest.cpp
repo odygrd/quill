@@ -16,7 +16,9 @@
 #include <vector>
 
 // ThreadSanitizer supplies its own global new/delete definitions, which cannot be replaced.
-#if !defined(QUILL_NO_EXCEPTIONS) && !QUILL_HAS_FEATURE(thread_sanitizer) && !defined(__SANITIZE_THREAD__)
+// The test also skips the MSVC debug STL because allocating container proxies can terminate.
+#if !defined(QUILL_NO_EXCEPTIONS) && !QUILL_HAS_FEATURE(thread_sanitizer) &&                       \
+  !defined(__SANITIZE_THREAD__) && (!defined(_ITERATOR_DEBUG_LEVEL) || (_ITERATOR_DEBUG_LEVEL == 0))
 namespace
 {
 // Only the calling thread's next allocation fails; producer allocations are unaffected.
