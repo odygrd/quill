@@ -8,6 +8,7 @@
 
 #include "quill/backend/NamedArgsTemplate.h"
 #include "quill/core/Attributes.h"
+#include "quill/core/QuillError.h"
 
 #ifndef QUILL_MODULE
   #include <cstring>
@@ -52,8 +53,19 @@ public:
     return entry.named_args_template;
   }
 
-  /** Removes all entries and releases their memory */
-  void clear() noexcept { _entries = std::unordered_map<char const*, Entry>{}; }
+  /**
+   * Removes all entries and releases their memory. Releasing it is best effort: an empty map can
+   * allocate, e.g. with MSVC, and without memory for it the entries are only removed
+   */
+  void clear() noexcept
+  {
+    _entries.clear();
+
+    QUILL_TRY { decltype(_entries){}.swap(_entries); }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH_ALL() {}
+#endif
+  }
 
 private:
   struct Entry
