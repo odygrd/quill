@@ -6,6 +6,8 @@
 #include "quill/core/QuillError.h"
 
 #include <array>
+#include <clocale>
+#include <string>
 
 TEST_SUITE_BEGIN("LogLevel");
 
@@ -328,6 +330,29 @@ TEST_CASE("log_level_from_string")
     REQUIRE_THROWS_AS(func(), quill::QuillError);
 #endif
   }
+}
+
+/***/
+TEST_CASE("log_level_from_string_does_not_depend_on_the_locale")
+{
+  // The locale of the process is put back also when an assertion below fails
+  struct LocaleRestorer
+  {
+    ~LocaleRestorer() { std::setlocale(LC_CTYPE, previous_locale.c_str()); }
+    std::string previous_locale;
+  } const locale_restorer{std::setlocale(LC_CTYPE, nullptr)};
+
+  // In Turkish 'I' has no lowercase 'i'. Skipped where this locale is not installed
+  if (!std::setlocale(LC_CTYPE, "tr_TR.UTF-8"))
+  {
+    return;
+  }
+
+  REQUIRE_EQ(log_level_from_string("INFO"), LogLevel::Info);
+  REQUIRE_EQ(log_level_from_string("NOTICE"), LogLevel::Notice);
+  REQUIRE_EQ(log_level_from_string("WARNING"), LogLevel::Warning);
+  REQUIRE_EQ(log_level_from_string("CRITICAL"), LogLevel::Critical);
+  REQUIRE_EQ(log_level_from_string("TRACEL1"), LogLevel::TraceL1);
 }
 
 TEST_SUITE_END();

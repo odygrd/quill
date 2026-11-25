@@ -651,7 +651,7 @@ TEST_CASE("pattern_formatter_process_function_name")
       bool all_digits = true;
       for (size_t i = pos + 1; i < sv.length(); ++i)
       {
-        if (!std::isdigit(sv[i]))
+        if ((sv[i] < '0') || (sv[i] > '9'))
         {
           all_digits = false;
           break;
