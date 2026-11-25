@@ -405,7 +405,30 @@ QUILL_NODISCARD inline std::string format_datetime_string(uint64_t timestamp_ns,
     detail::localtime_rs(&time_now, &now_tm);
   }
 
-  return detail::format_strftime(append_format_pattern, now_tm, time_zone);
+  // %s is the epoch value, which strftime computes back from the broken-down time as local time,
+  // shifting a GmtTime by the offset of the local timezone. It is written from the timestamp
+  std::string pattern;
+  pattern.reserve(append_format_pattern.size());
+
+  for (size_t i = 0; i < append_format_pattern.size(); ++i)
+  {
+    if ((append_format_pattern[i] == '%') && (i + 1 < append_format_pattern.size()))
+    {
+      ++i;
+
+      if (append_format_pattern[i] == 's')
+      {
+        pattern += std::to_string(time_now);
+        continue;
+      }
+
+      pattern += '%';
+    }
+
+    pattern += append_format_pattern[i];
+  }
+
+  return detail::format_strftime(pattern, now_tm, time_zone);
 }
 
 /** Inserts the formatted timestamp between the file stem and its extension */
