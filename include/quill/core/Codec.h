@@ -134,6 +134,71 @@ QUILL_NODISCARD QUILL_ATTRIBUTE_HOT inline uint32_t clamp_encoded_string_length(
 }
 
 /**
+ * Copies the bytes of a string argument into the queue.
+ *
+ * A string of up to 64 bytes, the size of most logged strings, is copied with overlapping
+ * fixed-size copies that GCC and clang expand inline. A call to the C library memcpy costs more
+ * than such a copy, and the log statement has to save and restore its live registers around it.
+ * The copies are at most 16 bytes: with AVX, a 32-byte copy can make GCC realign the stack of every
+ * function that inlines a string log statement, also on the calls that do not log.
+ *
+ * MSVC does not inline this function into the log statement, so there it calls memcpy as before.
+ */
+QUILL_ATTRIBUTE_HOT inline void copy_string_bytes(std::byte* dst, char const* src, size_t len) noexcept
+{
+#if defined(_MSC_VER) && !defined(__clang__)
+  if (len != 0u)
+  {
+    std::memcpy(dst, src, len);
+  }
+#else
+  #if defined(__GNUC__) && !defined(__clang__)
+  // When this is inlined with a source of known size, e.g. a short string literal, GCC checks the
+  // copies of the branches for longer strings against it and reports -Warray-bounds, although
+  // those branches are not taken. Hiding where the pointer comes from costs no instruction
+  __asm__("" : "+r"(src));
+  #endif
+
+  if (len > 32u)
+  {
+    if (QUILL_LIKELY(len <= 64u))
+    {
+      std::memcpy(dst, src, 16u);
+      std::memcpy(dst + 16u, src + 16u, 16u);
+      std::memcpy(dst + len - 32u, src + len - 32u, 16u);
+      std::memcpy(dst + len - 16u, src + len - 16u, 16u);
+    }
+    else
+    {
+      std::memcpy(dst, src, len);
+    }
+  }
+  else if (len > 16u)
+  {
+    std::memcpy(dst, src, 16u);
+    std::memcpy(dst + len - 16u, src + len - 16u, 16u);
+  }
+  else if (len >= 8u)
+  {
+    std::memcpy(dst, src, 8u);
+    std::memcpy(dst + len - 8u, src + len - 8u, 8u);
+  }
+  else if (len >= 4u)
+  {
+    std::memcpy(dst, src, 4u);
+    std::memcpy(dst + len - 4u, src + len - 4u, 4u);
+  }
+  else if (len != 0u)
+  {
+    // 1 to 3 bytes: the first, the middle and the last byte cover them
+    dst[0] = static_cast<std::byte>(src[0]);
+    dst[len / 2u] = static_cast<std::byte>(src[len / 2u]);
+    dst[len - 1u] = static_cast<std::byte>(src[len - 1u]);
+  }
+#endif
+}
+
+/**
  * Stores a string snapshot in the size cache: its length followed by its bytes.
  * For values that must be formatted or read exactly once, during sizing, and copied unchanged
  * by encode_cached_string().
@@ -289,11 +354,8 @@ struct Codec
       // Local copy improves generated code (avoids aliasing penalties)
       std::byte* buf_ptr = buffer;
 
-      if (QUILL_LIKELY(arg != nullptr))
-      {
-        // avoid gcc warning, even when size == 0
-        std::memcpy(buf_ptr, arg, len - 1);
-      }
+      // A nullptr is encoded as an empty string, len is 1, so nothing is read from it
+      detail::copy_string_bytes(buf_ptr, arg, len - 1);
 
       buf_ptr[len - 1] = std::byte{'\0'};
       buffer = buf_ptr + len;
@@ -309,11 +371,8 @@ struct Codec
       std::memcpy(buf_ptr, &len, sizeof(len));
       buf_ptr += sizeof(len);
 
-      // Only copy if length > 0 to avoid UBSAN with nullptr in memcpy
-      if (QUILL_LIKELY(len != 0))
-      {
-        std::memcpy(buf_ptr, arg.data(), len);
-      }
+      // An empty string copies nothing, so a nullptr data() of an empty string_view is not read
+      detail::copy_string_bytes(buf_ptr, arg.data(), len);
 
       buffer = buf_ptr + len;
     }
