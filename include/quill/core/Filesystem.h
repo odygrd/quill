@@ -105,8 +105,8 @@ QUILL_NODISCARD inline std::string file_sink_name_string(fs::path const& filenam
  * Resolves a file sink path to an absolute path with a canonical parent directory.
  * On failure returns an empty path and stores the reason in `error` instead of throwing.
  */
-QUILL_NODISCARD inline fs::path try_normalize_file_sink_path(fs::path const& filename,
-                                                             bool create_directories, std::string& error)
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD QUILL_NOINLINE inline fs::path try_normalize_file_sink_path(
+  fs::path const& filename, bool create_directories, std::string& error)
 {
   if ((filename == "stdout") || (filename == "stderr") || (filename == "/dev/null"))
   {
@@ -204,7 +204,8 @@ QUILL_NODISCARD inline fs::path try_normalize_file_sink_path(fs::path const& fil
  * Resolves a file sink path to an absolute path with a canonical parent directory.
  * @throws QuillError if the path cannot be resolved
  */
-QUILL_NODISCARD inline fs::path normalize_file_sink_path(fs::path const& filename, bool create_directories = true)
+QUILL_NODISCARD QUILL_ATTRIBUTE_COLD inline fs::path normalize_file_sink_path(fs::path const& filename,
+                                                                              bool create_directories = true)
 {
   std::string error;
   fs::path normalized = try_normalize_file_sink_path(filename, create_directories, error);

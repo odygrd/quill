@@ -16,7 +16,6 @@
 #ifndef QUILL_MODULE
   #include <cstddef>
   #include <cstdint>
-  #include <functional>
   #include <string>
   #include <string_view>
   #include <utility>
@@ -80,8 +79,9 @@ public:
     }
   }
 
-  /***/
-  void process(std::function<void(TransitEvent const&, std::string const& thread_id, std::string const& thread_name)> const& callback)
+  /** A template, so the callers' lambdas are called without the type erasure of a std::function */
+  template <typename TCallback>
+  QUILL_ATTRIBUTE_COLD void process(TCallback const& callback)
   {
     // we found stored messages for this logger
     size_t index = _index;
@@ -124,7 +124,7 @@ public:
   }
 
   /***/
-  void set_capacity(uint32_t capacity)
+  QUILL_ATTRIBUTE_COLD void set_capacity(uint32_t capacity)
   {
     if (_capacity != capacity)
     {

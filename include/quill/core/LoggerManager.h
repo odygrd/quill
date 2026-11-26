@@ -174,10 +174,12 @@ public:
    * @throws QuillError if a logger with the same name already exists.
    */
   template <typename TLogger>
-  LoggerBase* create_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-                            PatternFormatterOptions const& pattern_formatter_options,
-                            ClockSourceType clock_source, typename TLogger::clock_object_t* clock,
-                            std::optional<LogLevel> initial_log_level = std::nullopt)
+  QUILL_ATTRIBUTE_COLD LoggerBase* create_logger(std::string const& logger_name,
+                                                 std::vector<std::shared_ptr<Sink>> sinks,
+                                                 PatternFormatterOptions const& pattern_formatter_options,
+                                                 ClockSourceType clock_source,
+                                                 typename TLogger::clock_object_t* clock,
+                                                 std::optional<LogLevel> initial_log_level = std::nullopt)
   {
     QUILL_TRY
     {
@@ -222,9 +224,11 @@ public:
    * and the provided sinks, pattern, clock source, and user clock parameters are ignored.
    */
   template <typename TLogger>
-  LoggerBase* create_or_get_logger(std::string const& logger_name, std::vector<std::shared_ptr<Sink>> sinks,
-                                   PatternFormatterOptions const& pattern_formatter_options,
-                                   ClockSourceType clock_source, typename TLogger::clock_object_t* clock)
+  QUILL_ATTRIBUTE_COLD LoggerBase* create_or_get_logger(std::string const& logger_name,
+                                                        std::vector<std::shared_ptr<Sink>> sinks,
+                                                        PatternFormatterOptions const& pattern_formatter_options,
+                                                        ClockSourceType clock_source,
+                                                        typename TLogger::clock_object_t* clock)
   {
     QUILL_TRY
     {
@@ -293,8 +297,8 @@ public:
 
   /***/
   template <typename TCanRemoveLogger>
-  std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(TCanRemoveLogger can_remove_logger,
-                                                                       std::vector<std::string>& removed_loggers)
+  QUILL_ATTRIBUTE_COLD std::vector<std::unique_ptr<LoggerBase>> cleanup_invalidated_loggers(
+    TCanRemoveLogger can_remove_logger, std::vector<std::string>& removed_loggers)
   {
     // Return ownership so the backend can flush and destroy removed loggers outside _spinlock.
     std::vector<std::unique_ptr<LoggerBase>> loggers_to_destroy;

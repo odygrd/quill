@@ -398,7 +398,7 @@ private:
    * and the memory grown during the run is released. The queues, sinks and loggers belong to the
    * managers and stay
    */
-  void _release_scratch_state() noexcept
+  QUILL_ATTRIBUTE_COLD void _release_scratch_state() noexcept
   {
     _release_memory(_logger_removal_flags);
     _release_memory(_removed_loggers);
@@ -445,7 +445,7 @@ private:
    * Destroys the callables of the options once the backend has stopped. They can be code of a
    * shared library that is unloaded before the next start, or before the process exits
    */
-  void _release_option_callables() noexcept
+  QUILL_ATTRIBUTE_COLD void _release_option_callables() noexcept
   {
     _options.error_notifier = nullptr;
     _options.backend_worker_on_poll_begin = nullptr;
@@ -536,13 +536,13 @@ private:
   }
 
   /** Reports an error through BackendOptions::error_notifier */
-  void _notify_error(std::string const& error_message)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _notify_error(std::string const& error_message)
   {
     _notify_error(_options.error_notifier, error_message);
   }
 
   /** Reports a timestamp pattern that is formatted with strftime() on every call, once per formatter */
-  void _notify_pattern_formatter_warning(PatternFormatter const& pattern_formatter)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _notify_pattern_formatter_warning(PatternFormatter const& pattern_formatter)
   {
     if (!pattern_formatter.timestamp_pattern_warning().empty())
     {
@@ -550,7 +550,8 @@ private:
     }
   }
 
-  void _notify_error(std::function<void(std::string const&)> const& error_notifier, std::string const& error_message)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _notify_error(std::function<void(std::string const&)> const& error_notifier,
+                                                         std::string const& error_message)
   {
     if (!static_cast<bool>(error_notifier))
     {
@@ -1011,6 +1012,58 @@ private:
     return thread_context->_transit_event_buffer->size();
   }
 
+  /**
+   * Decodes the name and labels of a dynamic metric record. Not inlined into the decode loop, which
+   * runs for every record: there it made the other records execute more instructions
+   * @return false if the record is dropped because a label could not be copied
+   */
+  QUILL_NOINLINE bool _decode_dynamic_metric(std::byte*& read_pos, TransitEvent* transit_event)
+  {
+    std::string_view const metric_name = Codec<std::string_view>::decode_arg(read_pos);
+    size_t const label_count = Codec<size_t>::decode_arg(read_pos);
+    size_t remaining_labels = label_count;
+
+    QUILL_TRY
+    {
+      // Keep unused slots too, so smaller records do not discard their string capacity.
+      if (_dynamic_metric_labels.size() < label_count)
+      {
+        _dynamic_metric_labels.resize(label_count);
+      }
+
+      while (remaining_labels != 0)
+      {
+        MetricLabel& label = _dynamic_metric_labels[label_count - remaining_labels];
+        std::string_view const key = Codec<std::string>::decode_arg(read_pos);
+        std::string_view const value = Codec<std::string>::decode_arg(read_pos);
+        --remaining_labels;
+
+        label.key.assign(key);
+        label.value.assign(value);
+      }
+
+      transit_event->macro_metadata = MetricManager::instance().create_or_get_dynamic_metric(
+        metric_name, _dynamic_metric_labels, label_count);
+    }
+#if !defined(QUILL_NO_EXCEPTIONS)
+    QUILL_CATCH(std::exception const& e)
+    {
+      // String views consume the remaining fields without allocating if a copy failed.
+      while (remaining_labels != 0)
+      {
+        (void)Codec<std::string>::decode_arg(read_pos);
+        (void)Codec<std::string>::decode_arg(read_pos);
+        --remaining_labels;
+      }
+
+      _notify_error(e.what());
+      return false;
+    }
+#endif
+
+    return true;
+  }
+
   /** Reads word `index` of a record header: timestamp, metadata, logger and decoder or value */
   QUILL_NODISCARD static uint64_t _load_header_word(std::byte const* header, size_t index) noexcept
   {
@@ -1163,47 +1216,10 @@ private:
 
     if (transit_event->macro_metadata->event() == MacroMetadata::Event::DynamicMetric)
     {
-      std::string_view const metric_name = Codec<std::string_view>::decode_arg(read_pos);
-      size_t const label_count = Codec<size_t>::decode_arg(read_pos);
-      size_t remaining_labels = label_count;
-
-      QUILL_TRY
+      if (!_decode_dynamic_metric(read_pos, transit_event))
       {
-        // Keep unused slots too, so smaller records do not discard their string capacity.
-        if (_dynamic_metric_labels.size() < label_count)
-        {
-          _dynamic_metric_labels.resize(label_count);
-        }
-
-        while (remaining_labels != 0)
-        {
-          MetricLabel& label = _dynamic_metric_labels[label_count - remaining_labels];
-          std::string_view const key = Codec<std::string>::decode_arg(read_pos);
-          std::string_view const value = Codec<std::string>::decode_arg(read_pos);
-          --remaining_labels;
-
-          label.key.assign(key);
-          label.value.assign(value);
-        }
-
-        transit_event->macro_metadata = MetricManager::instance().create_or_get_dynamic_metric(
-          metric_name, _dynamic_metric_labels, label_count);
-      }
-#if !defined(QUILL_NO_EXCEPTIONS)
-      QUILL_CATCH(std::exception const& e)
-      {
-        // String views consume the remaining fields without allocating if a copy failed.
-        while (remaining_labels != 0)
-        {
-          (void)Codec<std::string>::decode_arg(read_pos);
-          (void)Codec<std::string>::decode_arg(read_pos);
-          --remaining_labels;
-        }
-
-        _notify_error(e.what());
         return true;
       }
-#endif
     }
 
     if (transit_event->macro_metadata->event() != MacroMetadata::Event::Metric)
