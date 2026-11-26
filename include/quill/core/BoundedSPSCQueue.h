@@ -32,6 +32,16 @@ namespace detail
 #endif
 
 /**
+ * Every queue record starts at a multiple of 8 bytes, so the 8-byte words of a record header never
+ * cross a cache line. The producer and the consumer both round each record size up with this.
+ * It is not a member of BoundedSPSCQueueImpl, where each queue type would instantiate it
+ */
+QUILL_NODISCARD constexpr size_t align_queue_record_size(size_t n) noexcept
+{
+  return (n + 7u) & ~static_cast<size_t>(7u);
+}
+
+/**
  * A bounded single producer single consumer ring buffer.
  */
 template <typename T>
@@ -113,6 +123,11 @@ public:
   BoundedSPSCQueueImpl(BoundedSPSCQueueImpl const&) = delete;
   BoundedSPSCQueueImpl& operator=(BoundedSPSCQueueImpl const&) = delete;
 
+  /**
+   * The free space is a multiple of the record alignment, as the positions and the capacity are,
+   * so a record that fits also fits once it is rounded up. The request is compared as given:
+   * rounding it up first would wrap a size close to SIZE_MAX to 0
+   */
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT std::byte* prepare_write(integer_type n) noexcept
   {
     if (static_cast<integer_type>(_reader_pos_cache_plus_capacity - _writer_pos) < n)
@@ -147,7 +162,10 @@ public:
     return WriteReservation{_storage + (writer_pos & _mask), writer_pos, this};
   }
 
-  QUILL_ATTRIBUTE_HOT void finish_write(integer_type n) noexcept { _writer_pos += n; }
+  QUILL_ATTRIBUTE_HOT void finish_write(integer_type n) noexcept
+  {
+    _writer_pos += static_cast<integer_type>(align_queue_record_size(n));
+  }
 
   QUILL_ATTRIBUTE_HOT void commit_write() noexcept
   {
@@ -160,11 +178,16 @@ public:
    */
   QUILL_ATTRIBUTE_HOT void finish_and_commit_write(integer_type n) noexcept
   {
-    finish_and_commit_write_reservation(_writer_pos + n);
+    finish_and_commit_write_reservation(_writer_pos + static_cast<integer_type>(align_queue_record_size(n)));
   }
 
   QUILL_ATTRIBUTE_HOT void finish_and_commit_write_reservation(integer_type new_writer_pos) noexcept
   {
+    QUILL_ASSERT(
+      new_writer_pos == static_cast<integer_type>(align_queue_record_size(new_writer_pos)),
+      "finish_and_commit_write_reservation() requires a position rounded up to the record "
+      "alignment, see align_queue_record_size()");
+
     _writer_pos = new_writer_pos;
 
     // set the atomic flag so the reader can see write
@@ -181,7 +204,10 @@ public:
     return _storage + (_reader_pos & _mask);
   }
 
-  QUILL_ATTRIBUTE_HOT void finish_read(integer_type n) noexcept { _reader_pos += n; }
+  QUILL_ATTRIBUTE_HOT void finish_read(integer_type n) noexcept
+  {
+    _reader_pos += static_cast<integer_type>(align_queue_record_size(n));
+  }
 
   QUILL_ATTRIBUTE_HOT void commit_read() noexcept
   {

@@ -5,6 +5,7 @@
 #include "quill/core/QuillError.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <limits>
 #include <thread>
@@ -186,6 +187,45 @@ TEST_CASE("bounded_queue_write_after_drain_uses_full_capacity")
   // free bytes and this write can never succeed
   REQUIRE_EQ(buffer.prepare_read(), nullptr);
   REQUIRE_NE(buffer.prepare_write(4000u), nullptr);
+}
+
+TEST_CASE("bounded_queue_records_start_on_8_byte_boundaries")
+{
+  BoundedSPSCQueue buffer{1024u};
+
+  // Odd record sizes, written and read through more than one lap of the queue
+  for (size_t i = 0; i < 300; ++i)
+  {
+    size_t const record_size = 1u + ((i * 7u) % 61u);
+
+    std::byte* write_buf = buffer.prepare_write(record_size);
+    REQUIRE_NE(write_buf, nullptr);
+    REQUIRE_EQ(reinterpret_cast<uintptr_t>(write_buf) % 8u, 0u);
+    std::memset(write_buf, static_cast<int>(i & 0xFFu), record_size);
+    buffer.finish_write(record_size);
+    buffer.commit_write();
+
+    std::byte* read_buf = buffer.prepare_read();
+    REQUIRE_EQ(read_buf, write_buf);
+    REQUIRE_EQ(read_buf[record_size - 1u], static_cast<std::byte>(i & 0xFFu));
+    buffer.finish_read(record_size);
+    buffer.commit_read();
+
+    REQUIRE_EQ(buffer.bytes_read() % 8u, 0u);
+  }
+
+  REQUIRE_EQ(buffer.prepare_read(), nullptr);
+}
+
+TEST_CASE("bounded_queue_rejects_a_record_that_rounding_up_would_wrap")
+{
+  BoundedSPSCQueue buffer{64u};
+
+  // Rounded up to the record alignment, SIZE_MAX would wrap to 0 and look as if it fits
+  REQUIRE_EQ(buffer.prepare_write(SIZE_MAX), nullptr);
+  REQUIRE_EQ(buffer.prepare_write_reserve_cached(SIZE_MAX).write_buffer, nullptr);
+  REQUIRE_EQ(buffer.prepare_write(65u), nullptr);
+  REQUIRE_NE(buffer.prepare_write(64u), nullptr);
 }
 
 #if !defined(QUILL_NO_EXCEPTIONS)
