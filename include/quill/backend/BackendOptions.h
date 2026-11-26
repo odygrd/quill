@@ -63,9 +63,9 @@ struct BackendOptions
   std::string thread_name = "QuillBackend";
 
   /**
-   * The backend employs "busy-waiting" by spinning around each frontend thread's queue.
-   * If enabled, the backend will yield when there is no remaining work, potentially
-   * reducing the OS scheduler priority for the backend.
+   * With a sleep_duration of 0 the backend busy-waits, polling each frontend thread's queue
+   * without a pause. If enabled, the backend will yield when there is no remaining work,
+   * potentially reducing the OS scheduler priority for the backend.
    * This option is effective only when sleep_duration is set to 0.
    */
   bool enable_yield_when_idle = false;
@@ -74,6 +74,10 @@ struct BackendOptions
    * Specifies the duration the backend sleeps if there is no remaining work to process in the
    * queues. Durations above 24 hours are treated as 24 hours. To sleep until woken, use a long
    * duration and call Backend::notify().
+   *
+   * On Linux each sleep also lasts up to the timer slack of the backend thread, 50 us by default,
+   * so the default 100 us sleep is about 150 us. The backend thread inherits the timer slack of the
+   * thread that calls Backend::start(), which prctl(PR_SET_TIMERSLACK) can lower beforehand.
    */
   std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
 
@@ -143,10 +147,10 @@ struct BackendOptions
    * stops deferring it once one grace period of steady time has elapsed since its first observation.
    *
    * When a poll finds nothing to write because the records in the queues wait for the grace
-   * period, the backend thread does not go idle. It checks the queues again without a pause when
-   * the grace period is shorter than `sleep_duration`, and otherwise sleeps for `sleep_duration`
-   * first. A poll that finds older records writes them instead, so a record can wait in one queue
-   * while the backend writes a backlog from another.
+   * period, the backend thread sleeps for the grace period, or for `sleep_duration` if that is
+   * shorter, before it checks the queues again. With a `sleep_duration` of 0 it checks them again
+   * without a pause. A poll that finds older records writes them instead, so a record can wait in
+   * one queue while the backend writes a backlog from another.
    *
    * The grace period is not applied while `Backend::stop()` drains the queues, nor to the records
    * of user clocks that return `TimestampType::EpochNanoseconds`, which keep their own timeline.

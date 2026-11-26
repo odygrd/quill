@@ -314,8 +314,8 @@ Windows.
   fields and dynamic metric labels. A shared library that provides the callables can then be
   unloaded, and an application that keeps running without the backend no longer holds the memory.
 - `Logger::flush_log()` also flushes the sinks of loggers that wait to be removed.
-- With a `log_timestamp_ordering_grace_period` of `sleep_duration` or longer, the backend thread
-  sleeps while records wait for the grace period instead of using a full core.
+- The backend thread sleeps while records wait for `log_timestamp_ordering_grace_period` instead of
+  using a full core, e.g. while a thread logs at a steady high rate, unless `sleep_duration` is 0.
 - `BackendOptions::sleep_duration = std::chrono::nanoseconds::max()` sleeps until
   `Backend::notify()` wakes the backend, or for at most 24 hours, instead of busy-spinning.
 - With `BackendOptions::ensure_monotonic_output_timestamps`, the records of a logger with a custom
