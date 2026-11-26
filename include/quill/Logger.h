@@ -1076,6 +1076,19 @@ private:
       return;
     }
 
+    _flush_after_log_statement(threshold);
+  }
+
+  /**
+   * Counts the log statement and flushes when the threshold is reached.
+   *
+   * It only runs after set_immediate_flush(), a debugging aid, so it is cold and out of line. The
+   * checks above are inlined into every log statement, and inlining this code with them made every
+   * call site larger and slower to compile, e.g. 83 of the 321 bytes of a LOG_INFO with two ints on
+   * MSVC /O2.
+   */
+  QUILL_NOINLINE QUILL_ATTRIBUTE_COLD void _flush_after_log_statement(uint32_t threshold)
+  {
     if (threshold == 1)
     {
       if (QUILL_LIKELY(!detail::LoggerBase::is_current_thread_backend_thread()))
