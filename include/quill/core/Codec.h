@@ -365,8 +365,12 @@ struct Codec
     }
   }
 
-  /***/
-  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
+  /**
+   * Runs only on the backend, but every file that logs compiles it, because each record stores the
+   * address of its signature's decoder. Not inlined, so that the decoders of all signatures in a
+   * file call one copy per argument type: inlining it multiplied the code and the compile time
+   */
+  QUILL_NOINLINE static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
   {
     if constexpr (std::disjunction_v<std::is_arithmetic<Arg>, std::is_enum<Arg>,
                                      std::is_same<Arg, void const*>, std::is_same<Arg, void*>>)
@@ -534,21 +538,16 @@ QUILL_ATTRIBUTE_HOT void encode(std::byte*& buffer,
    ...);
 }
 
-template <typename... Args>
-void decode_and_store_arg(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore* args_store)
-{
-  (Codec<Args>::decode_and_store_arg(buffer, args_store), ...);
-}
-
 /**
  * Decode functions
  */
 using FormatArgsDecoder = void (*)(std::byte*& data, DynamicFormatArgStore& args_store);
 
+/** Folds here: an inner function template for the fold is one more instantiation per signature */
 template <typename... Args>
-void decode_and_store_args(std::byte*& buffer, DynamicFormatArgStore& args_store)
+void decode_and_store_args(std::byte*& buffer, QUILL_MAYBE_UNUSED DynamicFormatArgStore& args_store)
 {
-  decode_and_store_arg<Args...>(buffer, &args_store);
+  (Codec<Args>::decode_and_store_arg(buffer, &args_store), ...);
 }
 
 template <typename... Args>
