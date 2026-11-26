@@ -142,6 +142,32 @@ For better compilation time in larger codebases, follow the `recommended_usage e
 
 Build your Quill setup code into a small static library once. Then, after the backend is initialized, most application code only needs the lightweight ``Logger.h`` and ``LogMacros.h`` headers.
 
+How can I make the binary smaller and use less memory?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For embedded Linux and other size-constrained deployments, each of these helps on its own:
+
+- **Compile the setup code with** ``-Os``. The backend, sinks and formatting are most of the code. In the layout of the previous question only the setup library compiles them, so give its files ``-Os`` and keep your own flags for the files that log, e.g. ``set_source_files_properties(quill_setup.cpp PROPERTIES COMPILE_OPTIONS -Os)``. Inline functions that both kinds of files use, such as the queue growth, are kept once and may come from either. If other files include ``quill/bundled/fmt/format.h``, e.g. for the formatter of a user-defined type, define ``FMTQUILL_USE_FULL_CACHE_DRAGONBOX`` to the same value for every file, because fmt otherwise picks it from ``-Os``.
+- **Define** ``FMTQUILL_USE_LOCALE=0``. The bundled fmt then formats numbers without ``std::locale``, so ``{:L}`` on a number ignores the application's locale. When libstdc++ is linked statically this can save hundreds of KB, but only if nothing else in the program uses ``std::locale`` or iostreams, such as the formatting of ``std::chrono`` types or of types with an ``operator<<``. Define it for every file that includes Quill, in the build system, e.g. with ``target_compile_definitions``.
+- **Define** ``QUILL_NO_EXCEPTIONS`` **and compile with** ``-fno-exceptions`` (``/EHs-c- /D_HAS_EXCEPTIONS=0`` with MSVC). An error that would throw ``QuillError`` then prints a message and aborts. I/O failures of the file, stream and systemd sinks on the backend thread are still reported to ``BackendOptions::error_notifier`` (see :doc:`sinks`).
+- **Let the linker remove unused code** with ``-ffunction-sections -fdata-sections`` and ``-Wl,--gc-sections`` (ELF linkers; ``-Wl,-dead_strip`` on Apple platforms).
+- **Compile out the levels you do not need** with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL`` (see :ref:`recipes`). It removes the level-specific macros such as ``LOG_INFO``, not ``LOG_DYNAMIC`` or the macro-free functions.
+- **Shorten the strings of each statement.** Each statement of a level-specific macro such as ``LOG_INFO`` stores its own ``"path:line"`` string and its function name. ``QUILL_DISABLE_FILE_INFO`` and ``QUILL_DISABLE_FUNCTION_NAME`` remove them, or ``-fmacro-prefix-map=<source dir>/=`` shortens the paths.
+- **Try** ``-O2`` **or** ``-Os`` **with GCC for code with many log statements.** At ``-O3`` GCC inlines the logging fast path into many statements, several hundred bytes each. At ``-O2`` or ``-Os`` it does so less often, and more statements become a log level check and a call of a function that all statements with the same argument types share.
+- **With MSVC**, compile the setup code with ``/O1`` instead of ``/O2`` and add ``/GL`` with ``/LTCG``. A link with ``/DEBUG``, e.g. of ``RelWithDebInfo``, turns off ``/OPT:REF,ICF`` unless you pass them.
+- **Bound the memory.** By default each logging thread has an unbounded queue that starts at ``FrontendOptions::initial_queue_capacity`` (128 KiB) and grows during bursts, and the backend buffers up to ``BackendOptions::transit_events_hard_limit`` events per logging thread. A bounded queue type with a smaller ``initial_queue_capacity``, and smaller ``BackendOptions`` transit event capacity and limits, reduce this memory, as below. A bounded queue allocates twice its capacity, and the transit limits count events, not the size of their formatted messages. The trade-offs: during a burst, a full bounded queue drops log messages (``BoundedDropping``) or blocks the logging thread (``BoundedBlocking``, except on the backend thread, e.g. in a callback, which cannot wait for itself and drops), and a log message whose encoded record is larger than the queue capacity is dropped by ``BoundedDropping``, even when the queue is empty, and makes ``BoundedBlocking`` throw ``QuillError``. Size the queue for your largest encoded record: its header plus its encoded arguments, e.g. the full length of a logged ``std::string``.
+
+.. literalinclude:: snippets/quill_docs_small_footprint.cpp
+   :language: cpp
+   :linenos:
+
+Is logging from a shared library slower?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On Linux, code compiled with ``-fPIC``, such as a shared library, can read Quill's ``thread_local`` state through a dynamic TLS lookup in every enabled log statement, e.g. a call to ``__tls_get_addr`` on x86-64. Compiling the library with ``-ftls-model=initial-exec`` avoids the lookup, but only for a library that the executable links at startup: a library loaded with ``dlopen()`` can then fail to load.
+
+With MSVC on Windows, logging from a DLL is not slower. A DLL reads Quill's ``thread_local`` state with the same instructions as an executable, without a function call, whether it is linked at startup or loaded with ``LoadLibrary()``, and needs no special compiler option. Code built with ``QUILL_DLL_IMPORT`` to use Quill from another DLL also compiles its log statements to the same code as a static build: it calls into that DLL only on slow paths, such as the first log statement of a thread or a flush.
+
 I am using Quill in tests and each test starts and stops the backend making it very slow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
