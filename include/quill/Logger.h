@@ -731,7 +731,8 @@ private:
   /**
    * Reserves space for a metric when the fast path cannot commit it directly.
    */
-  QUILL_NODISCARD QUILL_NOINLINE bool _publish_metric_noinline(MetricMetadata const* metric_metadata, double value)
+  QUILL_NODISCARD QUILL_NOINLINE QUILL_NOCLONE bool _publish_metric_noinline(MetricMetadata const* metric_metadata,
+                                                                             double value)
   {
     if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
@@ -767,8 +768,8 @@ private:
    * Computing it twice would run a DirectFormatCodec formatter twice for one log call.
    */
   template <typename... OriginalArgs>
-  QUILL_NODISCARD QUILL_NOINLINE bool _log_statement_noinline(MacroMetadata const* macro_metadata, size_t total_size,
-                                                              detail::slow_path_arg_t<OriginalArgs>... fmt_args)
+  QUILL_NODISCARD QUILL_NOINLINE QUILL_NOCLONE bool _log_statement_noinline(
+    MacroMetadata const* macro_metadata, size_t total_size, detail::slow_path_arg_t<OriginalArgs>... fmt_args)
   {
     if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
