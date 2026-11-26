@@ -94,15 +94,24 @@
 
 **Quill** is an asynchronous logging and metrics library for **C++17 and later**. It keeps formatting and I/O away from
 latency-sensitive application threads by encoding log arguments on the frontend and processing them on a dedicated
-backend worker.
+backend worker. A log call costs a few nanoseconds on the calling thread, the backend writes millions of messages per
+second, and the code that logs stays quick to compile, so detailed logging can stay in your fastest code paths.
 
 - **Low Frontend Latency**: Log arguments are encoded and queued for asynchronous processing, minimizing work on the
   calling thread. See the [latency benchmarks](#latency) for measured results and methodology.
 - **Deferred Formatting**: Expensive formatting is performed by the backend worker instead of the calling thread.
-- **Logging and Metrics**: Publish pre-registered metrics through the same asynchronous backend. The bundled Prometheus
-  sink handles common metric types, while custom sinks can route samples to StatsD, OpenTelemetry, or other collectors.
-  See the
-  [Metrics guide](https://quillcpp.readthedocs.io/en/latest/metrics.html).
+- **High Backend Throughput**: A single backend thread formats and writes millions of messages per second to files,
+  the console and custom sinks. See the [throughput benchmarks](#throughput).
+- **Fast to Compile**: Files that log include only `Logger.h` and `LogMacros.h`, log statements with the same argument
+  types share their code, and the backend is compiled in a single file of your own. See the
+  [compilation time benchmark](#compilation-time).
+- **Logs, Metrics and Data Files**: The same asynchronous backend that writes your logs also publishes pre-registered
+  [metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html), through the bundled Prometheus sink or a sink of
+  your own. It also writes [CSV files](https://quillcpp.readthedocs.io/en/latest/csv_writing.html), records
+  [raw data](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#raw-binary-file-writing) such as a market
+  data feed to files as it arrives, and writes
+  [packet captures](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#writing-pcap-files) that Wireshark
+  and tcpdump can open. See the [Use Cases](#-use-cases) for an example of each.
 - **Highly Customizable**: Tune frontend queues and memory policy at compile time; configure backend idle behaviour,
   CPU affinity, buffering, timestamp handling, flushing, and callbacks at runtime; and compose loggers from built-in or
   custom sinks with per-sink filters. See
