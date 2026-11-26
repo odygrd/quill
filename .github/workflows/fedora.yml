@@ -53,7 +53,7 @@ jobs:
           CXX: ${{matrix.cxx}}
         run: |
           cd ${{github.workspace}}/../build
-          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
+          cmake -DCMAKE_BUILD_TYPE=${{matrix.build_type}} -DCMAKE_CXX_FLAGS_DEBUG=-g1 \
                 -DCMAKE_CXX_STANDARD=${{matrix.std}} -DQUILL_BUILD_TESTS=${{matrix.with_tests}} \
                 -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
