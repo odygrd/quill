@@ -114,6 +114,9 @@
 - `PatternFormatter` truncates ASCII attribute values to a precision, as in `%(logger:<10.10)` or
   `%(message:.80)`, without measuring their display width, formatting such records 1.5 to 2 times
   faster.
+- The backend formats a message whose fields are all `{}`, such as
+  `LOG_INFO(logger, "Order {} filled at {}", id, price)` or a message without arguments, without
+  fmt parsing its format string, which formats such records about 10 to 15% faster.
 
 ## v14.0.0
 

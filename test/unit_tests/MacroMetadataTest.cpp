@@ -335,4 +335,34 @@ TEST_CASE("source_location_is_scanned_from_its_end")
   REQUIRE_STREQ(no_file_name.line(), "7");
 }
 
+TEST_CASE("has_only_empty_fields")
+{
+  auto const has_only_empty_fields = [](char const* fmt)
+  {
+    MacroMetadata const macro_metadata{
+      __FILE__ ":" QUILL_STRINGIFY(__LINE__), __FUNCTION__, fmt, nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+    return macro_metadata.has_only_empty_fields();
+  };
+
+  REQUIRE(has_only_empty_fields(""));
+  REQUIRE(has_only_empty_fields("no fields"));
+  REQUIRE(has_only_empty_fields("{}"));
+  REQUIRE(has_only_empty_fields("price: {} qty: {}{}"));
+
+  REQUIRE_FALSE(has_only_empty_fields("{0}"));
+  REQUIRE_FALSE(has_only_empty_fields("{:.2f}"));
+  REQUIRE_FALSE(has_only_empty_fields("{name}"));
+  REQUIRE_FALSE(has_only_empty_fields("{} {{escaped}}"));
+  REQUIRE_FALSE(has_only_empty_fields("{} }} escaped"));
+  REQUIRE_FALSE(has_only_empty_fields("unmatched } brace"));
+  REQUIRE_FALSE(has_only_empty_fields("{}}"));
+  REQUIRE_FALSE(has_only_empty_fields("unclosed {"));
+  REQUIRE_FALSE(has_only_empty_fields("{:{}}"));
+
+  // Named args are found as before
+  REQUIRE(MacroMetadata::contains_named_args("{:{}} {name}"));
+  REQUIRE(MacroMetadata::contains_named_args("{} {_id}"));
+  REQUIRE_FALSE(MacroMetadata::contains_named_args("{} {0} {{name}}"));
+}
+
 TEST_SUITE_END();

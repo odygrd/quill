@@ -102,7 +102,19 @@ public:
 
   QUILL_NODISCARD char const* tags() const noexcept { return _tags; }
 
-  QUILL_NODISCARD constexpr bool has_named_args() const noexcept { return _has_named_args; }
+  QUILL_NODISCARD constexpr bool has_named_args() const noexcept
+  {
+    return (_format_flags & _named_args_flag) != 0;
+  }
+
+  /**
+   * @return true if each brace of message_format() is in a "{}" field, e.g. "price: {} qty: {}" or
+   * a message without fields. Its arguments are then formatted in order without format specs
+   */
+  QUILL_NODISCARD constexpr bool has_only_empty_fields() const noexcept
+  {
+    return (_format_flags & _only_empty_fields_flag) != 0;
+  }
 
   QUILL_NODISCARD Event event() const noexcept { return _event; }
 
@@ -114,40 +126,7 @@ public:
    */
   QUILL_NODISCARD static constexpr bool contains_named_args(std::string_view fmt) noexcept
   {
-    size_t pos{0};
-
-    while (pos < fmt.length())
-    {
-      if (fmt[pos] != '{')
-      {
-        ++pos;
-        continue;
-      }
-
-      ++pos; // consume {
-      if (pos >= fmt.length())
-      {
-        break;
-      }
-
-      // first character after the {
-      char const fc = fmt[pos];
-      if (fc == '{')
-      {
-        // this means first '{' was escaped, so we ignore both of them
-        ++pos;
-        continue;
-      }
-
-      // Scan on from the first character instead of skipping to the closing '}', so a nested field
-      // such as the dynamic width in "{:{}} {name}" cannot hide a named field that follows it
-      if ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_'))
-      {
-        return true;
-      }
-    }
-
-    return false;
+    return (_scan_format(fmt) & _named_args_flag) != 0;
   }
 
 private:
@@ -170,8 +149,72 @@ private:
       _log_level(log_level),
       _event(event),
       _is_rate_limited(is_rate_limited),
-      _has_named_args(contains_named_args(message_format))
+      _format_flags(_scan_format(message_format))
   {
+  }
+
+  /** The flags that _scan_format() finds in a format string */
+  static constexpr uint8_t _named_args_flag{1u};
+  static constexpr uint8_t _only_empty_fields_flag{2u};
+
+  /**
+   * @return _named_args_flag if `fmt` contains named args, else _only_empty_fields_flag if each of
+   * its braces is in a "{}" field, else 0. Both are found in one pass: the macro-free functions
+   * construct the metadata of every record at run time
+   */
+  QUILL_NODISCARD static constexpr uint8_t _scan_format(std::string_view fmt) noexcept
+  {
+    bool has_only_empty_fields{true};
+    size_t pos{0};
+
+    while (pos < fmt.length())
+    {
+      char const c = fmt[pos];
+      ++pos;
+
+      if (c == '}')
+      {
+        // A '}' that does not close a "{}" field, escaped or not
+        has_only_empty_fields = false;
+        continue;
+      }
+
+      if (c != '{')
+      {
+        continue;
+      }
+
+      if (pos >= fmt.length())
+      {
+        return 0;
+      }
+
+      // first character after the {
+      char const fc = fmt[pos];
+      if (fc == '}')
+      {
+        ++pos;
+        continue;
+      }
+
+      has_only_empty_fields = false;
+
+      if (fc == '{')
+      {
+        // this means first '{' was escaped, so we ignore both of them
+        ++pos;
+        continue;
+      }
+
+      // Scan on from the first character instead of skipping to the closing '}', so a nested field
+      // such as the dynamic width in "{:{}} {name}" cannot hide a named field that follows it
+      if ((fc >= 'a' && fc <= 'z') || (fc >= 'A' && fc <= 'Z') || (fc == '_'))
+      {
+        return _named_args_flag;
+      }
+    }
+
+    return has_only_empty_fields ? _only_empty_fields_flag : uint8_t{0};
   }
 
   /** @return the position after the last path separator of `str`, 0 without one */
@@ -228,7 +271,7 @@ private:
   LogLevel _log_level{LogLevel::None};
   Event _event{Event::None};
   bool _is_rate_limited{false};
-  bool _has_named_args{false};
+  uint8_t _format_flags{0};
 };
 
 QUILL_END_EXPORT
