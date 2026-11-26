@@ -80,6 +80,7 @@ public:
 
     options.sleep_duration = std::chrono::nanoseconds{0};
     options.enable_yield_when_idle = false;
+    options.spin_wait_duration = std::chrono::nanoseconds{0};
     _backend_worker->_init(options);
     _allow_thread_migration = allow_thread_migration;
 
@@ -138,6 +139,9 @@ public:
     QUILL_ASSERT(_backend_worker->_options.enable_yield_when_idle == false,
                  "ManualBackendWorker::poll_one() requires init() to be called first with "
                  "enable_yield_when_idle = false");
+    QUILL_ASSERT(_backend_worker->_options.spin_wait_duration.count() == 0,
+                 "ManualBackendWorker::poll_one() requires init() to be called first with "
+                 "spin_wait_duration = 0");
     QUILL_ASSERT(
       _allow_thread_migration || (_backend_worker->_worker_thread_id.load() == detail::get_thread_id()),
       "ManualBackendWorker::poll_one() must be called from the thread that called init() unless "

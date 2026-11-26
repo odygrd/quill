@@ -7,7 +7,7 @@ Manual Backend Worker
 
 In most applications you should still prefer the normal backend thread created by :cpp:func:`Backend::start()`. Use ``ManualBackendWorker`` only when you need explicit control over the backend thread's lifecycle or polling loop.
 
-``ManualBackendWorker`` can also be used to run Quill without spawning any additional thread. Applications that already have an event loop or a policy against extra threads can drive the backend by calling ``poll_one()`` from their own thread at a cadence they choose. ``init()`` forces ``sleep_duration = 0`` and ``enable_yield_when_idle = false``, so ``poll_one()`` never sleeps or yields the calling thread — it only does work when there is work to do and returns immediately otherwise.
+``ManualBackendWorker`` can also be used to run Quill without spawning any additional thread. Applications that already have an event loop or a policy against extra threads can drive the backend by calling ``poll_one()`` from their own thread at a cadence they choose. ``init()`` forces ``sleep_duration = 0``, ``enable_yield_when_idle = false`` and ``spin_wait_duration = 0``, so ``poll_one()`` never sleeps, yields or waits on the calling thread — it only does work when there is work to do and returns immediately otherwise.
 
 Note that the frontend hot path is designed for a producer and consumer on different threads. Running both on the same thread still works, but you pay for synchronization and cache-line padding you do not need. Prefer ``Backend::start()`` if it fits your threading model.
 

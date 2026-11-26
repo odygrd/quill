@@ -39,6 +39,33 @@ TEST_CASE("backend_options_is_an_aggregate")
 #endif
 }
 
+TEST_CASE("backend_options_spin_wait_duration_defaults_to_10us")
+{
+  quill::BackendOptions const options;
+  REQUIRE_EQ(options.spin_wait_duration, std::chrono::microseconds{10});
+}
+
+TEST_CASE("validate_options_rejects_a_spin_wait_duration_outside_0_to_1ms")
+{
+#if defined(QUILL_NO_EXCEPTIONS)
+  return;
+#else
+  quill::BackendOptions options;
+
+  options.spin_wait_duration = std::chrono::nanoseconds{-1};
+  REQUIRE_THROWS_AS(BackendWorker::validate_options(options), quill::QuillError);
+
+  options.spin_wait_duration = std::chrono::microseconds{1001};
+  REQUIRE_THROWS_AS(BackendWorker::validate_options(options), quill::QuillError);
+
+  options.spin_wait_duration = std::chrono::nanoseconds{0};
+  REQUIRE_NOTHROW(BackendWorker::validate_options(options));
+
+  options.spin_wait_duration = std::chrono::milliseconds{1};
+  REQUIRE_NOTHROW(BackendWorker::validate_options(options));
+#endif
+}
+
 TEST_CASE("version_macros_match_version_constants")
 {
   static_assert(QUILL_VERSION == (QUILL_VERSION_MAJOR * 10000 + QUILL_VERSION_MINOR * 100 + QUILL_VERSION_PATCH));

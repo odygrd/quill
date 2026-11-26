@@ -151,6 +151,11 @@ public:
       QUILL_THROW(QuillError{"BackendOptions::sleep_duration must not be negative"});
     }
 
+    if ((options.spin_wait_duration.count() < 0) || (options.spin_wait_duration > std::chrono::milliseconds{1}))
+    {
+      QUILL_THROW(QuillError{"BackendOptions::spin_wait_duration must be between 0 and 1 ms"});
+    }
+
     if (options.log_timestamp_ordering_grace_period.count() < 0)
     {
       QUILL_THROW(
@@ -715,6 +720,17 @@ private:
         else if (_options.enable_yield_when_idle)
         {
           detail::yield_thread();
+        }
+        else if (_options.spin_wait_duration.count() != 0)
+        {
+          // Reading the queues again at once would keep taking their cache lines from the
+          // threads that log, see BackendOptions::spin_wait_duration
+          auto const deadline = std::chrono::steady_clock::now() + _options.spin_wait_duration;
+
+          do
+          {
+            cpu_pause();
+          } while (std::chrono::steady_clock::now() < deadline);
         }
       }
     }

@@ -63,9 +63,9 @@ struct BackendOptions
   std::string thread_name = "QuillBackend";
 
   /**
-   * With a sleep_duration of 0 the backend busy-waits, polling each frontend thread's queue
-   * without a pause. If enabled, the backend will yield when there is no remaining work,
-   * potentially reducing the OS scheduler priority for the backend.
+   * With a sleep_duration of 0 the backend does not sleep. If enabled, the backend will yield
+   * when there is no remaining work, potentially reducing the OS scheduler priority for the
+   * backend, instead of waiting for spin_wait_duration.
    * This option is effective only when sleep_duration is set to 0.
    */
   bool enable_yield_when_idle = false;
@@ -408,6 +408,17 @@ struct BackendOptions
    * Setting this option to `true` enables the check, while setting it to `false` disables it.
    */
   bool check_backend_singleton_instance = true;
+
+  /**
+   * With a sleep_duration of 0 the backend busy-waits. Each time it finds every frontend queue
+   * empty, it executes the CPU pause instruction for this duration before it reads the queues
+   * again. Reading the queues without a pause keeps taking their cache lines from the threads
+   * that log, which then wait for those lines in their next log statements. A record logged during
+   * the wait reaches the sinks up to this duration later, and Backend::notify() and Backend::stop()
+   * take effect after it. 0 reads the queues again at once, and the most is 1 ms.
+   * This option is effective only when sleep_duration is 0 and enable_yield_when_idle is false.
+   */
+  std::chrono::nanoseconds spin_wait_duration = std::chrono::microseconds{10};
 };
 
 QUILL_END_EXPORT

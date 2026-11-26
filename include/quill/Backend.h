@@ -312,8 +312,9 @@ public:
    *     required, you must manually set up the signal handler and block signals from reaching the `ManualBackendWorker` thread.
    *     See the `start<FrontendOptions>(BackendOptions, SignalHandlerOptions)` implementation for guidance on how to do this.
    *     Signal-handler logging and flushing are not supported when thread migration is enabled.
-   *   - `cpu_affinity` and `thread_name` are ignored, and `init()` forces `sleep_duration = 0` and
-   *     `enable_yield_when_idle = false`, so polling never sleeps or yields the calling thread.
+   *   - `cpu_affinity` and `thread_name` are ignored, and `init()` forces `sleep_duration = 0`,
+   *     `enable_yield_when_idle = false` and `spin_wait_duration = 0`, so polling never sleeps,
+   *     yields or waits on the calling thread.
    *   - Avoid performing very heavy tasks in your custom thread. Significant delays in calling `poll()`
    *     can lead to the SPSC queues of the frontend threads becoming full. When this happens, the
    *     frontend threads may need to allocate additional memory on the hot path.

@@ -62,6 +62,25 @@ QUILL_BEGIN_NAMESPACE
 namespace detail
 {
 /**
+ * Hints the CPU that the thread is in a spin-wait loop. On x86 the pause instruction also stops
+ * the loop from issuing loads faster than the memory subsystem can serve them
+ */
+QUILL_ATTRIBUTE_HOT inline void cpu_pause() noexcept
+{
+#if defined(_MSC_VER) && !defined(__clang__) && (defined(_M_X64) || defined(_M_IX86))
+  _mm_pause();
+#elif defined(__x86_64__) || defined(__i386__)
+  __builtin_ia32_pause();
+#elif (defined(__GNUC__) || defined(__clang__)) &&                                                 \
+  (defined(__aarch64__) || (defined(__ARM_ARCH) && (__ARM_ARCH >= 7)))
+  // ARMv6 and older have no yield instruction
+  __asm__ __volatile__("yield");
+#elif defined(_MSC_VER) && (defined(_M_ARM64) || defined(_M_ARM))
+  YieldProcessor();
+#endif
+}
+
+/**
  * Asks the CPU to start loading the cache line of `address`. It is only a hint: it does not
  * fault, and compiles to nothing where the compiler has no such instruction.
  */
