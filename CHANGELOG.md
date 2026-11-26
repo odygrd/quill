@@ -141,6 +141,8 @@ Windows.
 - The protected `FileSink::open_file()`, `close_file()` and `fsync_file()` return `bool`, which is
   `false` when the call failed in a `QUILL_NO_EXCEPTIONS` build. A class derived from `FileSink`
   that hides them must return `bool` too, to be the base of a `RotatingSink`.
+- Custom sinks that derive from `RotatingSink` and use its protected list of rotated files,
+  `_created_files`, now get a `std::vector` instead of a `std::deque`.
 - Removed `ConsoleSinkConfig::Colours::set_colours_enabled()` and `colours_enabled()`, which had no
   effect, and `PrometheusSink::Options`, which no constructor accepted. Use
   `ConsoleSinkConfig::set_colour_mode()` to disable colours.
@@ -292,7 +294,7 @@ Windows.
 - Smaller binaries with GCC when `LOG_*` statements with the same argument types, or `METRIC`, are
   used in many source files, or when one source file logs many combinations of argument types.
 - Reduced the compile time and code size of the source file that starts the backend and creates the
-  sinks.
+  sinks, more so with a `RotatingFileSink`.
 
 ### Bug Fixes
 

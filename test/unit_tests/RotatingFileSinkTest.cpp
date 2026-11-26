@@ -54,7 +54,7 @@ public:
   void reset_rename_count() { _rename_call_count = 0; }
   void expire_rotation_retry_interval() { _next_rotation_attempt = {}; }
 
-  std::deque<FileInfo> const& created_files() const { return _created_files; }
+  auto const& created_files() const { return _created_files; }
 
 protected:
   bool rename_file(fs::path const& previous_file, fs::path const& new_file) noexcept override
