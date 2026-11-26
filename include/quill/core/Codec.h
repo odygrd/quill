@@ -494,6 +494,15 @@ QUILL_NODISCARD decltype(auto) decode_element(std::byte*& buffer)
 }
 
 /**
+ * False for the types whose Codec does not use the SizeCacheVector: arithmetic types, void
+ * pointers, std::string and std::string_view
+ */
+template <typename T>
+inline constexpr bool may_use_size_cache_v =
+  !(std::is_arithmetic_v<T> || std::is_same_v<T, void const*> || std::is_same_v<T, void*> ||
+    is_std_string<T>::value || std::is_same_v<T, std::string_view>);
+
+/**
  * @brief Calculates the total size required to encode the provided arguments
 
  * @param conditional_arg_size_cache Storage to avoid repeating calculations eg. cache strlen
@@ -504,12 +513,8 @@ template <typename... Args>
 QUILL_NODISCARD QUILL_ATTRIBUTE_HOT size_t compute_encoded_size_and_cache_string_lengths(
   QUILL_MAYBE_UNUSED SizeCacheVector& conditional_arg_size_cache, Args const&... args)
 {
-  if constexpr (!std::conjunction_v<std::disjunction<std::is_arithmetic<remove_cvref_t<Args>>, std::is_same<remove_cvref_t<Args>, void const*>,
-                                                     std::is_same<remove_cvref_t<Args>, void*>, is_std_string<remove_cvref_t<Args>>,
-                                                     std::is_same<remove_cvref_t<Args>, std::string_view>>...>)
+  if constexpr ((may_use_size_cache_v<remove_cvref_t<Args>> || ...))
   {
-    // Clear the cache if any argument type is not one of:
-    // arithmetic, void*, std::string, or std::string_view.
     conditional_arg_size_cache.clear();
   }
 

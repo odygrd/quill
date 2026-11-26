@@ -50,8 +50,8 @@ public:
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
                           char const* message_format, char const* tags, LogLevel log_level,
                           Event event, bool is_rate_limited = false) noexcept
-    : MacroMetadata(std::string_view{source_location}, caller_function,
-                    std::string_view{message_format}, tags, log_level, event, is_rate_limited)
+    : MacroMetadata(_c_string_view(source_location), caller_function,
+                    _c_string_view(message_format), tags, log_level, event, is_rate_limited)
   {
   }
 
@@ -156,6 +156,23 @@ public:
   }
 
 private:
+  /**
+   * @return a view of `str`, measured with the builtin where it is a constant. The logging macros
+   * construct the metadata of each statement in a constant evaluation, where libstdc++ measures a
+   * C string with a loop that calls a function for each character. GCC cannot measure a string
+   * generated into a constexpr array with the builtin, so that one still takes the loop
+   */
+  QUILL_NODISCARD static constexpr std::string_view _c_string_view(char const* str) noexcept
+  {
+#if defined(__GNUC__) || defined(__clang__)
+    if (__builtin_constant_p(__builtin_strlen(str)))
+    {
+      return std::string_view{str, __builtin_strlen(str)};
+    }
+#endif
+    return std::string_view{str};
+  }
+
   /** The flags that _scan_format() finds in a format string */
   static constexpr uint8_t _named_args_flag{1u};
   static constexpr uint8_t _only_empty_fields_flag{2u};
@@ -167,12 +184,16 @@ private:
    */
   QUILL_NODISCARD static constexpr uint8_t _scan_format(std::string_view fmt) noexcept
   {
+    // Index the characters through a pointer: a constant evaluation calls each std::string_view
+    // member as a function, for every character of every log statement
+    char const* const data = fmt.data();
+    size_t const size = fmt.size();
     bool has_only_empty_fields{true};
     size_t pos{0};
 
-    while (pos < fmt.length())
+    while (pos < size)
     {
-      char const c = fmt[pos];
+      char const c = data[pos];
       ++pos;
 
       if (c == '}')
@@ -187,13 +208,13 @@ private:
         continue;
       }
 
-      if (pos >= fmt.length())
+      if (pos >= size)
       {
         return 0;
       }
 
       // first character after the {
-      char const fc = fmt[pos];
+      char const fc = data[pos];
       if (fc == '}')
       {
         ++pos;
@@ -223,9 +244,11 @@ private:
   /** @return the position after the last path separator of `str`, 0 without one */
   QUILL_NODISCARD static constexpr uint16_t _calc_file_name_pos(std::string_view str) noexcept
   {
+    char const* const data = str.data();
+
     for (size_t i = str.size(); i > 0; --i)
     {
-      char const cur = str[i - 1];
+      char const cur = data[i - 1];
 
       // Windows toolchains, and builds hosted on Windows, can spell source paths with either
       if ((cur == '/') || (cur == '\\'))
@@ -245,9 +268,11 @@ private:
   QUILL_NODISCARD static constexpr uint16_t _calc_colon_separator_pos(std::string_view str) noexcept
   {
     // std::string_view::rfind is only constexpr from C++20
+    char const* const data = str.data();
+
     for (size_t i = str.size(); i > 0; --i)
     {
-      char const cur = str[i - 1];
+      char const cur = data[i - 1];
 
       if (cur == ':')
       {
