@@ -290,7 +290,7 @@ Windows.
 - Reduced the compile time of `LOG_*` statements, most in source files with only a few of them, and
   their code size with clang and with MSVC at `/O2`.
 - Smaller binaries with GCC when `LOG_*` statements with the same argument types, or `METRIC`, are
-  used in many source files.
+  used in many source files, or when one source file logs many combinations of argument types.
 
 ### Bug Fixes
 
