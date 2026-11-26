@@ -120,6 +120,9 @@
 - `PatternFormatter` searches a `%(source_location)` forwards for `source_location_path_strip_prefix`
   and the relative paths that `source_location_remove_relative_paths` removes, formatting such
   records 1.2 to 1.8 times faster, more with longer source paths.
+- `JsonFileSink` and `JsonConsoleSink` check a value shorter than 8 bytes, such as a log level, a
+  line or a number, for characters to escape in one word read, formatting JSON records about 5%
+  faster.
 
 ## v14.0.0
 

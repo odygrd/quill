@@ -349,33 +349,70 @@ protected:
   }
 
   /**
+   * @return true if a byte of `word` may need an escape, see _find_json_escape_candidate(). The
+   * high bit of a byte of `candidates` is set for a byte below 0x20 and for a byte equal to one of
+   * the others, and bytes above such a byte can be set as well by a borrow
+   */
+  QUILL_NODISCARD static bool _has_json_escape_candidate(uint64_t word) noexcept
+  {
+    constexpr uint64_t ones{0x0101010101010101ull};
+    constexpr uint64_t high_bits{0x8080808080808080ull};
+
+    // Bytes equal to '"', '\\' or 0xE2 are zero in these
+    uint64_t const quote = word ^ (ones * '"');
+    uint64_t const backslash = word ^ (ones * '\\');
+    uint64_t const separator = word ^ (ones * 0xE2u);
+
+    uint64_t const candidates = ((word - (ones * 0x20u)) & ~word) | ((quote - ones) & ~quote) |
+      ((backslash - ones) & ~backslash) | ((separator - ones) & ~separator);
+
+    return (candidates & high_bits) != 0;
+  }
+
+  /**
    * @return the position of the first byte from `pos` that may need an escape: a control
    * character, '"', '\\', or 0xE2, which starts U+2028 and U+2029. `size` if there is none
    */
   QUILL_NODISCARD static size_t _find_json_escape_candidate(char const* data, size_t pos, size_t size) noexcept
   {
-    // Check 8 bytes at a time. The high bit of a byte of `candidates` is set for a byte below 0x20
-    // and for a byte equal to one of the others, and bytes above such a byte can be set as well
-    // by a borrow, so the bytes of a word with a candidate are checked one by one below
-    constexpr uint64_t ones{0x0101010101010101ull};
-    constexpr uint64_t high_bits{0x8080808080808080ull};
-
+    // Check 8 bytes at a time. The bytes of a word with a candidate are checked one by one below
     for (; (pos + sizeof(uint64_t)) <= size; pos += sizeof(uint64_t))
     {
       uint64_t word;
       std::memcpy(&word, data + pos, sizeof(word));
 
-      // Bytes equal to '"', '\\' or 0xE2 are zero in these
-      uint64_t const quote = word ^ (ones * '"');
-      uint64_t const backslash = word ^ (ones * '\\');
-      uint64_t const separator = word ^ (ones * 0xE2u);
-
-      uint64_t const candidates = ((word - (ones * 0x20u)) & ~word) | ((quote - ones) & ~quote) |
-        ((backslash - ones) & ~backslash) | ((separator - ones) & ~separator);
-
-      if ((candidates & high_bits) != 0)
+      if (_has_json_escape_candidate(word))
       {
         break;
+      }
+    }
+
+    size_t const remaining = size - pos;
+
+    if ((remaining != 0) && (remaining < sizeof(uint64_t)) && (size >= sizeof(uint32_t)))
+    {
+      // Most values, e.g. a log level, a line or a number, are shorter than a word. The bytes left
+      // are checked in one word: the last 8 bytes, or the first and the last 4 of a shorter value.
+      // It can include bytes before `pos`, and a candidate among them only means that the bytes
+      // left are checked one by one
+      uint64_t word;
+
+      if (size >= sizeof(uint64_t))
+      {
+        std::memcpy(&word, data + size - sizeof(uint64_t), sizeof(word));
+      }
+      else
+      {
+        uint32_t first;
+        uint32_t last;
+        std::memcpy(&first, data, sizeof(first));
+        std::memcpy(&last, data + size - sizeof(last), sizeof(last));
+        word = (static_cast<uint64_t>(last) << 32u) | first;
+      }
+
+      if (!_has_json_escape_candidate(word))
+      {
+        return size;
       }
     }
 
