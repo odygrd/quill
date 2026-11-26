@@ -1,4 +1,3 @@
-- [Unreleased](#unreleased)
 - [v14.0.0](#v1400)
 - [v13.1.0](#v1310)
 - [v13.0.0](#v1300)
@@ -104,25 +103,6 @@
 - [v1.2.0](#v120)
 - [v1.1.0](#v110)
 - [v1.0.0](#v100)
-
-## Unreleased
-
-### Performance
-
-- With ASCII attribute values, `PatternFormatter` formats records about three times faster in the
-  default-pattern benchmark. Custom patterns that pad ASCII attributes can also benefit.
-- `PatternFormatter` truncates ASCII attribute values to a precision, as in `%(logger:<10.10)` or
-  `%(message:.80)`, without measuring their display width, formatting such records 1.5 to 2 times
-  faster.
-- The backend formats a message whose fields are all `{}`, such as
-  `LOG_INFO(logger, "Order {} filled at {}", id, price)` or a message without arguments, without
-  fmt parsing its format string, which formats such records about 10 to 15% faster.
-- `PatternFormatter` searches a `%(source_location)` forwards for `source_location_path_strip_prefix`
-  and the relative paths that `source_location_remove_relative_paths` removes, formatting such
-  records 1.2 to 1.8 times faster, more with longer source paths.
-- `JsonFileSink` and `JsonConsoleSink` check a value shorter than 8 bytes, such as a log level, a
-  line or a number, for characters to escape in one word read, formatting JSON records about 5%
-  faster.
 
 ## v14.0.0
 
@@ -277,6 +257,9 @@ Windows.
 - Added `quill::MemberwiseCodec<T, &T::a, &T::b>`, which generates a codec from a list of data
   members.
 - Added `PatternFormatter::format(LogRecord const&)` for custom sinks that format records.
+- Added a `MacroMetadata` constructor that takes the source location and the format string as
+  `std::string_view`, for metadata that an application builds at run time from `std::string`s, e.g.
+  for `Logger::log_statement()`, so that their lengths are not measured again.
 - Added `FileSink::config()`, which returns the `FileSinkConfig` that the sink was created with.
 - `BackendOptions` is an aggregate in every language standard, so C++20 designated initializers
   such as `BackendOptions{.thread_name = "backend"}` compile.
@@ -285,8 +268,12 @@ Windows.
 
 ### Performance
 
-- Increased backend throughput for `FileSink` and `JsonFileSink`, including structured logging
-  with named arguments and records from the macro-free logging functions.
+- Increased backend throughput, in formatting log messages for every sink and in writing to
+  `FileSink`, `JsonFileSink` and `JsonConsoleSink`, including structured logging with named
+  arguments and records from the macro-free logging functions.
+- Faster `PatternFormatter` formatting of the default pattern, of patterns that pad or truncate
+  ASCII attribute values, such as `%(logger:<10.10)`, and of `%(source_location)` with
+  `source_location_path_strip_prefix` or `source_location_remove_relative_paths`.
 - The backend's cost per record grows far less with the number of idle logging threads.
 - Reduced idle backend CPU use, and contention with frontend logger lookups, in applications with
   many loggers and sinks.

@@ -232,6 +232,33 @@ TEST_CASE("message_format_size")
   REQUIRE_EQ(MacroMetadata{}.message_format_size(), 0u);
 }
 
+TEST_CASE("construct_from_strings_with_their_lengths")
+{
+  // The macro-free functions keep the strings of the metadata in std::string, whose lengths are known
+  std::string const source_location{"/project/src/order_gateway.cpp:42"};
+  std::string const message_format{"Order {} filled at {}"};
+
+  MacroMetadata const from_strings{std::string_view{source_location},
+                                   "on_fill",
+                                   std::string_view{message_format},
+                                   nullptr,
+                                   quill::LogLevel::Info,
+                                   MacroMetadata::Event::Log};
+  MacroMetadata const from_c_strings{source_location.data(), "on_fill",
+                                     message_format.data(),  nullptr,
+                                     quill::LogLevel::Info,  MacroMetadata::Event::Log};
+
+  REQUIRE_EQ(from_strings.message_format_size(), message_format.size());
+  REQUIRE_EQ(from_strings.message_format_size(), from_c_strings.message_format_size());
+  REQUIRE_EQ(from_strings.full_path(), from_c_strings.full_path());
+  REQUIRE_EQ(from_strings.file_name(), std::string_view{"order_gateway.cpp"});
+  REQUIRE_STREQ(from_strings.short_source_location(), "order_gateway.cpp:42");
+  REQUIRE_STREQ(from_strings.line(), "42");
+  REQUIRE_EQ(from_strings.has_named_args(), false);
+  REQUIRE_EQ(from_strings.has_only_empty_fields(), true);
+  REQUIRE_EQ(from_strings.is_rate_limited(), false);
+}
+
 TEST_CASE("source_location_accepts_both_separators")
 {
   // MinGW and builds hosted on Windows can spell __FILE__ with either separator
