@@ -19,6 +19,7 @@ set(EXAMPLE_TARGETS
         quill_docs_example_tags_with_custom_sink
         quill_docs_example_unbuffered_stream
         quill_docs_quick_start
+        quill_docs_small_footprint
         quill_docs_timestamp_types
         quill_docs_custom_clock
         quill_docs_immediate_flush
