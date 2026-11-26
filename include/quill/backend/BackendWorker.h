@@ -2962,6 +2962,12 @@ private:
       {
         named_args_template->build_from_values(formatted_msg, transit_event->extra_data->named_args);
       }
+      else if (transit_event->macro_metadata->has_only_empty_fields())
+      {
+        // The metadata describes message_format: only the one of named args, which it does not
+        // flag, is rewritten
+        _format_empty_fields(formatted_msg, message_format, message_format_size, user_arg_count);
+      }
       else
       {
         fmtquill::vformat_to(
@@ -2991,6 +2997,48 @@ private:
       _set_format_error_message(transit_event, formatted_msg, "Caught unhandled exception.");
     }
 #endif
+  }
+
+  /**
+   * Formats a message whose fields are all "{}" as vformat_to() does, without parsing the text
+   * between them one byte at a time: each argument is formatted with the formatter of "{}". A
+   * message with more fields than arguments is formatted by vformat_to(), which reports it
+   */
+  void _format_empty_fields(fmtquill::detail::buffer<char>& formatted_msg, char const* message_format,
+                            size_t message_format_size, int user_arg_count)
+  {
+    char const* text = message_format;
+    char const* const end = message_format + message_format_size;
+    int arg_index{0};
+
+    while (true)
+    {
+      auto const* const field =
+        static_cast<char const*>(std::memchr(text, '{', static_cast<size_t>(end - text)));
+
+      if (!field)
+      {
+        append_to_buffer(formatted_msg, std::string_view{text, static_cast<size_t>(end - text)});
+        return;
+      }
+
+      if (QUILL_UNLIKELY(arg_index == user_arg_count))
+      {
+        formatted_msg.clear();
+        fmtquill::vformat_to(
+          std::back_inserter(formatted_msg), fmtquill::string_view{message_format, message_format_size},
+          fmtquill::basic_format_args<fmtquill::format_context>{_format_args_store.data(), user_arg_count});
+        return;
+      }
+
+      append_to_buffer(formatted_msg, std::string_view{text, static_cast<size_t>(field - text)});
+      _format_args_store.data()[arg_index].visit(
+        fmtquill::detail::default_arg_formatter<char>{fmtquill::appender{formatted_msg}});
+
+      // Past the "{}" field
+      ++arg_index;
+      text = field + 2;
+    }
   }
 
   /**
