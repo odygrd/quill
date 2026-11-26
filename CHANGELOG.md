@@ -158,6 +158,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
 
 ### API and Behaviour Changes
 
+- With a `BackendOptions::sleep_duration` of 0, the backend now pauses for
+  `BackendOptions::spin_wait_duration`, 10 μs by default, each time it finds every queue empty, which
+  lowers the latency of the logging threads. Set it to 0 to read the queues again without a pause.
 - Each record in a frontend queue is padded to a multiple of 8 bytes, so a bounded queue holds a
   few fewer records with string arguments before it blocks or drops.
 - `BackendOptions::sleep_duration` defaults to 500 μs instead of 100 μs, and to 10 ms on Android,

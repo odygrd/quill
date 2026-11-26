@@ -187,7 +187,7 @@ Switching all your loggers to use the system clock eliminates that calibration o
 The backend thread consumes too much CPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (500 μs, or 10 ms on Android) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It polls the queues in a tight loop, using a full core, only when ``sleep_duration`` is 0.
+By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (500 μs, or 10 ms on Android) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It busy-waits, using a full core, only when ``sleep_duration`` is 0. Between two reads of empty queues it then executes the CPU pause instruction for :cpp:member:`BackendOptions::spin_wait_duration`, 10 μs by default, so that it does not keep taking the cache lines of the queues from the threads that log.
 
 **Solution 1: Increase the sleep duration**
 
