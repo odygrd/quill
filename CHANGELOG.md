@@ -291,6 +291,8 @@ Windows.
   their code size with clang and with MSVC at `/O2`.
 - Smaller binaries with GCC when `LOG_*` statements with the same argument types, or `METRIC`, are
   used in many source files, or when one source file logs many combinations of argument types.
+- Reduced the compile time and code size of the source file that starts the backend and creates the
+  sinks.
 
 ### Bug Fixes
 

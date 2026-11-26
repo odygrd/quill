@@ -264,7 +264,7 @@ public:
    * static text and print a stale time until the next recalculation.
    * @return the first such specifier, or empty if the format can be cached
    */
-  QUILL_NODISCARD static std::string _find_uncached_time_of_day_specifier(std::string const& timestamp_format)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static std::string _find_uncached_time_of_day_specifier(std::string const& timestamp_format)
   {
     constexpr std::string_view time_of_day_conversions{"HIklMSsTRrXc+"};
     constexpr std::string_view strftime_flags{"-_0^#"};
@@ -401,7 +401,7 @@ protected:
   }
 
   /***/
-  void _populate_pre_formatted_string_and_cached_indexes(time_t timestamp)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _populate_pre_formatted_string_and_cached_indexes(time_t timestamp)
   {
     _cached_timestamp = timestamp;
 
@@ -476,7 +476,7 @@ protected:
   }
 
   /***/
-  std::pair<std::string, std::string> static _split_timestamp_format_once(std::string& timestamp_format)
+  QUILL_ATTRIBUTE_COLD static std::pair<std::string, std::string> _split_timestamp_format_once(std::string& timestamp_format)
   {
     // don't make this static as it breaks on windows with atexit when backend worker stops
     std::array<std::string, 7> const modifiers{"%H", "%M", "%S", "%I", "%k", "%l", "%s"};

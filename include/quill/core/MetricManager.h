@@ -45,8 +45,9 @@ public:
    * `metric_key` must be unique. `metric_name` must be non-empty but does not need to be unique.
    * Throws if a metric with the same key already exists.
    */
-  QUILL_NODISCARD MetricMetadata const* create_metric(std::string const& metric_key, std::string const& metric_name,
-                                                      std::vector<MetricLabel> const& labels)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD MetricMetadata const* create_metric(std::string const& metric_key,
+                                                                           std::string const& metric_name,
+                                                                           std::vector<MetricLabel> const& labels)
   {
     _validate_key_and_name(metric_key, metric_name);
 
@@ -91,9 +92,8 @@ public:
    * and `metric_name` and `labels` are ignored. Callers that need strict matching should use
    * `create_metric()` and handle the throw themselves.
    */
-  QUILL_NODISCARD MetricMetadata const* create_or_get_metric(std::string const& metric_key,
-                                                             std::string const& metric_name,
-                                                             std::vector<MetricLabel> const& labels)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD MetricMetadata const* create_or_get_metric(
+    std::string const& metric_key, std::string const& metric_name, std::vector<MetricLabel> const& labels)
   {
     _validate_key_and_name(metric_key, metric_name);
 
@@ -122,7 +122,7 @@ public:
   /**
    * Returns the metric with `metric_key`. Throws if no such metric exists.
    */
-  QUILL_NODISCARD MetricMetadata const* get_metric(std::string const& metric_key)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD MetricMetadata const* get_metric(std::string const& metric_key)
   {
     MetricMetadata const* metric_metadata{nullptr};
     {

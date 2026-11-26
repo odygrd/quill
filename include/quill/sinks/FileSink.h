@@ -564,9 +564,10 @@ struct DiscardedErrorsScope
 class FileSink : public StreamSink
 {
 public:
-  explicit FileSink(fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
-                    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
-                    std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
+  QUILL_ATTRIBUTE_COLD explicit FileSink(
+    fs::path const& filename, FileSinkConfig const& config = FileSinkConfig{},
+    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool do_fopen = true,
+    std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : StreamSink(detail::get_updated_filename_with_appended_datetime(
                    filename, config.filename_append_option(),
                    config.append_filename_format_pattern(), config.timezone(), start_time),
@@ -585,7 +586,7 @@ public:
     }
   }
 
-  ~FileSink() override
+  QUILL_ATTRIBUTE_COLD ~FileSink() override
   {
 #if defined(QUILL_NO_EXCEPTIONS)
     // The sink can be destroyed on a thread that has no receiver for a failure, e.g. when the

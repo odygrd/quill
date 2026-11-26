@@ -51,7 +51,8 @@ private:
 
 public:
   /***/
-  explicit TimestampFormatter(std::string time_format, Timezone timestamp_timezone = Timezone::LocalTime)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE explicit TimestampFormatter(std::string time_format,
+                                                                  Timezone timestamp_timezone = Timezone::LocalTime)
     : _time_format(std::move(time_format)), _timestamp_timezone(timestamp_timezone)
   {
     QUILL_ASSERT(

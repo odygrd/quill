@@ -89,7 +89,7 @@ public:
   }
 
   /***/
-  QUILL_NODISCARD std::shared_ptr<Sink> get_sink(std::string const& sink_name) const
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Sink> get_sink(std::string const& sink_name) const
   {
     {
       LockGuard const lock{_spinlock};
@@ -116,7 +116,7 @@ public:
    * @brief get_sink() for a file sink given by path. On Windows a path can hold characters that
    * a narrow sink name, decoded with the active code page, cannot.
    */
-  QUILL_NODISCARD std::shared_ptr<Sink> get_file_sink(fs::path const& file_path) const
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD std::shared_ptr<Sink> get_file_sink(fs::path const& file_path) const
   {
     std::shared_ptr<Sink> sink = _find_file_sink(file_path);
 
@@ -183,7 +183,7 @@ public:
   }
 
   /***/
-  uint32_t cleanup_unused_sinks()
+  QUILL_ATTRIBUTE_COLD uint32_t cleanup_unused_sinks()
   {
     // this needs to take a lock each time. The backend logging thread should be carefully call
     // it only when needed
@@ -212,7 +212,7 @@ private:
    * @return the file sink that is registered for the file, or nullptr
    */
   template <typename TName>
-  QUILL_NODISCARD std::shared_ptr<Sink> _find_file_sink(TName const& requested_name) const
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD QUILL_NOINLINE std::shared_ptr<Sink> _find_file_sink(TName const& requested_name) const
   {
     // Keep a file sink alive while using its normalization code, including across DLL boundaries.
     std::shared_ptr<Sink> file_sink;
@@ -384,7 +384,8 @@ private:
    * ExistingSink::Return, so that create_sink() does not need RTTI to downcast it.
    */
   template <ExistingSink existing, typename TSink, typename... Args>
-  std::shared_ptr<TSink> _create_sink(std::string const& sink_name, fs::path const& path, Args&&... args)
+  QUILL_ATTRIBUTE_COLD std::shared_ptr<TSink> _create_sink(std::string const& sink_name,
+                                                           fs::path const& path, Args&&... args)
   {
     static_assert(std::is_base_of_v<Sink, TSink>, "TSink must derive from Sink");
 
@@ -422,9 +423,8 @@ private:
    * get a second sink while the first is constructed, and publish under the id recomputed after
    * the file is opened.
    */
-  QUILL_NODISCARD std::shared_ptr<Sink> _reserve_sink_id_for_creation(std::string const& sink_name,
-                                                                      SinkId const& sink_id, SinkId const& name_id,
-                                                                      bool id_only, bool return_existing)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD QUILL_NOINLINE std::shared_ptr<Sink> _reserve_sink_id_for_creation(
+    std::string const& sink_name, SinkId const& sink_id, SinkId const& name_id, bool id_only, bool return_existing)
   {
     while (true)
     {
@@ -505,8 +505,8 @@ private:
   }
 
   template <typename TSink, typename TStreamSink = StreamSink, typename... Args>
-  std::shared_ptr<TSink> _create_reserved_sink(SinkId const& reserved_id, SinkId const& name_id,
-                                               fs::path const& path, Args&&... args)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE std::shared_ptr<TSink> _create_reserved_sink(
+    SinkId const& reserved_id, SinkId const& name_id, fs::path const& path, Args&&... args)
   {
     std::shared_ptr<TSink> sink;
     SinkId published_id;
@@ -548,7 +548,8 @@ private:
   }
 
   template <typename TSink, typename... Args>
-  static std::shared_ptr<TSink> _create_sink_instance(QUILL_MAYBE_UNUSED fs::path const& path, Args&&... args)
+  QUILL_ATTRIBUTE_COLD static std::shared_ptr<TSink> _create_sink_instance(QUILL_MAYBE_UNUSED fs::path const& path,
+                                                                           Args&&... args)
   {
     if constexpr (_is_file_sink<TSink>)
     {
@@ -571,9 +572,9 @@ private:
   }
 
   /** `opened_file_id` is empty unless the sink opened another file than its configured path */
-  void _publish_created_sink(SinkId const& reserved_id, SinkId const& sink_id, SinkId const& name_id,
-                             SinkId const& opened_file_id, std::string const& opened_file_name,
-                             std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _publish_created_sink(
+    SinkId const& reserved_id, SinkId const& sink_id, SinkId const& name_id, SinkId const& opened_file_id,
+    std::string const& opened_file_name, std::shared_ptr<Sink> const& sink, FileSinkIdFunction file_sink_id)
   {
     QUILL_TRY
     {

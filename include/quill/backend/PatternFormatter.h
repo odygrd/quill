@@ -70,7 +70,7 @@ public:
    *
    * @throws QuillError if the format string in options is invalid
    */
-  explicit PatternFormatter(PatternFormatterOptions options)
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE explicit PatternFormatter(PatternFormatterOptions options)
     : _options(std::move(options)),
       _timestamp_formatter(_options.timestamp_pattern, _options.timestamp_timezone)
   {
@@ -318,7 +318,7 @@ private:
    * e.g. "%(time) [%(thread_id)] %(log_level:<12) - " becomes
    *   {"", Time}, {" [", ThreadId}, {"] ", LogLevel, "<12"} and the trailing literal " - "
    */
-  void _set_pattern()
+  QUILL_ATTRIBUTE_COLD QUILL_NOINLINE void _set_pattern()
   {
     std::string pattern = _options.format_pattern;
 
@@ -400,7 +400,7 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static fmtquill::format_specs _parse_format_specs(std::string_view spec)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD QUILL_NOINLINE static fmtquill::format_specs _parse_format_specs(std::string_view spec)
   {
     fmtquill::detail::dynamic_format_specs<char> specs;
 

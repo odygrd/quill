@@ -223,8 +223,8 @@ public:
    * @brief Constructor with custom ConsoleColours
    * config
    */
-  explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{},
-                       FileEventNotifier file_event_notifier = FileEventNotifier{})
+  QUILL_ATTRIBUTE_COLD explicit ConsoleSink(ConsoleSinkConfig const& config = ConsoleSinkConfig{},
+                                            FileEventNotifier file_event_notifier = FileEventNotifier{})
     : StreamSink{_validated_stream(config.stream()), nullptr,
                  config.override_pattern_formatter_options(), std::move(file_event_notifier)},
       _config(config)

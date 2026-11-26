@@ -128,10 +128,10 @@ public:
    *       not recover data discarded by an interrupted stdio buffer flush.
    * @throws QuillError if an invalid parameter is provided
    */
-  explicit StreamSink(fs::path stream, FILE* file = nullptr,
-                      std::optional<PatternFormatterOptions> const& override_pattern_formatter_options = std::nullopt,
-                      FileEventNotifier file_event_notifier = FileEventNotifier{},
-                      bool stream_is_unbuffered = false)
+  QUILL_ATTRIBUTE_COLD explicit StreamSink(
+    fs::path stream, FILE* file = nullptr,
+    std::optional<PatternFormatterOptions> const& override_pattern_formatter_options = std::nullopt,
+    FileEventNotifier file_event_notifier = FileEventNotifier{}, bool stream_is_unbuffered = false)
     : Sink(override_pattern_formatter_options),
       _filename(std::move(stream)),
       _file(file),
