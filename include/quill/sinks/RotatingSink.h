@@ -20,7 +20,6 @@
   #include <chrono>
   #include <cstdint>
   #include <ctime>
-  #include <deque>
   #include <limits>
   #include <string>
   #include <string_view>
@@ -276,9 +275,9 @@ public:
    * @throws QuillError if the directory of the file cannot be listed. The sink finds the backups
    * of previous runs there, and without them a rotation could overwrite one.
    */
-  RotatingSink(fs::path const& filename, RotatingFileSinkConfig const& config,
-               FileEventNotifier file_event_notifier = FileEventNotifier{},
-               std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
+  QUILL_ATTRIBUTE_COLD RotatingSink(fs::path const& filename, RotatingFileSinkConfig const& config,
+                                    FileEventNotifier file_event_notifier = FileEventNotifier{},
+                                    std::chrono::system_clock::time_point start_time = std::chrono::system_clock::now())
     : base_type(filename, static_cast<FileSinkConfig const&>(config),
                 std::move(file_event_notifier), false, start_time),
       _config(config)
@@ -304,7 +303,7 @@ public:
     }
 
     _open_file_timestamp = start_time_ns;
-    _created_files.emplace_front(this->_filename, 0, std::string{});
+    _created_files.emplace(_created_files.begin(), this->_filename, 0, std::string{});
 
     // Rotate an existing startup file before the initial open so mode='w' does not truncate it.
     bool const rotation_on_creation_requested =
@@ -663,7 +662,7 @@ private:
    * retry interval
    * @return false if the file was not opened
    */
-  QUILL_NODISCARD bool _open_file_after_rotation(std::string const& open_mode)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool _open_file_after_rotation(std::string const& open_mode)
   {
     if (this->open_file(this->_filename, open_mode))
     {
@@ -682,7 +681,8 @@ private:
    * A rename would replace it, which set_overwrite_rolled_files(false) does not allow
    * @return false if the file was not renamed
    */
-  QUILL_NODISCARD bool _rename_for_rotation(fs::path const& existing_file, fs::path const& renamed_file)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool _rename_for_rotation(fs::path const& existing_file,
+                                                                 fs::path const& renamed_file)
   {
     if (!_config.overwrite_rolled_files())
     {
@@ -702,7 +702,7 @@ private:
    * @return false if a rename failed and the file was reopened without rotating, or if the file
    * could not be opened again, which is only returned without exceptions
    */
-  bool _rotate_closed_file(uint64_t record_timestamp_ns)
+  QUILL_ATTRIBUTE_COLD bool _rotate_closed_file(uint64_t record_timestamp_ns)
   {
     bool rotation_succeeded = true;
 
@@ -830,7 +830,7 @@ private:
     }
 
     // add the current file back to the list with index 0
-    _created_files.emplace_front(this->_filename, 0, std::string{});
+    _created_files.emplace(_created_files.begin(), this->_filename, 0, std::string{});
 
     // Open file for logging. The new file holds what it was created with: its header, if one is
     // configured, and what after_open wrote
@@ -849,7 +849,8 @@ private:
    * @throws QuillError if the directory of the file cannot be listed. Rotation without the
    * backups that are in it could overwrite them
    */
-  void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode, uint64_t today_timestamp_ns)
+  QUILL_ATTRIBUTE_COLD void _clean_and_recover_files(fs::path const& filename, std::string const& open_mode,
+                                                     uint64_t today_timestamp_ns)
   {
     // The normalized filename is absolute in practice, so resolving against the current working
     // directory only matters for relative paths. fs::current_path() can throw when the working
@@ -945,7 +946,7 @@ private:
     {
       // we need to recover the rotated files of the previous runs, so that rotation continues
       // with the correct index and max_backup_files also counts files already on disk
-      std::deque<FileInfo> recovered_files;
+      std::vector<FileInfo> recovered_files;
       std::error_code dir_ec;
       for (fs::directory_iterator dir_it{parent_dir, dir_ec}, dir_end;
            !dir_ec && (dir_it != dir_end); dir_it.increment(dir_ec))
@@ -968,7 +969,7 @@ private:
           continue;
         }
 
-        recovered_files.emplace_front(filename, parsed_file_info.index, parsed_file_info.date_time);
+        recovered_files.emplace_back(filename, parsed_file_info.index, parsed_file_info.date_time);
       }
 
       if (dir_ec)
@@ -1019,7 +1020,7 @@ private:
    * Forgets backups that were removed or compressed outside Quill
    * @param date_time when not nullptr, only the backups named with this date and time are checked
    */
-  void _forget_missing_backups(std::string const* date_time = nullptr)
+  QUILL_ATTRIBUTE_COLD void _forget_missing_backups(std::string const* date_time = nullptr)
   {
     _created_files.erase(
       std::remove_if(_created_files.begin(), _created_files.end(),
@@ -1116,8 +1117,9 @@ private:
     return _parse_uint32(value, parsed_value) && (parsed_value <= max_backup_index);
   }
 
-  QUILL_NODISCARD bool _try_parse_rotated_file(fs::path const& base_filename, fs::path const& candidate_filename,
-                                               ParsedRotatedFileInfo& parsed_file_info) const
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD bool _try_parse_rotated_file(fs::path const& base_filename,
+                                                                    fs::path const& candidate_filename,
+                                                                    ParsedRotatedFileInfo& parsed_file_info) const
   {
     fs::path::string_type const base_extension = base_filename.extension().native();
     fs::path::string_type const base_stem = base_filename.stem().native();
@@ -1361,8 +1363,8 @@ private:
   }
 
   /***/
-  QUILL_NODISCARD static uint64_t _calculate_next_daily_rotation_tp(time_t reference_time,
-                                                                    RotatingFileSinkConfig const& config)
+  QUILL_NODISCARD QUILL_ATTRIBUTE_COLD static uint64_t _calculate_next_daily_rotation_tp(
+    time_t reference_time, RotatingFileSinkConfig const& config)
   {
     tm date;
 
@@ -1407,7 +1409,8 @@ private:
   }
 
   /***/
-  static uint64_t _calculate_initial_rotation_tp(uint64_t start_time_ns, RotatingFileSinkConfig const& config)
+  QUILL_ATTRIBUTE_COLD static uint64_t _calculate_initial_rotation_tp(uint64_t start_time_ns,
+                                                                      RotatingFileSinkConfig const& config)
   {
     time_t const time_now = _timestamp_ns_to_time_t(start_time_ns);
     tm date;
@@ -1462,8 +1465,9 @@ private:
   }
 
   /***/
-  static uint64_t _calculate_rotation_tp(uint64_t previous_rotation_tp, uint64_t record_timestamp_ns,
-                                         RotatingFileSinkConfig const& config)
+  QUILL_ATTRIBUTE_COLD static uint64_t _calculate_rotation_tp(uint64_t previous_rotation_tp,
+                                                              uint64_t record_timestamp_ns,
+                                                              RotatingFileSinkConfig const& config)
   {
     if ((config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Minutely) ||
         (config.rotation_frequency() == RotatingFileSinkConfig::RotationFrequency::Hourly))
@@ -1505,7 +1509,7 @@ private:
    * them to a greater index like the sink's own backups instead of renaming over them, so index 0
    * stays the newest backup, as append-mode recovery and backup retention expect.
    */
-  void _track_backups_with_date_time(std::string const& date_time)
+  QUILL_ATTRIBUTE_COLD void _track_backups_with_date_time(std::string const& date_time)
   {
     for (uint32_t index = 0;; ++index)
     {
@@ -1586,9 +1590,13 @@ protected:
 
   std::chrono::steady_clock::time_point _next_rotation_attempt{}; /**< Earliest retry after a failed rotation */
   std::chrono::steady_clock::time_point _next_backup_limit_check{}; /**< Earliest recheck at the backup limit */
-  std::deque<FileInfo> _created_files; /**< The files this sink created or recovered on startup */
-  uint64_t _next_rotation_time{0};     /**< The next rotation time point */
-  uint64_t _open_file_timestamp{0};    /**< The timestamp of the currently open file */
+  /**
+   * The files this sink created or recovered on startup, newest first. A std::vector, not a
+   * std::deque that compiles much more code: it only changes on a rotation or a recovery
+   */
+  std::vector<FileInfo> _created_files;
+  uint64_t _next_rotation_time{0};  /**< The next rotation time point */
+  uint64_t _open_file_timestamp{0}; /**< The timestamp of the currently open file */
   RotatingFileSinkConfig _config;
   bool _retry_rotation_after_close_failure{false};
 };
