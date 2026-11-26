@@ -9,6 +9,10 @@
 #include "quill/core/Attributes.h"
 #include "quill/core/QuillError.h"
 
+// Defines the other frontend functions that quill/core leaves to the backend. A program that logs
+// links get_thread_name() from a file with this header, so it finds them there too
+#include "quill/backend/FrontendDefinitions.h"
+
 #ifndef QUILL_MODULE
   #include <atomic>
   #include <cstdint>

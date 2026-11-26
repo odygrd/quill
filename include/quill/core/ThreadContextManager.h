@@ -39,15 +39,28 @@ namespace detail
 class TransitEventBuffer;
 class BackendWorker;
 class BackendMdcState;
+class ThreadContext;
+struct FrontendOptionsValues;
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wredundant-decls"
 #endif
 
-/** We forward declare these to avoid including ThreadUtilities.h **/
+/**
+ * Frontend functions defined in quill/backend/ThreadUtilities.h and FrontendDefinitions.h, so that
+ * they and the system headers they need are compiled with the backend instead of in every file
+ * that logs
+ */
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern std::string get_thread_name();
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern uint32_t get_thread_id() noexcept;
+
+/**
+ * Non-template implementation that owns the thread local context. This ensures that when building
+ * with shared libraries, the thread-local context is shared across all shared libraries
+ */
+QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED extern ThreadContext* get_scoped_thread_context_impl(
+  FrontendOptionsValues const& frontend_options);
 
 #if defined(__GNUC__) || defined(__clang__) || defined(__MINGW32__)
   #pragma GCC diagnostic pop
@@ -479,78 +492,6 @@ inline void check_frontend_options(FrontendOptionsValues const& frontend_options
       QuillError{"FrontendOptions differ from the ones used by the rest of the application. "
                  "Use one FrontendOptions specialization throughout the application."});
   }
-}
-
-class ScopedThreadContext
-{
-public:
-  /***/
-  explicit ScopedThreadContext(FrontendOptionsValues const& frontend_options)
-    : _thread_context(_create_thread_context(frontend_options))
-  {
-    // One thread context per thread: get_scoped_thread_context_impl() owns the only thread_local.
-    ThreadContextManager::instance().register_thread_context(_thread_context);
-  }
-
-  /***/
-  ScopedThreadContext(ScopedThreadContext const&) = delete;
-  ScopedThreadContext& operator=(ScopedThreadContext const&) = delete;
-
-  /***/
-  ~ScopedThreadContext() noexcept
-  {
-    // This destructor will get called when the thread that created this wrapper stops
-    // we will only invalidate the thread context
-    // The backend thread will empty an invalidated ThreadContext and then remove it from
-    // the ThreadContextManager
-    // There is only exception for the thread who owns the ThreadContextManager the
-    // main thread. The thread context of the main thread can get deleted before getting invalidated
-    // Count retirement before publishing invalidity: the backend may remove it immediately.
-    ThreadContextManager::instance().add_invalid_thread_context();
-    _thread_context->mark_invalid();
-  }
-
-  /***/
-  QUILL_NODISCARD QUILL_ATTRIBUTE_HOT ThreadContext* get_thread_context() const noexcept
-  {
-    QUILL_ASSERT(_thread_context,
-                 "_thread_context cannot be null in ScopedThreadContext::get_thread_context()");
-    return _thread_context.get();
-  }
-
-private:
-  /** @throws QuillError if `frontend_options` differ from the ones the application already uses */
-  static std::shared_ptr<ThreadContext> _create_thread_context(FrontendOptionsValues const& frontend_options)
-  {
-    check_frontend_options(frontend_options);
-
-    return std::make_shared<ThreadContext>(
-      frontend_options.queue_type, frontend_options.initial_queue_capacity,
-      frontend_options.unbounded_queue_max_capacity, frontend_options.huge_pages_policy);
-  }
-
-private:
-  /**<
-   * This could be unique_ptr but the thread context of main thread that owns
-   * ThreadContextManager can be destructed last even after the logger singleton destruction
-   * so we use shared_ptr */
-  std::shared_ptr<ThreadContext> _thread_context;
-};
-
-/**
- * Non-template implementation that owns the thread local context. This ensures that when building
- * with shared libraries, the thread-local context is shared across all shared libraries
- */
-QUILL_NODISCARD QUILL_EXPORT
-#ifndef QUILL_MODULE
-  inline
-#endif
-  ThreadContext*
-  get_scoped_thread_context_impl(FrontendOptionsValues const& frontend_options)
-{
-  thread_local ScopedThreadContext scoped_thread_context{frontend_options};
-
-  return scoped_thread_context.get_thread_context();
 }
 
 /***/
