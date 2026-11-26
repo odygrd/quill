@@ -117,6 +117,9 @@
 - The backend formats a message whose fields are all `{}`, such as
   `LOG_INFO(logger, "Order {} filled at {}", id, price)` or a message without arguments, without
   fmt parsing its format string, which formats such records about 10 to 15% faster.
+- `PatternFormatter` searches a `%(source_location)` forwards for `source_location_path_strip_prefix`
+  and the relative paths that `source_location_remove_relative_paths` removes, formatting such
+  records 1.2 to 1.8 times faster, more with longer source paths.
 
 ## v14.0.0
 

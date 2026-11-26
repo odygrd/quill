@@ -218,8 +218,8 @@ protected:
     {
       // Remove any relative paths (e.g., relative paths can appear when using a mounted volume under docker)
 
-      size_t const forward_slash_pos = result.rfind("../");
-      size_t const backslash_pos = result.rfind("..\\");
+      size_t const forward_slash_pos = _find_last(result, "../");
+      size_t const backslash_pos = _find_last(result, "..\\");
       size_t relative_path_pos{forward_slash_pos};
 
       bool const use_backslash_pos = (backslash_pos != std::string_view::npos) &&
@@ -239,7 +239,7 @@ protected:
     if (!strip_prefix.empty())
     {
       // Find the last occurrence of the prefix in the path
-      size_t prefix_pos = result.rfind(strip_prefix);
+      size_t prefix_pos = _find_last(result, strip_prefix);
 
       if (prefix_pos != std::string_view::npos)
       {
@@ -263,6 +263,23 @@ protected:
   }
 
 private:
+  /**
+   * @return the position of the last occurrence of `token` in `text`, or npos. Like rfind(), but
+   * the forward search skips to each occurrence of the first character of `token`, while rfind()
+   * compares the whole token at every position of a source path
+   */
+  QUILL_NODISCARD static size_t _find_last(std::string_view text, std::string_view token) noexcept
+  {
+    size_t last_pos{std::string_view::npos};
+
+    for (size_t pos = text.find(token); pos != std::string_view::npos; pos = text.find(token, pos + 1))
+    {
+      last_pos = pos;
+    }
+
+    return last_pos;
+  }
+
   /** A pre-parsed attribute and the literal text immediately preceding it. */
   struct FormatPart
   {

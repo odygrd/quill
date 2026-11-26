@@ -692,6 +692,22 @@ struct PatternFormatterMock : public PatternFormatter
   }
 };
 
+TEST_CASE("process_source_location_path_uses_last_occurrence")
+{
+  PatternFormatterMock formatter;
+
+  // The last relative path is removed, whichever separator it uses
+  REQUIRE_EQ(formatter.process_source_location_path("/a/../b/..\\c/../d/file.cpp:12", "", true),
+             std::string{"d/file.cpp:12"});
+  REQUIRE_EQ(formatter.process_source_location_path("/a/../b/../c/..\\d/file.cpp:12", "", true),
+             std::string{"d/file.cpp:12"});
+
+  // The path is stripped after the last occurrence of the prefix, which can overlap an earlier one
+  REQUIRE_EQ(formatter.process_source_location_path("/src/app/src/lib/file.cpp:7", "src", false),
+             std::string{"lib/file.cpp:7"});
+  REQUIRE_EQ(formatter.process_source_location_path("/x/aaa/file.cpp:7", "aa", false), std::string{"file.cpp:7"});
+}
+
 TEST_CASE("process_source_location_path")
 {
   PatternFormatterMock formatter;
