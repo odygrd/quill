@@ -63,9 +63,9 @@ struct BackendOptions
   std::string thread_name = "QuillBackend";
 
   /**
-   * The backend employs "busy-waiting" by spinning around each frontend thread's queue.
-   * If enabled, the backend will yield when there is no remaining work, potentially
-   * reducing the OS scheduler priority for the backend.
+   * With a sleep_duration of 0 the backend busy-waits, polling each frontend thread's queue
+   * without a pause. If enabled, the backend will yield when there is no remaining work,
+   * potentially reducing the OS scheduler priority for the backend.
    * This option is effective only when sleep_duration is set to 0.
    */
   bool enable_yield_when_idle = false;
@@ -74,6 +74,10 @@ struct BackendOptions
    * Specifies the duration the backend sleeps if there is no remaining work to process in the
    * queues. Durations above 24 hours are treated as 24 hours. To sleep until woken, use a long
    * duration and call Backend::notify().
+   *
+   * On Linux each sleep also lasts up to the timer slack of the backend thread, 50 us by default,
+   * so the default 100 us sleep is about 150 us. The backend thread inherits the timer slack of the
+   * thread that calls Backend::start(), which prctl(PR_SET_TIMERSLACK) can lower beforehand.
    */
   std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
 
