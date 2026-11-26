@@ -400,9 +400,13 @@ struct Codec
   }
 };
 
-/** Encodes the two buffers as a std::string_view of their bytes is encoded, and decodes that view */
+/**
+ * Encodes the two buffers as a std::string_view of their bytes is encoded, and decodes that view.
+ * Inherits the view's decoding: forwarding functions would not be templates in this full
+ * specialisation, so every file that includes this header would instantiate the string decoder
+ */
 template <>
-struct Codec<detail::BinaryBuffers>
+struct Codec<detail::BinaryBuffers> : Codec<std::string_view>
 {
   /***/
   QUILL_NODISCARD QUILL_ATTRIBUTE_HOT static size_t compute_encoded_size(SizeCacheVector& /* conditional_arg_size_cache */,
@@ -438,18 +442,6 @@ struct Codec<detail::BinaryBuffers>
     }
 
     buffer = buf_ptr;
-  }
-
-  /***/
-  QUILL_NODISCARD static std::string_view decode_arg(std::byte*& buffer)
-  {
-    return Codec<std::string_view>::decode_arg(buffer);
-  }
-
-  /***/
-  static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-  {
-    Codec<std::string_view>::decode_and_store_arg(buffer, args_store);
   }
 };
 
