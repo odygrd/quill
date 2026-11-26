@@ -287,8 +287,8 @@ Windows.
 - Reduced the cost of logging C strings, `std::vector`s of arithmetic values and
   `std::forward_list` values.
 - Growing an unbounded queue no longer touches every page of the new buffer on the logging thread.
-- Reduced the compile time of `LOG_*` statements, and their code size with clang and with MSVC at
-  `/O2`.
+- Reduced the compile time of `LOG_*` statements, most in source files with only a few of them, and
+  their code size with clang and with MSVC at `/O2`.
 - Smaller binaries with GCC when `LOG_*` statements with the same argument types, or `METRIC`, are
   used in many source files.
 

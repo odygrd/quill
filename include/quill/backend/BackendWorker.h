@@ -769,6 +769,13 @@ private:
 
     (void)get_thread_name();
 
+    // Keeps get_scoped_thread_context_impl() emitted with the backend, in both worker modes, for
+    // compilers without QUILL_ATTRIBUTE_USED (MSVC). The pointer must be volatile: MSVC drops an
+    // unused address and then does not emit the function, so the files that log fail to link.
+    // Not called, which would give this thread a thread context
+    auto const volatile scoped_thread_context_impl{&get_scoped_thread_context_impl};
+    (void)scoped_thread_context_impl;
+
     // Zero limits make no sense as we can't process anything; normalize them to 1
     if (_options.transit_events_hard_limit == 0)
     {
