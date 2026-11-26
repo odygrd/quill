@@ -248,7 +248,7 @@ public:
       _throw_binary_record_too_large();
     }
 
-    // A string view is encoded as its length followed by its bytes, copied with one memcpy
+    // A string view is encoded as its length followed by its bytes
     return this->log_statement(macro_metadata, std::string_view{static_cast<char const*>(data), size});
   }
 

@@ -313,6 +313,8 @@ cover rotating file sinks, signal handling, codecs and Windows.
   used in many source files, or when one source file logs many combinations of argument types.
 - Reduced the compile time and code size of the source file that starts the backend and creates the
   sinks, more so with a `RotatingFileSink`.
+- Reduced the latency of logging `std::string`, `std::string_view` and C string arguments of up to
+  64 bytes with GCC and Clang, where the logging thread now copies them without calling `memcpy`.
 
 ### Bug Fixes
 
