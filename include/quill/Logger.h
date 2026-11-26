@@ -631,6 +631,10 @@ public:
         QuillError{"logger->flush_log() cannot be called from the backend worker thread"});
     }
 
+    // The same check as log_statement()
+    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
+                 "Attempting to log with an invalidated logger");
+
     static constexpr MacroMetadata macro_metadata{
       "", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::Flush};
 
@@ -639,7 +643,7 @@ public:
 
     // We do not want to drop the message if a dropping queue is used
     uint32_t attempt{0};
-    while (!this->log_statement(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
+    while (!_enqueue_flush_event(&macro_metadata, reinterpret_cast<uintptr_t>(backend_thread_flushed_ptr)))
     {
       if constexpr (using_unbounded_queue)
       {
@@ -687,6 +691,38 @@ private:
 
       detail::sleep_for_ns(100);
     }
+
+    return true;
+  }
+
+  /**
+   * Writes the record of flush_log(), the address of the flag that the backend sets. The backend
+   * reads the address itself and calls no decoder, so this does not instantiate a
+   * log_statement<uintptr_t> in every file that logs, where flush_log() is compiled
+   */
+  QUILL_NODISCARD bool _enqueue_flush_event(MacroMetadata const* macro_metadata, uintptr_t flush_flag)
+  {
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
+    {
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    detail::ThreadContext* const thread_context = _thread_context;
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    constexpr size_t total_size = s_header_size + sizeof(flush_flag);
+
+    std::byte* const write_begin = _reserve_queue_space(queue, total_size, macro_metadata, thread_context);
+
+    if (QUILL_UNLIKELY(write_begin == nullptr))
+    {
+      return false;
+    }
+
+    std::memcpy(write_begin + s_header_size, &flush_flag, sizeof(flush_flag));
+    _encode_header(write_begin, macro_metadata, 0);
+
+    queue.finish_and_commit_write(total_size);
 
     return true;
   }
