@@ -288,6 +288,8 @@ Windows.
   `std::forward_list` values.
 - Growing an unbounded queue no longer touches every page of the new buffer on the logging thread.
 - Reduced the compile time of `LOG_*` statements, most with libstdc++ (GCC, and clang on Linux).
+- Smaller binaries with GCC when `LOG_*` statements with the same argument types, or `METRIC`, are
+  used in many source files.
 
 ### Bug Fixes
 

@@ -76,6 +76,18 @@
 #endif
 
 /**
+ * Prevents GCC from cloning a function, e.g. into a copy without its unused return value. A clone
+ * is local to its translation unit, so every translation unit that calls it would keep its own copy
+ */
+#ifndef QUILL_NOCLONE
+  #if QUILL_HAS_ATTRIBUTE(noclone)
+    #define QUILL_NOCLONE __attribute__((noclone))
+  #else
+    #define QUILL_NOCLONE
+  #endif
+#endif
+
+/**
  * Gcc hot/cold attributes
  * Tells GCC that a function is hot or cold. GCC can use this information to
  * improve static analysis, i.e. a conditional branch to a cold function
