@@ -287,6 +287,7 @@ Windows.
 - Reduced the cost of logging C strings, `std::vector`s of arithmetic values and
   `std::forward_list` values.
 - Growing an unbounded queue no longer touches every page of the new buffer on the logging thread.
+- Reduced the compile time of `LOG_*` statements, most with libstdc++ (GCC, and clang on Linux).
 
 ### Bug Fixes
 
