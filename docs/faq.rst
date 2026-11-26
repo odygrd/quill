@@ -161,7 +161,7 @@ Switching all your loggers to use the system clock eliminates that calibration o
 The backend thread consumes too much CPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the backend thread runs in a tight loop polling the queues for new messages, which can consume CPU cycles even when idle.
+By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (100 μs) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It polls the queues in a tight loop, using a full core, only when ``sleep_duration`` is 0.
 
 **Solution 1: Increase the sleep duration**
 
