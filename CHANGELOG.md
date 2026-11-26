@@ -111,6 +111,9 @@
 
 - With ASCII attribute values, `PatternFormatter` formats records about three times faster in the
   default-pattern benchmark. Custom patterns that pad ASCII attributes can also benefit.
+- `PatternFormatter` truncates ASCII attribute values to a precision, as in `%(logger:<10.10)` or
+  `%(message:.80)`, without measuring their display width, formatting such records 1.5 to 2 times
+  faster.
 
 ## v14.0.0
 

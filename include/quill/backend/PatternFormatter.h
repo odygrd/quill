@@ -458,6 +458,30 @@ private:
     return (bits & 0x8080808080808080ull) == 0;
   }
 
+  /**
+   * Writes `value` formatted with `specs`. fmt truncates a string to the precision by its display
+   * width, which it measures by decoding every code point. ASCII text is one column per byte, so an
+   * ASCII value is truncated here and fmt only pads it. Out of line, like the fmt call it replaces,
+   * so that the common path of _format() is unchanged.
+   */
+  QUILL_NOINLINE static void _write_formatted(fmtquill::appender out, std::string_view value,
+                                              fmtquill::format_specs const& specs)
+  {
+    if ((specs.precision >= 0) && (specs.type() != fmtquill::presentation_type::debug))
+    {
+      std::string_view const truncated_value = value.substr(0, static_cast<size_t>(specs.precision));
+
+      if (_is_ascii(truncated_value))
+      {
+        (void)fmtquill::detail::write_bytes<char>(
+          out, fmtquill::string_view{truncated_value.data(), truncated_value.size()}, specs);
+        return;
+      }
+    }
+
+    (void)fmtquill::detail::write<char>(out, fmtquill::string_view{value.data(), value.size()}, specs);
+  }
+
   /** Appends an ASCII `value` padded as fmt pads a string: aligned left unless specified */
   void _append_padded(std::string_view value, fmtquill::format_specs const& specs)
   {
@@ -655,8 +679,7 @@ private:
       }
       else
       {
-        (void)fmtquill::detail::write<char>(out, fmtquill::string_view{value.data(), value.size()},
-                                            part.specs);
+        _write_formatted(out, value, part.specs);
       }
     }
 

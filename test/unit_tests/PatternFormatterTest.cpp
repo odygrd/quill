@@ -1372,6 +1372,38 @@ TEST_CASE("pattern_format_specifiers_pad_past_the_buffer_capacity")
              std::string(589, ' ') + "test_logger|hello" + std::string(695, '_') + "|\n");
 }
 
+TEST_CASE("pattern_format_specifiers_truncate_to_precision")
+{
+  // ASCII values are truncated to the precision without fmt; a value with other characters in its
+  // truncated part still goes through fmt, which counts the precision in display columns
+  PatternFormatter formatter{PatternFormatterOptions{
+    "|%(logger:<6.4)|%(thread_name:.3)|%(message:*^7.5)|", "%H:%M:%S.%Qns", Timezone::GmtTime, false}};
+
+  uint64_t const ts{1579815761000023000};
+  char const* thread_id = "31341";
+  MacroMetadata macro_metadata{
+    __FILE__ ":" QUILL_STRINGIFY(__LINE__), __func__, "hello", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  std::vector<std::pair<std::string, std::string>> named_args;
+
+  std::string const ascii_logger = "test_logger";
+  auto const& ascii_buffer =
+    formatter.format(ts, thread_id, "main_thread", process_id, ascii_logger, "INFO", "I",
+                     macro_metadata, &named_args, "hello world", std::string_view{});
+  REQUIRE_EQ(fmtquill::to_string(ascii_buffer), std::string{"|test  |mai|*hello*|\n"});
+
+  // Non-ASCII within the precision of the logger and the thread name, and after it in the message
+  std::string const non_ascii_logger = "ab\xc3\xa9wxyz";
+  std::string const non_ascii_thread_name = "\xe4\xb8\xad\xe6\x96\x87";
+  std::string const non_ascii_message = "hello\xc3\xa9";
+  auto const& non_ascii_buffer =
+    formatter.format(ts, thread_id, non_ascii_thread_name, process_id, non_ascii_logger, "INFO",
+                     "I", macro_metadata, &named_args, non_ascii_message, std::string_view{});
+  REQUIRE_EQ(fmtquill::to_string(non_ascii_buffer),
+             fmtquill::format("|{:<6.4}|{:.3}|{:*^7.5}|\n", non_ascii_logger, non_ascii_thread_name,
+                              non_ascii_message));
+  REQUIRE_EQ(fmtquill::to_string(non_ascii_buffer), std::string{"|ab\xc3\xa9w  |\xe4\xb8\xad|*hello*|\n"});
+}
+
 TEST_CASE("pattern_with_literal_braces")
 {
   // Literal '{' and '}' in the format pattern must appear verbatim in the output. Previously
