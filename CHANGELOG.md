@@ -150,6 +150,10 @@ Windows.
 
 ### API and Behaviour Changes
 
+- `BackendOptions::sleep_duration` defaults to 500 μs instead of 100 μs, and to 10 ms on Android,
+  so an idle backend thread wakes up less often on a shared core and on battery-powered devices. A
+  record logged while the backend sleeps reaches the sinks when it wakes up, or at once after
+  `Backend::notify()`.
 - Creating loggers whose `FrontendOptions` values differ throws `QuillError`, as does passing
   options with other values to `Backend::start<TFrontendOptions>()` with `SignalHandlerOptions` or,
   on Windows, to `init_signal_handler<TFrontendOptions>()`. Mixing queue types previously crashed on

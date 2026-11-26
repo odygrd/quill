@@ -75,11 +75,18 @@ struct BackendOptions
    * queues. Durations above 24 hours are treated as 24 hours. To sleep until woken, use a long
    * duration and call Backend::notify().
    *
-   * On Linux each sleep also lasts up to the timer slack of the backend thread, 50 us by default,
-   * so the default 100 us sleep is about 150 us. The backend thread inherits the timer slack of the
-   * thread that calls Backend::start(), which prctl(PR_SET_TIMERSLACK) can lower beforehand.
+   * The default is 500 us, and 10 ms on Android, where each wake-up of an idle device costs
+   * battery. A record logged while the backend sleeps reaches the sinks when it wakes up.
+   *
+   * On Linux each sleep also lasts up to the timer slack of the backend thread, 50 us by default.
+   * The backend thread inherits the timer slack of the thread that calls Backend::start(), which
+   * prctl(PR_SET_TIMERSLACK) can lower beforehand.
    */
-  std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{100};
+#if defined(__ANDROID__)
+  std::chrono::nanoseconds sleep_duration = std::chrono::milliseconds{10};
+#else
+  std::chrono::nanoseconds sleep_duration = std::chrono::microseconds{500};
+#endif
 
   /**
    * The backend pops all log messages from the frontend queues and buffers them in a
