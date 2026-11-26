@@ -672,11 +672,11 @@ private:
       }
 
       // No record was read, so a queue that is not empty holds a record that waits for its grace
-      // period. A grace period of sleep_duration or longer is slept through, instead of spinning
-      // until it ends
+      // period. The backend sleeps until it can be written instead of polling without a pause,
+      // which a thread that logs at a steady rate would keep doing for as long as it logs
       bool const waiting_for_grace_period = !queues_and_events_empty &&
         (_options.sleep_duration.count() != 0) &&
-        (_options.log_timestamp_ordering_grace_period >= _options.sleep_duration);
+        (_options.log_timestamp_ordering_grace_period.count() != 0);
 
       if (queues_and_events_empty || waiting_for_grace_period)
       {
@@ -695,8 +695,15 @@ private:
           // steady_clock::now() + timeout cannot overflow, which makes wait_for() return at once
           // and turns e.g. a nanoseconds::max() "sleep until notified" setting into a busy spin.
           constexpr std::chrono::nanoseconds max_sleep_duration{std::chrono::hours{24}};
-          _wake_up_cv.wait_for(lock, (std::min)(_options.sleep_duration, max_sleep_duration),
-                               [this] { return _wake_up_flag; });
+          std::chrono::nanoseconds timeout = (std::min)(_options.sleep_duration, max_sleep_duration);
+
+          if (waiting_for_grace_period)
+          {
+            // Each record that waits is due within one grace period
+            timeout = (std::min)(timeout, std::chrono::nanoseconds{_options.log_timestamp_ordering_grace_period});
+          }
+
+          _wake_up_cv.wait_for(lock, timeout, [this] { return _wake_up_flag; });
 
           // set the flag back to false since we woke up here
           _wake_up_flag = false;

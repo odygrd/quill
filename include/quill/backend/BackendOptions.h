@@ -143,10 +143,10 @@ struct BackendOptions
    * stops deferring it once one grace period of steady time has elapsed since its first observation.
    *
    * When a poll finds nothing to write because the records in the queues wait for the grace
-   * period, the backend thread does not go idle. It checks the queues again without a pause when
-   * the grace period is shorter than `sleep_duration`, and otherwise sleeps for `sleep_duration`
-   * first. A poll that finds older records writes them instead, so a record can wait in one queue
-   * while the backend writes a backlog from another.
+   * period, the backend thread sleeps for the grace period, or for `sleep_duration` if that is
+   * shorter, before it checks the queues again. With a `sleep_duration` of 0 it checks them again
+   * without a pause. A poll that finds older records writes them instead, so a record can wait in
+   * one queue while the backend writes a backlog from another.
    *
    * The grace period is not applied while `Backend::stop()` drains the queues, nor to the records
    * of user clocks that return `TimestampType::EpochNanoseconds`, which keep their own timeline.
