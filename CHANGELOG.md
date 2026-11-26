@@ -158,6 +158,8 @@ cover rotating file sinks, signal handling, codecs and Windows.
 
 ### API and Behaviour Changes
 
+- Each record in a frontend queue is padded to a multiple of 8 bytes, so a bounded queue holds a
+  few fewer records with string arguments before it blocks or drops.
 - `BackendOptions::sleep_duration` defaults to 500 μs instead of 100 μs, and to 10 ms on Android,
   so an idle backend thread wakes up less often on a shared core and on battery-powered devices. A
   record logged while the backend sleeps reaches the sinks when it wakes up, or at once after
