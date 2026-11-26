@@ -182,8 +182,9 @@ struct TransitEvent
       function_name.assign(_safe_string(function));
       tags.assign(_safe_string(in_tags));
 
+      // The lengths of the strings are known, so the metadata does not measure them again
       macro_metadata =
-        MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
+        MacroMetadata(std::string_view{source_location}, function_name.data(), std::string_view{fmt},
                       tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log);
     }
 
@@ -192,9 +193,9 @@ struct TransitEvent
         source_location(other.source_location),
         function_name(other.function_name),
         tags(other.tags),
-        macro_metadata(source_location.data(), function_name.data(), fmt.data(),
-                       tags.empty() ? nullptr : tags.data(), other.macro_metadata.log_level(),
-                       MacroMetadata::Event::Log)
+        macro_metadata(std::string_view{source_location}, function_name.data(),
+                       std::string_view{fmt}, tags.empty() ? nullptr : tags.data(),
+                       other.macro_metadata.log_level(), MacroMetadata::Event::Log)
     {
       // Recreate macro_metadata to point to our own strings
     }
@@ -209,8 +210,8 @@ struct TransitEvent
         tags = other.tags;
 
         // Recreate macro_metadata to point to our own strings
-        macro_metadata = MacroMetadata(source_location.data(), function_name.data(), fmt.data(),
-                                       tags.empty() ? nullptr : tags.data(),
+        macro_metadata = MacroMetadata(std::string_view{source_location}, function_name.data(),
+                                       std::string_view{fmt}, tags.empty() ? nullptr : tags.data(),
                                        other.macro_metadata.log_level(), MacroMetadata::Event::Log);
       }
       return *this;

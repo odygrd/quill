@@ -129,16 +129,18 @@ public:
     return (_scan_format(fmt) & _named_args_flag) != 0;
   }
 
-private:
   /**
-   * The strings are measured once, here in the views of the public constructor. The macro-free
+   * Constructs the metadata from strings whose lengths are known, e.g. std::string, which must end
+   * with a null character as source_location() and message_format() return them as C strings.
+   *
+   * The strings are measured once, here or in the views of the other constructor. The macro-free
    * functions construct the metadata of every record at run time, where measuring a string is a
    * call to strlen() and the positions below are found from the end of the source location: the
    * file name and the line follow a path that is usually much longer than both.
    */
   constexpr MacroMetadata(std::string_view source_location, char const* caller_function,
                           std::string_view message_format, char const* tags, LogLevel log_level,
-                          Event event, bool is_rate_limited) noexcept
+                          Event event, bool is_rate_limited = false) noexcept
     : _source_location(source_location.data()),
       _caller_function(caller_function),
       _message_format(message_format.data()),
@@ -153,6 +155,7 @@ private:
   {
   }
 
+private:
   /** The flags that _scan_format() finds in a format string */
   static constexpr uint8_t _named_args_flag{1u};
   static constexpr uint8_t _only_empty_fields_flag{2u};
