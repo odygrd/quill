@@ -31,7 +31,12 @@ TEST_CASE("backend_options_is_an_aggregate")
 
   quill::BackendOptions const options{"custom_backend"};
   REQUIRE_EQ(options.thread_name, "custom_backend");
-  REQUIRE_EQ(options.sleep_duration, std::chrono::microseconds{100});
+  // The members after the one given keep their defaults
+#if defined(__ANDROID__)
+  REQUIRE_EQ(options.sleep_duration, std::chrono::milliseconds{10});
+#else
+  REQUIRE_EQ(options.sleep_duration, std::chrono::microseconds{500});
+#endif
 }
 
 TEST_CASE("version_macros_match_version_constants")

@@ -161,7 +161,7 @@ Switching all your loggers to use the system clock eliminates that calibration o
 The backend thread consumes too much CPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (100 μs) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It polls the queues in a tight loop, using a full core, only when ``sleep_duration`` is 0.
+By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (500 μs, or 10 ms on Android) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It polls the queues in a tight loop, using a full core, only when ``sleep_duration`` is 0.
 
 **Solution 1: Increase the sleep duration**
 
@@ -170,6 +170,13 @@ You can increase the backend sleep duration via :cpp:class:`BackendOptions`. The
 **Solution 2: Manual notification**
 
 For applications with infrequent logging, use a very high sleep duration and manually wake up the backend thread when you have messages to process by calling ``quill::Backend::notify()``.
+
+Logging drains the battery of a mobile device
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On a phone or another battery-powered device, how often the backend thread wakes up matters more than the CPU time it uses: each wake-up keeps the processor out of its deeper sleep states. Logging calls never wake the backend; it only wakes up after :cpp:member:`BackendOptions::sleep_duration`, which is 10 ms on Android and 500 μs on other platforms.
+
+Use a ``sleep_duration`` of tens of milliseconds or more, at the cost of records reaching the sinks, e.g. logcat, that much later. Alternatively, use a very long ``sleep_duration`` and call ``quill::Backend::notify()`` after logging, so that the backend only wakes up when there is something to write.
 
 Advanced Configuration
 -----------------------
