@@ -54,27 +54,32 @@ class LoggerManager;
 
 class BackendWorker;
 
+/**
+ * A class rather than an alias of a constexpr function call: a specialisation is instantiated once
+ * per argument type, while the call is evaluated again at each use of the alias
+ */
 template <typename Arg>
-constexpr bool can_pass_slow_path_arg_by_value() noexcept
+struct slow_path_arg
 {
+private:
   using arg_t = remove_cvref_t<Arg>;
 
   // The Microsoft x64 ABI passes 16-byte aggregates indirectly, so copying them into a
   // temporary before a noinline call is strictly worse than forwarding the existing reference.
   // System V x64 and AArch64 can pass two-word aggregates in registers.
 #if defined(_WIN32) && (defined(__x86_64__) || defined(_M_X64))
-  constexpr size_t max_by_value_size = sizeof(uintptr_t);
+  static constexpr size_t max_by_value_size = sizeof(uintptr_t);
 #else
-  constexpr size_t max_by_value_size = sizeof(uintptr_t) * 2u;
+  static constexpr size_t max_by_value_size = sizeof(uintptr_t) * 2u;
 #endif
 
-  return std::is_trivially_copyable_v<arg_t> && std::is_trivially_copy_constructible_v<arg_t> &&
-    !std::is_array_v<arg_t> && (sizeof(arg_t) <= max_by_value_size);
-}
+  static constexpr bool by_value = std::is_trivially_copyable_v<arg_t> &&
+    std::is_trivially_copy_constructible_v<arg_t> && !std::is_array_v<arg_t> &&
+    (sizeof(arg_t) <= max_by_value_size);
 
-template <typename Arg>
-using slow_path_arg_t =
-  std::conditional_t<can_pass_slow_path_arg_by_value<Arg>(), remove_cvref_t<Arg>, Arg&&>;
+public:
+  using type = std::conditional_t<by_value, arg_t, Arg&&>;
+};
 
 /**
  * @param max_size the largest value of size_t
@@ -805,7 +810,8 @@ private:
    */
   template <typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE QUILL_NOCLONE bool _log_statement_noinline(
-    MacroMetadata const* macro_metadata, size_t total_size, detail::slow_path_arg_t<OriginalArgs>... fmt_args)
+    MacroMetadata const* macro_metadata, size_t total_size,
+    typename detail::slow_path_arg<OriginalArgs>::type... fmt_args)
   {
     if (QUILL_UNLIKELY(_thread_context == nullptr))
     {
@@ -959,127 +965,134 @@ private:
                                                                       MacroMetadata const* macro_metadata,
                                                                       detail::ThreadContext* thread_context)
   {
-    std::byte* write_buffer = queue.prepare_write(total_size);
+    std::byte* const write_buffer = queue.prepare_write(total_size);
+
+    if (write_buffer != nullptr)
+    {
+      return write_buffer;
+    }
+
+    return _reserve_queue_space_when_full(queue, total_size, macro_metadata, thread_context);
+  }
+
+  /**
+   * Blocks or drops, as the queue type says, when the queue has no space for a record. Not inlined:
+   * it does not depend on the arguments, so the slow path of every signature calls this one copy
+   */
+  QUILL_NODISCARD QUILL_NOINLINE QUILL_ATTRIBUTE_COLD std::byte* _reserve_queue_space_when_full(
+    queue_t& queue, size_t total_size, MacroMetadata const* macro_metadata, detail::ThreadContext* thread_context)
+  {
+    std::byte* write_buffer{nullptr};
 
     if constexpr ((frontend_options_t::queue_type == QueueType::BoundedDropping) ||
                   (frontend_options_t::queue_type == QueueType::UnboundedDropping))
     {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      if constexpr (frontend_options_t::queue_type == QueueType::UnboundedDropping)
       {
-        if constexpr (frontend_options_t::queue_type == QueueType::UnboundedDropping)
+        if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
         {
-          if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
-          {
-            // The queue could not grow and the event does not fit in it even when empty. This
-            // includes control events, whose callers would otherwise retry forever.
-            return nullptr;
-          }
+          // The queue could not grow and the event does not fit in it even when empty. This
+          // includes control events, whose callers would otherwise retry forever.
+          return nullptr;
         }
+      }
 
-        // Not enough space to push: bump the shared failure counter for log, binary and metric
-        // drops so that none silently disappears. They reuse the existing counter rather than
-        // adding parallel ones; the error-notifier message reflects the combined count.
-        // Internal control events (flush, mdc updates, backtrace control, logger removal) are
-        // not counted: their callers retry in a loop until the event is enqueued, so a failed
-        // attempt would report a phantom drop for an event that is eventually delivered
-        MacroMetadata::Event const event = macro_metadata->event();
+      // Not enough space to push: bump the shared failure counter for log, binary and metric
+      // drops so that none silently disappears. They reuse the existing counter rather than
+      // adding parallel ones; the error-notifier message reflects the combined count.
+      // Internal control events (flush, mdc updates, backtrace control, logger removal) are
+      // not counted: their callers retry in a loop until the event is enqueued, so a failed
+      // attempt would report a phantom drop for an event that is eventually delivered
+      MacroMetadata::Event const event = macro_metadata->event();
 
-        if ((event == MacroMetadata::Event::Log) ||
-            (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
-            (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
-            (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
-            (event == MacroMetadata::Event::Metric) ||
-            (event == MacroMetadata::Event::DynamicMetric) || (event == MacroMetadata::Event::Binary))
+      if ((event == MacroMetadata::Event::Log) || (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
+          (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
+          (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
+          (event == MacroMetadata::Event::Metric) ||
+          (event == MacroMetadata::Event::DynamicMetric) || (event == MacroMetadata::Event::Binary))
+      {
+        thread_context->increment_failure_counter();
+      }
+      else if constexpr (frontend_options_t::queue_type == QueueType::BoundedDropping)
+      {
+        if (QUILL_UNLIKELY(total_size > queue.capacity()))
         {
-          thread_context->increment_failure_counter();
-        }
-        else if constexpr (frontend_options_t::queue_type == QueueType::BoundedDropping)
-        {
-          if (QUILL_UNLIKELY(total_size > queue.capacity()))
-          {
-            QUILL_THROW(
-              QuillError{"Control event size exceeds the configured bounded queue capacity: " +
-                         std::to_string(total_size) + " > " + std::to_string(queue.capacity())});
-          }
+          QUILL_THROW(
+            QuillError{"Control event size exceeds the configured bounded queue capacity: " +
+                       std::to_string(total_size) + " > " + std::to_string(queue.capacity())});
         }
       }
     }
     else if constexpr (frontend_options_t::queue_type == QueueType::BoundedBlocking)
     {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      if (QUILL_UNLIKELY(total_size > queue.capacity()))
       {
-        if (QUILL_UNLIKELY(total_size > queue.capacity()))
-        {
-          QUILL_THROW(
-            QuillError{"Logging a single message larger than the configured bounded "
-                       "queue capacity is not possible.\n"
-                       "Message size: " +
-                       std::to_string(total_size) +
-                       " bytes\n"
-                       "Configured bounded queue capacity: " +
-                       std::to_string(queue.capacity()) + " bytes"});
-        }
-
-        if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-        {
-          // The backend is the only consumer of this queue, so waiting here would self-deadlock.
-          // Do not increment the failure counter: reporting this drop through error_notifier could
-          // recursively fill the same queue.
-          return nullptr;
-        }
-
-        // Both log and metric events bump the counter; blocked events are reported as blocking
-        // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
-        (void)macro_metadata;
-        thread_context->increment_failure_counter();
-
-        do
-        {
-          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
-          {
-            detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
-          }
-
-          // not enough space to push to queue, keep trying
-          write_buffer = queue.prepare_write(total_size);
-        } while (write_buffer == nullptr);
+        QUILL_THROW(
+          QuillError{"Logging a single message larger than the configured bounded "
+                     "queue capacity is not possible.\n"
+                     "Message size: " +
+                     std::to_string(total_size) +
+                     " bytes\n"
+                     "Configured bounded queue capacity: " +
+                     std::to_string(queue.capacity()) + " bytes"});
       }
+
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
+      {
+        // The backend is the only consumer of this queue, so waiting here would self-deadlock.
+        // Do not increment the failure counter: reporting this drop through error_notifier could
+        // recursively fill the same queue.
+        return nullptr;
+      }
+
+      // Both log and metric events bump the counter; blocked events are reported as blocking
+      // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
+      (void)macro_metadata;
+      thread_context->increment_failure_counter();
+
+      do
+      {
+        if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
+        {
+          detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
+        }
+
+        // not enough space to push to queue, keep trying
+        write_buffer = queue.prepare_write(total_size);
+      } while (write_buffer == nullptr);
     }
     else if constexpr (frontend_options_t::queue_type == QueueType::UnboundedBlocking)
     {
-      if (QUILL_UNLIKELY(write_buffer == nullptr))
+      if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
       {
-        if (QUILL_UNLIKELY(detail::LoggerBase::is_current_thread_backend_thread()))
-        {
-          // The backend is the only consumer of this queue, so waiting here would self-deadlock.
-          // Do not increment the failure counter: reporting this drop through error_notifier could
-          // recursively fill the same queue.
-          return nullptr;
-        }
-
-        if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
-        {
-          // The queue could not grow and the event does not fit in it even when empty, so waiting
-          // for the backend to drain it would never end.
-          return nullptr;
-        }
-
-        // Both log and metric events bump the counter; blocked events are reported as blocking
-        // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
-        (void)macro_metadata;
-        thread_context->increment_failure_counter();
-
-        do
-        {
-          if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
-          {
-            detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
-          }
-
-          // not enough space to push to queue, keep trying
-          write_buffer = queue.prepare_write(total_size);
-        } while (write_buffer == nullptr);
+        // The backend is the only consumer of this queue, so waiting here would self-deadlock.
+        // Do not increment the failure counter: reporting this drop through error_notifier could
+        // recursively fill the same queue.
+        return nullptr;
       }
+
+      if (QUILL_UNLIKELY(thread_context->drop_event_if_larger_than_queue(total_size, queue.producer_capacity())))
+      {
+        // The queue could not grow and the event does not fit in it even when empty, so waiting
+        // for the backend to drain it would never end.
+        return nullptr;
+      }
+
+      // Both log and metric events bump the counter; blocked events are reported as blocking
+      // occurrences, so unlike the dropping-queue branch no control-event exclusion is needed.
+      (void)macro_metadata;
+      thread_context->increment_failure_counter();
+
+      do
+      {
+        if constexpr (frontend_options_t::blocking_queue_retry_interval_ns > 0)
+        {
+          detail::sleep_for_ns(frontend_options_t::blocking_queue_retry_interval_ns);
+        }
+
+        // not enough space to push to queue, keep trying
+        write_buffer = queue.prepare_write(total_size);
+      } while (write_buffer == nullptr);
     }
 
     return write_buffer;
