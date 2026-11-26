@@ -20,6 +20,8 @@ on:
       - 'docs/**'
       - 'scripts/**'
 
+# Each job builds every test and example although it runs only multi_frontend_threads: the build
+# checks that the whole tree compiles on that BSD. Do not limit it to the tests that are run.
 jobs:
   FreeBSD:
     runs-on: ubuntu-latest

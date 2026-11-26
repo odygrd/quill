@@ -64,7 +64,7 @@ jobs:
           CXX: icpx
         run: |
           cd ${{ github.workspace }}/../build
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_STANDARD=${{ matrix.std }} -DQUILL_BUILD_TESTS=${{ matrix.with_tests }} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS_DEBUG="-O0 -g1" -DCMAKE_CXX_STANDARD=${{ matrix.std }} -DQUILL_BUILD_TESTS=${{ matrix.with_tests }} -DQUILL_BUILD_EXAMPLES=ON -DQUILL_VERBOSE_MAKEFILE=ON $GITHUB_WORKSPACE
 
       - name: Build
         run: |

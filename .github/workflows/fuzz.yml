@@ -78,7 +78,7 @@ jobs:
         working-directory: ${{github.workspace}}/../build
         run: |
           threads=`nproc`
-          cmake --build . --config Release --parallel $threads
+          cmake --build . --config Release --target ${{ matrix.fuzzer }} --parallel $threads
 
       - name: Run fuzzer ${{ matrix.fuzzer }}
         working-directory: ${{github.workspace}}/..
