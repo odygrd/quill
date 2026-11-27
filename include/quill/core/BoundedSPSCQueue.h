@@ -21,6 +21,10 @@
   #include <sys/mman.h>
 #endif
 
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64)
+  #include <intrin.h>
+#endif
+
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
@@ -39,6 +43,54 @@ namespace detail
 QUILL_NODISCARD constexpr size_t align_queue_record_size(size_t n) noexcept
 {
   return (n + 7u) & ~static_cast<size_t>(7u);
+}
+
+/** Records larger than this request their cache lines before they are encoded, see
+ * prefetch_record_for_write() */
+inline constexpr size_t prefetched_record_min_size{256};
+
+/**
+ * Prefetches a cache line with write intent. GCC and Clang emit a read prefetch for
+ * __builtin_prefetch(ptr, 1) unless the target enables PRFCHW, so x86 uses the instruction
+ * directly on x86-64, where CPUs without PREFETCHW execute it as a NOP
+ */
+QUILL_ATTRIBUTE_HOT inline void prefetch_for_write(QUILL_MAYBE_UNUSED void const* ptr) noexcept
+{
+#if defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64)
+  _m_prefetchw(const_cast<void*>(ptr));
+#elif (defined(__GNUC__) || defined(__clang__)) && defined(__x86_64__)
+  __asm__ __volatile__("prefetchw %0" : : "m"(*static_cast<char const*>(ptr)));
+#elif defined(__GNUC__) || defined(__clang__)
+  // 32-bit x86 CPUs without PREFETCHW may not treat it as a NOP, the builtin follows the target
+  __builtin_prefetch(ptr, 1, 3);
+#endif
+}
+
+/**
+ * Requests write ownership of the cache lines of a reserved queue record before it is encoded.
+ *
+ * The consumer has read every line of the queue, so each line that the producer writes again has
+ * to be fetched from the consumer's core first. The L2 hardware prefetcher usually does this ahead
+ * of the writes, but it stops doing it for a queue whose pages it has recently seen, e.g. a 128 KiB
+ * queue of 32 pages on Golden Cove. The stores of a large record then wait for their lines one
+ * after the other and fill the store buffer. Requesting the lines first fetches them in parallel.
+ * Only the first 32 lines are requested. Not inlined: the loop would make every call site of a
+ * signature with a string or a container larger, and the call costs little next to such a record
+ */
+QUILL_NOINLINE inline void prefetch_record_for_write(std::byte* record, size_t size) noexcept
+{
+  constexpr uintptr_t cache_line{64};
+  constexpr size_t max_prefetched_bytes{32u * cache_line};
+
+  // The first line is written as soon as encoding starts, a request for it would not be ahead
+  uintptr_t line = (reinterpret_cast<uintptr_t>(record) & ~(cache_line - 1u)) + cache_line;
+  uintptr_t const end =
+    reinterpret_cast<uintptr_t>(record) + ((size < max_prefetched_bytes) ? size : max_prefetched_bytes);
+
+  for (; line < end; line += cache_line)
+  {
+    prefetch_for_write(reinterpret_cast<void const*>(line));
+  }
 }
 
 /**

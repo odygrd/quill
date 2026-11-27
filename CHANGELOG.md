@@ -320,6 +320,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
   sinks, more so with a `RotatingFileSink`.
 - Reduced the latency of logging `std::string`, `std::string_view` and C string arguments of up to
   64 bytes with GCC and Clang, where the logging thread now copies them without calling `memcpy`.
+- Log statements whose record takes more than 256 bytes of the queue, such as one with a
+  `std::vector<std::string>`, request the record's cache lines before writing it, which lowers their
+  latency, most with the default 128 KiB queue.
 
 ### Bug Fixes
 
