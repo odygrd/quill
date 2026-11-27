@@ -75,9 +75,12 @@ Quill offers two logging interfaces:
 
 The **macro-based approach** is the recommended and default method because it offers lower latency and function arguments are only evaluated when the log level is active.
 
-The **macro-free mode** offers cleaner syntax but comes with performance trade-offs.
+The **macro-free mode** offers cleaner syntax. With C++20 and a string literal format string it is
+close to the macros in speed. In C++17, or with a runtime format string or tags, it copies the format
+string on every call, which costs more.
 
-For performance-critical code paths, use the macro-based interface. For less critical paths where code clarity is preferred, macro-free mode is acceptable.
+For performance-critical code paths, use the macro-based interface. For less critical paths where
+code clarity is preferred, macro-free mode is acceptable.
 
 What happens if my format string is invalid?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -1,8 +1,8 @@
 #include "doctest/doctest.h"
 
 #include "misc/DocTestExtensions.h"
+#include "quill/LogFunctions.h"
 #include "quill/LogMacros.h"
-#include "quill/core/Common.h"
 #include "quill/core/MacroMetadata.h"
 
 TEST_SUITE_BEGIN("MacroMetadata");
@@ -421,6 +421,143 @@ TEST_CASE("has_only_empty_fields")
   REQUIRE(MacroMetadata::contains_named_args("{:{}} {name}"));
   REQUIRE(MacroMetadata::contains_named_args("{} {_id}"));
   REQUIRE_FALSE(MacroMetadata::contains_named_args("{} {0} {{name}}"));
+}
+
+TEST_CASE("static_runtime_metadata_packs_the_facts_of_a_call")
+{
+  StaticRuntimeMetadata const largest{
+    "fmt", "file", "function",
+    StaticRuntimeMetadata::pack(StaticRuntimeMetadata::max_line, StaticRuntimeMetadata::max_fmt_len,
+                                StaticRuntimeMetadata::max_file_len,
+                                StaticRuntimeMetadata::max_file_name_pos, 3u)};
+
+  REQUIRE_EQ(largest.line(), StaticRuntimeMetadata::max_line);
+  REQUIRE_EQ(largest.fmt_len(), StaticRuntimeMetadata::max_fmt_len);
+  REQUIRE_EQ(largest.file_len(), StaticRuntimeMetadata::max_file_len);
+  REQUIRE_EQ(largest.file_name_pos(), StaticRuntimeMetadata::max_file_name_pos);
+  REQUIRE_EQ(largest.format_flags(), 3u);
+
+  StaticRuntimeMetadata const small{"fmt", "file", "function", StaticRuntimeMetadata::pack(42, 9, 18, 9, 2u)};
+
+  REQUIRE_EQ(small.line(), 42u);
+  REQUIRE_EQ(small.fmt_len(), 9u);
+  REQUIRE_EQ(small.file_len(), 18u);
+  REQUIRE_EQ(small.file_name_pos(), 9u);
+  REQUIRE_EQ(small.format_flags(), 2u);
+
+  // An empty format string has only empty fields, so a packed value is never 0
+  REQUIRE_NE(StaticRuntimeMetadata::pack(0, 0, 0, 0, 2u), 0u);
+}
+
+TEST_CASE("static_runtime_metadata_does_not_pack_a_fact_above_its_maximum")
+{
+  // The call then copies its format string and source location
+  REQUIRE_EQ(StaticRuntimeMetadata::pack(StaticRuntimeMetadata::max_line + 1u, 9, 18, 9, 2u), 0u);
+  REQUIRE_EQ(StaticRuntimeMetadata::pack(42, StaticRuntimeMetadata::max_fmt_len + 1u, 18, 9, 2u), 0u);
+  REQUIRE_EQ(StaticRuntimeMetadata::pack(42, 9, StaticRuntimeMetadata::max_file_len + 1u, 9, 2u), 0u);
+  REQUIRE_EQ(StaticRuntimeMetadata::pack(42, 9, 18, StaticRuntimeMetadata::max_file_name_pos + 1u, 2u), 0u);
+}
+
+#define QUILL_TEST_DIR_10 "directory/"
+#define QUILL_TEST_DIR_100                                                                         \
+  QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10        \
+    QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10 QUILL_TEST_DIR_10
+#define QUILL_TEST_DIR_1000                                                                        \
+  QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100   \
+    QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100 QUILL_TEST_DIR_100
+
+TEST_CASE("literal_format_string_facts")
+{
+#if defined(__cpp_consteval) && (__cpp_consteval >= 201811L)
+  static constexpr FormatString literal{"Request {} done",
+                                        SourceLocation{"/src/app/parse.cpp", "on_read", 42}};
+  REQUIRE_STREQ(literal.metadata.fmt, "Request {} done");
+  REQUIRE_STREQ(literal.metadata.file, "/src/app/parse.cpp");
+  REQUIRE_STREQ(literal.metadata.function, "on_read");
+  REQUIRE_EQ(literal.line, 42u);
+  REQUIRE_EQ(literal.metadata.line(), 42u);
+  REQUIRE_EQ(literal.metadata.fmt_len(), 15u);
+  REQUIRE_EQ(literal.metadata.file_len(), 18u);
+  REQUIRE_EQ(literal.metadata.file_name_pos(), 9u);
+
+  // The flags are the ones of the metadata of a macro
+  static constexpr MacroMetadata named_args_metadata{
+    "f.cpp:1", "", "{name} {}", nullptr, LogLevel::Info, MacroMetadata::Event::Log};
+  static constexpr FormatString named_args{"{name} {}", SourceLocation{"f.cpp", "", 1}};
+  REQUIRE_EQ(named_args.metadata.format_flags(), named_args_metadata.format_flags());
+  REQUIRE_EQ(FormatString{"{} {}", SourceLocation{"f.cpp", "", 1}}.metadata.format_flags(),
+             literal.metadata.format_flags());
+  REQUIRE_EQ(FormatString{"{:>5}", SourceLocation{"f.cpp", "", 1}}.metadata.format_flags(), 0u);
+
+  // A constexpr array is measured to its null character
+  static constexpr char array_format[32]{"Array {}"};
+  REQUIRE_EQ(FormatString{array_format, SourceLocation{"f.cpp", "", 1}}.metadata.fmt_len(), 8u);
+
+  // Windows paths
+  REQUIRE_EQ(FormatString{"x", SourceLocation{"C:\\src\\parse.cpp", "", 1}}.metadata.file_name_pos(), 7u);
+
+  // Without file info
+  static constexpr FormatString no_file_info{"", SourceLocation{"", "", 0}};
+  REQUIRE_NE(no_file_info.metadata.packed, 0u);
+  REQUIRE_EQ(no_file_info.metadata.file_len(), 0u);
+  REQUIRE_EQ(no_file_info.metadata.line(), 0u);
+#endif
+}
+
+/** A text of N characters in an array of N + 1, for the limit on the length of a format string */
+template <size_t N>
+struct Text
+{
+  char data[N + 1];
+};
+
+template <size_t N>
+constexpr Text<N> make_text() noexcept
+{
+  Text<N> text{};
+  for (size_t i = 0; i < N; ++i)
+  {
+    text.data[i] = 'x';
+  }
+  return text;
+}
+
+TEST_CASE("literal_format_string_is_copied_when_its_call_site_does_not_fit")
+{
+#if defined(__cpp_consteval) && (__cpp_consteval >= 201811L)
+  // The limits themselves fit
+  REQUIRE_NE(
+    FormatString{"x", SourceLocation{"f.cpp", "", StaticRuntimeMetadata::max_line}}.metadata.packed, 0u);
+
+  // The line of generated code, which is kept for the copy
+  static constexpr FormatString large_line{
+    "x", SourceLocation{"f.cpp", "", StaticRuntimeMetadata::max_line + 1u}};
+  REQUIRE_EQ(large_line.metadata.packed, 0u);
+  REQUIRE_EQ(large_line.line, StaticRuntimeMetadata::max_line + 1u);
+
+  // A file name that starts after more than 4,095 bytes of directories
+  static constexpr char long_directory[] =
+    QUILL_TEST_DIR_1000 QUILL_TEST_DIR_1000 QUILL_TEST_DIR_1000 QUILL_TEST_DIR_1000 QUILL_TEST_DIR_100
+    "parse.cpp";
+  REQUIRE_EQ(FormatString{"x", SourceLocation{long_directory, "", 1}}.metadata.packed, 0u);
+
+  // A ':' in the file name, which would end the path of the metadata before it
+  REQUIRE_EQ(FormatString{"x", SourceLocation{"src/parse:v2.cpp", "", 1}}.metadata.packed, 0u);
+
+  // A format string longer than 65,535 bytes is copied. What counts is the length of the text, so a
+  // short one in a larger array is packed
+  static constexpr auto longest_packed = make_text<StaticRuntimeMetadata::max_fmt_len>();
+  static constexpr auto too_long = make_text<StaticRuntimeMetadata::max_fmt_len + 1u>();
+  static constexpr char short_in_large_array[StaticRuntimeMetadata::max_fmt_len + 2u]{"x"};
+  REQUIRE_NE(FormatString{longest_packed.data, SourceLocation{"f.cpp", "", 1}}.metadata.packed, 0u);
+  REQUIRE_EQ(FormatString{too_long.data, SourceLocation{"f.cpp", "", 1}}.metadata.packed, 0u);
+  REQUIRE_NE(FormatString{short_in_large_array, SourceLocation{"f.cpp", "", 1}}.metadata.packed, 0u);
+#endif
+
+  // A format string that is not a literal, and every one in C++17
+  char const* const runtime_format = "x";
+  REQUIRE_EQ(FormatString{runtime_format, SourceLocation{"f.cpp", "", 1}}.metadata.packed, 0u);
+  REQUIRE_EQ(FormatString{runtime_format, SourceLocation{"f.cpp", "", 1}}.line, 1u);
 }
 
 TEST_SUITE_END();

@@ -94,6 +94,63 @@ QUILL_NODISCARD constexpr uint64_t max_binary_record_size(uint64_t max_size, uin
   uint64_t const max_reservable = max_size - queue_header_size - sizeof(uint32_t);
   return (max_reservable < max_encoded_length) ? max_reservable : max_encoded_length;
 }
+
+/** Writes the size - 1 bytes of `str`, which may be nullptr, and a null character */
+QUILL_ATTRIBUTE_HOT inline void encode_c_string(std::byte*& buffer, char const* str, uint32_t size) noexcept
+{
+  if (QUILL_LIKELY(str != nullptr))
+  {
+    std::memcpy(buffer, str, size - 1u);
+  }
+
+  buffer[size - 1u] = std::byte{'\0'};
+  buffer += size;
+}
+
+/**
+ * Writes the fields of `metadata` at their offsets. A copy of the whole struct can take a vector
+ * register, and its size and padding depend on the ABI, e.g. it is 20 bytes on 32-bit x86
+ */
+QUILL_ATTRIBUTE_HOT inline void encode_static_runtime_metadata(std::byte*& buffer,
+                                                               detail::StaticRuntimeMetadata const& metadata) noexcept
+{
+  std::memcpy(buffer + offsetof(detail::StaticRuntimeMetadata, fmt), &metadata.fmt, sizeof(metadata.fmt));
+  std::memcpy(buffer + offsetof(detail::StaticRuntimeMetadata, file), &metadata.file,
+              sizeof(metadata.file));
+  std::memcpy(buffer + offsetof(detail::StaticRuntimeMetadata, function), &metadata.function,
+              sizeof(metadata.function));
+  std::memcpy(buffer + offsetof(detail::StaticRuntimeMetadata, packed), &metadata.packed,
+              sizeof(metadata.packed));
+  buffer += sizeof(detail::StaticRuntimeMetadata);
+}
+
+/**
+ * Writes the metadata of a MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy record as the
+ * backend decodes it with Codec: the format string with its null character, the file and the
+ * function pointers, the tags with their null character, the line and the log level
+ * @param fmt_size the length of `fmt` plus one, as is tags_size of `tags`
+ */
+QUILL_ATTRIBUTE_HOT inline void encode_hybrid_copy_metadata(std::byte*& buffer, char const* fmt, uint32_t fmt_size,
+                                                            char const* file, char const* function,
+                                                            char const* tags, uint32_t tags_size,
+                                                            uint32_t line, LogLevel log_level) noexcept
+{
+  encode_c_string(buffer, fmt, fmt_size);
+
+  void const* const file_ptr = file;
+  void const* const function_ptr = function;
+  std::memcpy(buffer, &file_ptr, sizeof(file_ptr));
+  buffer += sizeof(file_ptr);
+  std::memcpy(buffer, &function_ptr, sizeof(function_ptr));
+  buffer += sizeof(function_ptr);
+
+  encode_c_string(buffer, tags, tags_size);
+
+  std::memcpy(buffer, &line, sizeof(line));
+  buffer += sizeof(line);
+  std::memcpy(buffer, &log_level, sizeof(log_level));
+  buffer += sizeof(log_level);
+}
 } // namespace detail
 
 QUILL_BEGIN_EXPORT
@@ -156,7 +213,8 @@ public:
     QUILL_ASSERT(
       macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy &&
         macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy &&
-        macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy,
+        macro_metadata->event() != MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy &&
+        macro_metadata->event() != MacroMetadata::Event::LogWithStaticRuntimeMetadata,
       "log_statement() should not be called with MacroMetadata::Event::LogWithRuntimeMetadata");
 
     QUILL_ASSERT(_valid.load(std::memory_order_acquire),
@@ -169,7 +227,7 @@ public:
     {
       if (_clock_source != ClockSourceType::Tsc)
       {
-        return _log_statement_noinline<Args...>(macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+        return _log_statement_noinline<Args...>(macro_metadata, 0, nullptr, static_cast<Args&&>(fmt_args)...);
       }
     }
 
@@ -177,7 +235,7 @@ public:
 
     if (QUILL_UNLIKELY(thread_context == nullptr))
     {
-      return _log_statement_noinline<Args...>(macro_metadata, 0, static_cast<Args&&>(fmt_args)...);
+      return _log_statement_noinline<Args...>(macro_metadata, 0, nullptr, static_cast<Args&&>(fmt_args)...);
     }
 
     queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
@@ -191,7 +249,8 @@ public:
     if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
     {
       // Pass the computed size: the size cache already holds this call's encoded arguments
-      return _log_statement_noinline<Args...>(macro_metadata, total_size, static_cast<Args&&>(fmt_args)...);
+      return _log_statement_noinline<Args...>(macro_metadata, total_size, nullptr,
+                                              static_cast<Args&&>(fmt_args)...);
     }
 
     if (total_size > detail::prefetched_record_min_size)
@@ -441,6 +500,159 @@ public:
   }
 
   /**
+   * Push a log message of the macro-free functions, see LogFunctions.h, to the spsc queue to be
+   * logged by the backend thread.
+   *
+   * @note This function is thread-safe.
+   * @param log_level Severity level of the log message
+   * @param format The format string, source location and line of the call. When its
+   * `metadata.packed` is not 0 the strings are literals that the record refers to, as the record of
+   * a macro refers to its metadata. Otherwise the format string is copied with the tags, as by
+   * log_statement_runtime_metadata() with MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy
+   * @param tags Tags of the call, or nullptr. A call with tags copies its format string
+   * @param fmt_args Format arguments for the log message
+   *
+   * @return true if the message is written to the queue, false if it is dropped
+   */
+  template <typename Format, typename... Args>
+  QUILL_ATTRIBUTE_HOT bool log_statement_macro_free(LogLevel log_level, Format const& format,
+                                                    char const* tags, Args&&... fmt_args)
+  {
+    auto const& metadata = format.metadata;
+    uint32_t const line = format.line;
+    QUILL_ASSERT((metadata.packed == 0) || (tags == nullptr),
+                 "log_statement_macro_free() copies the format string of a call with tags");
+
+    QUILL_ASSERT(_valid.load(std::memory_order_acquire),
+                 "Attempting to log with an invalidated logger");
+
+    if constexpr (Format::supports_literal_records)
+    {
+      if (metadata.packed != 0)
+      {
+        // The record of a literal format string is the one of log_statement() with the metadata after
+        // the header, and it takes the same slow path. Its metadata holds the level, None for an invalid one
+        size_t const level_index = static_cast<size_t>(log_level);
+        MacroMetadata const* const macro_metadata =
+          &s_static_runtime_metadata[(level_index < LogLevelCount) ? level_index : static_cast<size_t>(LogLevel::None)];
+
+        // The slow path takes a copy of the metadata, which lets the caller keep it in registers when
+        // it is a constant: the address of `metadata` itself would have to be taken on the fast path
+        if constexpr (using_runtime_clock)
+        {
+          if (QUILL_UNLIKELY(_clock_source != ClockSourceType::Tsc))
+          {
+            detail::StaticRuntimeMetadata const metadata_copy{metadata};
+            return _log_statement_noinline<Args...>(macro_metadata, 0, &metadata_copy,
+                                                    static_cast<Args&&>(fmt_args)...);
+          }
+        }
+
+        detail::ThreadContext* const thread_context = _thread_context;
+
+        if (QUILL_UNLIKELY(thread_context == nullptr))
+        {
+          detail::StaticRuntimeMetadata const metadata_copy{metadata};
+          return _log_statement_noinline<Args...>(macro_metadata, 0, &metadata_copy,
+                                                  static_cast<Args&&>(fmt_args)...);
+        }
+
+        queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+        size_t const total_size = s_header_size + sizeof(detail::StaticRuntimeMetadata) +
+          detail::compute_encoded_size_and_cache_string_lengths(
+                                    thread_context->get_conditional_arg_size_cache(), fmt_args...);
+
+        auto const reservation = queue.prepare_write_reserve_cached(total_size);
+
+        if (QUILL_UNLIKELY(reservation.write_buffer == nullptr))
+        {
+          detail::StaticRuntimeMetadata const metadata_copy{metadata};
+          return _log_statement_noinline<Args...>(macro_metadata, total_size, &metadata_copy,
+                                                  static_cast<Args&&>(fmt_args)...);
+        }
+
+        if (total_size > detail::prefetched_record_min_size)
+        {
+          detail::prefetch_record_for_write(reservation.write_buffer, total_size);
+        }
+
+        std::byte* write_buffer = reservation.write_buffer + s_header_size;
+
+        detail::encode_static_runtime_metadata(write_buffer, metadata);
+
+        detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
+                       static_cast<decltype(fmt_args)&&>(fmt_args)...);
+
+        QUILL_ASSERT_WITH_FMT(
+          total_size == static_cast<size_t>(write_buffer - reservation.write_buffer),
+          "Encoded bytes mismatch in log_statement_macro_free(): total_size=%zu, "
+          "actual_encoded=%zu, fmt=\"%s\"",
+          total_size, static_cast<size_t>(write_buffer - reservation.write_buffer), metadata.fmt);
+
+        _encode_header<true>(reservation.write_buffer, macro_metadata,
+                             reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>));
+
+        // Commit through the cached queue pointer, which also rounds the record up to its alignment
+        reservation.bounded_queue->finish_and_commit_write(total_size);
+
+        _flush_after_log_statement_if_needed(macro_metadata);
+        return true;
+      }
+    }
+
+    if (QUILL_UNLIKELY(_thread_context == nullptr))
+    {
+      _thread_context = detail::get_local_thread_context<frontend_options_t>();
+    }
+
+    detail::ThreadContext* const thread_context = _thread_context;
+    queue_t& queue = thread_context->get_spsc_queue<frontend_options_t::queue_type>();
+
+    uint32_t const fmt_size = detail::clamp_encoded_string_length(detail::safe_strnlen(metadata.fmt) + 1u);
+    uint32_t const tags_size = detail::clamp_encoded_string_length(detail::safe_strnlen(tags) + 1u);
+
+    size_t const total_size = s_header_size + fmt_size + (sizeof(void const*) * 2u) + tags_size +
+      sizeof(line) + sizeof(log_level) +
+      detail::compute_encoded_size_and_cache_string_lengths(
+                                thread_context->get_conditional_arg_size_cache(), fmt_args...);
+
+    std::byte* const write_begin =
+      _reserve_queue_space(queue, total_size, &s_hybrid_copy_metadata, thread_context);
+
+    if (QUILL_UNLIKELY(write_begin == nullptr))
+    {
+      return false;
+    }
+
+    if (total_size > detail::prefetched_record_min_size)
+    {
+      detail::prefetch_record_for_write(write_begin, total_size);
+    }
+
+    std::byte* write_buffer = write_begin + s_header_size;
+
+    detail::encode_hybrid_copy_metadata(write_buffer, metadata.fmt, fmt_size, metadata.file,
+                                        metadata.function, tags, tags_size, line, log_level);
+
+    detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
+                   static_cast<decltype(fmt_args)&&>(fmt_args)...);
+
+    QUILL_ASSERT_WITH_FMT(total_size == static_cast<size_t>(write_buffer - write_begin),
+                          "Encoded bytes mismatch in log_statement_macro_free(): total_size=%zu, "
+                          "actual_encoded=%zu, fmt=\"%s\"",
+                          total_size, static_cast<size_t>(write_buffer - write_begin), metadata.fmt);
+
+    _encode_header(write_begin, &s_hybrid_copy_metadata,
+                   reinterpret_cast<uintptr_t>(detail::decoder_ptr<Args...>));
+
+    queue.finish_and_commit_write(total_size);
+    _flush_after_log_statement_if_needed();
+
+    return true;
+  }
+
+  /**
    * @brief Push a log message with runtime metadata to the spsc queue to be logged by the backend thread.
    *
    * Similar to log_statement but allows passing metadata that is only available at runtime.
@@ -490,7 +702,7 @@ public:
     {
       // The hybrid path owns only fmt and tags. Cache their lengths in locals so the generic
       // argument-size cache is reserved for the format arguments and does not need four metadata
-      // dispatches on every macro-free log call.
+      // dispatches on every call.
       hybrid_fmt_len = detail::clamp_encoded_string_length(detail::safe_strnlen(fmt) + 1u);
       hybrid_tags_len = detail::clamp_encoded_string_length(detail::safe_strnlen(tags) + 1u);
       total_size += hybrid_fmt_len + (sizeof(void const*) * 2u) + hybrid_tags_len +
@@ -532,21 +744,8 @@ public:
 
     if (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
     {
-      auto encode_c_string = [](std::byte*& buffer, char const* value, uint32_t len) noexcept
-      {
-        if (QUILL_LIKELY(value != nullptr))
-        {
-          std::memcpy(buffer, value, len - 1u);
-        }
-        buffer[len - 1u] = std::byte{'\0'};
-        buffer += len;
-      };
-
-      encode_c_string(write_buffer, fmt, hybrid_fmt_len);
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
-                     static_cast<void const*>(file_path), static_cast<void const*>(function_name));
-      encode_c_string(write_buffer, tags, hybrid_tags_len);
-      detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(), line_number, log_level);
+      detail::encode_hybrid_copy_metadata(write_buffer, fmt, hybrid_fmt_len, file_path, function_name,
+                                          tags, hybrid_tags_len, line_number, log_level);
       detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                      static_cast<decltype(fmt_args)&&>(fmt_args)...);
     }
@@ -752,6 +951,27 @@ private:
 
   static constexpr size_t s_header_size = 4 * sizeof(uint64_t);
 
+  /**
+   * The metadata of the records of log_statement_macro_free() that refer to a literal format
+   * string, by log level, which these records do not hold
+   */
+  static constexpr MacroMetadata s_static_runtime_metadata[LogLevelCount]{
+    MacroMetadata{"", "", "", nullptr, LogLevel::TraceL3, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::TraceL2, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::TraceL1, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Debug, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Info, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Notice, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Warning, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Error, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Critical, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::Backtrace, MacroMetadata::Event::LogWithStaticRuntimeMetadata},
+    MacroMetadata{"", "", "", nullptr, LogLevel::None, MacroMetadata::Event::LogWithStaticRuntimeMetadata}};
+
+  /** The metadata of the records of log_statement_macro_free() that copy the format string */
+  static constexpr MacroMetadata s_hybrid_copy_metadata{
+    "", "", "", nullptr, LogLevel::None, MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy};
+
   static_assert(max_binary_record_size <= (SIZE_MAX - s_header_size - sizeof(uint32_t)),
                 "The queue space of the largest binary record must not overflow size_t");
 
@@ -814,14 +1034,17 @@ private:
   }
 
   /**
-   * Slow path for log_statement. Small, safely copyable arguments are accepted by value so the hot
-   * caller can keep them in registers; all other arguments retain their original reference type.
+   * Slow path for log_statement() and log_statement_macro_free(). Small, safely copyable arguments
+   * are accepted by value so the hot caller can keep them in registers; all other arguments retain
+   * their original reference type.
    * @param total_size the encoded size computed by the caller, or zero to compute it here.
    * Computing it twice would run a DirectFormatCodec formatter twice for one log call.
+   * @param static_runtime_metadata the metadata that log_statement_macro_free() writes after the
+   * header, nullptr for log_statement()
    */
   template <typename... OriginalArgs>
   QUILL_NODISCARD QUILL_NOINLINE QUILL_NOCLONE bool _log_statement_noinline(
-    MacroMetadata const* macro_metadata, size_t total_size,
+    MacroMetadata const* macro_metadata, size_t total_size, detail::StaticRuntimeMetadata const* static_runtime_metadata,
     typename detail::slow_path_arg<OriginalArgs>::type... fmt_args)
   {
     if (QUILL_UNLIKELY(_thread_context == nullptr))
@@ -834,7 +1057,8 @@ private:
 
     if (total_size == 0)
     {
-      total_size = s_header_size +
+      size_t const metadata_size = static_runtime_metadata ? sizeof(detail::StaticRuntimeMetadata) : 0u;
+      total_size = s_header_size + metadata_size +
         detail::compute_encoded_size_and_cache_string_lengths(
                      thread_context->get_conditional_arg_size_cache(), fmt_args...);
     }
@@ -854,14 +1078,20 @@ private:
 
     std::byte* write_buffer = write_begin + s_header_size;
 
+    if (static_runtime_metadata != nullptr)
+    {
+      detail::encode_static_runtime_metadata(write_buffer, *static_runtime_metadata);
+    }
+
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
                    static_cast<OriginalArgs&&>(fmt_args)...);
 
-    QUILL_ASSERT_WITH_FMT(total_size == static_cast<size_t>(write_buffer - write_begin),
-                          "Encoded bytes mismatch in _log_statement_noinline(): total_size=%zu, "
-                          "actual_encoded=%zu, msg=\"%s\"",
-                          total_size, static_cast<size_t>(write_buffer - write_begin),
-                          macro_metadata->message_format());
+    QUILL_ASSERT_WITH_FMT(
+      total_size == static_cast<size_t>(write_buffer - write_begin),
+      "Encoded bytes mismatch in _log_statement_noinline(): total_size=%zu, "
+      "actual_encoded=%zu, msg=\"%s\"",
+      total_size, static_cast<size_t>(write_buffer - write_begin),
+      static_runtime_metadata ? static_runtime_metadata->fmt : macro_metadata->message_format());
 
     _encode_header(write_begin, macro_metadata,
                    reinterpret_cast<uintptr_t>(detail::decoder_ptr<OriginalArgs...>));
@@ -1025,6 +1255,7 @@ private:
       if ((event == MacroMetadata::Event::Log) || (event == MacroMetadata::Event::LogWithRuntimeMetadataDeepCopy) ||
           (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy) ||
           (event == MacroMetadata::Event::LogWithRuntimeMetadataShallowCopy) ||
+          (event == MacroMetadata::Event::LogWithStaticRuntimeMetadata) ||
           (event == MacroMetadata::Event::Metric) ||
           (event == MacroMetadata::Event::DynamicMetric) || (event == MacroMetadata::Event::Binary))
       {
@@ -1137,7 +1368,8 @@ private:
 
     // Runtime-metadata calls always log and omit metadata here. Other callers supply metadata
     // so control events cannot trigger recursive flushing.
-    if (macro_metadata && macro_metadata->event() != MacroMetadata::Event::Log)
+    if (macro_metadata && (macro_metadata->event() != MacroMetadata::Event::Log) &&
+        (macro_metadata->event() != MacroMetadata::Event::LogWithStaticRuntimeMetadata))
     {
       return;
     }

@@ -17,6 +17,7 @@
   #include <atomic>
   #include <charconv>
   #include <cstdint>
+  #include <cstring>
   #include <limits>
   #include <memory>
   #include <string>
@@ -76,7 +77,9 @@ struct TransitEvent
 
       if (extra_data->runtime_metadata && (macro_metadata == &extra_data->runtime_metadata->macro_metadata))
       {
-        // then point macro_metadata to the correct object
+        // Only the runtime metadata that this event uses is copied: the slot can still hold the
+        // metadata of a previous event, which may refer to strings that no longer exist
+        other.extra_data->runtime_metadata = std::make_unique<RuntimeMetadata>(*extra_data->runtime_metadata);
         other.macro_metadata = &other.extra_data->runtime_metadata->macro_metadata;
       }
     }
@@ -188,35 +191,64 @@ struct TransitEvent
                       tags.empty() ? nullptr : tags.data(), log_level, MacroMetadata::Event::Log);
     }
 
+    /**
+     * Sets the metadata of a macro-free call whose format string is a literal. It refers to the
+     * strings of the call, and the facts that were found about them at compile time are used to
+     * build the source location without measuring or scanning a string
+     */
+    QUILL_ATTRIBUTE_HOT void set_static(StaticRuntimeMetadata const& metadata, LogLevel log_level)
+    {
+      uint32_t const line = metadata.line();
+      uint16_t const file_len = metadata.file_len();
+      uint16_t colon_separator_pos{0};
+      uint16_t file_name_pos{0};
+
+      // As in _set_source_location(), a call without file info has no source location
+      if ((file_len == 0) && (line == 0))
+      {
+        source_location.clear();
+      }
+      else
+      {
+        char line_buffer[std::numeric_limits<uint32_t>::digits10 + 1];
+        auto const result = std::to_chars(line_buffer, line_buffer + sizeof(line_buffer), line);
+        size_t const line_len = static_cast<size_t>(result.ptr - line_buffer);
+
+        source_location.resize(static_cast<size_t>(file_len) + 1u + line_len);
+        char* const data = source_location.data();
+        std::memcpy(data, metadata.file, file_len);
+        data[file_len] = ':';
+        std::memcpy(data + file_len + 1u, line_buffer, line_len);
+
+        colon_separator_pos = file_len;
+        file_name_pos = metadata.file_name_pos();
+      }
+
+      macro_metadata = MacroMetadata{source_location.data(),
+                                     colon_separator_pos,
+                                     file_name_pos,
+                                     _safe_string(metadata.function),
+                                     metadata.fmt,
+                                     metadata.fmt_len(),
+                                     metadata.format_flags(),
+                                     nullptr,
+                                     log_level,
+                                     MacroMetadata::Event::Log};
+    }
+
+    /** The copy owns its strings, also those of a literal format string, see set_static() */
     RuntimeMetadata(RuntimeMetadata const& other)
-      : fmt(other.fmt),
+      : fmt(_safe_string(other.macro_metadata.message_format()), other.macro_metadata.message_format_size()),
         source_location(other.source_location),
-        function_name(other.function_name),
-        tags(other.tags),
+        function_name(_safe_string(other.macro_metadata.caller_function())),
+        tags(_safe_string(other.macro_metadata.tags())),
         macro_metadata(std::string_view{source_location}, function_name.data(),
                        std::string_view{fmt}, tags.empty() ? nullptr : tags.data(),
                        other.macro_metadata.log_level(), MacroMetadata::Event::Log)
     {
-      // Recreate macro_metadata to point to our own strings
     }
 
-    RuntimeMetadata& operator=(RuntimeMetadata const& other)
-    {
-      if (this != &other)
-      {
-        fmt = other.fmt;
-        source_location = other.source_location;
-        function_name = other.function_name;
-        tags = other.tags;
-
-        // Recreate macro_metadata to point to our own strings
-        macro_metadata = MacroMetadata(std::string_view{source_location}, function_name.data(),
-                                       std::string_view{fmt}, tags.empty() ? nullptr : tags.data(),
-                                       other.macro_metadata.log_level(), MacroMetadata::Event::Log);
-      }
-      return *this;
-    }
-
+    RuntimeMetadata& operator=(RuntimeMetadata const& other) = delete;
     RuntimeMetadata(RuntimeMetadata&& other) noexcept = delete;
     RuntimeMetadata& operator=(RuntimeMetadata&& other) noexcept = delete;
 
@@ -263,12 +295,8 @@ struct TransitEvent
   {
     ExtraData() = default;
 
-    ExtraData(ExtraData const& other)
-      : named_args(other.named_args),
-        mdc(other.mdc),
-        runtime_metadata(other.runtime_metadata ? std::make_unique<RuntimeMetadata>(*other.runtime_metadata) : nullptr)
-    {
-    }
+    /** Copies the named args and the MDC. TransitEvent::copy_to() copies the runtime metadata */
+    ExtraData(ExtraData const& other) : named_args(other.named_args), mdc(other.mdc) {}
 
     ExtraData& operator=(ExtraData const& other) = delete;
 
