@@ -1,7 +1,7 @@
 project('quill', 'cpp',
         version : '14.0.0',
         meson_version : '>=0.60.0',
-        default_options : ['warning_level=3', 'cpp_std=c++17'])
+        default_options : ['warning_level=3', 'cpp_std=c++20'])
 
 inc_dirs = include_directories('include')
 

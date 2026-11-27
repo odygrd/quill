@@ -166,6 +166,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
 
 ### API and Behaviour Changes
 
+- Quill's own CMake, Meson and Bazel builds, e.g. of its tests and examples, use C++20 when no
+  standard is set. C++17 is still supported: set `CMAKE_CXX_STANDARD=17`, `cpp_std=c++17` or
+  `--cxxopt=-std=c++17`. Projects that add Quill keep their own standard.
 - With a `BackendOptions::sleep_duration` of 0, the backend now pauses for
   `BackendOptions::spin_wait_duration`, 10 μs by default, each time it finds every queue empty, which
   lowers the latency of the logging threads. Set it to 0 to read the queues again without a pause.

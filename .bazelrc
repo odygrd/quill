@@ -1,0 +1,8 @@
+# Quill's own targets build as C++20. Override it with --cxxopt, e.g. --cxxopt=-std=c++17, which
+# comes after these and takes precedence. A project that depends on Quill does not read this file
+# and keeps its own standard.
+common --enable_platform_specific_config
+build:linux --cxxopt=-std=c++20
+build:macos --cxxopt=-std=c++20
+build:freebsd --cxxopt=-std=c++20
+build:windows --cxxopt=/std:c++20
