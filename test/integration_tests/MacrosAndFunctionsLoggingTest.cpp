@@ -66,6 +66,14 @@ TEST_CASE("macros_and_functions_logging_test")
   size_t const tagged_runtime_log_line = __LINE__ + 1;
   quill::log(logger, runtime_log_level, Tags{tag.c_str()}, "Tagged runtime message {}", 42);
 
+  // In C++20 a literal format string selects the compile-time metadata, a runtime one is copied
+  size_t const literal_format_line = __LINE__ + 1;
+  quill::info(logger, "Literal format {} {}", 1, std::string{"two"});
+
+  std::string const runtime_format{"Runtime format {} {}"};
+  size_t const runtime_format_line = __LINE__ + 1;
+  quill::info(logger, runtime_format.c_str(), 3, std::string{"four"});
+
   logger->flush_log();
   Frontend::remove_logger(logger);
 
@@ -74,7 +82,7 @@ TEST_CASE("macros_and_functions_logging_test")
 
   // Read file and check
   std::vector<std::string> const file_contents = quill::testing::file_contents(filename);
-  REQUIRE_EQ(file_contents.size(), (number_of_messages * 4) + 2);
+  REQUIRE_EQ(file_contents.size(), (number_of_messages * 4) + 4);
 
   for (size_t i = 0; i < number_of_messages; ++i)
   {
@@ -101,6 +109,16 @@ TEST_CASE("macros_and_functions_logging_test")
     file_contents,
     std::string{"MacrosAndFunctionsLoggingTest.cpp:"} + std::to_string(tagged_runtime_log_line) +
       " LOG_CRITICAL  " + logger_name + "       Tagged runtime message 42 [#RUNTIME_TAG ]"));
+
+  REQUIRE(quill::testing::file_contains(file_contents,
+                                        std::string{"MacrosAndFunctionsLoggingTest.cpp:"} +
+                                          std::to_string(literal_format_line) + " LOG_INFO      " +
+                                          logger_name + "       Literal format 1 two"));
+
+  REQUIRE(quill::testing::file_contains(file_contents,
+                                        std::string{"MacrosAndFunctionsLoggingTest.cpp:"} +
+                                          std::to_string(runtime_format_line) + " LOG_INFO      " +
+                                          logger_name + "       Runtime format 3 four"));
 
   testing::remove_file(filename);
 }

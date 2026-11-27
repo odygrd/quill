@@ -116,6 +116,14 @@ cover rotating file sinks, signal handling, codecs and Windows.
 
 ### Breaking Changes
 
+- With C++20, the `const char[N]` format string of a macro-free call such as `quill::info()` must be
+  a string literal or a `constexpr` array with static storage, so a local array no longer compiles:
+
+  ```cpp
+  char const fmt[] = "Request {}";
+  quill::info(logger, +fmt, id); // was quill::info(logger, fmt, id)
+  // or alternatively: quill::info(logger, &fmt[0], id);
+  ```
 - GCC 8 is the oldest supported GCC. The `<experimental/filesystem>` fallback for GCC 7, which no
   longer compiled, is removed with the `QUILL_HAS_FILESYSTEM` and
   `QUILL_HAS_EXPERIMENTAL_FILESYSTEM` macros.
@@ -323,6 +331,11 @@ cover rotating file sinks, signal handling, codecs and Windows.
 - Log statements whose record takes more than 256 bytes of the queue, such as one with a
   `std::vector<std::string>`, request the record's cache lines before writing it, which lowers their
   latency, most with the default 128 KiB queue.
+- With C++20, a macro-free call with a string literal format string and no tags, such as
+  `quill::info(logger, "Request {} done", id)`, no longer copies the format string on every call,
+  which brings it close to `LOG_INFO` on the logging thread, and the backend writes these records
+  faster. In C++17 as well, a call that spans several lines may now report the line of its format
+  string.
 
 ### Bug Fixes
 

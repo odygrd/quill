@@ -18,6 +18,26 @@
 
 QUILL_BEGIN_NAMESPACE
 
+namespace detail
+{
+/**
+ * @return a view of `str`, measured with the builtin where it is a constant. The logging macros
+ * construct the metadata of each statement in a constant evaluation, where libstdc++ measures a
+ * C string with a loop that calls a function for each character. GCC cannot measure a string
+ * generated into a constexpr array with the builtin, so that one still takes the loop
+ */
+QUILL_NODISCARD constexpr std::string_view c_string_view(char const* str) noexcept
+{
+#if defined(__GNUC__) || defined(__clang__)
+  if (__builtin_constant_p(__builtin_strlen(str)))
+  {
+    return std::string_view{str, __builtin_strlen(str)};
+  }
+#endif
+  return std::string_view{str};
+}
+} // namespace detail
+
 QUILL_BEGIN_EXPORT
 
 /**
@@ -36,6 +56,7 @@ public:
     LogWithRuntimeMetadataDeepCopy,
     LogWithRuntimeMetadataHybridCopy,
     LogWithRuntimeMetadataShallowCopy,
+    LogWithStaticRuntimeMetadata,
     LoggerRemovalRequest,
     Metric,
     MdcSet,
@@ -50,8 +71,8 @@ public:
   constexpr MacroMetadata(char const* source_location, char const* caller_function,
                           char const* message_format, char const* tags, LogLevel log_level,
                           Event event, bool is_rate_limited = false) noexcept
-    : MacroMetadata(_c_string_view(source_location), caller_function,
-                    _c_string_view(message_format), tags, log_level, event, is_rate_limited)
+    : MacroMetadata(detail::c_string_view(source_location), caller_function,
+                    detail::c_string_view(message_format), tags, log_level, event, is_rate_limited)
   {
   }
 
@@ -70,7 +91,10 @@ public:
    * metadata is used: code that builds a MacroMetadata itself, e.g. for Logger::log_statement(),
    * constructs a new one for another format string instead of writing it to the same buffer.
    */
-  QUILL_NODISCARD size_t message_format_size() const noexcept { return _message_format_size; }
+  QUILL_NODISCARD constexpr size_t message_format_size() const noexcept
+  {
+    return _message_format_size;
+  }
 
   QUILL_NODISCARD char const* line() const noexcept
   {
@@ -82,12 +106,12 @@ public:
     return _source_location + _colon_separator_pos + 1;
   }
 
-  QUILL_NODISCARD std::string_view full_path() const noexcept
+  QUILL_NODISCARD constexpr std::string_view full_path() const noexcept
   {
     return std::string_view{_source_location, _colon_separator_pos};
   }
 
-  QUILL_NODISCARD std::string_view file_name() const noexcept
+  QUILL_NODISCARD constexpr std::string_view file_name() const noexcept
   {
     return std::string_view{_source_location + _file_name_pos,
                             static_cast<size_t>(_colon_separator_pos - _file_name_pos)};
@@ -129,6 +153,31 @@ public:
     return (_scan_format(fmt) & _named_args_flag) != 0;
   }
 
+  /** The flags of message_format(), for the constructor below */
+  QUILL_NODISCARD constexpr uint8_t format_flags() const noexcept { return _format_flags; }
+
+  /**
+   * Constructs the metadata from the lengths, positions and format_flags() that were found at
+   * compile time for the strings of a macro-free call, so the backend does not find them again.
+   */
+  constexpr MacroMetadata(char const* source_location, uint16_t colon_separator_pos,
+                          uint16_t file_name_pos, char const* caller_function, char const* message_format,
+                          uint32_t message_format_size, uint8_t format_flags, char const* tags,
+                          LogLevel log_level, Event event, bool is_rate_limited = false) noexcept
+    : _source_location(source_location),
+      _caller_function(caller_function),
+      _message_format(message_format),
+      _tags(tags),
+      _message_format_size(message_format_size),
+      _colon_separator_pos(colon_separator_pos),
+      _file_name_pos(file_name_pos),
+      _log_level(log_level),
+      _event(event),
+      _is_rate_limited(is_rate_limited),
+      _format_flags(format_flags)
+  {
+  }
+
   /**
    * Constructs the metadata from strings whose lengths are known, e.g. std::string, which must end
    * with a null character as source_location() and message_format() return them as C strings.
@@ -156,23 +205,6 @@ public:
   }
 
 private:
-  /**
-   * @return a view of `str`, measured with the builtin where it is a constant. The logging macros
-   * construct the metadata of each statement in a constant evaluation, where libstdc++ measures a
-   * C string with a loop that calls a function for each character. GCC cannot measure a string
-   * generated into a constexpr array with the builtin, so that one still takes the loop
-   */
-  QUILL_NODISCARD static constexpr std::string_view _c_string_view(char const* str) noexcept
-  {
-#if defined(__GNUC__) || defined(__clang__)
-    if (__builtin_constant_p(__builtin_strlen(str)))
-    {
-      return std::string_view{str, __builtin_strlen(str)};
-    }
-#endif
-    return std::string_view{str};
-  }
-
   /** The flags that _scan_format() finds in a format string */
   static constexpr uint8_t _named_args_flag{1u};
   static constexpr uint8_t _only_empty_fields_flag{2u};
@@ -306,5 +338,76 @@ QUILL_END_EXPORT
 
 static_assert(sizeof(MacroMetadata) <= detail::QUILL_CACHE_LINE_SIZE,
               "Size of MacroMetadata exceeds the cache line size");
+
+namespace detail
+{
+/**
+ * The record of a macro-free call whose format string is a literal, see LogFunctions.h: the
+ * pointers to the strings of the call and the facts about them that the backend needs.
+ *
+ * packed holds, from the lowest bit:
+ *   line          20 bits
+ *   fmt_len       16 bits
+ *   file_len      14 bits
+ *   file_name_pos 12 bits
+ *   format_flags   2 bits, MacroMetadata::format_flags()
+ */
+struct StaticRuntimeMetadata
+{
+  static constexpr uint32_t max_line{(1u << 20u) - 1u};
+  static constexpr size_t max_fmt_len{(1u << 16u) - 1u};
+  static constexpr size_t max_file_len{(1u << 14u) - 1u};
+  static constexpr size_t max_file_name_pos{(1u << 12u) - 1u};
+
+  /**
+   * @return the facts packed, or 0 if one is above its maximum, e.g. the line of generated code.
+   * A call that does not fit copies its format string and source location instead. A packed value
+   * is never 0: a format string has a length or, when it is empty, only empty fields
+   */
+  QUILL_NODISCARD static constexpr uint64_t pack(uint32_t line, size_t fmt_len, size_t file_len,
+                                                 size_t file_name_pos, uint8_t format_flags) noexcept
+  {
+    if ((line > max_line) || (fmt_len > max_fmt_len) || (file_len > max_file_len) ||
+        (file_name_pos > max_file_name_pos))
+    {
+      return 0;
+    }
+
+    return static_cast<uint64_t>(line) | (static_cast<uint64_t>(fmt_len) << 20u) |
+      (static_cast<uint64_t>(file_len) << 36u) | (static_cast<uint64_t>(file_name_pos) << 50u) |
+      (static_cast<uint64_t>(format_flags) << 62u);
+  }
+
+  QUILL_NODISCARD constexpr uint32_t line() const noexcept
+  {
+    return static_cast<uint32_t>(packed & max_line);
+  }
+
+  QUILL_NODISCARD constexpr uint32_t fmt_len() const noexcept
+  {
+    return static_cast<uint32_t>((packed >> 20u) & max_fmt_len);
+  }
+
+  QUILL_NODISCARD constexpr uint16_t file_len() const noexcept
+  {
+    return static_cast<uint16_t>((packed >> 36u) & max_file_len);
+  }
+
+  QUILL_NODISCARD constexpr uint16_t file_name_pos() const noexcept
+  {
+    return static_cast<uint16_t>((packed >> 50u) & max_file_name_pos);
+  }
+
+  QUILL_NODISCARD constexpr uint8_t format_flags() const noexcept
+  {
+    return static_cast<uint8_t>(packed >> 62u);
+  }
+
+  char const* fmt;
+  char const* file;
+  char const* function;
+  uint64_t packed;
+};
+} // namespace detail
 
 QUILL_END_NAMESPACE

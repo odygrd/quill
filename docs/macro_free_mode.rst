@@ -10,17 +10,29 @@ The macro-free mode is implemented using compiler built-ins (``__builtin_FILE()`
 Performance Trade-offs
 ----------------------
 
-The macro-free approach comes with performance implications:
+With C++20, a call whose format string is a string literal and that has no tags is close to the
+macros in speed: the format string and the source location of the call are measured and scanned at
+compile time, and the record refers to them instead of copying them. As with the macros, the format
+string is not validated at compile time, see :doc:`FAQ <faq>`. A format string that is not a
+literal, a call with tags, and every call in a C++17 build copy the format string and the tags into
+the queue on each call instead, which costs more on the calling thread and on the backend. So do
+call sites whose format string is longer than 65,535 bytes, whose line is above 1,048,575, whose
+file path is longer than 16,383 bytes, whose file name starts more than 4,095 bytes into its path,
+or whose file name contains a ``:``.
 
-1. **Higher Latency**: Format metadata isn't available at compile time, requiring additional runtime copying of metadata to the backend thread
+With C++20, a ``const char[N]`` format string must be a string literal or a ``constexpr`` array with
+static storage, such as a ``static constexpr`` one. Pass ``+fmt`` or a pointer otherwise, e.g. for a
+local array, a ``char const (&)[N]`` function parameter or a conditional expression that selects one
+of two literals of the same length. The format string is then copied, as the backend reads a literal
+after the call returns.
 
-2. **Always-Evaluated Arguments**: Unlike macros which skip evaluation for disabled log levels, arguments to these functions are always evaluated
+The macro-free approach also differs from the macros in these ways:
 
-3. **No Compile-Time Removal**: Cannot be completely compiled out with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL_<LEVEL>`` as macros can
+1. **Always-Evaluated Arguments**: Unlike macros which skip evaluation for disabled log levels, arguments to these functions are always evaluated. The call also builds its format string object before it checks the log level, so a statement whose level is disabled costs a few more instructions than a disabled macro
 
-4. **Backend Thread Impact**: Reduced throughput in the backend due to runtime metadata storage and processing
+2. **No Compile-Time Removal**: Cannot be completely compiled out with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL_<LEVEL>`` as macros can
 
-5. **Additional Safety Checks**: The macro-free functions perform a runtime check for `nullptr` logger. This can be useful in cases where a user might forget to initialize a logger or intentionally wants logging calls to become no-ops when the logger is null. (Note that there are also multiple ways to achieve no-op logging with macros, e.g., by setting the log level to `None`)
+3. **Additional Safety Checks**: The macro-free functions perform a runtime check for `nullptr` logger. This can be useful in cases where a user might forget to initialize a logger or intentionally wants logging calls to become no-ops when the logger is null. (Note that there are also multiple ways to achieve no-op logging with macros, e.g., by setting the log level to `None`)
 
 For performance-critical logging paths, the macro-based logging interface is recommended.
 
