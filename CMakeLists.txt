@@ -85,8 +85,9 @@ endif ()
 # Compiler config
 #---------------------------------------------------------------------------------------
 if (NOT CMAKE_CXX_STANDARD)
-    # If CMAKE_CXX_STANDARD is not set, configure it to 17 by default
-    set(CMAKE_CXX_STANDARD 17)
+    # If CMAKE_CXX_STANDARD is not set, build Quill's own targets as C++20. C++17 is still supported:
+    # set CMAKE_CXX_STANDARD to 17 to use it
+    set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
 elseif (CMAKE_CXX_STANDARD LESS 17)
     # If CMAKE_CXX_STANDARD is set but less than 17, issue a fatal error
