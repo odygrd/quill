@@ -194,6 +194,12 @@ public:
       return _log_statement_noinline<Args...>(macro_metadata, total_size, static_cast<Args&&>(fmt_args)...);
     }
 
+    if (total_size > detail::prefetched_record_min_size)
+    {
+      // For a fixed-size signature the comparison is constant, so a small record compiles it out
+      detail::prefetch_record_for_write(reservation.write_buffer, total_size);
+    }
+
     std::byte* write_buffer = reservation.write_buffer + s_header_size;
 
     detail::encode(write_buffer, thread_context->get_conditional_arg_size_cache(),
@@ -517,6 +523,11 @@ public:
       return false;
     }
 
+    if (total_size > detail::prefetched_record_min_size)
+    {
+      detail::prefetch_record_for_write(write_begin, total_size);
+    }
+
     std::byte* write_buffer = write_begin + s_header_size;
 
     if (event == MacroMetadata::Event::LogWithRuntimeMetadataHybridCopy)
@@ -833,6 +844,12 @@ private:
     if (QUILL_UNLIKELY(write_begin == nullptr))
     {
       return false;
+    }
+
+    if (total_size > detail::prefetched_record_min_size)
+    {
+      // Loggers with a system or runtime user clock always take this path
+      detail::prefetch_record_for_write(write_begin, total_size);
     }
 
     std::byte* write_buffer = write_begin + s_header_size;
