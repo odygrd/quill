@@ -2,6 +2,7 @@
 
 #include "misc/TestUtilities.h"
 #include "quill/Backend.h"
+#include "quill/DeferredFormatCodec.h"
 #include "quill/DirectFormatCodec.h"
 #include "quill/Frontend.h"
 #include "quill/LogFunctions.h"
@@ -10,6 +11,7 @@
 #include "quill/sinks/FileSink.h"
 #include "quill/std/Vector.h"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -38,6 +40,31 @@ struct fmtquill::formatter<EmptyFieldsPoint>
 
 template <>
 struct quill::Codec<EmptyFieldsPoint> : quill::DirectFormatCodec<EmptyFieldsPoint>
+{
+};
+
+/**
+ * Formatted by the backend, which counts the calls
+ */
+struct EmptyFieldsCountedValue
+{
+  int value;
+};
+
+std::atomic<int> counted_value_format_calls{0};
+
+template <>
+struct fmtquill::formatter<EmptyFieldsCountedValue> : fmtquill::formatter<int>
+{
+  auto format(EmptyFieldsCountedValue const& counted_value, format_context& ctx) const
+  {
+    counted_value_format_calls.fetch_add(1);
+    return fmtquill::formatter<int>::format(counted_value.value, ctx);
+  }
+};
+
+template <>
+struct quill::Codec<EmptyFieldsCountedValue> : quill::DeferredFormatCodec<EmptyFieldsCountedValue>
 {
 };
 
@@ -79,8 +106,9 @@ TEST_CASE("message_with_empty_fields")
   LOG_INFO_LIMIT(std::chrono::nanoseconds{0}, logger, "Rate limited without arguments");
 
 #if !defined(QUILL_NO_EXCEPTIONS)
-  // The macro-free functions do not check the arguments of a format string at compile time
-  quill::info(logger, "Missing argument {} {}", 1);
+  // The macro-free functions do not check the arguments of a format string at compile time. The
+  // error is reported without formatting the argument before the missing one again
+  quill::info(logger, "Missing argument {} {}", EmptyFieldsCountedValue{1});
   LOG_INFO(logger, "Unmatched } brace");
 #endif
 
@@ -111,6 +139,7 @@ TEST_CASE("message_with_empty_fields")
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{R"(INFO [Could not format log statement. message: "Missing argument {} {}")"}));
   REQUIRE(quill::testing::file_contains(file_contents, std::string{R"(error: "argument not found")"}));
+  REQUIRE_EQ(counted_value_format_calls.load(), 1);
   REQUIRE(quill::testing::file_contains(
     file_contents, std::string{R"(INFO [Could not format log statement. message: "Unmatched } brace")"}));
 #else

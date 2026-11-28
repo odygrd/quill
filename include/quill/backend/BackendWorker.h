@@ -3051,7 +3051,7 @@ private:
   /**
    * Formats a message whose fields are all "{}" as vformat_to() does, without parsing the text
    * between them one byte at a time: each argument is formatted with the formatter of "{}". A
-   * message with more fields than arguments is formatted by vformat_to(), which reports it
+   * message with more fields than arguments reports the error of vformat_to()
    */
   void _format_empty_fields(fmtquill::detail::buffer<char>& formatted_msg, char const* message_format,
                             size_t message_format_size, int user_arg_count)
@@ -3073,11 +3073,7 @@ private:
 
       if (QUILL_UNLIKELY(arg_index == user_arg_count))
       {
-        formatted_msg.clear();
-        fmtquill::vformat_to(
-          std::back_inserter(formatted_msg), fmtquill::string_view{message_format, message_format_size},
-          fmtquill::basic_format_args<fmtquill::format_context>{_format_args_store.data(), user_arg_count});
-        return;
+        fmtquill::report_error("argument not found");
       }
 
       append_to_buffer(formatted_msg, std::string_view{text, static_cast<size_t>(field - text)});
