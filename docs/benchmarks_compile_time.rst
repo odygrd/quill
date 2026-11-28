@@ -59,9 +59,10 @@ which compiles ``2000`` auto-generated log statements with varied argument types
            - ``4.62 MB``
            - ``21.88 MB``
 
-**Why log statements compile quickly:** Quill's macros pass call-site metadata (file, line, format string and
-tags) in a ``MacroMetadata`` argument instead of the template's identity, so log statements with the same argument
-types share one ``log_statement`` instantiation however their metadata differs.
+**Shared code between log statements:** Quill's macros pass the call-site metadata (file, line, format string and
+tags) as a ``MacroMetadata`` argument rather than as part of a template, so log statements with the same argument
+types share one ``log_statement`` instantiation. This is one of the ways Quill keeps the compile time of files that
+log low.
 
 Compile-Time Profiles
 ---------------------
