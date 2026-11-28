@@ -122,7 +122,8 @@ private:
 /**
  * Stopwatch using TSC (Time Stamp Counter) for high-resolution timing.
  * The first StopWatchTsc in a process calibrates the TSC on the constructing thread, which takes
- * about 10 ms; construct one early, e.g. at startup, if that matters for the first measurement.
+ * about 10 ms on x86; construct one early, e.g. at startup, if that matters for the first
+ * measurement. AArch64 reads the counter frequency instead.
  */
 using StopWatchTsc = detail::StopWatch<ClockSourceType::Tsc>;
 

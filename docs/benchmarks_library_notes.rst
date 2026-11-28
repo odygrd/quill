@@ -185,7 +185,7 @@ backend can also run on a thread of your own (:doc:`ManualBackendWorker <manual_
 - Memory is limited at both ends. The default unbounded queue grows during a burst, up to
   ``unbounded_queue_max_capacity`` (2 GiB per thread by default, configurable), then blocks, or drops with a
   dropping queue. The backend caps its own buffering with ``transit_events_soft_limit`` and
-  ``transit_events_hard_limit``. A thread gives memory back after a burst only when it calls
+  ``transit_events_hard_limit``. After a burst, a thread keeps the largest queue it grew to until it calls
   ``Frontend::shrink_thread_local_queue()``; a bounded queue keeps memory fixed from the start.
 - One backend thread, so its formatting and I/O rate is the ceiling: it keeps up with high throughput from many
   producer threads, but cannot scale past it. An application that needs more splits its logging across processes.

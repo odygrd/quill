@@ -64,7 +64,7 @@ or
 
 .. code-block:: cmake
 
-    target_compile_definitions(${TARGET} PUBLIC -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+    target_compile_definitions(${TARGET} PUBLIC QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
 
 :doc:`Log Levels <log_levels>` describes how this interacts with the runtime log level.
 
@@ -75,9 +75,9 @@ Every level has four macros:
 
 - ``LOG_<LEVEL>(logger, fmt, ...)``
 - ``LOG_<LEVEL>_LIMIT(min_interval, logger, fmt, ...)`` logs at most once every ``min_interval`` from
-  its call site.
+  its call site on each thread.
 - ``LOG_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`` logs once every ``n_occurrences`` calls
-  of its call site.
+  of its call site on each thread.
 - ``LOG_<LEVEL>_TAGS(logger, tags, fmt, ...)``
 
 .. note::
@@ -151,9 +151,9 @@ concatenated at compile time, so these macros have no runtime overhead.
 
 - ``LOGV_<LEVEL>(logger, message, ...)``
 - ``LOGV_<LEVEL>_LIMIT(min_interval, logger, message, ...)`` logs at most once every ``min_interval`` from
-  its call site.
+  its call site on each thread.
 - ``LOGV_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`` logs once every ``n_occurrences`` calls
-  of its call site.
+  of its call site on each thread.
 - ``LOGV_<LEVEL>_TAGS(logger, tags, message, ...)``
 
 .. list-table::
@@ -224,9 +224,9 @@ these macros have no runtime overhead.
 
 - ``LOGJ_<LEVEL>(logger, message, ...)``
 - ``LOGJ_<LEVEL>_LIMIT(min_interval, logger, message, ...)`` logs at most once every ``min_interval`` from
-  its call site.
+  its call site on each thread.
 - ``LOGJ_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`` logs once every ``n_occurrences`` calls
-  of its call site.
+  of its call site on each thread.
 - ``LOGJ_<LEVEL>_TAGS(logger, tags, message, ...)``
 
 .. list-table::

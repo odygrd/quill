@@ -132,7 +132,8 @@ Use it for network, sensor or market data feeds you want to replay.
 - A custom ``write_binary(BinaryRecord const&)`` can frame or forward the payload using its timestamp, thread,
   logger and call-site metadata. ``StreamSink`` writes bytes to its stream. The default callback, JSON sinks
   and ``ConsoleSink`` ignore them, so those sinks may coexist with a binary file sink. Ignored payloads do
-  not count toward ``RotatingJsonFileSink`` size rotation.
+  not count toward ``RotatingJsonFileSink`` size rotation, but the record's timestamp can still trigger a
+  time-based rotation.
 
 Use a dedicated logger and file sink to keep text out of a binary recording. A full dropping queue loses
 binary records just like logs. Choose a blocking queue (the default) when the recording must be complete.

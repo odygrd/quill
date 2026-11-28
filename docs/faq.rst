@@ -293,6 +293,13 @@ I see ``LOG_INFO`` macro conflicts with syslog.h or systemd headers
 ``<syslog.h>`` and ``<systemd/sd-journal.h>`` define names such as ``LOG_INFO`` and ``LOG_WARNING``. See
 :ref:`sink_types:syslogsink` for header isolation and prefixed macros.
 
+GCC warns about log statements without arguments in strict C++17 mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``-std=c++17 -pedantic``, GCC reports ``ISO C++11 requires at least one argument for the "..." in a
+variadic macro`` for a statement such as ``LOG_INFO(logger, "text")``. Build with GNU extensions
+(``-std=gnu++17``, CMake's default), with C++20, or with the Quill headers as system headers (``-isystem``).
+
 Compile error when logging an STL container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

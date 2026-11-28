@@ -100,16 +100,14 @@ struct BackendOptions
 
   /**
    * The backend gives priority to reading messages from the frontend queues of all
-   * the hot threads and temporarily buffers them.
+   * the hot threads and temporarily buffers them as transit events.
    *
-   * If a frontend threads continuously push messages to the queue (e.g., logging in a loop),
-   * no logs can ever be processed.
+   * The backend normally writes one transit event before reading the frontend queues again.
+   * Reaching this soft limit starts batch processing, so a busy frontend does not delay events
+   * that are already buffered. A batch can continue on subsequent polls below the soft limit.
    *
-   * When the soft limit is reached the backend worker thread will try to process a batch of cached
-   * transit events all at once
-   *
-   * The frontend queues are emptied on each iteration, so the actual popped messages
-   * can be much greater than the transit_events_soft_limit.
+   * Each read takes up to a full frontend queue from each thread, so the buffered transit events
+   * can be many more than transit_events_soft_limit.
    *
    * @note This number represents a limit across the messages received from ALL frontend threads.
    *       It does not need to be a power of two. A value of zero is normalized to one.
@@ -120,14 +118,11 @@ struct BackendOptions
    * The backend gives priority to reading messages from the frontend queues and temporarily
    * buffers them.
    *
-   * If a frontend thread continuously push messages to the queue (e.g., logging in a loop),
-   * no logs can ever be processed.
+   * Without a limit, the backend could keep buffering the messages of a thread that keeps
+   * logging, e.g. in a loop, faster than it writes them.
    *
-   * As the backend buffers messages, it can keep buffering indefinitely if the frontend
-   * threads keep pushing.
-   *
-   * This limit is the maximum size of the backend event buffer. When reached, the backend
-   * will stop reading the frontend queues until there is space available in the buffer.
+   * This limit is the maximum size of the backend event buffer of a frontend thread. When reached,
+   * the backend stops reading that thread's queue until there is space available in the buffer.
    *
    * @note This number represents a limit PER frontend thread. It must be a power of two. A value
    *       of zero is normalized to one.
@@ -337,7 +332,7 @@ struct BackendOptions
    * non-printable characters from the log file. Any non-printable characters are converted to their
    * equivalent hex value.
    *
-   * The check applies only when at least one argument in a log statement is of type string.
+   * The check runs when the statement has a string, character or custom-formatted argument.
    *
    * You can customize this callback to define your own range of printable characters if needed.
    * The backend calls it once for each of the 256 byte values when it starts and uses the results

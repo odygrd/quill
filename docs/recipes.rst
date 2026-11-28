@@ -26,19 +26,19 @@ Set the flags you need in the build system.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_NO_EXCEPTIONS)
+    add_compile_definitions(QUILL_NO_EXCEPTIONS)
 
 Build Quill without exception support.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
+    add_compile_definitions(QUILL_NO_THREAD_NAME_SUPPORT)
 
 Disable thread-name retrieval on toolchains that lack it, such as older Windows Server (2012/2016) or Android.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_USE_SEQUENTIAL_THREAD_ID)
+    add_compile_definitions(QUILL_USE_SEQUENTIAL_THREAD_ID)
 
 Assign each thread a sequential ID on first use and retain it for the thread's lifetime. Reproducible IDs
 require threads to initialize in the same order. When using the headers, place the definition below in
@@ -56,33 +56,33 @@ at startup can share both through normal dynamic symbol resolution when each lin
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_ENABLE_ASSERTIONS)
+    add_compile_definitions(QUILL_ENABLE_ASSERTIONS)
 
 Enable internal assertions in release builds. By default they run only when ``NDEBUG`` is undefined.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_NON_PREFIXED_MACROS)
+    add_compile_definitions(QUILL_DISABLE_NON_PREFIXED_MACROS)
 
 Keep only ``QUILL_LOG_<LEVEL>`` macros to avoid name collisions.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_FUNCTION_NAME)
+    add_compile_definitions(QUILL_DISABLE_FUNCTION_NAME)
 
 Omit ``__FUNCTION__`` if the output pattern omits ``%(caller_function)``. This also avoids Clang-Tidy warnings
 for log calls in lambdas.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_FILE_INFO)
+    add_compile_definitions(QUILL_DISABLE_FILE_INFO)
 
 Omit ``__FILE__`` and ``__LINE__`` if you do not use ``%(file_name)``, ``%(line_number)``, ``%(short_source_location)``
 or ``%(source_location)``.
 
 .. code:: cmake
 
-    option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTION__ or __FUNCSIG__) instead of __FUNCTION__ in LOG_* macros" OFF)
+    add_compile_definitions(QUILL_DETAILED_FUNCTION_NAME)
 
 Use ``__PRETTY_FUNCTION__`` (GCC/Clang) or ``__FUNCSIG__`` (MSVC) for ``%(caller_function)``. See
 :ref:`formatters:advanced pattern formatter configuration` for ``PatternFormatterOptions::process_function_name``.
@@ -97,13 +97,13 @@ calls ineffective. See :ref:`overview:synchronized logs for debugging` for runti
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
+    add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
 
 Set the lowest compiled severity. For example, keep Warning and above.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+    add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
 
 Hiding File Names and Functions From Build Binaries
 ---------------------------------------------------

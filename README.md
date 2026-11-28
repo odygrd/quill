@@ -351,7 +351,8 @@ In addition to the highlights of the [Introduction](#-introduction):
   See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
 - **Mapped Diagnostic Context (MDC)**: Thread-local key/value context attached automatically to subsequent log lines.
   See [MDC](https://quillcpp.readthedocs.io/en/latest/mdc.html).
-- **Rate-Limited Macros**: `LOG_*_LIMIT` / `LOGV_*_LIMIT` emit at most once per configured interval per call site.
+- **Rate-Limited Macros**: `LOG_*_LIMIT` / `LOGV_*_LIMIT` emit at most once per configured interval per thread and
+  call site.
 - **Configurable Queue Modes**: `bounded/unbounded` and `blocking/dropping` options with monitoring on dropped messages,
   queue reallocations, and blocked hot threads.
 - **Crash Handling**: Built-in signal handler for log preservation during crashes.
@@ -511,7 +512,7 @@ my_project/
 #### Sample CMakeLists.txt
 
 ```cmake
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.12)
 project(my_project)
 
 set(CMAKE_CXX_STANDARD 17)
