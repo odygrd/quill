@@ -5338,6 +5338,143 @@ TEST_CASE("rotating_file_sink_date_append_ignores_files_with_an_index_it_does_no
 }
 
 /***/
+TEST_CASE("rotating_file_sink_date_write_mode_without_extension_removes_only_its_backups")
+{
+  // The sink writes the indexed backup of an extensionless base filename as "requests.1.20240102".
+  // "requests.20240102.1" is the spelling of a base filename with an extension, so another file
+  fs::path const dir = "rotating_file_sink_date_write_mode_without_extension";
+  fs::path const filename = dir / "requests";
+  fs::path const backup = dir / "requests.20240102";
+  fs::path const indexed_backup = dir / "requests.1.20240102";
+  fs::path const unrelated_file = dir / "requests.20240102.1";
+
+  std::error_code ec;
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+  fs::create_directories(dir, ec);
+  REQUIRE_FALSE(ec);
+
+  testing::create_file(backup, "previous backup\n");
+  testing::create_file(indexed_backup, "previous indexed backup\n");
+  testing::create_file(unrelated_file, "must survive startup cleanup\n");
+
+  {
+    // 2024-01-02 at midnight GMT
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_remove_old_files(true);
+        cfg.set_open_mode('w');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds{1704153600})};
+
+    REQUIRE(fs::exists(filename));
+  }
+
+  REQUIRE_FALSE(fs::exists(backup));
+  REQUIRE_FALSE(fs::exists(indexed_backup));
+  REQUIRE(fs::exists(unrelated_file));
+
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_date_append_without_extension_recovers_only_its_backups")
+{
+  // Counting "requests.20240102.1" as a backup made two backups of one name, and the limit of one
+  // removed the sink's own "requests.1.20240102"
+  fs::path const dir = "rotating_file_sink_date_append_without_extension";
+  fs::path const filename = dir / "requests";
+  fs::path const indexed_backup = dir / "requests.1.20240102";
+  fs::path const unrelated_file = dir / "requests.20240102.1";
+
+  std::error_code ec;
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+  fs::create_directories(dir, ec);
+  REQUIRE_FALSE(ec);
+
+  testing::create_file(indexed_backup, "previous indexed backup\n");
+  testing::create_file(unrelated_file, "another file\n");
+
+  {
+    // 2024-01-02 at midnight GMT
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::Date);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(1);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds{1704153600})};
+
+    REQUIRE(fs::exists(filename));
+  }
+
+  REQUIRE(fs::exists(indexed_backup));
+  REQUIRE(fs::exists(unrelated_file));
+
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+}
+
+/***/
+TEST_CASE("rotating_file_sink_dateandtime_append_without_extension_recovers_only_its_backups")
+{
+  // As with Date: "requests.20240102_000000.1" is not a backup of the extensionless "requests"
+  fs::path const dir = "rotating_file_sink_dateandtime_append_without_extension";
+  fs::path const filename = dir / "requests";
+  fs::path const indexed_backup = dir / "requests.1.20240102_000000";
+  fs::path const unrelated_file = dir / "requests.20240102_000000.1";
+
+  std::error_code ec;
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+  fs::create_directories(dir, ec);
+  REQUIRE_FALSE(ec);
+
+  testing::create_file(indexed_backup, "previous indexed backup\n");
+  testing::create_file(unrelated_file, "another file\n");
+
+  {
+    // 2024-01-02 at midnight GMT
+    auto rfh = RotatingFileSink{
+      filename,
+      []()
+      {
+        RotatingFileSinkConfig cfg;
+        cfg.set_rotation_naming_scheme(RotatingFileSinkConfig::RotationNamingScheme::DateAndTime);
+        cfg.set_timezone(Timezone::GmtTime);
+        cfg.set_max_backup_files(1);
+        cfg.set_open_mode('a');
+        return cfg;
+      }(),
+      FileEventNotifier{},
+      std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds{1704153600})};
+
+    REQUIRE(fs::exists(filename));
+  }
+
+  REQUIRE(fs::exists(indexed_backup));
+  REQUIRE(fs::exists(unrelated_file));
+
+  fs::remove_all(dir, ec);
+  REQUIRE_FALSE(ec);
+}
+
+/***/
 TEST_CASE("rotating_file_sink_at_backup_limit_rotates_after_backup_is_removed_externally")
 {
   fs::path const filename = "rotating_file_sink_backup_limit_removed_externally.log";

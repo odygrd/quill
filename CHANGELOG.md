@@ -475,6 +475,11 @@ cover rotating file sinks, signal handling, codecs and Windows.
   or `app.01.log` next to `app.log`, which stopped rotation in append mode and was deleted by
   `remove_old_files`. In append mode it no longer takes a directory named like one of its backups,
   e.g. `app.1.log`, for a backup, which the next rotation renamed.
+- With `RotationNamingScheme::Date` or `DateAndTime` and a file name without an extension, such as
+  `requests`, a `RotatingFileSink` no longer takes `requests.20240102.1` for its backup
+  `requests.1.20240102`. Startup with open mode `'w'` and `remove_old_files` enabled deleted such
+  a file, and in append mode it counted towards `max_backup_files`, so the sink could delete its
+  own backup.
 - With `RotationNamingScheme::Date` or `DateAndTime`, `RotatingFileSink` names the first backup of
   a file that was opened empty after its first record, like every later backup, instead of after
   the sink's creation. With `DateAndTime`, a restart within the same second no longer overwrites
