@@ -3,23 +3,23 @@
 Logging Macros
 ==============
 
-Complete reference for all ``LOG_``, ``LOGV_``, ``LOGJ_``, and ``LOG_DYNAMIC`` macros.
+Choose ``LOG_*`` for a {fmt} message, ``LOGV_*`` for variable names and values, or ``LOGJ_*`` for named JSON
+fields. Use ``LOG_DYNAMIC`` when severity is known only at runtime.
 
-Logger expressions, and runtime log-level expressions where applicable, are evaluated at most once per macro invocation; macros compiled out at build time do not evaluate them at all.
+A macro evaluates the logger expression and any runtime level expression at most once. A compiled-out
+macro evaluates neither. Disabled fixed-level macros skip their message arguments.
 
 Named Placeholders
 ------------------
 
 Quill supports named placeholders in format strings (e.g., ``{name}`` instead of ``{}``).
-When named placeholders are used, the library extracts the names from the format string and pairs
-them with the corresponding argument values. This enables features such as structured JSON logging
-(see :doc:`JSON Logging <json_logging>`) and the ``%(named_args)`` attribute in pattern formatters
-(see :doc:`Formatters <formatters>`).
+The library extracts the names from the format string and pairs them with the corresponding argument values.
+This enables features such as structured JSON logging (see :doc:`JSON Logging <json_logging>`) and the
+``%(named_args)`` attribute in pattern formatters (see :doc:`Formatters <formatters>`).
 
 Arguments are always matched to placeholders **by position**, not by name lookup. The name inside
-each ``{...}`` placeholder is used only as a label — it does not influence which argument fills it.
-This means arguments must be passed in the same order as their corresponding placeholders appear
-in the format string.
+each ``{...}`` placeholder is used only as a label — it does not influence which argument fills it —
+so arguments must be passed in the same order as their placeholders appear in the format string.
 If the same label appears more than once, later occurrences are suffixed (for example, ``id_1``)
 in the structured ``named_args`` output so JSON fields remain distinct.
 
@@ -42,17 +42,16 @@ in the structured ``named_args`` output so JSON fields remain distinct.
 Compile-Time Log Level Filtering
 --------------------------------
 
-To optimise performance by reducing branches in compiled code, you can enable compile-time filtering of log levels.
-
-This is done by defining `QUILL_COMPILE_ACTIVE_LOG_LEVEL` as a compilation flag or before including `LogMacros.h`:
+Compile-time filtering of log levels optimises performance by reducing branches in compiled code. Enable it by
+defining `QUILL_COMPILE_ACTIVE_LOG_LEVEL` as a compilation flag or before including `LogMacros.h`:
 
 .. code-block:: c
 
     QUILL_COMPILE_ACTIVE_LOG_LEVEL_{DESIRED_LEVEL}
 
-Where `{DESIRED_LEVEL}` can be one of the following: `TRACE_L3`, `TRACE_L2`, `TRACE_L1`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
-
-In Quill's trace-tier naming, `TRACE_L3` is the most detailed trace level and `TRACE_L1` is the least detailed trace level.
+`{DESIRED_LEVEL}` is one of `TRACE_L3`, `TRACE_L2`, `TRACE_L1`, `DEBUG`, `INFO`, `NOTICE`, `WARNING`, `ERROR`,
+`CRITICAL`. In Quill's trace-tier naming, `TRACE_L3` is the most detailed trace level and `TRACE_L1` is the least
+detailed trace level.
 
 For example, to compile only with warnings and above, you would define:
 
@@ -67,344 +66,258 @@ or
 
     target_compile_definitions(${TARGET} PUBLIC -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
 
-.. note::
-    When using `_LIMIT` macros, you might need to manually `#include <chrono>` in your code. This header is not automatically included to avoid imposing unnecessary dependencies on all logging macros when only specific ones require it.
+:doc:`Log Levels <log_levels>` describes how this interacts with the runtime log level.
 
 Standard Logging Macros
 -----------------------
 
-**Trace Level 3 (L3)**
+Every level has four macros:
 
-- ``LOG_TRACE_L3(logger, fmt, ...)``
+- ``LOG_<LEVEL>(logger, fmt, ...)``
+- ``LOG_<LEVEL>_LIMIT(min_interval, logger, fmt, ...)`` logs at most once every ``min_interval`` from
+  its call site.
+- ``LOG_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)`` logs once every ``n_occurrences`` calls
+  of its call site.
+- ``LOG_<LEVEL>_TAGS(logger, tags, fmt, ...)``
 
-- ``LOG_TRACE_L3_LIMIT(min_interval, logger, fmt, ...)``
+.. note::
+    When using `_LIMIT` macros, you might need to manually `#include <chrono>` in your code. This header is not automatically included to avoid imposing unnecessary dependencies on all logging macros when only specific ones require it.
 
-- ``LOG_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
+.. list-table::
+   :header-rows: 1
 
-- ``LOG_TRACE_L3_TAGS(logger, tags, fmt, ...)``
-
-**Trace Level 2 (L2)**
-
-- ``LOG_TRACE_L2(logger, fmt, ...)``
-
-- ``LOG_TRACE_L2_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_TRACE_L2_TAGS(logger, tags, fmt, ...)``
-
-**Trace Level 1 (L1)**
-
-- ``LOG_TRACE_L1(logger, fmt, ...)``
-
-- ``LOG_TRACE_L1_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_TRACE_L1_TAGS(logger, tags, fmt, ...)``
-
-**Debug**
-
-- ``LOG_DEBUG(logger, fmt, ...)``
-
-- ``LOG_DEBUG_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_DEBUG_TAGS(logger, tags, fmt, ...)``
-
-**Info**
-
-- ``LOG_INFO(logger, fmt, ...)``
-
-- ``LOG_INFO_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_INFO_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_INFO_TAGS(logger, tags, fmt, ...)``
-
-**Notice**
-
-- ``LOG_NOTICE(logger, fmt, ...)``
-
-- ``LOG_NOTICE_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_NOTICE_TAGS(logger, tags, fmt, ...)``
-
-**Warning**
-
-- ``LOG_WARNING(logger, fmt, ...)``
-
-- ``LOG_WARNING_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_WARNING_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_WARNING_TAGS(logger, tags, fmt, ...)``
-
-**Error**
-
-- ``LOG_ERROR(logger, fmt, ...)``
-
-- ``LOG_ERROR_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_ERROR_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_ERROR_TAGS(logger, tags, fmt, ...)``
-
-**Critical**
-
-- ``LOG_CRITICAL(logger, fmt, ...)``
-
-- ``LOG_CRITICAL_LIMIT(min_interval, logger, fmt, ...)``
-
-- ``LOG_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, fmt, ...)``
-
-- ``LOG_CRITICAL_TAGS(logger, tags, fmt, ...)``
-
-**Backtrace**
-
-- ``LOG_BACKTRACE(logger, fmt, ...)``
+   * - Level
+     - Macro
+     - ``_LIMIT``
+     - ``_LIMIT_EVERY_N``
+     - ``_TAGS``
+   * - Trace Level 3 (L3)
+     - ``LOG_TRACE_L3``
+     - ``LOG_TRACE_L3_LIMIT``
+     - ``LOG_TRACE_L3_LIMIT_EVERY_N``
+     - ``LOG_TRACE_L3_TAGS``
+   * - Trace Level 2 (L2)
+     - ``LOG_TRACE_L2``
+     - ``LOG_TRACE_L2_LIMIT``
+     - ``LOG_TRACE_L2_LIMIT_EVERY_N``
+     - ``LOG_TRACE_L2_TAGS``
+   * - Trace Level 1 (L1)
+     - ``LOG_TRACE_L1``
+     - ``LOG_TRACE_L1_LIMIT``
+     - ``LOG_TRACE_L1_LIMIT_EVERY_N``
+     - ``LOG_TRACE_L1_TAGS``
+   * - Debug
+     - ``LOG_DEBUG``
+     - ``LOG_DEBUG_LIMIT``
+     - ``LOG_DEBUG_LIMIT_EVERY_N``
+     - ``LOG_DEBUG_TAGS``
+   * - Info
+     - ``LOG_INFO``
+     - ``LOG_INFO_LIMIT``
+     - ``LOG_INFO_LIMIT_EVERY_N``
+     - ``LOG_INFO_TAGS``
+   * - Notice
+     - ``LOG_NOTICE``
+     - ``LOG_NOTICE_LIMIT``
+     - ``LOG_NOTICE_LIMIT_EVERY_N``
+     - ``LOG_NOTICE_TAGS``
+   * - Warning
+     - ``LOG_WARNING``
+     - ``LOG_WARNING_LIMIT``
+     - ``LOG_WARNING_LIMIT_EVERY_N``
+     - ``LOG_WARNING_TAGS``
+   * - Error
+     - ``LOG_ERROR``
+     - ``LOG_ERROR_LIMIT``
+     - ``LOG_ERROR_LIMIT_EVERY_N``
+     - ``LOG_ERROR_TAGS``
+   * - Critical
+     - ``LOG_CRITICAL``
+     - ``LOG_CRITICAL_LIMIT``
+     - ``LOG_CRITICAL_LIMIT_EVERY_N``
+     - ``LOG_CRITICAL_TAGS``
+   * - Backtrace
+     - ``LOG_BACKTRACE``
+     -
+     -
+     - ``LOG_BACKTRACE_TAGS``
 
 Value-based Macros (LOGV)
 -------------------------
 
-The following enhanced macros simplify logging by automatically printing variable names and values without explicitly specifying each variable name or using `{}` placeholders in the format string.
-Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no runtime overhead for using these macros.
+These macros print the names and values of their arguments automatically, without naming each variable or
+writing `{}` placeholders in the format string. Each macro can handle up to 26 arguments. The format string is
+concatenated at compile time, so these macros have no runtime overhead.
 
-**Trace Level 3 (L3)**
+- ``LOGV_<LEVEL>(logger, message, ...)``
+- ``LOGV_<LEVEL>_LIMIT(min_interval, logger, message, ...)`` logs at most once every ``min_interval`` from
+  its call site.
+- ``LOGV_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`` logs once every ``n_occurrences`` calls
+  of its call site.
+- ``LOGV_<LEVEL>_TAGS(logger, tags, message, ...)``
 
-- ``LOGV_TRACE_L3(logger, message, ...)``
+.. list-table::
+   :header-rows: 1
 
-- ``LOGV_TRACE_L3_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_TRACE_L3_TAGS(logger, tags, message, ...)``
-
-**Trace Level 2 (L2)**
-
-- ``LOGV_TRACE_L2(logger, message, ...)``
-
-- ``LOGV_TRACE_L2_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_TRACE_L2_TAGS(logger, tags, message, ...)``
-
-**Trace Level 1 (L1)**
-
-- ``LOGV_TRACE_L1(logger, message, ...)``
-
-- ``LOGV_TRACE_L1_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_TRACE_L1_TAGS(logger, tags, message, ...)``
-
-**Debug**
-
-- ``LOGV_DEBUG(logger, message, ...)``
-
-- ``LOGV_DEBUG_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_DEBUG_TAGS(logger, tags, message, ...)``
-
-**Info**
-
-- ``LOGV_INFO(logger, message, ...)``
-
-- ``LOGV_INFO_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_INFO_TAGS(logger, tags, message, ...)``
-
-**Notice**
-
-- ``LOGV_NOTICE(logger, message, ...)``
-
-- ``LOGV_NOTICE_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_NOTICE_TAGS(logger, tags, message, ...)``
-
-**Warning**
-
-- ``LOGV_WARNING(logger, message, ...)``
-
-- ``LOGV_WARNING_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_WARNING_TAGS(logger, tags, message, ...)``
-
-**Error**
-
-- ``LOGV_ERROR(logger, message, ...)``
-
-- ``LOGV_ERROR_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_ERROR_TAGS(logger, tags, message, ...)``
-
-**Critical**
-
-- ``LOGV_CRITICAL(logger, message, ...)``
-
-- ``LOGV_CRITICAL_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGV_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGV_CRITICAL_TAGS(logger, tags, message, ...)``
-
-**Backtrace**
-
-- ``LOGV_BACKTRACE(logger, message, ...)``
+   * - Level
+     - Macro
+     - ``_LIMIT``
+     - ``_LIMIT_EVERY_N``
+     - ``_TAGS``
+   * - Trace Level 3 (L3)
+     - ``LOGV_TRACE_L3``
+     - ``LOGV_TRACE_L3_LIMIT``
+     - ``LOGV_TRACE_L3_LIMIT_EVERY_N``
+     - ``LOGV_TRACE_L3_TAGS``
+   * - Trace Level 2 (L2)
+     - ``LOGV_TRACE_L2``
+     - ``LOGV_TRACE_L2_LIMIT``
+     - ``LOGV_TRACE_L2_LIMIT_EVERY_N``
+     - ``LOGV_TRACE_L2_TAGS``
+   * - Trace Level 1 (L1)
+     - ``LOGV_TRACE_L1``
+     - ``LOGV_TRACE_L1_LIMIT``
+     - ``LOGV_TRACE_L1_LIMIT_EVERY_N``
+     - ``LOGV_TRACE_L1_TAGS``
+   * - Debug
+     - ``LOGV_DEBUG``
+     - ``LOGV_DEBUG_LIMIT``
+     - ``LOGV_DEBUG_LIMIT_EVERY_N``
+     - ``LOGV_DEBUG_TAGS``
+   * - Info
+     - ``LOGV_INFO``
+     - ``LOGV_INFO_LIMIT``
+     - ``LOGV_INFO_LIMIT_EVERY_N``
+     - ``LOGV_INFO_TAGS``
+   * - Notice
+     - ``LOGV_NOTICE``
+     - ``LOGV_NOTICE_LIMIT``
+     - ``LOGV_NOTICE_LIMIT_EVERY_N``
+     - ``LOGV_NOTICE_TAGS``
+   * - Warning
+     - ``LOGV_WARNING``
+     - ``LOGV_WARNING_LIMIT``
+     - ``LOGV_WARNING_LIMIT_EVERY_N``
+     - ``LOGV_WARNING_TAGS``
+   * - Error
+     - ``LOGV_ERROR``
+     - ``LOGV_ERROR_LIMIT``
+     - ``LOGV_ERROR_LIMIT_EVERY_N``
+     - ``LOGV_ERROR_TAGS``
+   * - Critical
+     - ``LOGV_CRITICAL``
+     - ``LOGV_CRITICAL_LIMIT``
+     - ``LOGV_CRITICAL_LIMIT_EVERY_N``
+     - ``LOGV_CRITICAL_TAGS``
+   * - Backtrace
+     - ``LOGV_BACKTRACE``
+     -
+     -
+     -
 
 JSON Logging Macros (LOGJ)
 --------------------------
 
-The following macros simplify JSON logging by automatically embedding the name of each passed variable as a named argument in the format string.
-Each macro can handle up to 26 arguments. The format string is concatenated at compile time, there is no runtime overhead for using these macros.
+These macros simplify JSON logging by embedding the name of each passed variable as a named argument in the
+format string. Each macro can handle up to 26 arguments. The format string is concatenated at compile time, so
+these macros have no runtime overhead.
 
-**Trace Level 3 (L3)**
+- ``LOGJ_<LEVEL>(logger, message, ...)``
+- ``LOGJ_<LEVEL>_LIMIT(min_interval, logger, message, ...)`` logs at most once every ``min_interval`` from
+  its call site.
+- ``LOGJ_<LEVEL>_LIMIT_EVERY_N(n_occurrences, logger, message, ...)`` logs once every ``n_occurrences`` calls
+  of its call site.
+- ``LOGJ_<LEVEL>_TAGS(logger, tags, message, ...)``
 
-- ``LOGJ_TRACE_L3(logger, message, ...)``
+.. list-table::
+   :header-rows: 1
 
-- ``LOGJ_TRACE_L3_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_TRACE_L3_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_TRACE_L3_TAGS(logger, tags, message, ...)``
-
-**Trace Level 2 (L2)**
-
-- ``LOGJ_TRACE_L2(logger, message, ...)``
-
-- ``LOGJ_TRACE_L2_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_TRACE_L2_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_TRACE_L2_TAGS(logger, tags, message, ...)``
-
-**Trace Level 1 (L1)**
-
-- ``LOGJ_TRACE_L1(logger, message, ...)``
-
-- ``LOGJ_TRACE_L1_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_TRACE_L1_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_TRACE_L1_TAGS(logger, tags, message, ...)``
-
-**Debug**
-
-- ``LOGJ_DEBUG(logger, message, ...)``
-
-- ``LOGJ_DEBUG_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_DEBUG_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_DEBUG_TAGS(logger, tags, message, ...)``
-
-**Info**
-
-- ``LOGJ_INFO(logger, message, ...)``
-
-- ``LOGJ_INFO_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_INFO_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_INFO_TAGS(logger, tags, message, ...)``
-
-**Notice**
-
-- ``LOGJ_NOTICE(logger, message, ...)``
-
-- ``LOGJ_NOTICE_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_NOTICE_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_NOTICE_TAGS(logger, tags, message, ...)``
-
-**Warning**
-
-- ``LOGJ_WARNING(logger, message, ...)``
-
-- ``LOGJ_WARNING_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_WARNING_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_WARNING_TAGS(logger, tags, message, ...)``
-
-**Error**
-
-- ``LOGJ_ERROR(logger, message, ...)``
-
-- ``LOGJ_ERROR_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_ERROR_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_ERROR_TAGS(logger, tags, message, ...)``
-
-**Critical**
-
-- ``LOGJ_CRITICAL(logger, message, ...)``
-
-- ``LOGJ_CRITICAL_LIMIT(min_interval, logger, message, ...)``
-
-- ``LOGJ_CRITICAL_LIMIT_EVERY_N(n_occurrences, logger, message, ...)``
-
-- ``LOGJ_CRITICAL_TAGS(logger, tags, message, ...)``
-
-**Backtrace**
-
-- ``LOGJ_BACKTRACE(logger, message, ...)``
+   * - Level
+     - Macro
+     - ``_LIMIT``
+     - ``_LIMIT_EVERY_N``
+     - ``_TAGS``
+   * - Trace Level 3 (L3)
+     - ``LOGJ_TRACE_L3``
+     - ``LOGJ_TRACE_L3_LIMIT``
+     - ``LOGJ_TRACE_L3_LIMIT_EVERY_N``
+     - ``LOGJ_TRACE_L3_TAGS``
+   * - Trace Level 2 (L2)
+     - ``LOGJ_TRACE_L2``
+     - ``LOGJ_TRACE_L2_LIMIT``
+     - ``LOGJ_TRACE_L2_LIMIT_EVERY_N``
+     - ``LOGJ_TRACE_L2_TAGS``
+   * - Trace Level 1 (L1)
+     - ``LOGJ_TRACE_L1``
+     - ``LOGJ_TRACE_L1_LIMIT``
+     - ``LOGJ_TRACE_L1_LIMIT_EVERY_N``
+     - ``LOGJ_TRACE_L1_TAGS``
+   * - Debug
+     - ``LOGJ_DEBUG``
+     - ``LOGJ_DEBUG_LIMIT``
+     - ``LOGJ_DEBUG_LIMIT_EVERY_N``
+     - ``LOGJ_DEBUG_TAGS``
+   * - Info
+     - ``LOGJ_INFO``
+     - ``LOGJ_INFO_LIMIT``
+     - ``LOGJ_INFO_LIMIT_EVERY_N``
+     - ``LOGJ_INFO_TAGS``
+   * - Notice
+     - ``LOGJ_NOTICE``
+     - ``LOGJ_NOTICE_LIMIT``
+     - ``LOGJ_NOTICE_LIMIT_EVERY_N``
+     - ``LOGJ_NOTICE_TAGS``
+   * - Warning
+     - ``LOGJ_WARNING``
+     - ``LOGJ_WARNING_LIMIT``
+     - ``LOGJ_WARNING_LIMIT_EVERY_N``
+     - ``LOGJ_WARNING_TAGS``
+   * - Error
+     - ``LOGJ_ERROR``
+     - ``LOGJ_ERROR_LIMIT``
+     - ``LOGJ_ERROR_LIMIT_EVERY_N``
+     - ``LOGJ_ERROR_TAGS``
+   * - Critical
+     - ``LOGJ_CRITICAL``
+     - ``LOGJ_CRITICAL_LIMIT``
+     - ``LOGJ_CRITICAL_LIMIT_EVERY_N``
+     - ``LOGJ_CRITICAL_TAGS``
+   * - Backtrace
+     - ``LOGJ_BACKTRACE``
+     -
+     -
+     -
 
 Dynamic Logging Macros
 -----------------------
 
-Dynamic logging macros provide runtime log level flexibility with a small overhead. Prefer using the compile-time log level macros for zero-cost logging.
+These macros take the log level at runtime, at a small cost compared with the fixed-level macros, which are
+preferred for zero-cost logging.
 
 - ``LOG_DYNAMIC(logger, log_level, fmt, ...)``
-
+- ``LOG_DYNAMIC_TAGS(logger, log_level, tags, fmt, ...)``
 - ``LOGV_DYNAMIC(logger, log_level, message, ...)``
-
 - ``LOGJ_DYNAMIC(logger, log_level, message, ...)``
 
 Runtime Metadata Logging Macro
 ------------------------------
 
-By default, the library creates and stores metadata information (e.g., source location) for each log statement at compile time.
-It is also possible to supply this metadata at runtime along with a log message. While this provides runtime flexibility,
-it introduces some overhead compared to compile-time metadata macros. Therefore, it is recommended to prefer using
-the compile-time metadata macros whenever possible. Quill provides three specialized macros for working with runtime metadata, each offering different trade-offs between flexibility and performance:
+Ordinary macros store call-site metadata at compile time. To supply it at runtime, choose a variant based
+on which values can stay valid until the worker consumes the record.
 
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_DEEP` - Takes a deep copy of ``fmt``, ``file``, ``function`` and ``tags``. Most flexible option, suitable for forwarding logs from another logging library to Quill.
+- :c:macro:`QUILL_LOG_RUNTIME_METADATA_DEEP` copies format string, file, function and tags. Use it to
+  forward logs from another library. ``QUILL_LOG_RUNTIME_METADATA`` is the same operation without tags.
+- :c:macro:`QUILL_LOG_RUNTIME_METADATA_HYBRID` copies format and tags and references file and function.
+  Tagged macro-free calls use this path.
+- :c:macro:`QUILL_LOG_RUNTIME_METADATA_SHALLOW` references all four fields. It has the lowest overhead
+  for static metadata with a dynamic level, as in ``LOG_DYNAMIC``.
 
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_HYBRID` - Takes a deep copy of ``fmt`` and ``tags``, while referencing ``file`` and ``function``. Used for the macro-free mode.
-
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_SHALLOW` - Takes everything as reference. Most efficient option when using compile-time metadata with dynamic log levels like ``LOG_DYNAMIC``.
-
-Note that ``QUILL_LOG_RUNTIME_METADATA`` is equivalent to ``QUILL_LOG_RUNTIME_METADATA_DEEP`` but without the ``tags`` parameter.
-
-``DEEP`` and ``HYBRID`` are safe for dynamic null-terminated tag strings because they copy the tag
-text into the frontend queue. ``SHALLOW`` stores only the tag pointer, so its target must remain
-valid and immutable until the backend consumes the record. For a simpler dynamic-tag API, the
-macro-free logging functions accept ``quill::Tags`` constructed from ``std::string`` and
-``std::string_view`` values; see :doc:`Log Tagging <log_tagging>`.
+``DEEP`` and ``HYBRID`` accept dynamic null-terminated tag strings. A ``SHALLOW`` tag pointer must stay
+valid and immutable through backend consumption. :doc:`log_tagging` covers ``quill::Tags`` for runtime
+``std::string`` and ``std::string_view`` inputs.
 
 Binary Record Macro
 -------------------
 
-- ``LOG_BINARY(logger, data, size)``
-
-Writes ``size`` bytes to the sinks of the logger as they are, without formatting them. It has no log level, so it is
-not affected by the log level of the logger or by compile-time log level filtering. See
-:doc:`Binary Protocols <binary_protocols>`.
+``LOG_BINARY(logger, data, size)`` writes raw bytes to the logger's sinks. It has no severity and bypasses
+runtime and compile-time level filtering. See :doc:`binary_protocols`.

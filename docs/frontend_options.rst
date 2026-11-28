@@ -5,65 +5,61 @@
 Frontend Options
 ================
 
-The frontend options provide a flexible way to configure hot path settings at compile time. These options allow for the customisation of queue types and memory allocation strategies, including the use of huge pages on Linux systems for improved performance.
+Derive from :cpp:struct:`FrontendOptions` to choose the queue type, capacity and memory policy at compile
+time, including huge pages on Linux. Each logging thread has a queue. Choose one configuration for the application.
 
-Each frontend thread operates with its own queue, which can be configured with one of the following options:
+- **UnboundedBlocking** (default) grows when full. At ``unbounded_queue_max_capacity`` or on allocation
+  failure, the caller waits for space.
+- **UnboundedDropping** grows the same way. When full and unable to grow, it drops new records.
+- **BoundedBlocking** has fixed capacity and waits for space. A record larger than the queue throws
+  ``QuillError`` immediately. A backend callback cannot wait for itself and drops a record if the queue fills.
+- **BoundedDropping** has fixed capacity and drops records that do not fit, even an oversized record
+  submitted to an empty queue.
 
-- **UnboundedBlocking**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then blocks the calling thread until space becomes available. It also blocks when a reallocation fails, for example when out of memory.
-- **UnboundedDropping**: Starts with a small initial capacity. The queue reallocates up to `FrontendOptions::unbounded_queue_max_capacity` and then discards log messages. It also discards them when a reallocation fails, for example when out of memory.
-- **BoundedBlocking**: Has a fixed capacity and never reallocates. It blocks the calling thread when the limit is reached until space becomes available. A single log record larger than the fixed capacity cannot fit and fails immediately instead of blocking forever.
-- **BoundedDropping**: Has a fixed capacity and never reallocates. It discards log messages when the limit is reached.
+``initial_queue_capacity`` defaults to 128 KiB. The unbounded maximum defaults to 2 GiB and must be at
+least the initial capacity. Both round up to powers of two. A record larger than the configured unbounded
+maximum throws ``QuillError``.
 
-Even though each thread has its own queue, a single queue type must be defined for the entire application. By default the `UnboundedBlocking` queue type is used.
+If an unbounded queue cannot grow and an individual record exceeds its current capacity, both modes drop
+the record. A dropped MDC update leaves the previous context active. The backend reports these drops separately.
+``Logger::flush_log()`` and ``Frontend::remove_logger_blocking()`` throw ``QuillError`` if this prevents enqueueing
+their requests.
 
-When an unbounded queue cannot grow, a record larger than the current queue can never be written
-to it, however long the thread waits, so both unbounded queue types drop it. This includes MDC
-updates, which leave the previous context in effect. The backend reports these drops separately
-through ``BackendOptions::error_notifier``. ``Logger::flush_log()`` and
-``Frontend::remove_logger_blocking()`` throw ``QuillError`` if their request cannot be enqueued for
-this reason. A single record larger than ``unbounded_queue_max_capacity`` still throws ``QuillError``.
-
-Queue capacities are rounded up to the next power of two. ``unbounded_queue_max_capacity`` must be greater than or equal to ``initial_queue_capacity``.
-
-To modify the queue type, define your own options type by deriving from :cpp:struct:`FrontendOptions` and overriding only the values that differ. Deriving is required: options types that do not derive from :cpp:struct:`FrontendOptions` are rejected at compile time. Then use that type to create a custom :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl`.
-
-It is important to consistently use your custom types throughout the application, instead of the default ones.
+Override only the values you need. Types without a ``FrontendOptions`` base fail to compile. Use the derived
+type consistently with :cpp:class:`FrontendImpl` and :cpp:class:`LoggerImpl` throughout the application.
 
 .. warning::
 
-   ``FrontendOptions`` are intended to be an application-wide choice. Mixing different ``FrontendImpl<T>`` or ``LoggerImpl<T>`` specializations is not a supported configuration. Use one frontend specialization consistently throughout the application. Creating a logger whose ``FrontendOptions`` values differ from the existing loggers throws ``QuillError``, and so does passing incompatible option values to ``Backend::start<TFrontendOptions>()`` together with ``SignalHandlerOptions``, because the signal handler logs with that type. On Windows the same check applies to each thread that calls ``quill::init_signal_handler<TFrontendOptions>()``.
+   Mixing specializations is unsupported. Creating a logger with option values that differ from existing
+   loggers throws ``QuillError``. The same check applies to ``Backend::start<TFrontendOptions>()`` with
+   ``SignalHandlerOptions`` and, on Windows, each ``quill::init_signal_handler<TFrontendOptions>()`` call.
+   The handler logs through that frontend type.
 
 Error Notifications
 -------------------
 
-The library provides error notifications through the :cpp:member:`BackendOptions::error_notifier` callback:
-
-- **Unbounded queues**: Notify when queue reallocations occur, and when the configured maximum capacity is reached or a reallocation fails, causing blocking or dropped messages
-- **Bounded queues**: Notify when messages are dropped due to full queues, including a count of dropped messages
-
-These notifications are processed by the backend thread and can help monitor queue behavior in production.
+The worker calls :cpp:member:`BackendOptions::error_notifier` for unbounded queue allocations and when
+maximum capacity or allocation failure leads to blocking or drops. For full bounded queues it reports the
+number of dropped messages.
 
 Queue Memory Management
 -----------------------
 
-**Queue Shrinking**
-
-For unbounded queues, you can explicitly reduce memory usage on specific threads using :cpp:func:`Frontend::shrink_thread_local_queue`. This is particularly useful in thread pool scenarios where some threads may experience logging bursts that cause queue growth, but subsequent tasks don't require the large capacity:
+**Queue shrinking.** After a burst, call :cpp:func:`Frontend::shrink_thread_local_queue` on the thread whose
+unbounded queue should release storage. This is useful between tasks in a thread pool.
 
 .. code-block:: cpp
 
     // After a logging-intensive task completes, shrink the queue
     quill::Frontend::shrink_thread_local_queue(512 * 1024);  // Shrink to 512KB
 
-**Monitoring Queue Allocations**
-
-By default, Quill automatically reports queue allocation events to stderr through :cpp:member:`BackendOptions::error_notifier`. You'll see messages like:
+**Allocation notices.** By default the notifier writes informational queue growth messages to stderr.
 
 .. code-block:: shell
 
     Allocated a new SPSC queue with a capacity of 256 KiB (previously 128 KiB) from thread 3764
 
-These allocation messages are informational, not errors, indicating the queue is dynamically resizing to handle traffic spikes. To customize this behavior, you can override the error notifier:
+Install a custom notifier to handle these messages differently.
 
 .. code-block:: cpp
 
@@ -73,18 +69,18 @@ These allocation messages are informational, not errors, indicating the queue is
         my_logger.info("Quill: {}", error_message);
     };
 
-To completely disable these notifications, set the error notifier to an empty function:
+An empty function disables callback notifications.
 
 .. code-block:: cpp
 
     quill::BackendOptions backend_options;
     backend_options.error_notifier = {};  // Disable notifications
 
-This disables callback notifications from :cpp:member:`BackendOptions::error_notifier`. If Quill later encounters a malformed format string, it will still write the fallback ``[Could not format log statement ...]`` entry to the configured sink output. Builds with exceptions disabled abort instead, see "What happens if my format string is invalid?" in the FAQ.
+With exceptions enabled, a malformed format string still writes ``[Could not format log statement ...]`` to
+the sink. Exception-free builds abort. See :ref:`faq:what happens if my format string is invalid?`.
 
-**Mixed Hot/Cold Path Optimization**
-
-For applications with both hot path (performance-critical) and cold path (less frequent) logging threads, you can optimize memory allocation by using a larger initial queue size globally, then selectively shrinking queues on cold path threads:
+**Hot and cold threads.** Choose a large initial capacity for latency-critical threads, then shrink queues
+on threads that log less often.
 
 .. code-block:: cpp
 
@@ -104,12 +100,12 @@ For applications with both hot path (performance-critical) and cold path (less f
         // LOG_INFO(cold_path_logger, "Infrequent logging...");
     }
 
-This approach prevents runtime allocations on performance-critical threads while conserving memory on threads with lighter logging workloads.
+This reserves space for expected bursts while limiting memory use on quieter threads.
 
 Example Usage
 -------------
 
-For example, to use a `BoundedDropping` queue while inheriting the remaining defaults, you can follow the steps below:
+This example selects ``BoundedDropping`` and inherits the remaining defaults.
 
 .. literalinclude:: ../examples/custom_frontend_options.cpp
    :language: cpp

@@ -3,26 +3,20 @@
 Wide Strings
 ============
 
-Use this page if you need to log ``wchar_t`` strings on Windows. On other platforms, log UTF-8 strings directly after disabling character sanitization (see :doc:`Backend Options <backend_options>`).
-
-On Windows, Quill supports ``wchar_t*``, ``std::wstring``, and ``std::wstring_view`` log arguments. The wide-string data is copied on the frontend and converted to UTF-8 on the backend before it is formatted and written to sinks. Quill does not use fmt's wide-character formatting context and does not write UTF-16 log files.
-
-By default, Quill's character sanitizer allows only printable ASCII bytes, plus newline, tab, and carriage return. Non-ASCII UTF-8 bytes are converted to hexadecimal escapes (for example, Chinese text may appear as ``\xE4\xB8\xAD``). To write real UTF-8 Unicode text to file sinks, disable or customize :cpp:member:`BackendOptions::check_printable_char` (see :doc:`backend_options`). For Windows console output, also configure the console output code page as described in :doc:`sink_types`.
-
-.. note::
-
-   Disable or customize ``BackendOptions::check_printable_char`` when you want non-ASCII wide-string output to appear as UTF-8 text in the sink. If the default sanitizer remains enabled, Unicode text is still logged safely, but non-ASCII bytes are written as hexadecimal escapes.
+On Windows, log ``wchar_t*``, ``std::wstring`` and ``std::wstring_view`` as UTF-8. On other platforms, pass
+UTF-8 directly. To preserve non-ASCII bytes, disable or customize :cpp:member:`BackendOptions::check_printable_char`
+as described in :ref:`backend_options:character sanitization`. Windows terminals also need the
+:ref:`UTF-8 console code page <sink_types:consolesink>`.
 
 How It Works
 ------------
 
-1. **Buffer Transfer**: The entire wide string buffer is copied from the caller thread to the queue.
-2. **Backend Processing**: The backend thread reads the wide string and performs a UTF-8 encoding, converting it to a plain string.
-3. **Formatting and Logging**: The plain string is then formatted with the log statement and written to the log file.
+The caller copies the full wide buffer to its queue. The worker converts it to UTF-8 before ordinary
+narrow-string formatting and output. This avoids frontend transcoding, fmt's wide formatting context
+and UTF-16 output files.
 
-This method ensures that there is no overhead on the hot path since the encoding is handled in the backend thread.
-
-Additionally, there is support for logging STL containers consisting of wide strings by including the relevant header files under ``quill/std``. Note that chaining STL types, such as ``std::vector<std::vector<std::wstring>>``, is not supported for wide strings.
+Include the matching ``quill/std`` headers for containers of wide strings. Nested containers such as
+``std::vector<std::vector<std::wstring>>`` are unsupported for wide strings.
 
 Wide String Logging Example
 ---------------------------

@@ -3,29 +3,21 @@
 Binary Protocols
 ================
 
-Use this page to log binary protocol data (e.g., SBE messages) with deferred formatting on the backend thread, or to
-write raw bytes to a file with ``LOG_BINARY``, for example a pcap capture.
+Decode a binary protocol such as SBE into readable logs, or record its original bytes for replay. Use
+``LOG_BINARY`` for raw data and ``PcapWriter`` for captures that Wireshark and tcpdump can read.
 
 Logging Binary Protocols with Deferred Formatting
 -------------------------------------------------
-The library provides efficient logging of binary data in human-readable text format. While the logged data might be in
-binary format initially, these log statements always produce text-based log files. To write the bytes themselves, see
-`Raw Binary File Writing`_.
-The ``BinaryDataDeferredFormatCodec`` enables efficient logging of variable-sized binary data by:
-
-1. Copying the raw binary bytes on the hot path (critical performance section)
-2. Deferring the expensive formatting operation to the backend logging thread
-
-This approach is particularly useful for high-performance applications that need to log binary protocol messages like
-custom binary formats without impacting application performance.
+``BinaryDataDeferredFormatCodec`` copies a variable-length payload on the caller and runs its formatter on
+the backend. This produces text. To keep the bytes, see `Raw Binary File Writing`_.
 
 Implementation Steps
 --------------------
-To log binary data with deferred formatting, follow these steps:
+The following steps connect a protocol's buffer type, formatter and codec.
 
 1. Create a Tag Struct
 ~~~~~~~~~~~~~~~~~~~~~~
-First, define an empty struct to serve as a tag for your binary protocol
+Use an empty type to identify the protocol.
 
 .. code-block:: cpp
 
@@ -33,7 +25,7 @@ First, define an empty struct to serve as a tag for your binary protocol
 
 2. Define a Type Alias Using BinaryData
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Create a type alias using ``quill::BinaryData<T>`` to reference your binary data:
+Name the corresponding ``quill::BinaryData<T>`` view.
 
 .. code-block:: cpp
 
@@ -41,7 +33,7 @@ Create a type alias using ``quill::BinaryData<T>`` to reference your binary data
 
 3. Implement a Formatter for Your Binary Data Type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Specialize the ``fmtquill::formatter`` template for your binary data type to define how it should be formatted in log messages:
+Specialize ``fmtquill::formatter`` for the view. Decode the fields you want in the output.
 
 .. code-block:: cpp
 
@@ -64,7 +56,7 @@ Specialize the ``fmtquill::formatter`` template for your binary data type to def
 
 4. Specialize the Codec
 ~~~~~~~~~~~~~~~~~~~~~~~
-Specialize the ``quill::Codec`` template to use ``BinaryDataDeferredFormatCodec`` for your binary data type:
+Use ``BinaryDataDeferredFormatCodec`` in the view's ``quill::Codec`` specialization.
 
 .. code-block:: cpp
 
@@ -75,7 +67,7 @@ Specialize the ``quill::Codec`` template to use ``BinaryDataDeferredFormatCodec`
 
 5. Use in Your Logging Code
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Now you can log binary data efficiently:
+Pass the buffer and its length to the log statement.
 
 .. code-block:: cpp
 
@@ -89,9 +81,8 @@ Now you can log binary data efficiently:
 
 Using with SBE (Simple Binary Encoding)
 ---------------------------------------
-SBE is a binary encoding protocol often used in financial systems. (See https://github.com/aeron-io/simple-binary-encoding for more information)
-
-For SBE messages, you can leverage SBE's generated code to decode and format messages:
+`Simple Binary Encoding (SBE) <https://github.com/aeron-io/simple-binary-encoding>`_ is used in financial
+systems. The formatter below uses the generated message decoder.
 
 .. literalinclude:: ../examples/sbe_binary_data/sbe_logging.cpp
    :language: cpp
@@ -99,8 +90,7 @@ For SBE messages, you can leverage SBE's generated code to decode and format mes
 
 Example Output
 ~~~~~~~~~~~~~~
-The above example provides human-readable interpretation of the binary SBE messages while maintaining high performance
-on the critical path. The log output might look like this.
+The decoded fields appear as text.
 
 .. code-block:: text
 
@@ -122,8 +112,7 @@ on the critical path. The log output might look like this.
 Binary Protocol Logging with Custom Message Types
 -------------------------------------------------
 
-In addition to SBE, you can use this approach with any binary protocol. This example demonstrates
-logging different types of binary messages with custom formatting:
+The same approach handles other protocols. This example formats several custom message types.
 
 .. literalinclude:: ../examples/binary_protocol_logging.cpp
    :language: cpp
@@ -132,36 +121,23 @@ logging different types of binary messages with custom formatting:
 Raw Binary File Writing
 -----------------------
 
-``LOG_BINARY(logger, data, size)`` writes bytes to the sinks of a logger as they are. This is useful for asynchronously
-writing binary data received from sources like network sockets, sensors or market data feeds to a file, for example to
-record a feed and replay it later.
+``LOG_BINARY(logger, data, size)`` copies ``size`` bytes into the caller's queue. The backend orders the record
+by timestamp and delivers it without formatting, newline, sanitization, severity checks or sink filters.
+Use it for network, sensor or market data feeds you want to replay.
 
-The calling thread copies the bytes to its queue, as it does for the arguments of a log statement. The backend thread
-orders the record by timestamp with the other events and passes the bytes to each sink without formatting them: no
-pattern, newline or character sanitizing is applied, and the log levels and filters of the logger and its sinks are not
-checked.
+- ``FileSink`` and ``RotatingFileSink`` write the bytes verbatim by default. Rotation keeps a record in one file.
+  For variable lengths use ``FileSinkConfig::set_binary_record_framing()`` (see `Framing Records`_).
+- ``FileSinkConfig::set_file_header()`` starts each new file, including rotations, with bytes such as a magic
+  number, global pcap header or CSV header row. See `Writing pcap Files`_.
+- A custom ``write_binary(BinaryRecord const&)`` can frame or forward the payload using its timestamp, thread,
+  logger and call-site metadata. ``StreamSink`` writes bytes to its stream. The default callback, JSON sinks
+  and ``ConsoleSink`` ignore them, so those sinks may coexist with a binary file sink. Ignored payloads do
+  not count toward ``RotatingJsonFileSink`` size rotation.
 
-- ``FileSink`` and ``RotatingFileSink`` write the bytes to the file and add nothing, so the layout of the file is the
-  layout of the records you log. A rotating sink does not split a record between two files.
-- ``FileSinkConfig::set_binary_record_framing()`` makes the sink write the size of each record, or its timestamp and
-  size, before its bytes, for records of different sizes. See `Framing Records`_.
-- ``FileSinkConfig::set_file_header()`` sets bytes that start every file of the sink, including each file that a
-  ``RotatingFileSink`` rotates to, e.g. a magic number, the global header of a pcap file or the header row of a csv
-  file.
-- A custom sink receives the record in ``write_binary(BinaryRecord const&)`` with its timestamp, thread, logger and the
-  metadata of the ``LOG_BINARY`` call, such as its source location, and can frame or forward the bytes in any way. Sinks
-  that do not implement it ignore binary records, and so do the JSON sinks and ``ConsoleSink``: a logger can have them
-  for its log statements next to a file sink for its binary records. Ignored binary payloads contribute no bytes to
-  ``RotatingJsonFileSink`` size rotation. A ``StreamSink`` writes the bytes to its stream.
+Use a dedicated logger and file sink to keep text out of a binary recording. A full dropping queue loses
+binary records just like logs. Choose a blocking queue (the default) when the recording must be complete.
 
-A packet capture that ``tcpdump`` or Wireshark can read is written this way, see `Writing pcap Files`_.
-
-.. note::
-   Give the binary records a logger and a sink of their own: log statements of the same logger are written to the same
-   file. A full dropping queue drops binary records as it drops log statements, so use a blocking queue, which is the
-   default, for a recording that must be complete.
-
-This example writes fixed-size records to a file and reads them back:
+The example writes fixed-size records and reads them back.
 
 .. literalinclude:: snippets/quill_docs_binary_file_writer.cpp
    :language: cpp
@@ -170,8 +146,8 @@ This example writes fixed-size records to a file and reads them back:
 BinaryWriter
 ~~~~~~~~~~~~
 
-:cpp:class:`BinaryWriterImpl`, as ``quill::BinaryWriter``, creates the file sink and a logger of its own for a file,
-as :cpp:class:`CsvWriter` does for a csv file, so that a record is written with one call:
+``quill::BinaryWriter`` (:cpp:class:`BinaryWriterImpl`) creates a file sink and private logger, as
+:cpp:class:`CsvWriter` does for CSV. Write a record with one call.
 
 .. code-block:: cpp
 
@@ -182,20 +158,17 @@ as :cpp:class:`CsvWriter` does for a csv file, so that a record is written with 
     quill::BinaryWriter writer{"orders.bin", sink_config};
     writer.write(&event, sizeof(event));
 
-It also takes a ``RotatingFileSinkConfig``, or one or several sinks of your own. Use ``LOG_BINARY`` with a logger that
-you create when the sinks should get the source location of each call.
+The writer also accepts ``RotatingFileSinkConfig`` or one or more supplied sinks. Use ``LOG_BINARY`` on your
+own logger if a sink needs the source location of each log site.
 
-Writers that are given the same file name share its sink, as csv writers do. A writer for a file whose sink writes
-another file header or frames the records differently throws ``QuillError``.
-
-The logger of a writer has the log level ``None``, so a log statement through it, e.g. from code that logs to every
-logger of ``Frontend::get_all_loggers()``, is dropped instead of being written between the records.
+Writers for the same filename share its sink. Incompatible file headers or record framing throw ``QuillError``.
+The writer logger's level is ``None``, so regular messages, including those sent via ``Frontend::get_all_loggers()``,
+cannot interleave text with its data.
 
 Framing Records
 ~~~~~~~~~~~~~~~
 
-Records of one size need nothing between them. For records of different sizes, the file sink can write a frame before
-each record that tells a reader where it ends, in the byte order of the machine:
+Fixed-size records need no separator. For variable sizes, choose a prefix in machine byte order.
 
 .. list-table::
    :header-rows: 1
@@ -218,18 +191,16 @@ each record that tells a reader where it ends, in the byte order of the machine:
     quill::BinaryWriter writer{"feed.bin", sink_config};
     writer.write(message, message_size);
 
-The timestamp is the one that the record already has in the queue, so the logging thread does nothing more for it. The
-size of the frame counts towards ``rotation_max_file_size``, and a rotation does not separate a frame from its record.
+The frame reuses the queued timestamp and counts toward ``rotation_max_file_size``. A frame and its payload
+always rotate together. ``FileEventNotifier::before_write`` can transform records and file headers. The
+size in the frame describes the transformed payload.
 
-``FileEventNotifier::before_write``, when it is set, transforms the bytes of each binary record as it does a log
-statement and the header of the file, and the frame of a record has the size of the transformed bytes.
+For a caller-built header (e.g. receive time), ``BinaryWriter::write(header, header_size, data, size)``
+or ``Logger::log_binary()`` copies both parts as one record. The payload is copied once and remains
+adjacent to its header.
 
-A header that you build yourself, e.g. with the time that the data was received, is written with the two-part
-``BinaryWriter::write(header, header_size, data, size)`` or ``Logger::log_binary()``: the header and the data are
-copied to the queue as one record, so the data is copied once and nothing comes between the two in the file.
-
-``Logger::log_binary()`` takes the metadata that ``LOG_BINARY`` defines for its call site. The queue keeps the pointer,
-so the metadata and its strings have to stay valid until the backend has written the record:
+``Logger::log_binary()`` retains a pointer to call-site metadata normally supplied by ``LOG_BINARY``.
+Keep the metadata and its strings valid until the backend writes the record.
 
 .. code-block:: cpp
 
@@ -241,16 +212,11 @@ so the metadata and its strings have to stay valid until the backend has written
 Writing pcap Files
 ------------------
 
-:cpp:class:`PcapWriterImpl`, as ``quill::PcapWriter``, writes network packets to pcap files that ``tcpdump``,
-Wireshark and other tools read. A pcap file is a file header of 24 bytes followed by the packets, each after a record
-header of 16 bytes with its timestamp and size. The writer uses what is described above for both:
+``quill::PcapWriter`` (:cpp:class:`PcapWriterImpl`) starts each file, including rotations, with the 24-byte
+pcap header. ``write_packet(packet, size, timestamp_ns)`` builds a 16-byte timestamp and size header on the
+caller and enqueues it with the packet. The packet is copied once and rotates with its header.
 
-- The pcap file header is the file header of the sink, so every file starts with it, including each file that a rotation
-  creates.
-- ``write_packet(packet, size, timestamp_ns)`` builds the record header on the calling thread and copies it to the queue
-  with the packet as one record. The packet is copied once, and a rotation does not come between the two.
-
-A capture that starts a new file every hour:
+This capture starts a new file every hour.
 
 .. code-block:: cpp
 
@@ -265,9 +231,8 @@ A capture that starts a new file every hour:
     // Writes the packets that are still queued and closes the file
     pcap_writer.close();
 
-The complete program, which builds UDP packets to write, is
-`examples/pcap_writing.cpp <https://github.com/odygrd/quill/blob/master/examples/pcap_writing.cpp>`_.
-Read its capture with ``tcpdump``, or open it in Wireshark:
+`examples/pcap_writing.cpp <https://github.com/odygrd/quill/blob/master/examples/pcap_writing.cpp>`_ builds
+the UDP packets. Open the capture in Wireshark or read it with ``tcpdump``.
 
 .. code-block:: shell
 
@@ -277,16 +242,12 @@ Read its capture with ``tcpdump``, or open it in Wireshark:
     02:44:29.852219 IP 10.0.0.1.5000 > 239.1.1.1.6000: UDP, length 21
     02:44:29.852220 IP 10.0.0.1.5000 > 239.1.1.1.6000: UDP, length 21
 
-The link type of the packets and the snapshot length, the most bytes that are kept of a packet, are arguments of the
-constructor. The timestamps in the file are in nanoseconds.
+Set link type and snapshot length (maximum captured bytes per packet) in the constructor. Timestamps
+use nanoseconds.
 
-- By default the file sink appends. The writer then requires a file that is not empty to be a capture with the same
-  byte order, timestamp precision, snapshot length and link type, and throws ``QuillError`` otherwise: the packets it
-  adds are read with the header that is in the file. The sink makes the same check of every file it opens later, e.g.
-  after the file was removed, and stays closed for a file that fails it.
-- Writers that are given the same file name share its sink, as csv and binary writers do. A writer for a file whose
-  sink does not write the same pcap file header, e.g. the sink of a writer with another link type, throws
-  ``QuillError``.
-- ``write_packet(packet, captured_size, original_size, timestamp_ns)`` is for a source that has kept only the first
-  bytes of a packet. The file has both sizes.
-- A timestamp or a size that the fields of a pcap record header cannot hold throws ``QuillError``.
+- The default file mode appends. For a non-empty file, byte order, timestamp precision, snapshot length and
+  link type must match its existing header or construction throws ``QuillError``. The sink rechecks on every
+  later open, including after file removal, and stays closed on mismatch.
+- Writers sharing a filename must agree on its pcap header, including link type, or creation throws ``QuillError``.
+- For truncated input, ``write_packet(packet, captured_size, original_size, timestamp_ns)`` records both sizes.
+- A timestamp or size outside the pcap record field range throws ``QuillError``.

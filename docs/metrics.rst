@@ -6,27 +6,14 @@
 Metrics
 =======
 
-Use this page to publish metrics with Quill and export them through either a custom sink or the built-in ``PrometheusSink``.
-
-Quill's metric API gives you a **low-latency transport** for publishing application metric samples
-to an external metrics backend (Prometheus, StatsD, OpenTelemetry, or any in-process collector)
-through the same asynchronous pipeline used for logs. Quill does not aggregate or expose metrics
-on its own — your sink hands samples off to the metrics backend, which is responsible for
-storage, aggregation, and exposition.
-
-- **Register once, publish cheaply** — metric names and labels live in a stable ``MetricMetadata`` object; the hot path enqueues only a pointer and a ``double`` sample.
-- **Same backend worker as logs** — no dedicated metrics thread, no extra context-switch cost, no duplicate formatting path on hot threads.
-- **Backend-agnostic transport** — the metric API itself transports only ``(timestamp, MetricMetadata*, Logger*, double)``. Sinks decide where samples go.
-- **Ready-made Prometheus exporter** — the built-in :cpp:class:`PrometheusSink` handles counters, gauges, histograms, and summaries, including an optional HTTP exposer.
-
-Metrics go through the same backend worker as logs. You register ``MetricMetadata`` once during
-setup, keep the returned pointer, and then publish ``double`` samples through a logger. The sink
-attached to that logger receives the samples on the backend thread through ``Sink::write_metric()``.
+Publish application samples to Prometheus or another metrics system through Quill's logging worker.
+The sink hands samples to the collector for storage, aggregation and exposition. Metrics need no extra
+Quill thread, context switch or caller-side formatting.
 
 Registering Metrics
 -------------------
 
-Create metric metadata during setup and store the returned pointer where the hot path can reuse it:
+Register the series at setup and cache the returned pointer.
 
 .. code-block:: cpp
 
@@ -36,24 +23,15 @@ Create metric metadata during setup and store the returned pointer where the hot
    quill::MetricMetadata const* request_latency = quill::Frontend::create_metric(
      "request_latency_post", "request_latency_seconds", {{"method", "POST"}});
 
-The first argument is a unique ``metric_key`` used for lookup. The second is the metric name. The third is the set of static labels for that series.
-
-If you want create-or-reuse semantics, use ``Frontend::create_or_get_metric()`` instead. It looks
-up by ``metric_key`` and returns the existing metadata pointer unchanged if one already exists.
-
-The returned ``MetricMetadata*`` is a stable pointer that lives for the entire program duration,
-so you can safely cache it in globals, class members, or anywhere else the hot path can reach.
+Pass a unique lookup key (``metric_key``), metric name and static labels. ``Frontend::create_or_get_metric()``
+returns existing metadata unchanged for a known key. The pointer is stable for the program's lifetime and
+can be stored in a member or global.
 
 One MetricMetadata per Label Combination
 ----------------------------------------
 
-For the pointer-based API, labels on ``MetricMetadata`` are fixed at registration time. Each
-distinct combination of label values is a separate time series and needs its own ``MetricMetadata``
-pointer. This is intentional:
-the hot path stays a pointer plus a ``double``, with no per-sample label lookup or string work.
-
-If you have a known, bounded set of label values, register one ``MetricMetadata`` per combination
-up front and dispatch to the right pointer on the hot path:
+Register each distinct set of label values as a separate series. For a bounded set, choose the cached pointer
+at publish time to avoid per-sample label lookup and string work.
 
 .. code-block:: cpp
 
@@ -74,16 +52,13 @@ up front and dispatch to the right pointer on the hot path:
    // Hot path: pick the right pre-registered metadata pointer, then publish.
    METRIC(metrics_logger, by_method_status[{method, status}], 1.0);
 
-Avoid creating ``MetricMetadata`` on the hot path. ``MetricMetadata`` objects live in a global
-manager for the entire program duration and are not freed; creating them per-request would leak
-memory and serialize on the manager's lock.
-
-For less latency-sensitive code, the optional dynamic publishing API below accepts runtime labels.
+Registration takes the global manager's lock and retains metadata for the program's lifetime. Avoid registering
+per request. For runtime labels, see `Dynamic Labels`_.
 
 Publishing Samples
 ------------------
 
-Metrics are published through a logger that is bound to a sink implementing ``write_metric()``:
+Bind a logger to a sink implementing ``write_metric()``.
 
 .. code-block:: cpp
 
@@ -98,53 +73,42 @@ Metrics are published through a logger that is bound to a sink implementing ``wr
    // Or the function form, if you prefer.
    metrics_logger->publish_metric(request_latency, 0.0023);
 
-Use ``METRIC(...)`` if you want a macro that mirrors the ``LOG_*`` APIs, or call ``Logger::publish_metric()`` directly.
-
-The publish call only queues the sample. The sink receives it on the backend worker thread,
-together with the metric metadata, timestamp, thread information, process id, logger name, and
-the sample value.
+``METRIC(...)`` and ``Logger::publish_metric()`` enqueue a fixed-size timestamp, metadata pointer, logger pointer
+and ``double`` value. The sink receives the sample, metadata, timestamp, thread information, process ID and
+logger name on the backend.
 
 Dynamic Labels
 --------------
 
-``Logger::publish_dynamic_metric(name, labels, value)`` or ``DYNAMIC_METRIC(...)`` provides optional
-runtime flexibility. It copies names and labels into the queue on every call; prefer
-``publish_metric(pointer, value)`` with cached metadata for latency-sensitive hot paths. Labels can be
-passed inline as ``{{key, value}, ...}``, which does not allocate, or as a
-``std::vector<MetricLabel>``.
+``Logger::publish_dynamic_metric(name, labels, value)`` and ``DYNAMIC_METRIC(...)`` copy the name and labels
+on every call. Pass labels inline as ``{{key, value}, ...}`` without allocating a label container, or use a
+``std::vector<MetricLabel>``. Prefer cached metadata on latency-sensitive paths.
 
 .. code-block:: cpp
 
    DYNAMIC_METRIC(metrics_logger, "requests_total",
                   {{"method", method}, {"status", status}}, 1.0);
 
-Both APIs deliver samples to ``Sink::write_metric()``. Custom sinks need no Prometheus registration.
-For ``PrometheusSink``, register the type first using the existing pointer-based registration, or
-``register_*_family()`` if there is no initial metadata pointer. Both publishing APIs then share
-series with matching names and labels. Unregistering a series removes all its aliases and stops
-samples until its pointer is registered again.
+Caller strings can change or be destroyed after return. Keep the number of distinct names and label sets
+bounded because the backend retains their metadata for the program's lifetime.
 
-The caller's strings can be changed or destroyed after the call. The backend retains metadata for
-each distinct name and label combination for the program's lifetime, so keep that number bounded.
+Both APIs reach ``Sink::write_metric()``. A custom sink needs no Prometheus registration. For ``PrometheusSink``,
+register the type by pointer or use ``register_*_family()`` without an initial pointer. Matching names and
+labels share a series. Unregistering it removes all aliases and stops samples until its pointer is registered again.
 
 Writing a Metric Sink
 ---------------------
 
-Metrics are delivered on the backend worker through the virtual method ``Sink::write_metric()``.
-The default implementation is a no-op, so existing log sinks do not need any changes.
-
-- Log-only sinks keep the default no-op ``write_metric()`` and ignore metric events.
-- Metric-only sinks implement ``write_metric()`` and can leave ``write_log()`` as a no-op.
-- Mixed sinks implement both methods and handle logs and metrics in the same sink.
-
-This lets you export metrics to Prometheus, StatsD, Graphite, OpenTelemetry, or any other
-backend.
+Override ``Sink::write_metric()`` to forward samples to StatsD, Graphite, OpenTelemetry or an in-process collector.
+Log-only sinks can inherit the no-op. Metric-only sinks can implement ``write_log()`` as a no-op. Implement
+both methods for a mixed sink.
 
 Using PrometheusSink
 --------------------
 
-``PrometheusSink`` is the built-in sink for Prometheus. After creating the sink, register each
-metric on it as a counter, gauge, histogram, or summary:
+Create a :cpp:class:`PrometheusSink` and register each series as a counter, gauge, histogram or summary: Quill
+transports only ``double`` samples, and the Prometheus type is chosen at this registration.
+Configure its optional HTTP exposer when the application should serve a scrape endpoint.
 
 .. code-block:: cpp
 
@@ -154,39 +118,19 @@ metric on it as a counter, gauge, histogram, or summary:
    prom_sink->register_histogram(request_latency, "Request latency in seconds",
                                  {0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 5.0});
 
-Quill itself only transports ``double`` samples. The Prometheus type is chosen when you register
-the metric on ``PrometheusSink``.
-
 Histogram Bucket Helpers
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Prometheus histograms need a strictly increasing list of bucket boundaries. Quill ships small
-helpers so you don't have to spell those out by hand. Quill has no opinion on the units, since
-some users measure in nanoseconds, others in milliseconds, seconds, bytes, dollars, etc.
+Provide strictly increasing boundaries in the units of your metric, such as nanoseconds, milliseconds,
+seconds, bytes or dollars.
 
-- ``linear_buckets(start, width, count)`` — evenly-spaced boundaries.
-
-  Each bucket is the previous one **plus** ``width``.
-
-  Example: ``linear_buckets(0.0, 5.0, 5)`` → ``{0, 5, 10, 15, 20}``.
-
-  ``start`` may be negative, which is useful when the metric can go below zero (for example,
-  ``linear_buckets(-5.0, 1.0, 11)`` → ``{-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}``). ``width`` must
-  be > 0.
-
-- ``exponential_buckets(start, factor, count)`` — geometrically-spaced boundaries.
-
-  Each bucket is the previous one **multiplied by** ``factor``.
-
-  Example: ``exponential_buckets(1.0, 2.0, 5)`` → ``{1, 2, 4, 8, 16}``.
-  Example: ``exponential_buckets(0.001, 10.0, 4)`` → ``{0.001, 0.01, 0.1, 1}``.
-
-  Use this when the metric spans several orders of magnitude (latencies, sizes). ``start`` must
-  be > 0 and ``factor`` must be > 1. For signed quantities, construct the bucket vector by hand —
-  a strictly-increasing list of doubles is all Prometheus requires.
-
-Quick rule of thumb: pick **linear** when each step should differ by the same amount, and
-**exponential** when each step should differ by the same factor.
+- ``linear_buckets(start, width, count)`` adds a positive width at each step. For example,
+  ``linear_buckets(0.0, 5.0, 5)`` gives ``{0, 5, 10, 15, 20}``. For a negative start,
+  ``linear_buckets(-5.0, 1.0, 11)`` gives ``{-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}``.
+- ``exponential_buckets(start, factor, count)`` multiplies each step. Use a positive start and a factor
+  greater than one for ranges spanning orders of magnitude, such as sizes and latencies.
+  ``exponential_buckets(1.0, 2.0, 5)`` gives ``{1, 2, 4, 8, 16}`` and ``exponential_buckets(0.001, 10.0, 4)``
+  gives ``{0.001, 0.01, 0.1, 1}``. Supply your own increasing vector of doubles for signed, non-linear ranges.
 
 .. code-block:: cpp
 

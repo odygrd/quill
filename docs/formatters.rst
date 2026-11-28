@@ -3,18 +3,9 @@
 Formatters
 ==========
 
-Use this page to customize the layout of log lines, timestamps, and source-location display.
-
-The :cpp:class:`PatternFormatter` specifies the layout of log records in the final output.
-
-Each :cpp:class:`LoggerImpl` object has a ``PatternFormatter`` object.
-This means that each Logger can be customised to output in a different format.
-
-Customising the format output can only be done during the creation of the logger via :cpp:class:`PatternFormatterOptions`.
-
-If no custom format is set, each newly created logger uses the default formatting pattern.
-
-The format output can be customised by providing a string of certain attributes.
+Set :cpp:class:`PatternFormatterOptions` when creating a :cpp:class:`LoggerImpl` to choose its log layout,
+timestamp and source-location display. Each logger has its own :cpp:class:`PatternFormatter` and uses the
+default pattern unless you supply one. Combine the attributes below to build a pattern.
 
 .. list-table::
    :header-rows: 1
@@ -85,20 +76,15 @@ The format output can be customised by providing a string of certain attributes.
      - Key-value pairs appended to the message. This is only applicable to a named-args
        format string and remains empty otherwise.
 
-Literal ``{`` and ``}`` characters can be written directly in a format pattern. The traditional
-fmt spellings ``{{`` and ``}}`` remain supported and each produce one literal brace, so two equal
-braces in a row have to be doubled. A pattern for nested JSON such as
-``{"app":{"msg":"%(message)"}}`` writes one closing brace: end it with ``}}}}``, or double every
-brace of the pattern.
+Single literal braces work in patterns. The {fmt} spellings ``{{`` and ``}}`` each produce one brace.
+A nested JSON pattern such as ``{"app":{"msg":"%(message)"}}`` prints one closing brace. To print both,
+end the pattern with ``}}}}`` or double every brace.
 
 Customising the timestamp
 -------------------------
 
-The timestamp is customisable through:
-
-- Format. Same format specifiers as ``strftime(...)`` format with the additional ``%Qms`` ``%Qus`` ``%Qns`` arguments.
-- Local timezone or GMT timezone. Local timezone is used by default.
-- Fractional second precision. Using the additional fractional second specifiers in the timestamp format string.
+The default is local time with ``"%H:%M:%S.%Qns"``. Select local or GMT and combine the platform's
+``strftime()`` specifiers with at most one of the fractional-second specifiers below.
 
 ========= ============
 Specifier Description
@@ -108,31 +94,22 @@ Specifier Description
 %Qns      Nanoseconds
 ========= ============
 
-A pattern can have one of these specifiers, once. With another one the backend cannot create the
-formatter of the logger, and the records of that logger are not written. Each of them reports the
-error through ``BackendOptions::error_notifier``, which does not repeat the message that it
-reported last for five seconds: the error is reported again after that time, or sooner when another
-error was reported in between. A build with ``QUILL_NO_EXCEPTIONS`` treats such a pattern as a fatal
-configuration error and ends the process at the first record of the logger.
+A pattern may use one of them, once. Repeating one or combining two prevents the backend from creating the
+logger's formatter, so the logger's records are not written; each reports the error through
+``BackendOptions::error_notifier``, which suppresses a repeat of its last error for five seconds unless a
+different error intervenes. ``QUILL_NO_EXCEPTIONS`` builds terminate on the first affected record.
 
-By default ``"%H:%M:%S.%Qns"`` is used.
+Use ``%%`` for a literal percent sign, including ``%%Qms`` or ``%%T``. Unsupported ``strftime()`` patterns
+produce a formatting error. Support depends on the platform's C runtime.
 
-Use ``%%`` to write a literal percent sign in timestamp patterns, including escaped forms such as
-``%%Qms`` or ``%%T``. The escaped text is passed through as a literal instead of being interpreted
-as Quill's fractional-second extension or as a cached time modifier.
+**Timestamp caching**
 
-.. note:: Quill's cached timestamp formatter only updates the plain time-of-day specifiers
-   (``%H``, ``%I``, ``%k``, ``%l``, ``%M``, ``%S``, ``%s``, ``%R``, ``%T``). A pattern that embeds
-   the time of day in another way, with ``%X``, ``%EX``, ``%c``, ``%Ec``, ``%r`` or BSD ``%+``, or a
-   time-of-day specifier with a flag, width or ``E``/``O`` modifier such as ``%-H``, ``%_M``,
-   ``%10S`` or ``%OH``, is formatted with ``strftime()`` for every timestamp instead, which is
-   slower. The backend reports this once through ``BackendOptions::error_notifier``. Date
-   specifiers such as ``%-d`` are unaffected. With ``Timezone::GmtTime``, ``strftime()`` computes
-   a flagged ``%s`` such as ``%10s`` from local time, so it is off by the UTC offset; use plain
-   ``%s``.
-
-.. note:: The supported ``strftime(...)`` specifiers depend on the platform's C runtime.
-   If it cannot format the configured pattern, Quill reports a formatting error.
+- Quill caches plain ``%H``, ``%I``, ``%k``, ``%l``, ``%M``, ``%S``, ``%s``, ``%R`` and ``%T``.
+- ``%X``, ``%EX``, ``%c``, ``%Ec``, ``%r``, BSD ``%+`` and time-of-day flags, widths or ``E``/``O`` modifiers
+  (e.g. ``%-H``, ``%_M``, ``%10S``, ``%OH``) require a slower ``strftime()`` call per timestamp.
+  The backend reports this once through ``error_notifier``. Date specifiers such as ``%-d`` are unaffected.
+- For ``Timezone::GmtTime``, use plain ``%s``. A flagged form such as ``%10s`` uses local time in ``strftime()``
+  and differs by the UTC offset.
 
 Customizing Log Message Formats
 -------------------------------
@@ -144,11 +121,7 @@ Customizing Log Message Formats
 Advanced Pattern Formatter Configuration
 -----------------------------------------
 
-The :cpp:class:`PatternFormatterOptions` class provides additional configuration options beyond the basic format pattern:
-
-**Source Location Path Customization**
-
-You can customize how source file paths are displayed when using the ``%(source_location)`` attribute (full path + line number):
+**Source paths.** Strip prefixes or normalize relative components in ``%(source_location)`` (path and line).
 
 .. code-block:: cpp
 
@@ -162,12 +135,10 @@ You can customize how source file paths are displayed when using the ``%(source_
    options.source_location_remove_relative_paths = true;
    // "../../src/utils/../main.cpp:15" becomes "src/main.cpp:15"
 
-.. note::
-   These options only affect the ``%(source_location)`` attribute, which shows the full file path. The ``%(short_source_location)`` attribute (filename only + line number) is not affected by these settings.
+``%(short_source_location)`` always shows just the filename and line.
 
-**Custom Function Name Processing**
-
-By default, the ``%(caller_function)`` attribute shows basic function names. However, you can enable detailed function signatures by defining ``QUILL_DETAILED_FUNCTION_NAME`` before including Quill headers or as a compiler flag:
+**Function names.** ``%(caller_function)`` normally shows a simple function name. Define
+``QUILL_DETAILED_FUNCTION_NAME`` before including Quill headers or as a compiler flag for the full signature.
 
 .. code-block:: cpp
 
@@ -176,7 +147,8 @@ By default, the ``%(caller_function)`` attribute shows basic function names. How
    
    // Or compile with: -DQUILL_DETAILED_FUNCTION_NAME
 
-When ``QUILL_DETAILED_FUNCTION_NAME`` is enabled, the logger uses compiler-specific macros (like ``__PRETTY_FUNCTION__``) to provide full function signatures including return types, namespaces, class names, and parameter types. Since these detailed signatures can be verbose and compiler-specific, you can provide a custom processing function to format them:
+Compiler-specific signatures such as ``__PRETTY_FUNCTION__`` can include return type, namespaces, class and
+parameter types. Use ``process_function_name`` to shorten them.
 
 .. code-block:: cpp
 
@@ -191,12 +163,9 @@ When ``QUILL_DETAILED_FUNCTION_NAME`` is enabled, the logger uses compiler-speci
        return name;
    };
 
-.. note::
-   The ``process_function_name`` callback is only used when ``QUILL_DETAILED_FUNCTION_NAME`` is enabled. Without this define, ``%(caller_function)`` shows simple function names and this callback is ignored.
+The callback is active only with ``QUILL_DETAILED_FUNCTION_NAME``.
 
-**Custom Tag Processing**
-
-Use ``process_tags`` to transform tag text on the backend before ``%(tags)`` is formatted:
+**Tags.** Set ``process_tags`` to transform the text inserted into ``%(tags)``.
 
 .. code-block:: cpp
 
@@ -208,15 +177,11 @@ Use ``process_tags`` to transform tag text on the backend before ``%(tags)`` is 
        return result;
    };
 
-The callback runs only when ``%(tags)`` is present and the record contains tags. It changes the
-formatted pattern output without modifying the original tag metadata exposed to sinks. Because the
-option stores a function pointer, use a regular function or a non-capturing lambda.
+Use a regular function or non-capturing lambda (the option stores a function pointer). The callback runs
+only for a tagged record when the pattern includes ``%(tags)``. Sinks still receive the original metadata.
+See :doc:`log_tagging` for the tag APIs.
 
-See :doc:`Log Tagging <log_tagging>` for static and dynamic tag APIs.
-
-**Timestamp Configuration**
-
-Control timestamp timezone and format:
+**Timestamps.** Set the timezone and pattern together.
 
 .. code-block:: cpp
 
@@ -228,9 +193,7 @@ Control timestamp timezone and format:
    // Customize timestamp format (same as strftime + fractional specifiers)
    options.timestamp_pattern = "%Y-%m-%d %H:%M:%S.%Qms";  // Include date and milliseconds
 
-**Multi-line Message Handling**
-
-Control whether metadata is added to each line of multi-line log messages:
+**Multi-line messages.** Choose whether continuation lines repeat the metadata.
 
 .. code-block:: cpp
 

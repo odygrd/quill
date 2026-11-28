@@ -3,73 +3,58 @@
 Sink Types
 ==========
 
-Reference for all built-in sink implementations. See :doc:`Sinks <sinks>` for how to create, share, and extend sinks.
+Choose a built-in sink for your output destination. See :doc:`sinks` for creating, sharing and extending sinks.
 
 ConsoleSink
 ~~~~~~~~~~~
 
-The `ConsoleSink` class sends logging output to streams `stdout` or `stderr`. Printing color codes to terminal or Windows console is also supported.
-With the default ``ConsoleSinkConfig::ColourMode::Automatic``, colours are written to a terminal that supports them, unless the ``NO_COLOR`` environment variable has a value.
+``ConsoleSink`` writes to ``stdout`` or ``stderr``. ``ConsoleSinkConfig::ColourMode::Automatic`` enables colour
+on supported terminals, including Windows consoles, unless ``NO_COLOR`` has a value.
 
-On Windows, the console interprets bytes written by ``ConsoleSink`` using its output code page.
-To display UTF-8 logs, set the console output code page to UTF-8 with ``SetConsoleOutputCP(CP_UTF8)``
-and disable or customize :cpp:member:`BackendOptions::check_printable_char` to preserve UTF-8 bytes.
-When output is redirected to a pipe or file, the sink writes the original bytes.
+For UTF-8 on a Windows console, call ``SetConsoleOutputCP(CP_UTF8)`` and disable or customize
+:cpp:member:`BackendOptions::check_printable_char` to preserve the bytes. Redirection to a pipe or file
+writes the bytes without console code-page conversion.
 
 FileSink
 ~~~~~~~~
 
-The :cpp:class:`FileSink` is a straightforward sink that outputs to a file. The filepath of the `FileSink` serves as a unique identifier, allowing you to retrieve the same sink later using :cpp:func:`FrontendImpl::get_sink`.
+:cpp:class:`FileSink` opens one sink per normalized path. Retrieve it by path with :cpp:func:`FrontendImpl::get_sink`.
+``FileSinkConfig::set_file_header()`` supplies bytes, such as a CSV header, for every empty file opened,
+including rotations. Appending to a non-empty file preserves its header. ``FileEventNotifier::after_open``
+sees the file before the header is written.
 
-Each file can only have a single instance of `FileSink`.
+**Buffered writes.** The sink writes when its own buffer fills or the worker flushes it.
+``FileSinkConfig::set_write_buffer_size()`` sets capacity (default 64 KiB, or 256 KiB on Windows).
+Writes through the callback handle stay in order with records. ``setvbuf`` on that handle does not resize
+the sink buffer. On failure such as a full disk, the sink retains buffered bytes and the remainder of a
+record larger than its buffer for a later successful write. Bytes it cannot retain are lost, possibly
+leaving a partial record.
 
-``FileSinkConfig::set_file_header()`` sets bytes that start every file of the sink, e.g. the header
-row of a csv file. They are written when the sink opens an empty file, which includes each file
-that a ``RotatingFileSink`` rotates to; a file that is appended to and already has content gets no
-second header. ``FileEventNotifier::after_open`` is called before the header is written, with the
-file as it was opened.
+**Direct writes.** ``set_write_buffer_size(0)`` bypasses the sink buffer. Each record uses the handle
+available to ``after_open`` and ``before_close``. Callbacks can retain and configure it. Direct writes are
+slower. Windows writes each record immediately. Elsewhere the ``FILE*`` uses C library buffering unless
+binary framing other than ``BinaryRecordFraming::None`` or ``PcapWriter`` selects unbuffered mode.
+``after_open`` can change it with ``setvbuf``. On failure an unbuffered handle lets the sink retain the
+record remainder. A buffered stream can discard bytes.
 
-The sink copies each record to a write buffer of its own and writes the buffer to the file when it
-is full and when the backend flushes the sink. ``FileSinkConfig::set_write_buffer_size()`` sets the
-size of the buffer, which is 64 KiB by default and 256 KiB on Windows. The handle that
-``FileEventNotifier::after_open`` and ``FileEventNotifier::before_close`` receive is not part of
-this: what a callback writes through it stays in order with the records, but configuring it, e.g.
-with ``setvbuf``, does not change how the records are buffered.
-
-When a write to the file fails, e.g. on a full disk, the sink keeps what is in its buffer, and the
-rest of a record larger than the buffer, and writes it once a later write succeeds; what it cannot
-keep is lost, so a file can end with a part of a record.
-
-``FileSinkConfig::set_write_buffer_size(0)`` turns the buffer of the sink off. Every record
-is then written through that handle as it arrives, so the callbacks decide how the file is
-buffered and can keep the handle. On Windows each record is written to the file at once; on other
-platforms the handle is a ``FILE*`` with the default buffering of the C library, or unbuffered
-with a binary record framing other than ``BinaryRecordFraming::None`` and for a ``PcapWriter``,
-until ``after_open`` changes it with ``setvbuf``. This is slower than the buffer of the sink. When a
-write fails, the sink keeps the rest of the record as well if the ``FILE*`` is unbuffered; a
-buffered one can discard what it holds, so that a part of a record is missing from the file.
-
-On Windows, a ``std::string`` file name is decoded with the active code page. For a path with
-characters outside it, pass a ``std::filesystem::path`` built from a wide string instead:
+**Windows paths.** A ``std::string`` filename uses the active code page. For other characters pass a
+``std::filesystem::path`` built from a wide string.
 
 .. code-block:: cpp
 
     auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>(
       std::filesystem::path{L"C:\\logs\\\u65e5\u8a8c.log"}, quill::FileSinkConfig{});
 
-.. note::
+File Callbacks
+^^^^^^^^^^^^^^
 
-   When using :cpp:class:`FileEventNotifier` with :cpp:class:`FileSink`, the callback handle type is
-   platform-dependent and is exposed as ``quill::FileEventNotifierHandle``. On Windows it is a native
-   ``HANDLE``. On other platforms it is a ``FILE*``.
+:cpp:class:`FileEventNotifier` exposes ``quill::FileEventNotifierHandle`` (Windows
+``HANDLE``, otherwise ``FILE*``). ``before_write`` runs during normal writes. ``before_open``, ``after_open``,
+``before_close`` and ``after_close`` run on the thread opening or closing the file. Even successive invocations
+of the same callback can use different threads, so callbacks must be thread-safe.
 
-   ``before_write`` runs as part of normal log writing. ``before_open``, ``after_open``,
-   ``before_close``, and ``after_close`` run on whichever thread performs the file open/close
-   operation. Different callbacks, and different invocations of the same callback, may therefore
-   run on different threads over the sink lifetime. Callbacks must be thread-safe and must not
-   assume a single calling thread. When ``before_write`` changes the message size, size-based
-   rotation evaluates its threshold using the pre-transform size of the current message, so a
-   rotation can trigger up to one transformed message later or earlier than the exact limit.
+If ``before_write`` changes the record's length, size-based rotation still tests its original size. Rotation
+can occur up to one transformed message earlier or later than the exact threshold.
 
 .. literalinclude:: snippets/quill_docs_example_file.cpp
    :language: cpp
@@ -78,23 +63,15 @@ characters outside it, pass a ``std::filesystem::path`` built from a wide string
 RotatingFileSink
 ~~~~~~~~~~~~~~~~
 
-The :cpp:type:`RotatingFileSink` is built on top of the `FileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+:cpp:type:`RotatingFileSink` adds size, interval or daily rotation to ``FileSink``.
 
-.. note::
-
-   When the sink starts in append mode, rotated files left behind by previous runs are detected
-   for every ``RotationNamingScheme`` and count towards ``max_backup_files`` whether or not the
-   base filename has an extension; the oldest ones are removed on startup if they exceed the
-   limit, so log files do not accumulate across restarts. Set
-   ``set_overwrite_rolled_files(false)`` to prevent append-mode recovery from deleting existing
-   rotated files, or use ``FilenameAppendOption::StartDateTime`` to give each run its own
-   independent set of files.
-
-   When startup cleanup or recovery needs a directory scan and the directory of the file cannot
-   be listed, e.g. because the process may write to it but not read it, the sink throws
-   ``QuillError`` and leaves the files as they are: it finds the rotated files of previous runs
-   there, and a rotation without them could overwrite one. A sink with open mode ``w`` and
-   ``set_remove_old_files(false)`` does not scan the directory.
+- In append mode, startup detects previous rotations for every ``RotationNamingScheme``, including base names
+  without extensions. All count toward ``max_backup_files`` and startup removes the oldest excess backups.
+  ``set_overwrite_rolled_files(false)`` preserves existing files. ``FilenameAppendOption::StartDateTime`` gives
+  each run a separate set.
+- If cleanup or recovery requires a scan and the directory cannot be listed (even if writable), the sink
+  throws ``QuillError`` and leaves the files intact to avoid overwriting an undiscovered backup. Open mode
+  ``w`` with ``set_remove_old_files(false)`` skips the scan.
 
 .. literalinclude:: ../examples/rotating_file_logging.cpp
    :language: cpp
@@ -110,7 +87,7 @@ JsonFileSink/JsonConsoleSink
 RotatingJsonFileSink
 ~~~~~~~~~~~~~~~~~~~~
 
-The :cpp:type:`RotatingJsonFileSink` is built on top of the `JsonFileSink` and provides log file rotation based on specified time intervals, file sizes, or daily schedules.
+:cpp:type:`RotatingJsonFileSink` adds size, interval or daily rotation to ``JsonFileSink``.
 
 .. literalinclude:: ../examples/rotating_json_file_logging.cpp
    :language: cpp
@@ -119,92 +96,13 @@ The :cpp:type:`RotatingJsonFileSink` is built on top of the `JsonFileSink` and p
 SyslogSink
 ~~~~~~~~~~
 
-The :cpp:class:`SyslogSink` leverages the syslog API to send messages.
+:cpp:class:`SyslogSink` writes through the process-global syslog API. Use one identifier, option set and
+facility per process. Separate instances cannot configure these independently.
 
-.. note::
-
-   Syslog uses process-global state. Multiple :cpp:class:`SyslogSink` instances are therefore not
-   independent if they use different identifiers, options, or facilities. Use a single
-   :cpp:class:`SyslogSink` configuration per process.
-
-StreamSink
-~~~~~~~~~~
-
-The :cpp:class:`StreamSink` is a base sink class used to write log messages to C-style ``FILE*`` streams, such as 
-``stdout``, ``stderr``, or files opened with ``fopen``.
-It is typically used as a foundation for higher-level sinks like :cpp:class:`ConsoleSink`.
-
-To wrap an application-owned stream with ``StreamSink``, open it with ``fopen()`` or,
-on POSIX, ``fdopen()`` and pass the resulting ``FILE*`` to the sink constructor.
-``StreamSink`` does not open the supplied filename or close the stream. The application
-must keep the ``FILE*`` alive until the backend has finished using it.
-
-The ``stream_is_unbuffered`` constructor flag is an opt-in for the specific case of an
-application-owned, unbuffered stream, such as a pipe writer. It enables retries when a write
-is interrupted by a signal. Leave it ``false`` for buffered streams; the flag itself does
-not change the stream's buffering mode.
-
-To opt in, call ``setvbuf(stream, nullptr, _IONBF, 0)`` immediately after opening the stream,
-before any reads, writes, or logging. Check that it succeeds, then pass the configured
-``FILE*`` and ``stream_is_unbuffered=true`` when creating the ``StreamSink``. Keep buffering
-disabled for the sink's lifetime.
-
-This complete example uses a regular file so it can run on all supported platforms. The
-same setup sequence applies to a POSIX pipe stream opened with ``fdopen()``:
-
-.. literalinclude:: snippets/quill_docs_example_unbuffered_stream.cpp
-   :language: cpp
-   :linenos:
-
-.. note::
-
-   This opt-in is for direct ``StreamSink`` construction. ``FileSink`` and ``ConsoleSink``
-   do not expose it. On POSIX, ``FileSink`` passes its internally opened ``FILE*`` to
-   ``FileEventNotifier::after_open``, but changing buffering in that callback does not
-   enable the retry flag.
-
-   ``FileSink`` uses a write buffer of 64 KiB by default, and of 256 KiB on Windows.
-   ``FileSinkConfig::set_write_buffer_size(0)`` disables that buffer, so that the records go
-   through the ``FILE*``. That stream is unbuffered only with a binary record framing and for a
-   ``PcapWriter``, and the retry flag stays off.
-
-Buffered short writes retain the existing error reporting. This feature does not provide
-lossless recovery for buffered streams: some C libraries discard pending buffered data on
-a write error, and retrying ``fwrite()`` cannot reliably recover the discarded bytes.
-
-Direct callers of the static write helper can use ``StreamSink::safe_fwrite_unbuffered()``
-after the same checked ``_IONBF`` setup. ``StreamSink::safe_fwrite()`` retains the default
-short-write error handling.
-
-AndroidSink
-~~~~~~~~~~~
-
-The :cpp:class:`AndroidSink` sends log messages to the Android logging system using the Android NDK logging API.
-
-NullSink
-~~~~~~~~
-
-The :cpp:class:`NullSink` discards all log messages, useful for performance testing or disabling specific logger output without removing logging calls.
-
-.. note:: Macro Collision Notice
-
-   When including ``syslog.h`` via :cpp:class:`SyslogSink`, the header defines macros such as ``LOG_INFO``
-   (and others) that may collide with Quill's unprefixed ``LOG_`` macros. To resolve this issue, consider one
-   of the following solutions:
-
-   - **Include SyslogSink in a .cpp file only:**
-     Instantiate the SyslogSink in a source file rather than in a header file. This ensures that ``syslog.h``
-     is included only in that specific translation unit, allowing the rest of your code to use the unprefixed
-     Quill ``LOG_`` macros without conflict.
-
-   - **Define the preprocessor flag ``QUILL_DISABLE_NON_PREFIXED_MACROS``:**
-     This flag disables the unprefixed Quill ``LOG_`` macros and forces the use of the longer
-     ``QUILL_LOG_`` macros instead. This approach allows Quill to work alongside ``syslog.h`` in the same
-     translation unit.
-
-   Alternatively, you can combine both solutions if you include :cpp:class:`SyslogSink` in a .cpp file where you
-   also want to use the unprefixed ``LOG_`` macros. However, the first solution is generally preferred since it
-   allows for less typing with the concise ``LOG_`` macros.
+**Macro names.** ``<syslog.h>`` and ``<systemd/sd-journal.h>`` define names such as ``LOG_INFO`` and
+``LOG_WARNING``. Keep ``SyslogSink.h`` or ``SystemdSink.h`` in the setup ``.cpp`` to confine the conflict.
+Other files can then use short ``LOG_*`` names. For logging in the same translation unit, define
+``QUILL_DISABLE_NON_PREFIXED_MACROS`` and use ``QUILL_LOG_*``. The two approaches can be combined.
 
 .. code:: cpp
 
@@ -239,10 +137,49 @@ The :cpp:class:`NullSink` discards all log messages, useful for performance test
       QUILL_LOG_WARNING(logger, "test message {}", 123);
     }
 
+StreamSink
+~~~~~~~~~~
+
+:cpp:class:`StreamSink` writes to C ``FILE*`` streams, including ``stdout``, ``stderr`` and application files.
+It also underlies :cpp:class:`ConsoleSink`. Open your stream with ``fopen()`` or POSIX ``fdopen()`` and pass
+the handle to the constructor. The filename is an identifier. The application owns the stream and must
+keep it open until the backend finishes.
+
+For an unbuffered stream, such as a pipe writer, enable retries on signal interruption in two steps.
+
+1. Immediately after opening and before any I/O, call ``setvbuf(stream, nullptr, _IONBF, 0)`` and check success.
+2. Pass the handle with ``stream_is_unbuffered=true``. The flag enables retries only. Keep buffering disabled
+   throughout the sink's lifetime and leave the flag false for buffered streams.
+
+This portable example uses a file. The same sequence works for a POSIX pipe opened with ``fdopen()``.
+
+.. literalinclude:: snippets/quill_docs_example_unbuffered_stream.cpp
+   :language: cpp
+   :linenos:
+
+The flag is available only on direct ``StreamSink`` construction. ``ConsoleSink`` and ``FileSink`` do not expose
+it. On POSIX, changing the ``FILE*`` in ``FileEventNotifier::after_open`` or disabling the :ref:`sink buffer
+<sink_types:filesink>` does not enable retries.
+
+Use ``StreamSink::safe_fwrite_unbuffered()`` directly only after the same checked ``_IONBF`` setup.
+``StreamSink::safe_fwrite()`` reports short writes normally. A C library can discard buffered data on
+error, so retrying ``fwrite()`` cannot recover those bytes reliably.
+
+AndroidSink
+~~~~~~~~~~~
+
+:cpp:class:`AndroidSink` writes to the Android log through the NDK logging API.
+
+NullSink
+~~~~~~~~
+
+:cpp:class:`NullSink` discards messages. Use it for performance tests or to silence a logger while keeping
+its log calls in place.
+
 SystemdSink
 ~~~~~~~~~~~
 
-The :cpp:class:`SystemdSink` integrates with the systemd journal, allowing messages to be sent directly to systemd. To use this sink, ensure the `systemd-devel` package is installed. Additionally, link your program against ``lsystemd``.
+:cpp:class:`SystemdSink` writes to the systemd journal. Install ``systemd-devel`` and link with ``libsystemd``.
 
 .. code:: cmake
 
@@ -250,25 +187,7 @@ The :cpp:class:`SystemdSink` integrates with the systemd journal, allowing messa
     pkg_check_modules(SYSTEMD REQUIRED libsystemd)
     target_link_libraries(${TARGET} ${SYSTEMD_LIBRARIES})
 
-.. note:: Macro Collision Notice
-
-   When including ``syslog.h`` via :cpp:class:`SystemdSink`, the header defines macros such as ``LOG_INFO``
-   (and others) that may collide with Quill's unprefixed ``LOG_`` macros. To resolve this issue, consider one
-   of the following solutions:
-
-   - **Include SystemdSink in a .cpp file only:**
-     Instantiate the SystemdSink in a source file rather than in a header file. This ensures that ``syslog.h``
-     is included only in that specific translation unit, allowing the rest of your code to use the unprefixed
-     Quill ``LOG_`` macros without conflict.
-
-   - **Define the preprocessor flag ``QUILL_DISABLE_NON_PREFIXED_MACROS``:**
-     This flag disables the unprefixed Quill ``LOG_`` macros and forces the use of the longer
-     ``QUILL_LOG_`` macros instead. This approach allows Quill to work alongside ``syslog.h`` in the same
-     translation unit.
-
-   Alternatively, you can combine both solutions if you include :cpp:class:`SystemdSink` in a .cpp file where you
-   also want to use the unprefixed ``LOG_`` macros. However, the first solution is generally preferred since it
-   allows for less typing with the concise ``LOG_`` macros.
+The journal headers share the :ref:`syslog macro names <sink_types:syslogsink>`. This example uses prefixed macros.
 
 .. code:: cpp
 

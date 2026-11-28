@@ -4,13 +4,25 @@
   <meta name="keywords" content="C++, logging library, asynchronous logging, high performance, low latency">
   -->
 
-  <h1>
-    <img src="docs/quill_logo.png" alt="Quill C++ Logging Library" width="100" /><br>
-    Quill
-  </h1>
+  <img src="docs/quill_logo.png" alt="Quill C++ Logging Library" width="120" />
+
+  <h1>Quill</h1>
+
   <p><b>Ultra-Low-Latency Asynchronous C++17 Logging and Metrics Library</b></p>
 
-  <div>
+  <p>
+    <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation"><b>Documentation</b></a>
+    <span>&nbsp;·&nbsp;</span>
+    <a href="https://quillcpp.readthedocs.io/en/latest/benchmarks.html" title="Benchmark methodology and results"><b>Benchmarks</b></a>
+    <span>&nbsp;·&nbsp;</span>
+    <a href="https://quillcpp.readthedocs.io/en/latest/recipes.html" title="Quick reference for common tasks"><b>Recipes</b></a>
+    <span>&nbsp;·&nbsp;</span>
+    <a href="https://quillcpp.readthedocs.io/en/latest/faq.html" title="Frequently asked questions"><b>FAQ</b></a>
+    <span>&nbsp;·&nbsp;</span>
+    <a href="https://godbolt.org/z/n68asK7bY" title="Try Quill live on Compiler Explorer"><b>Try It Online</b></a>
+  </p>
+
+  <p>
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Afedora">
       <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/fedora.yml?branch=master&label=Fedora&style=flat-square&logo=fedora" alt="fedora-ci" />
     </a>
@@ -29,9 +41,9 @@
     <a href="https://github.com/odygrd/quill/actions?query=workflow%3Aintelllvm">
       <img src="https://img.shields.io/github/actions/workflow/status/odygrd/quill/intelllvm.yml?branch=master&label=Intel%20LLVM&style=flat-square&logo=intel" alt="intel-llvm-ci" />
     </a>
-  </div>
+  </p>
 
-  <div>
+  <p>
     <a href="https://codecov.io/gh/odygrd/quill">
       <img src="https://img.shields.io/codecov/c/gh/odygrd/quill/master.svg?logo=codecov&style=flat-square" alt="Codecov" />
     </a>
@@ -44,49 +56,48 @@
     <a href="https://www.codefactor.io/repository/github/odygrd/quill">
       <img src="https://img.shields.io/codefactor/grade/github/odygrd/quill?logo=codefactor&style=flat-square" alt="CodeFactor" />
     </a>
-  </div>
-
-  <div>
     <a href="https://opensource.org/licenses/MIT">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="license" />
     </a>
     <a href="https://en.wikipedia.org/wiki/C%2B%2B17">
       <img src="https://img.shields.io/badge/language-C%2B%2B17-red.svg?style=flat-square" alt="language" />
     </a>
-  </div>
+  </p>
 
-  <h4>
-    <a href="https://godbolt.org/z/n68asK7bY" title="Try Quill live on Compiler Explorer">🔬 Try It Online</a>
-    <span> · </span>
-    <a href="https://quillcpp.readthedocs.io/en/latest/benchmarks.html" title="Benchmark methodology and results">🚀 Benchmarks</a>
-    <span> · </span>
-    <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation">📚 Documentation</a>
-    <span> · </span>
-    <a href="https://quillcpp.readthedocs.io/en/latest/recipes.html" title="Quick reference for common tasks">⚡ Recipes</a>
-    <span> · </span>
-    <a href="https://quillcpp.readthedocs.io/en/latest/faq.html" title="Frequently asked questions">❓ FAQ</a>
-    <br />
-    <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=bug-report.md&title=" title="Report a bug or issue">🐛 Report Bug</a>
-    <span> · </span>
-    <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=">💡 Request Feature</a>
-  </h4>
+  <p>
+    <img src="docs/quill_demo.gif" alt="Logging Demo" width="75%" />
+  </p>
 
-  <div align="center"><img src="docs/quill_demo.gif" alt="Logging Demo" width="75%" /></div>
+  <p>
+    <sub>
+      <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=bug-report.md&title=" title="Report a bug or issue">Report Bug</a>
+      <span>&nbsp;·&nbsp;</span>
+      <a href="https://github.com/odygrd/quill/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=">Request Feature</a>
+    </sub>
+  </p>
 </div>
 
 ---
 
-## 🧭 Table of Contents
-
-- [Introduction](#-introduction)
-- [Use Cases](#-use-cases)
-- [Quick Start](#-quick-start)
-- [Features](#-features)
-- [Performance](#-performance)
-- [Usage](#-usage)
-- [Design](#-design)
-- [Caveats](#-caveats)
-- [License](#-license)
+<p align="center">
+  <a href="#-introduction">Introduction</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-use-cases">Use Cases</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-quick-start">Quick Start</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-features">Features</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-performance">Performance</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-usage">Usage</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-design">Design</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-caveats">Caveats</a>
+  <span>&nbsp;·&nbsp;</span>
+  <a href="#-license">License</a>
+</p>
 
 ---
 
@@ -97,28 +108,75 @@ latency-sensitive application threads by encoding log arguments on the frontend 
 backend worker. A log call costs a few nanoseconds on the calling thread, the backend writes millions of messages per
 second, and the code that logs stays quick to compile, so detailed logging can stay in your fastest code paths.
 
-- **Low Frontend Latency**: Log arguments are encoded and queued for asynchronous processing, minimizing work on the
-  calling thread. See the [latency benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_latency.html) for measured results and methodology.
-- **Deferred Formatting**: Expensive formatting is performed by the backend worker instead of the calling thread.
-- **High Backend Throughput**: A single backend thread formats and writes millions of messages per second to files,
-  the console and custom sinks. See the [throughput benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_throughput.html).
-- **Fast to Compile**: Files that log include only `Logger.h` and `LogMacros.h`, log statements with the same argument
-  types share their code, and the backend is compiled in a single file of your own. See the
-  [compilation time benchmark](https://quillcpp.readthedocs.io/en/latest/benchmarks_compile_time.html).
-- **Logs, Metrics and Data Files**: The same asynchronous backend that writes your logs also publishes pre-registered
-  [metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html), through the bundled Prometheus sink or a sink of
-  your own. It also writes [CSV files](https://quillcpp.readthedocs.io/en/latest/csv_writing.html), records
-  [raw data](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#raw-binary-file-writing) such as a market
-  data feed to files as it arrives, and writes
-  [packet captures](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#writing-pcap-files) that Wireshark
-  and tcpdump can open. See the [Use Cases](#-use-cases) for an example of each.
-- **Highly Customizable**: Tune frontend queues and memory policy at compile time; configure backend idle behaviour,
-  CPU affinity, buffering, timestamp handling, flushing, and callbacks at runtime; and compose loggers from built-in or
-  custom sinks with per-sink filters. See
-  [Frontend Options](https://quillcpp.readthedocs.io/en/latest/frontend_options.html),
-  [Backend Options](https://quillcpp.readthedocs.io/en/latest/backend_options.html), and
-  [Sinks](https://quillcpp.readthedocs.io/en/latest/sinks.html).
-- **Production-Focused Testing**: Continuously tested across Linux, macOS, Windows, and BSD, with sanitizers and fuzzing.
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Low Frontend Latency**<br>
+The calling thread only encodes and queues the log arguments. See the
+[latency benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_latency.html) for measured results and
+methodology.
+
+</td>
+<td width="50%" valign="top">
+
+**Deferred Formatting**<br>
+The backend worker does the expensive formatting, not the calling thread.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**High Backend Throughput**<br>
+A single backend thread formats and writes millions of messages per second to files,
+the console and custom sinks. See the [throughput benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_throughput.html).
+
+</td>
+<td width="50%" valign="top">
+
+**Fast to Compile**<br>
+Files that log include only `Logger.h` and `LogMacros.h`, two headers with minimal dependencies. Log statements
+with the same argument types share their code, and the backend is compiled in a single `.cpp` file of your own, not
+in the files that log. See the
+[compilation time benchmark](https://quillcpp.readthedocs.io/en/latest/benchmarks_compile_time.html).
+
+</td>
+</tr>
+<tr>
+<td colspan="2" valign="top">
+
+**Logs, Metrics and Data Files**<br>
+The same asynchronous backend that writes your logs also publishes pre-registered
+[metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html), through the bundled Prometheus sink or a sink of
+your own. It also writes [CSV files](https://quillcpp.readthedocs.io/en/latest/csv_writing.html), records
+[raw data](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#raw-binary-file-writing) such as a market
+data feed to files as it arrives, and writes
+[packet captures](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html#writing-pcap-files) that Wireshark
+and tcpdump can open. See the [Use Cases](#-use-cases) for an example of each.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+**Highly Customizable**<br>
+Choose frontend queues and memory policy at compile time; set backend idle behaviour, CPU affinity, buffering,
+timestamp handling, flushing, and callbacks at runtime; and compose loggers from built-in or custom sinks with
+per-sink filters. See
+[Frontend Options](https://quillcpp.readthedocs.io/en/latest/frontend_options.html),
+[Backend Options](https://quillcpp.readthedocs.io/en/latest/backend_options.html), and
+[Sinks](https://quillcpp.readthedocs.io/en/latest/sinks.html).
+
+</td>
+<td width="50%" valign="top">
+
+**Production-Focused Testing**<br>
+Continuously tested across Linux, macOS, Windows, and BSD, with sanitizers and fuzzing.
+
+</td>
+</tr>
+</table>
 
 > Using Quill? Click **Star** at the top of the [GitHub repository](https://github.com/odygrd/quill) to help other C++
 > developers discover it.
@@ -130,9 +188,9 @@ second, and the code that logs stays quick to compile, so detailed logging can s
 **One backend thread for your logs, metrics, data files and packet captures.**
 
 By default, every call below costs your thread one thing: encoding its arguments into a lock-free queue of its own,
-which for most types is a plain copy. Formatting and I/O run later on the backend thread, which merges everything in
-timestamp order across all threads. Where a record goes, to a file, a terminal or a metrics collector, does not change
-what it costs your thread.
+which for most types is a plain copy. The backend thread formats, merges everything in timestamp order across all
+threads and does the I/O, so where a record goes, to a file, a terminal or a metrics collector, does not change what
+it costs your thread.
 
 | Use Quill to                                                                                                                                                                 | Your thread calls                                               | The backend thread writes                                                                       |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------|:------------------------------------------------------------------------------------------------|
@@ -146,29 +204,13 @@ what it costs your thread.
 | Decode [binary protocols](https://quillcpp.readthedocs.io/en/latest/binary_protocols.html) such as SBE into readable text                                                    | `LOG_INFO(logger, "[IN] {}", SbeMessage{buffer, size});`        | The fields of each message, decoded on the backend thread                                       |
 | Send records [anywhere](https://quillcpp.readthedocs.io/en/latest/sinks.html): a database, a socket, a message bus                                                           | A sink of your own, with `write_log(LogRecord const&)`          | Whatever your sink does with each record                                                        |
 
-### Put Them Together
-
-An application can have as many loggers and writers as it needs, for any mix of the above. They all share the one
-backend thread, and a call still costs its thread only the encoding into its queue:
-
-- 📈 **A trading system** logs its decisions as text, records the exchange feed to pcap files that rotate every hour,
-  writes its fills to CSV, and publishes its order latencies as metrics.
-- 🎮 **A multiplayer game server** keeps I/O out of its tick loop: it logs to rotating files, records each match as a
-  binary replay, and publishes its tick time and the number of players online as metrics.
-- 📞 **A VoIP server** logs to syslog, captures the packets of its calls to pcap files for Wireshark, and publishes the
-  number of active calls as metrics.
-- ☁️ **A service in a container** logs JSON to stdout for the platform to collect, and publishes its request counts as
-  metrics.
-
 ---
 
 ## ⏩ Quick Start
 
-Getting started is easy and straightforward. Follow these steps to integrate the library into your project:
-
 ### Installation
 
-You can install Quill using the package manager of your choice:
+Install Quill with the package manager of your choice:
 
 | Package Manager |              Installation Command              |
 |:---------------:|:----------------------------------------------:|
@@ -210,10 +252,10 @@ int main()
 20:07:18.423476231 [48917] main.cpp:8                    LOG_INFO      Hello from Quill!
 ```
 
-#### Detailed Setup
+<details>
+<summary><a name="detailed-setup"></a><b>Detailed Setup</b>: your own backend options, logger names, sinks and formatters</summary>
 
-If you want explicit control over backend options, logger names, sinks, or formatters, use the
-`Backend` and `Frontend` APIs directly:
+Use the `Backend` and `Frontend` APIs directly:
 
 ```c++
 #include "quill/Backend.h"
@@ -240,9 +282,14 @@ int main()
 20:07:18.423476231 [48917] main.cpp:15                   LOG_INFO      root         Hello from Quill!
 ```
 
-You can also use the macro-free mode. The macro API (`LOG_INFO`) is the lowest-latency path.
-The function API (`quill::info`) reads more like ordinary code but is slightly slower.
-See [here](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html) for the trade-offs.
+</details>
+
+<details>
+<summary><b>Macro-Free Mode</b>: function calls instead of macros</summary>
+
+The macro API (`LOG_INFO`) is the lowest-latency path. The function API (`quill::info`) reads more like ordinary
+code but is slightly slower: see [Macro-Free Mode](https://quillcpp.readthedocs.io/en/latest/macro_free_mode.html)
+for the trade-offs.
 
 ```c++
 #include "quill/Backend.h"
@@ -262,6 +309,8 @@ int main()
   quill::info(logger, "Hello from {}!", std::string_view{"Quill"});
 }
 ```
+
+</details>
 
 ### Publishing Metrics
 
@@ -285,37 +334,28 @@ Prometheus integration.
 
 ## 🎯 Features
 
-- **High-Performance**: Ultra-low latency performance.
-- **Asynchronous Processing**: Background thread handles formatting and I/O, keeping your main thread responsive.
-- **Metric Publishing**: Publish pre-registered metric samples to Prometheus, StatsD, OpenTelemetry, or any in-process
-  collector through the same asynchronous backend.
-  See [Metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html).
-- **Minimal Header Includes**:
-  - **Frontend**: Only `Logger.h` and `LogMacros.h` needed for logging. Lightweight with minimal dependencies.
-  - **Backend**: Single `.cpp` file inclusion. No backend code injection into other translation units.
+In addition to the highlights of the [Introduction](#-introduction):
+
 - **Compile-Time Optimization**: Eliminate specific log levels at compile time.
 - **Custom Formatters**: Define your own log output patterns.
   See [Formatters](https://quillcpp.readthedocs.io/en/latest/formatters.html).
-- **Cross-Thread Timestamp Handling**: The backend compares available events across frontend queues by timestamp, with
-  a configurable grace window for delayed producers and optional sink-visible monotonic timestamp correction.
-  See [Timestamp Types](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html).
-- **Flexible Timestamps**: Support for `rdtsc`, `chrono`, or `custom clocks` - ideal for simulations and more.
-  See the [custom clock examples](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html)
-  for runtime-polymorphic clocks or a concrete clock type that allows frontend inlining.
+- **Flexible Timestamps**: `rdtsc`, `chrono` or a custom clock, ideal for simulations; a custom clock can be
+  runtime-polymorphic or a concrete type that allows frontend inlining. The backend orders events across threads by
+  timestamp, with a configurable grace window for delayed producers and optional sink-visible monotonic timestamp
+  correction. See [Timestamp Types](https://quillcpp.readthedocs.io/en/latest/timestamp_types.html).
 - **Backtrace Logging**: Store messages in a ring buffer for on-demand display.
   See [Backtrace Logging](https://quillcpp.readthedocs.io/en/latest/backtrace_logging.html)
-- **Multiple Output Sinks**: Console (with color), files (with rotation), JSON, ability to create custom sinks and more.
+- **Multiple Output Sinks**: Console (with color), files (with rotation), structured
+  [JSON](https://quillcpp.readthedocs.io/en/latest/json_logging.html), custom sinks and more.
 - **Log Filtering**: Process only relevant messages.
   See [Filters](https://quillcpp.readthedocs.io/en/latest/filters.html).
-- **JSON Logging**: Structured log output.
-  See [JSON Logging](https://quillcpp.readthedocs.io/en/latest/json_logging.html)
 - **Mapped Diagnostic Context (MDC)**: Thread-local key/value context attached automatically to subsequent log lines.
   See [MDC](https://quillcpp.readthedocs.io/en/latest/mdc.html).
 - **Rate-Limited Macros**: `LOG_*_LIMIT` / `LOGV_*_LIMIT` emit at most once per configured interval per call site.
 - **Configurable Queue Modes**: `bounded/unbounded` and `blocking/dropping` options with monitoring on dropped messages,
   queue reallocations, and blocked hot threads.
 - **Crash Handling**: Built-in signal handler for log preservation during crashes.
-- **Huge Pages Support (Linux)**: Leverage huge pages on the hot path for optimized performance.
+- **Huge Pages Support (Linux)**: Use huge pages on the hot path for optimized performance.
 - **Wide Character Support (Windows)**: Logs wide strings by converting them to UTF-8 on the backend, with support for
   STL containers consisting of wide strings.
 - **Exception-Free Option**: Configurable builds with or without exception handling.
@@ -326,17 +366,17 @@ Prometheus integration.
 
 ## 🚀 Performance
 
-The results are on the [C++ logging library benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks.html) page of the documentation. They
-compare Quill with other C++ logging libraries on Linux (GCC) and Windows (MSVC): frontend latency when logging numbers,
-large strings and complex types, backend throughput, and compile time.
+The [C++ logging library benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks.html) compare Quill with
+other C++ logging libraries on Linux (GCC) and Windows (MSVC): frontend latency when logging numbers, large strings
+and complex types, backend throughput, and compile time.
 
-You can find the benchmark code on the [logger_benchmarks](https://github.com/odygrd/logger_benchmarks) repository.
+The benchmark code is in the [logger_benchmarks](https://github.com/odygrd/logger_benchmarks) repository.
 
 ---
 
 ## 🧩 Usage
 
-Also, see the [Quick Start Guide](https://quillcpp.readthedocs.io/en/latest/quick_start.html) for a brief introduction.
+See the [Quick Start Guide](https://quillcpp.readthedocs.io/en/latest/quick_start.html) for a brief introduction.
 
 ```c++
 #include "quill/Backend.h"
@@ -404,11 +444,14 @@ int main()
 
 ![example output](docs/example_output.svg)
 
-### External CMake
+### Build System Integration
+
+<details>
+<summary><a name="external-cmake"></a><b>External CMake</b>: build, install and <code>find_package()</code></summary>
 
 #### Building and Installing Quill
 
-To get started with Quill, clone the repository and install it using CMake:
+Clone the repository and install it with CMake:
 
 ```bash
 git clone https://github.com/odygrd/quill.git
@@ -422,7 +465,7 @@ make install
 - **Custom Installation**: Specify a custom directory with `-DCMAKE_INSTALL_PREFIX=/path/to/install/dir`.
 - **Build Examples**: Include examples with `-DQUILL_BUILD_EXAMPLES=ON`.
 
-Next, add Quill to your project using `find_package()`:
+Then add Quill to your project with `find_package()`:
 
 ```cmake
 find_package(quill REQUIRED)
@@ -431,8 +474,6 @@ target_link_libraries(your_target PUBLIC quill::quill)
 
 #### Sample Directory Structure
 
-Organize your project directory like this:
-
 ```
 my_project/
 ├── CMakeLists.txt
@@ -440,8 +481,6 @@ my_project/
 ```
 
 #### Sample CMakeLists.txt
-
-Here is a minimal `CMakeLists.txt`:
 
 ```cmake
 # If Quill is in a non-standard directory, specify its path.
@@ -453,9 +492,12 @@ add_executable(example main.cpp)
 target_link_libraries(example PUBLIC quill::quill)
 ```
 
-### Embedded CMake
+</details>
 
-If you prefer to vendor Quill directly, add it as a subdirectory:
+<details>
+<summary><a name="embedded-cmake"></a><b>Embedded CMake</b>: vendor the repository and <code>add_subdirectory()</code></summary>
+
+To vendor Quill directly, add it as a subdirectory:
 
 #### Sample Directory Structure
 
@@ -467,8 +509,6 @@ my_project/
 ```
 
 #### Sample CMakeLists.txt
-
-Use this `CMakeLists.txt` to include Quill directly:
 
 ```cmake
 cmake_minimum_required(VERSION 3.8)
@@ -482,7 +522,10 @@ add_executable(my_project main.cpp)
 target_link_libraries(my_project PUBLIC quill::quill)
 ```
 
-### Android NDK
+</details>
+
+<details>
+<summary><a name="android-ndk"></a><b>Android NDK</b>: thread names, timestamps and <code>AndroidSink</code></summary>
 
 Android usually works without special handling. If your toolchain does not support thread names,
 configure with:
@@ -513,7 +556,10 @@ auto logger = quill::Frontend::create_or_get_logger("root", std::move(sink),
 LOG_INFO(logger, "Test {}", 123);
 ```
 
-### Meson
+</details>
+
+<details>
+<summary><a name="meson"></a><b>Meson</b>: WrapDB or a subproject</summary>
 
 #### Using WrapDB
 
@@ -533,7 +579,10 @@ quill_dep = quill.get_variable('quill_dep')
 my_build_target = executable('name', 'main.cpp', dependencies : [quill_dep], install : true)
 ```
 
-### Bazel
+</details>
+
+<details>
+<summary><a name="bazel"></a><b>Bazel</b>: Bzlmod or a manual target</summary>
 
 #### Using Bzlmod
 
@@ -541,11 +590,13 @@ Quill is available on `Bzlmod`.
 
 #### Manual Integration
 
-For manual setup, add Quill to your `BUILD.bazel` file like this:
+Add Quill to your `BUILD.bazel` file:
 
 ```bazel
 cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
 ```
+
+</details>
 
 ---
 
@@ -553,21 +604,16 @@ cc_binary(name = "app", srcs = ["main.cpp"], deps = ["//quill_path:quill"])
 
 Quill is split into a **hot frontend** and a **cold backend**.
 
-- Each frontend thread owns a lock-free SPSC queue. `LOG_*` macros binary-serialize arguments
-  directly into that queue — no shared state, no contention between threads, no formatting work
-  on the caller.
-- A single backend worker drains all queues, merges events in timestamp order, invokes the
-  per-argument-pack decode function to reconstruct arguments, runs `{fmt}` formatting and the
-  `PatternFormatter`, and writes the resulting log lines or metric samples to the attached
-  `Sink`s.
-
 ### Frontend (caller-thread)
 
-When invoking a `LOG_` macro:
+Each frontend thread owns a lock-free SPSC queue. `LOG_*` macros binary-serialize arguments directly into that
+queue — no shared state, no contention between threads, no formatting work on the caller.
+
+A `LOG_` macro:
 
 1. Creates a static constexpr metadata object containing the format string and source location.
 
-2. Pushes the event into the SPSC lock-free queue. For each log message, Quill enqueues:
+2. Pushes the event into the queue. For each log message, Quill enqueues:
 
 | Variable   |                                                  Description                                                   |
 |------------|:--------------------------------------------------------------------------------------------------------------:|
@@ -577,11 +623,11 @@ When invoking a `LOG_` macro:
 | DecodeFunc | A pointer to a templated function containing all the log message argument types, used for decoding the message |
 | Args...    |           A serialized binary copy of each log message argument that was passed to the `LOG_` macro            |
 
-When invoking `METRIC(...)` or `logger->publish_metric()`:
+`METRIC(...)` or `logger->publish_metric()`:
 
 1. Reuses pre-registered `MetricMetadata`, so metric names and labels are not serialized again on the hot path.
 
-2. Pushes a compact fixed-size sample record to the same SPSC queue.
+2. Pushes a compact fixed-size sample record to the same queue:
 
 | Variable        |                              Description                              |
 |-----------------|:---------------------------------------------------------------------:|
@@ -592,12 +638,13 @@ When invoking `METRIC(...)` or `logger->publish_metric()`:
 
 ### Backend
 
-The backend thread drains the SPSC queue, reconstructs log events, forwards metric samples to
-`Sink::write_metric()`, and fans each log or metric event out to the sinks attached to the logger.
+A single backend worker drains all queues, merges events in timestamp order, invokes the per-argument-pack decode
+function to reconstruct arguments, and runs `{fmt}` formatting and the `PatternFormatter`. It forwards metric
+samples to `Sink::write_metric()` and fans each log or metric event out to the `Sink`s attached to the logger.
 
 ### Architecture Overview
 
-The diagram below shows the end-to-end flow from hot frontend threads to the backend worker and sinks.
+The end-to-end flow from hot frontend threads to the backend worker and sinks:
 
 ![design diagram](docs/design.drawio.svg)
 
@@ -605,17 +652,20 @@ The diagram below shows the end-to-end flow from hot frontend threads to the bac
 
 ## 🚨 Caveats
 
-**Do not log from destructors of static or global objects.** Quill's internal singletons are
-function-local statics destroyed in reverse construction order. If a static object's constructor
-triggers the first log call, the library singletons are constructed *after* that object and
-destroyed *before* it. Logging from that destructor will then touch already-destroyed state.
+> [!WARNING]
+> **Do not log from destructors of static or global objects.** Quill's internal singletons are
+> function-local statics destroyed in reverse construction order. If a static object's constructor
+> triggers the first log call, the library singletons are constructed *after* that object and
+> destroyed *before* it. Logging from that destructor will then touch already-destroyed state.
 
-**Use `fork()` with care.** Quill starts a background thread, and `fork()` interacts poorly with
-multithreaded processes. If you need logging in child processes, call `quill::Backend::start()`
-after `fork()` in each process that should log, and write parent and child output to different
-files.
+> [!WARNING]
+> **Use `fork()` with care.** Quill starts a background thread, and `fork()` interacts poorly with
+> multithreaded processes. If you need logging in child processes, call `quill::Backend::start()`
+> after `fork()` in each process that should log, and write parent and child output to different
+> files.
 
-Example:
+<details>
+<summary><b>Example</b>: starting the backend after <code>fork()</code></summary>
 
 ```c++
 #include "quill/Backend.h"
@@ -653,6 +703,8 @@ int main()
   }
 }
 ```
+
+</details>
 
 ---
 

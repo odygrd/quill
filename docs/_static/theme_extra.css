@@ -1,3 +1,9 @@
+/* Site-wide styles, loaded on every page after the theme's stylesheet. The home page adds home.css and the
+   benchmark pages benchmark_charts.css. Everything here follows the visual language of the home page: hairline
+   borders, a teal tint, rounded corners and compact, heavy headings. */
+
+/* ---------- Palette and shared values ---------- */
+
 /* Links and accents in a colour that goes with the red logo, in both schemes. The attribute pair outranks the
    theme's per-primary link colours. */
 [data-md-color-scheme="default"][data-md-color-primary] {
@@ -10,6 +16,80 @@
     --md-typeset-a-color: #5eead4;
 }
 
+/* The scheme chosen on the site, rather than the one of the operating system, decides how the browser draws its own
+   controls and which colours an image with a light and a dark variant shows, such as the architecture diagram. */
+[data-md-color-scheme="default"] {
+    color-scheme: light;
+    --md-code-bg-color: #f6f8f9;
+    --md-code-fg-color: #2f3b44;
+    --md-code-hl-special-color: #c2255c;
+    --md-code-hl-comment-color: #606c76;
+    --quill-note: #0f766e;
+    --quill-tip: #2f7d32;
+    --quill-warning: #b45309;
+    --quill-danger: #c62828;
+}
+
+/* A cooler, darker slate than the theme's, so the teal accent and the code blocks have more contrast. The header
+   takes the page colour instead of black. */
+@media screen {
+    [data-md-color-scheme="slate"] {
+        color-scheme: dark;
+        --md-hue: 216;
+        --md-default-fg-color: hsl(216, 28%, 92%);
+        --md-default-fg-color--light: hsla(216, 28%, 88%, 0.68);
+        --md-default-fg-color--lighter: hsla(216, 28%, 88%, 0.36);
+        --md-default-fg-color--lightest: hsla(216, 28%, 88%, 0.12);
+        --md-default-bg-color: hsl(216, 18%, 13%);
+        --md-default-bg-color--light: hsla(216, 18%, 13%, 0.54);
+        --md-default-bg-color--lighter: hsla(216, 18%, 13%, 0.26);
+        --md-default-bg-color--lightest: hsla(216, 18%, 13%, 0.07);
+        --md-code-fg-color: hsl(216, 22%, 86%);
+        --md-code-bg-color: hsl(216, 20%, 9.5%);
+        --md-code-hl-comment-color: hsl(216, 14%, 62%);
+        --md-typeset-kbd-border-color: hsl(216, 18%, 8%);
+        --quill-note: #5eead4;
+        --quill-tip: #86d989;
+        --quill-warning: #fbbf24;
+        --quill-danger: #ff8a80;
+    }
+
+    [data-md-color-scheme="slate"][data-md-color-primary="black"] {
+        --md-primary-fg-color: var(--md-default-bg-color);
+        --md-primary-fg-color--dark: var(--md-code-bg-color);
+    }
+
+    [data-md-color-scheme="slate"][data-md-color-primary="black"] .md-header,
+    [data-md-color-scheme="slate"][data-md-color-primary="black"] .md-tabs,
+    html [data-md-color-scheme="slate"][data-md-color-primary="black"] .md-nav--primary .md-nav__title[for="__drawer"] {
+        background-color: var(--md-default-bg-color);
+    }
+}
+
+[data-md-color-scheme] {
+    --quill-rule: color-mix(in srgb, var(--md-default-fg-color) 17%, transparent);
+    --quill-rule-soft: color-mix(in srgb, var(--md-default-fg-color) 9%, transparent);
+    --quill-tint: color-mix(in srgb, var(--md-typeset-a-color) 7%, var(--md-default-bg-color));
+    --quill-surface: color-mix(in srgb, var(--md-default-fg-color) 4%, var(--md-default-bg-color));
+    --quill-radius: 0.55rem;
+    /* The longest line of running text; code blocks, tables and cards use the full width of the page */
+    --quill-measure: 44em;
+
+    --md-typeset-table-color: var(--quill-rule);
+    --md-footer-bg-color: var(--md-default-bg-color);
+    --md-footer-bg-color--dark: var(--md-default-bg-color);
+    --md-footer-fg-color: var(--md-default-fg-color);
+    --md-footer-fg-color--light: var(--md-default-fg-color--light);
+    --md-footer-fg-color--lighter: var(--md-default-fg-color--light);
+}
+
+/* ---------- Header, tabs and search ---------- */
+
+.md-header,
+.md-header--shadow {
+    box-shadow: 0 1px 0 var(--quill-rule);
+}
+
 .md-header__button.md-logo img,
 .md-logo img {
     height: 1.35rem;
@@ -20,68 +100,892 @@
     margin-left: 0.2rem;
 }
 
+[data-md-color-primary] .md-tabs {
+    border-bottom: 0;
+}
+
 .md-tabs__link {
+    display: flex;
+    align-items: center;
+    height: 2.4rem;
+    margin-top: 0;
     font-weight: 600;
 }
 
-.md-typeset h1 {
-    font-weight: 700;
-    letter-spacing: -0.02em;
+.md-tabs__link--active {
+    box-shadow: inset 0 -2px 0 var(--md-accent-fg-color);
 }
 
-.md-typeset h2,
-.md-typeset h3 {
+@media screen and (min-width: 60em) {
+    [data-md-color-primary] .md-search__form {
+        border-radius: 0.4rem;
+        background-color: var(--quill-surface);
+        box-shadow: inset 0 0 0 1px var(--quill-rule);
+    }
+
+    [data-md-color-primary] .md-search__form:hover {
+        background-color: var(--quill-surface);
+        box-shadow: inset 0 0 0 1px var(--md-accent-fg-color);
+    }
+
+    [data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+        border-radius: 0.4rem 0.4rem 0 0;
+        background-color: var(--md-default-bg-color);
+    }
+
+    .md-search__output {
+        border-radius: 0 0 0.4rem 0.4rem;
+    }
+}
+
+/* ---------- Sidebar navigation (the wide layout only; the drawer keeps the theme's look) ---------- */
+
+@media screen and (min-width: 76.25em) {
+    /* The name of the current section */
+    .md-nav--lifted > .md-nav__list > .md-nav__item--active > .md-nav__link {
+        margin-inline: 0;
+        padding-bottom: 0.3rem;
+        color: var(--md-default-fg-color--light);
+        font-size: 0.6rem;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+    }
+
+    .md-nav--primary .md-nav__link {
+        margin-top: 0.1rem;
+        margin-inline: -0.5rem;
+        padding: 0.24rem 0.5rem;
+        border-radius: 0.3rem;
+        transition: color 125ms, background-color 125ms;
+    }
+
+    .md-nav--primary .md-nav__link:is(:focus, :hover) {
+        background-color: var(--quill-surface);
+        color: var(--md-default-fg-color);
+    }
+
+    /* The current page */
+    .md-nav--primary .md-nav__item > a.md-nav__link--active {
+        background-color: var(--quill-tint);
+        color: var(--md-typeset-a-color);
+        font-weight: 600;
+    }
+
+    /* The sections of the current page, listed under it */
+    [dir="ltr"] .md-nav--integrated > .md-nav__list > .md-nav__item--active .md-nav--secondary {
+        margin-top: 0.3rem;
+        margin-left: 0.15rem;
+        border-left: 1px solid var(--quill-rule);
+    }
+
+    .md-nav--primary .md-nav--secondary .md-nav__link {
+        color: var(--md-default-fg-color--light);
+        font-size: 0.66rem;
+    }
+
+    .md-nav--primary .md-nav--secondary .md-nav__item > a.md-nav__link--active {
+        background-color: transparent;
+        color: var(--md-typeset-a-color);
+        font-weight: 600;
+    }
+
+    .md-nav--primary .md-nav--secondary .md-nav__link:is(:focus, :hover) {
+        color: var(--md-default-fg-color);
+    }
+
+    .md-nav__link--in-viewport::before {
+        display: none;
+    }
+}
+
+/* ---------- Headings and running text ---------- */
+
+.md-typeset h1 {
+    margin: 0 0 0.65em;
+    color: var(--md-default-fg-color);
+    font-size: 1.95em;
     font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.md-typeset h2 {
+    margin: 2.1em 0 0.7em;
+    font-size: 1.45em;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.25;
+}
+
+.md-typeset h3 {
+    margin: 1.9em 0 0.6em;
+    font-size: 1.16em;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    line-height: 1.35;
+}
+
+.md-typeset h4 {
+    margin: 1.7em 0 0.5em;
+    font-size: 1em;
+    letter-spacing: -0.005em;
+}
+
+/* A heading right under another one belongs to it */
+.md-typeset h2 + h3,
+.md-typeset h3 + h4 {
+    margin-top: 1em;
+}
+
+/* On pages with the sidebar, a hairline separates the sections of a page. The home page has no sidebar and
+   lays its sections out itself. */
+.md-sidebar--primary:not([hidden]) ~ .md-content .md-typeset > h2 {
+    margin-top: 1.9em;
+    padding-top: 1.25em;
+    border-top: 1px solid var(--quill-rule-soft);
+}
+
+/* The link sign of a heading, shown when the heading is pointed at, is quieter than the heading */
+.md-typeset .headerlink {
+    color: var(--md-default-fg-color--lighter);
+}
+
+/* The introduction of a page: the paragraph right after its title */
+.md-typeset > h1 + p {
+    max-width: 40em;
+    margin: 0 0 1em;
+    color: color-mix(in srgb, var(--md-default-fg-color) 76%, var(--md-default-bg-color));
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+.md-typeset p,
+.md-typeset > ul,
+.md-typeset > ol,
+.md-typeset > dl.simple,
+.md-typeset blockquote {
+    max-width: var(--quill-measure);
+}
+
+.md-typeset :is(td, th) p {
+    max-width: none;
+}
+
+.md-typeset a:is(:focus, :hover) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+}
+
+/* Cards and rows that are links as a whole show it with their border and background instead */
+.md-typeset .headerlink:is(:focus, :hover),
+.md-typeset .md-button:is(:focus, :hover),
+.md-typeset :is(.quill-card, .quill-doc-cards, .quill-start-links, .quill-home-links) a:is(:focus, :hover) {
+    text-decoration: none;
 }
 
 .md-typeset code {
+    padding: 0.08em 0.36em;
+    border-radius: 0.3em;
+    background-color: color-mix(in srgb, var(--md-default-fg-color) 6%, transparent);
     font-size: 0.84em;
 }
 
-.md-typeset table:not([class]) {
-    font-size: 0.9rem;
+.md-typeset :is(h1, h2, h3, h4) code {
+    background-color: transparent;
+    padding: 0;
+    font-size: 0.92em;
 }
 
-.md-typeset .admonition,
-.md-typeset details,
+.md-typeset hr {
+    border-bottom: 1px solid var(--quill-rule-soft);
+}
+
 .md-typeset img {
     border-radius: 0.5rem;
 }
 
-.md-typeset .quill-home-lead {
-    max-width: 52rem;
-    font-size: 1.08rem;
-    line-height: 1.65;
+/* ---------- Code blocks ---------- */
+
+.md-typeset div.highlight {
+    position: relative;
+    margin: 1.1em 0;
+    overflow: hidden;
+    border: 1px solid var(--quill-rule-soft);
+    border-radius: var(--quill-radius);
+    background-color: var(--md-code-bg-color);
 }
 
-.md-typeset .quill-home-links {
-    margin: 1.25rem 0 2rem;
-    font-weight: 600;
+.md-typeset div.highlight > pre,
+.md-typeset div.highlight > .highlighttable {
+    margin: 0;
 }
 
-.quill-feature-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem 2rem;
-    margin: 2rem 0 1.5rem;
+.md-typeset .highlight pre > code {
+    border-radius: 0;
+    background-color: transparent;
+    padding: 0.85em 1.1em;
+    font-size: 0.84em;
+    line-height: 1.5;
 }
 
-.quill-feature-grid > section {
-    min-width: 0;
-    padding: 0.4rem 0.5rem 1rem;
+.md-typeset .highlighttable .linenos {
+    padding: 0.85em 0 0.85em 1.1em;
+    background-color: transparent;
+    font-size: 0.84em;
+    line-height: 1.5;
 }
 
-.quill-feature-grid > section > h2 {
-    margin-top: 0;
+.md-typeset .highlighttable .linenodiv {
+    box-shadow: -1px 0 var(--quill-rule-soft) inset;
 }
 
-.quill-feature-grid > section > :last-child {
+.md-typeset .highlighttable .linenodiv pre {
+    line-height: inherit;
+    color: color-mix(in srgb, var(--md-default-fg-color) 50%, transparent);
+}
+
+.md-typeset .md-clipboard {
+    top: 0.45em;
+    right: 0.45em;
+    width: 1.7em;
+    height: 1.7em;
+    border-radius: 0.3rem;
+    color: color-mix(in srgb, var(--md-default-fg-color) 45%, transparent);
+}
+
+.md-typeset :hover > .md-clipboard {
+    background-color: var(--md-code-bg-color);
+    color: var(--md-default-fg-color--light);
+}
+
+.md-typeset .md-clipboard::after {
+    margin-top: 0.28em;
+}
+
+/* A block with a caption: the caption is the title bar of the block */
+.md-typeset .literal-block-wrapper {
+    margin: 1.1em 0;
+    overflow: hidden;
+    border: 1px solid var(--quill-rule-soft);
+    border-radius: var(--quill-radius);
+}
+
+.md-typeset .literal-block-wrapper .code-block-caption {
+    margin: 0;
+    padding: 0.45rem 0.85rem;
+    border-bottom: 1px solid var(--quill-rule-soft);
+    background-color: var(--quill-surface);
+    color: var(--md-default-fg-color--light);
+    font-family: var(--md-code-font-family);
+    font-size: 0.66rem;
+    font-weight: 500;
+}
+
+.md-typeset .literal-block-wrapper div.highlight {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+/* The example card of the home page frames its own code */
+.md-typeset .quill-example div.highlight {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+/* ---------- Notes and warnings ---------- */
+
+.md-typeset .admonition[class],
+.md-typeset details[class] {
+    --quill-adm: var(--quill-note);
+    /* As wide as the running text at the page's own text size */
+    max-width: 35.2rem;
+    margin: 1.4em 0;
+    padding: 0.75rem 0.95rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--quill-adm) 32%, transparent);
+    border-radius: var(--quill-radius);
+    background-color: color-mix(in srgb, var(--quill-adm) 6%, var(--md-default-bg-color));
+    box-shadow: none;
+    font-size: 0.74rem;
+}
+
+.md-typeset :is(.admonition, details):is(.tip, .hint, .success, .check, .done) {
+    --quill-adm: var(--quill-tip);
+}
+
+.md-typeset :is(.admonition, details):is(.warning, .caution, .attention, .important) {
+    --quill-adm: var(--quill-warning);
+}
+
+.md-typeset :is(.admonition, details):is(.danger, .error, .failure, .bug) {
+    --quill-adm: var(--quill-danger);
+}
+
+.md-typeset :is(.admonition, details)[class] > :is(.admonition-title, summary) {
+    margin: 0 0 0.35rem;
+    padding: 0 0 0 1.5rem;
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--quill-adm);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.md-typeset :is(.admonition, details)[class] > :is(.admonition-title, summary)::before {
+    top: 0.05em;
+    left: 0;
+    width: 1.05rem;
+    height: 1.05rem;
+    background-color: var(--quill-adm);
+}
+
+.md-typeset :is(.admonition, details)[class] > :is(.admonition-title, summary)::after {
+    color: var(--quill-adm);
+}
+
+html .md-typeset .admonition > :last-child,
+html .md-typeset details > :last-child {
     margin-bottom: 0;
 }
 
-@media screen and (max-width: 768px) {
-    .quill-feature-grid {
-        grid-template-columns: 1fr;
-        gap: 0.25rem;
+.md-typeset .admonition > .admonition-title + * {
+    margin-top: 0;
+}
+
+.md-typeset .admonition :is(p, ul, ol) {
+    max-width: none;
+    margin-block: 0.5em;
+}
+
+.md-typeset .admonition code {
+    background-color: color-mix(in srgb, var(--md-default-fg-color) 8%, transparent);
+}
+
+/* ---------- Tabs for alternatives, such as build systems ---------- */
+
+/* A segmented switch, like the platform and thread switches of the benchmark pages. A tab set opts in with
+   ":class: quill-tabs"; the benchmark pages style their own. */
+.md-typeset .tabbed-set.quill-tabs {
+    margin: 1.2em 0;
+}
+
+.md-typeset .tabbed-set.quill-tabs > .tabbed-labels {
+    align-self: flex-start;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 0.5rem;
+    background-color: var(--quill-surface);
+    box-shadow: inset 0 0 0 1px var(--quill-rule-soft);
+}
+
+.md-typeset .tabbed-set.quill-tabs > .tabbed-labels::before {
+    display: none;
+}
+
+.md-typeset .tabbed-set.quill-tabs > .tabbed-labels > label {
+    padding: 0.32rem 0.85rem;
+    border: 0;
+    border-radius: 0.38rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+
+.md-typeset .tabbed-set.quill-tabs > .tabbed-labels > label:hover {
+    color: var(--md-default-fg-color);
+}
+
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(1):checked ~ .tabbed-labels > :nth-child(1),
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2),
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3),
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4),
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(5):checked ~ .tabbed-labels > :nth-child(5),
+.md-typeset .tabbed-set.quill-tabs > input:nth-child(6):checked ~ .tabbed-labels > :nth-child(6) {
+    background-color: var(--md-default-bg-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14), 0 0 0 1px var(--quill-rule-soft);
+    color: var(--md-typeset-a-color);
+}
+
+/* The keyboard moves between the tabs with the arrow keys: the ring goes around the switch */
+.md-typeset .tabbed-set.quill-tabs > input:focus-visible ~ .tabbed-labels {
+    outline: 2px solid var(--md-accent-fg-color);
+    outline-offset: 2px;
+}
+
+.md-typeset .tabbed-set.quill-tabs > .tabbed-content > .tabbed-block > :first-child {
+    margin-top: 0.9em;
+}
+
+/* ---------- Tables ---------- */
+
+.md-typeset table.data:not(.plain) {
+    border: 1px solid var(--quill-rule);
+    border-radius: var(--quill-radius);
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+
+.md-typeset table.data:not(.plain) th {
+    padding: 0.7em 1.05em;
+    border-bottom: 1px solid var(--quill-rule);
+    background-color: var(--quill-surface);
+    color: var(--md-default-fg-color);
+    font-size: 0.94em;
+    font-weight: 700;
+    vertical-align: bottom;
+}
+
+.md-typeset table.data:not(.plain) td {
+    padding: 0.62em 1.05em;
+    border-top: 1px solid var(--quill-rule-soft);
+}
+
+.md-typeset table.data:not(.plain) tbody tr:first-child td {
+    border-top: 0;
+}
+
+.md-typeset table.data:not(.plain) tbody tr:hover {
+    background-color: var(--quill-surface);
+    box-shadow: none;
+}
+
+.md-typeset table.data:not(.plain) code {
+    white-space: nowrap;
+}
+
+/* The benchmark tables are compact, as benchmark_charts.css asks for */
+.md-typeset table.data.bench-table:not(.plain) {
+    font-size: 0.68rem;
+}
+
+.md-typeset table.data.bench-table:not(.plain) :is(th, td) {
+    padding: 0.5em 0.95em;
+}
+
+.md-typeset table.data.bench-glance:not(.plain) {
+    font-size: 0.66rem;
+}
+
+.md-typeset table.data.bench-glance:not(.plain) :is(th, td) {
+    padding: 0.55em 0.75em;
+}
+
+/* ---------- Lists of pages ---------- */
+
+.md-typeset :is(.quill-doc-cards, .quill-link-list, .quill-start-links) .si-icon-inline::before {
+    background-color: var(--md-typeset-a-color);
+}
+
+/* Group heading above a set of cards */
+.md-typeset :is(h2, h3, p).quill-group {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    max-width: none;
+    margin: 1.9rem 0 0.7rem;
+    padding: 0;
+    border: 0;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    line-height: 1.4;
+    text-transform: uppercase;
+}
+
+.md-typeset :is(h2, h3, p).quill-group::after {
+    flex: 1;
+    height: 1px;
+    background-color: var(--quill-rule-soft);
+    content: "";
+}
+
+.md-sidebar--primary:not([hidden]) ~ .md-content .md-typeset > h2.quill-group {
+    margin-top: 1.9rem;
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* One card per page: an icon, the title and a line about it. The whole card is the link. */
+.md-typeset ul.quill-doc-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    max-width: none;
+    margin: 0.7rem 0 1.2rem;
+    padding: 0;
+    list-style: none;
+}
+
+.md-typeset ul.quill-doc-cards > li {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-content: start;
+    align-items: center;
+    gap: 0.5rem 0.55rem;
+    min-width: 0;
+    margin: 0;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--quill-rule);
+    border-radius: var(--quill-radius);
+    transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.md-typeset ul.quill-doc-cards > li > p {
+    display: contents;
+}
+
+/* Two wider cards per row, for longer descriptions */
+.md-typeset ul.quill-doc-cards-wide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.md-typeset ul.quill-doc-cards > li:hover,
+.md-typeset ul.quill-doc-cards > li:focus-within {
+    border-color: var(--md-accent-fg-color);
+    background-color: var(--quill-tint);
+}
+
+.md-typeset ul.quill-doc-cards .si-icon-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 0.35rem;
+    background: var(--quill-tint);
+}
+
+.md-typeset ul.quill-doc-cards > li:hover .si-icon-inline {
+    background: var(--md-default-bg-color);
+}
+
+.md-typeset ul.quill-doc-cards a {
+    grid-column: 2;
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+}
+
+.md-typeset ul.quill-doc-cards a::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    content: "";
+}
+
+/* The focus ring goes around the card, not around its title */
+.md-typeset ul.quill-doc-cards a:focus {
+    outline: none;
+}
+
+.md-typeset ul.quill-doc-cards > li:focus-within {
+    outline: 2px solid var(--md-accent-fg-color);
+    outline-offset: 1px;
+}
+
+.md-typeset ul.quill-doc-cards em {
+    grid-column: 1 / -1;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.74rem;
+    font-style: normal;
+    line-height: 1.5;
+}
+
+/* "Next steps" and "See also": one row per destination */
+.md-typeset ul.quill-link-list {
+    max-width: 46rem;
+    margin: 0.8rem 0 1.2rem;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--quill-rule);
+    border-radius: var(--quill-radius);
+    list-style: none;
+}
+
+.md-typeset ul.quill-link-list > li {
+    position: relative;
+    margin: 0;
+    padding: 0.62rem 0.95rem 0.62rem 2.25rem;
+    border-top: 1px solid var(--quill-rule-soft);
+    color: var(--md-default-fg-color--light);
+    font-size: 0.76rem;
+    line-height: 1.5;
+    transition: background-color 120ms ease;
+}
+
+.md-typeset ul.quill-link-list > li:first-child {
+    border-top: 0;
+}
+
+.md-typeset ul.quill-link-list > li:hover {
+    background-color: var(--quill-tint);
+}
+
+.md-typeset ul.quill-link-list > li::before {
+    position: absolute;
+    top: 0.62rem;
+    left: 0.95rem;
+    color: var(--md-accent-fg-color);
+    content: "→";
+}
+
+.md-typeset ul.quill-link-list > li > p {
+    max-width: none;
+    margin: 0;
+}
+
+.md-typeset ul.quill-link-list a {
+    font-weight: 600;
+}
+
+/* The sections of a long page, listed under its title */
+.md-typeset nav.quill-page-index {
+    margin: 1.3em 0 1.6em;
+    padding: 0.8rem 1rem 0.85rem;
+    border: 1px solid var(--quill-rule);
+    border-radius: var(--quill-radius);
+    background-color: var(--quill-surface);
+}
+
+.md-typeset nav.quill-page-index > .topic-title {
+    max-width: none;
+    margin: 0 0 0.5rem;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.md-typeset nav.quill-page-index ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.md-typeset nav.quill-page-index > ul {
+    columns: 3 13rem;
+    column-gap: 1.6rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.md-typeset nav.quill-page-index li {
+    margin: 0;
+    break-inside: avoid;
+}
+
+.md-typeset nav.quill-page-index li > p {
+    max-width: none;
+    margin: 0;
+    padding: 0.2rem 0;
+}
+
+/* With two levels, each first-level entry heads a group of the entries under it */
+.md-typeset nav.quill-page-index-grouped > ul {
+    columns: 2 18rem;
+}
+
+.md-typeset nav.quill-page-index-grouped > ul > li {
+    padding-bottom: 0.7rem;
+}
+
+.md-typeset nav.quill-page-index-grouped > ul > li > p > a {
+    color: var(--md-default-fg-color);
+    font-weight: 700;
+}
+
+/* A short line of facts under a title, such as when a page was last updated */
+.md-typeset p.quill-meta {
+    display: inline-block;
+    margin: 0 0 1.2em;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--quill-rule);
+    border-radius: 999px;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.66rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.md-typeset p.quill-meta em {
+    font-style: normal;
+}
+
+/* ---------- API reference ---------- */
+
+.md-typeset dl.objdesc {
+    margin: 1.5em 0;
+}
+
+.md-typeset dl.objdesc > dt {
+    padding: 0.55em 0.8em;
+    border: 1px solid var(--quill-rule-soft);
+    border-radius: 0.4rem;
+    background-color: var(--md-code-bg-color);
+    line-height: 1.55;
+}
+
+.md-typeset dl.objdesc > dt,
+.md-typeset dl.objdesc > dt code {
+    font-size: 0.7rem;
+}
+
+.md-typeset dl.objdesc > dt:first-child,
+.md-typeset dl.objdesc > dt:last-of-type {
+    padding-block: 0.55em;
+}
+
+.md-typeset dl.objdesc > dd {
+    margin: 0.7em 0 1.6em;
+    padding-left: 1rem;
+    border-left: 2px solid var(--quill-rule-soft);
+}
+
+/* A class, struct or enum: the entry that its members belong to */
+.md-typeset > dl.objdesc:is(.class, .struct, .enum, .type, .union) > dt {
+    border-color: color-mix(in srgb, var(--md-accent-fg-color) 35%, transparent);
+    background-color: var(--quill-tint);
+}
+
+.md-typeset > dl.objdesc:is(.class, .struct, .enum, .type, .union) > dt,
+.md-typeset > dl.objdesc:is(.class, .struct, .enum, .type, .union) > dt code {
+    font-size: 0.78rem;
+}
+
+.md-typeset > dl.objdesc > dd {
+    border-left: 0;
+    padding-left: 0;
+}
+
+.md-typeset .breathe-sectiondef-title {
+    margin: 2em 0 0.8em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.64rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.md-typeset dl.objdesc > dd dl.field-list > dt {
+    margin-bottom: 0.4em;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ---------- Back to top ---------- */
+
+.md-top {
+    border: 1px solid var(--quill-rule);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    color: var(--md-default-fg-color);
+    font-weight: 600;
+}
+
+/* ---------- Footer: the previous and next page ---------- */
+
+.md-footer {
+    border-top: 1px solid var(--quill-rule);
+}
+
+.md-footer__inner {
+    gap: 0.7rem;
+    padding: 1rem 0.8rem 0.3rem;
+    overflow: visible;
+}
+
+.md-footer__link {
+    flex: 0 1 19rem;
+    align-items: center;
+    margin: 0;
+    padding: 0.55rem 0.3rem;
+    border: 1px solid var(--quill-rule);
+    border-radius: var(--quill-radius);
+    transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.md-footer__link:is(:focus, :hover) {
+    border-color: var(--md-accent-fg-color);
+    background-color: var(--quill-tint);
+    opacity: 1;
+}
+
+.md-footer__button {
+    margin: 0 0.1rem;
+    color: var(--md-accent-fg-color);
+}
+
+.md-footer__title {
+    padding: 0 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.md-footer__direction {
+    position: static;
+    display: block;
+    margin: 0 0 0.1rem;
+    padding: 0;
+    color: var(--md-default-fg-color--light);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    opacity: 1;
+    text-transform: uppercase;
+}
+
+.md-footer-meta__inner {
+    padding: 0.2rem 0.2rem 0.6rem;
+}
+
+@media screen and (min-width: 76.25em) {
+    /* Under the page, not under the sidebar */
+    .md-footer__inner {
+        padding-left: 13.3rem;
+    }
+
+    .md-footer-meta__inner {
+        padding-left: 12.7rem;
     }
 }
+
+/* ---------- Narrow screens ---------- */
+
+@media screen and (max-width: 70em) {
+    .md-typeset ul.quill-doc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media screen and (max-width: 44.9375em) {
+    .md-typeset h1 { font-size: 1.7em; }
+    .md-typeset div.highlight { margin-inline: -0.8rem; border-inline: 0; border-radius: 0; }
+    .md-typeset :is(.admonition, li, td, dd, .tabbed-block, .quill-example) div.highlight {
+        margin-inline: 0;
+        border-inline: 1px solid var(--quill-rule-soft);
+        border-radius: var(--quill-radius);
+    }
+    .md-footer__link { flex-basis: auto; }
+    .md-footer__link--next { flex-grow: 1; }
+    /* A table with a column of text scrolls sideways instead of squeezing that column to a few words a line */
+    .md-typeset table.data:not(.plain) td:nth-child(3):last-child { min-width: 15rem; }
+}
+
+@media screen and (max-width: 36em) {
+    .md-typeset ul.quill-doc-cards { grid-template-columns: 1fr; }
+    .md-typeset nav.quill-page-index > ul { columns: 1; }
+}
+
+/* C++ code: namespaces, types and functions in distinct colours (the theme gives all three one colour). The lexer
+   in conf.py tells them apart. */
+.md-typeset .highlight .nn { color: var(--md-default-fg-color--light); }
+[data-md-color-scheme="default"] .md-typeset .highlight .nc { color: #0f766e; }
+[data-md-color-scheme="slate"] .md-typeset .highlight .nc { color: #2dd4bf; }
+.md-typeset .highlight .nf { color: var(--md-code-hl-function-color); }

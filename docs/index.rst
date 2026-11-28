@@ -6,207 +6,173 @@
 
 .. _index:
 
-Quill: Ultra-Low-Latency C++ Logging and Metrics
-=================================================
+**Quill**: Ultra-low-latency C++ logging and metrics
+====================================================
 
-.. rst-class:: quill-home-lead
+.. container:: quill-home-intro
 
-Quill is a C++17 library for applications that need to keep log formatting and sink I/O away
-from latency-sensitive threads.
+   Quill keeps formatting and I/O off your application threads. In **C++17 and later**,
+   a log call captures its arguments for a dedicated worker to process asynchronously.
 
-An enabled ``LOG_*`` call places a pointer to static call-site metadata and encoded copies of its
-arguments into the calling thread's SPSC queue. A dedicated backend worker decodes and formats
-events, compares available events by timestamp, and dispatches them to sinks.
+   .. rst-class:: quill-home-links
 
-.. container:: quill-home-links
+   - :doc:`Get started <quick_start>`
+   - :doc:`View benchmarks <benchmarks>`
 
-   :doc:`Get started <quick_start>` · :doc:`Install Quill <installing>` ·
-   `Review the benchmarks <https://github.com/odygrd/quill#user-content--performance>`_
+.. container:: quill-example
 
-Quick Example
--------------
+   .. rubric:: :si-icon:`octicons/code-16` Quick Example
+      :heading-level: 2
+      :name: quick-example
 
-.. code-block:: cpp
+   .. container:: quill-example-preview
 
-   #include "quill/LogMacros.h"
-   #include "quill/SimpleSetup.h"
+      .. literalinclude:: snippets/quill_docs_home.cpp
+         :language: cpp
 
-   int main()
-   {
-     auto* logger = quill::simple_logger();
-     LOG_INFO(logger, "Hello from {}!", "Quill");
-   }
+      .. container:: quill-example-output
 
-A macro-free interface (``quill::info()``, ``quill::warning()``, ...) is also available. The
-recommended ``LOG_*`` macros avoid evaluating arguments when a log level is disabled and keep
-call-site metadata in a static object. See :doc:`Macro-Free Mode <macro_free_mode>` for the
-alternative interface and its performance trade-offs.
+         :si-icon:`octicons/terminal-16` **Log message** ``Listening on ports [8080, 8443]``
 
-Use :doc:`Quick Start <quick_start>` for the smallest setup, or move to the full ``Backend`` and
-``Frontend`` APIs when you need custom sinks, multiple loggers, metrics, or explicit lifecycle
-control.
+   .. raw:: html
 
-One Backend Thread for Every Output
------------------------------------
+      <div class="quill-example-actions">
+        <button class="quill-example-run" type="button" hidden>Run this example in Compiler Explorer</button>
+        <a class="quill-example-open" href="{{ compiler_explorer_url }}" target="_blank" rel="noopener noreferrer">Open in Compiler Explorer <span aria-hidden="true">↗</span></a>
+      </div>
 
-One backend thread does the formatting and I/O for your logs, metrics, data files and packet
-captures.
+   .. rst-class:: quill-example-version
 
-By default, every call below costs your thread one thing: encoding its arguments into a lock-free
-queue of its own, which for most types is a plain copy. Formatting and I/O run later on the backend
-thread, which merges everything in timestamp order across all threads. Where a record goes, to a
-file, a terminal or a metrics collector, does not change what it costs your thread.
+   Compiler Explorer runs GCC 14.2 with Quill 13.1.0 until Quill 14 is available there.
 
-.. list-table::
-   :header-rows: 1
-   :widths: 34 36 30
-
-   * - Use Quill to
-     - Your thread calls
-     - The backend thread writes
-   * - Log :doc:`text <sink_types>` to the console, to files rotated by size or time, or to syslog, the systemd journal and Android logcat
-     - ``LOG_INFO(logger, "User {} logged in from {}", user, address);``
-     - ``User alice logged in from 10.0.0.5``, with the time, thread and source location of your
-       pattern
-   * - Write structured :doc:`JSON <json_logging>` logs, for a log pipeline to search
-     - ``LOGJ_INFO(logger, "User logged in", user, address);``
-     - ``{…,"user":"alice","address":"10.0.0.5"}``
-   * - Log :ref:`your own types <recipes:Logging User Defined Types>` with the formatter they already have
-     - ``LOG_INFO(logger, "Connected to {}", endpoint);``
-     - ``Connected to example.org:443``
-   * - Publish :doc:`metrics <metrics>` to any metrics system, with a built-in sink for Prometheus
-     - ``METRIC(metrics_logger, requests_total, 1.0);``
-     - Each sample to your metrics sink, e.g. ``requests_total 1024`` for Prometheus
-   * - Write :doc:`CSV files <csv_writing>`
-     - ``weather_csv.append_row("Athens", 21.4, 40);``
-     - ``Athens,21.4,40``, below the header ``city,temperature,humidity`` of every file
-   * - Record :ref:`binary data <binary_protocols:Raw Binary File Writing>` as it arrives, such as a sensor stream or a market data feed
-     - ``LOG_BINARY(logger, &reading, sizeof(reading));``
-     - The bytes as they are, or after their size and timestamp
-   * - Capture :ref:`network traffic <binary_protocols:Writing pcap Files>`
-     - ``pcap_writer.write_packet(frame, frame_size, timestamp_ns);``
-     - A capture that Wireshark and tcpdump open, in a new file every hour if you like
-   * - Decode :doc:`binary protocols <binary_protocols>` such as SBE into readable text
-     - ``LOG_INFO(logger, "[IN] {}", SbeMessage{buffer, size});``
-     - The fields of each message, decoded on the backend thread
-   * - Send records :doc:`anywhere <sinks>`: a database, a socket, a message bus
-     - A sink of your own, with ``write_log(LogRecord const&)``
-     - Whatever your sink does with each record
-
-An application can have as many loggers and writers as it needs, for any mix of the above. They all
-share the one backend thread, and a call still costs its thread only the encoding into its queue:
-
-- **A trading system** logs its decisions as text, records the exchange feed to pcap files that
-  rotate every hour, writes its fills to CSV, and publishes its order latencies as metrics.
-- **A multiplayer game server** keeps I/O out of its tick loop: it logs to rotating files, records
-  each match as a binary replay, and publishes its tick time and the number of players online as
-  metrics.
-- **A VoIP server** logs to syslog, captures the packets of its calls to pcap files for Wireshark,
-  and publishes the number of active calls as metrics.
-- **A service in a container** logs JSON to stdout for the platform to collect, and publishes its
-  request counts as metrics.
-
-.. raw:: html
-
-   <div class="quill-feature-grid"><section>
-
-Keep formatting off latency-sensitive threads
-----------------------------------------------
-
-``LOG_*`` binary-encodes copies of its arguments into the calling thread's queue. The backend
-decodes and formats the event, then performs sink I/O. Published frontend-latency and throughput
-results include the benchmark system and methodology rather than presenting one number as
-universal.
-
-:doc:`How Quill works <overview>` ·
-`Benchmark methodology <https://github.com/odygrd/quill#user-content--performance>`_
-
-.. raw:: html
-
-   </section><section>
-
-Publish logs and metrics through one backend
---------------------------------------------
-
-Register metric names and labels once; the hot path carries a stable ``MetricMetadata`` pointer
-and a ``double`` sample through the same backend used for logs. The built-in ``PrometheusSink``
-supports counters, gauges, histograms, and summaries. Custom sinks can route samples elsewhere;
-the core metric API transports samples, while aggregation and storage belong to the selected sink
-or external metrics system.
-
-:doc:`Publish metrics <metrics>`
-
-.. raw:: html
-
-   </section><section>
-
-Emit structured data
---------------------
-
-Named placeholders preserve field names for JSON output. Built-in sinks cover JSON console,
-file, and rotating-file output, and one logger can send the same event to both JSON and standard
-pattern-formatted sinks.
-
-:doc:`Configure JSON logging <json_logging>`
-
-.. raw:: html
-
-   </section><section>
-
-Extend types and destinations
+Asynchronous logging features
 -----------------------------
 
-Optional headers under ``quill/std`` provide codecs for common standard-library types, including
-containers, ``std::chrono``, ``std::variant``, and ``std::error_code``. User-defined types can
-provide formatting support and a ``Codec`` specialization. Built-in destinations include console,
-file, rotating file, Syslog, systemd, Android, JSON, and Prometheus; custom destinations derive
-from ``Sink``.
+.. container:: quill-card-grid
 
-:doc:`Type recipes <recipes>` · :doc:`Browse sink types <sink_types>`
+   .. container:: quill-card
+      :name: low-latency-on-the-calling-thread
 
-.. raw:: html
+      .. rubric:: :si-icon:`octicons/zap-16` :doc:`Low frontend latency <benchmarks_latency>`
+         :heading-level: 3
 
-   </section><section>
+      Each thread can queue common arguments in a few nanoseconds using its own lock-free queue.
 
-Add context and control
------------------------
+   .. container:: quill-card
+      :name: millions-of-messages-per-second
 
-Mapped Diagnostic Context attaches thread-local key/value fields to subsequent records without
-re-enqueueing the full context on every log call. Per-sink filters and rate-limited macros help
-control noisy streams. Backtrace logging keeps selected low-level records in a backend ring buffer
-for on-demand or high-severity-triggered flushing.
+      .. rubric:: :si-icon:`octicons/pulse-16` :doc:`Backend throughput <benchmarks_throughput>`
+         :heading-level: 3
 
-:doc:`Mapped Diagnostic Context <mdc>` · :doc:`Filters <filters>` ·
-:doc:`Backtrace logging <backtrace_logging>`
+      One worker merges available records by timestamp and can format and write millions of messages per second.
 
-.. raw:: html
+   .. container:: quill-card
+      :name: macros-or-functions
 
-   </section><section>
+      .. rubric:: :si-icon:`octicons/code-16` :doc:`Macros or functions <macro_free_mode>`
+         :heading-level: 3
 
-Configure the complete pipeline
--------------------------------
+      :doc:`Logging macros <logging_macros>` skip argument evaluation at disabled
+      levels. Use ``quill::info()`` for plain function-call syntax.
 
-``FrontendOptions`` is a compile-time traits type for queue mode and capacity, blocking retries,
-and Linux huge-page policy. At runtime, ``BackendOptions`` controls idle behaviour and CPU
-affinity, transit-buffer limits, timestamp handling, flushing, shutdown draining, callbacks, and
-character sanitization. Loggers select their format pattern, clock source, and one or more sinks;
-sinks can be shared, filtered, or user-defined for logs, metrics, or both.
+   .. container:: quill-card
+      :name: fast-to-compile
 
-:doc:`Frontend options <frontend_options>` · :doc:`Backend options <backend_options>` ·
-:doc:`Sinks and extensions <sinks>`
+      .. rubric:: :si-icon:`octicons/file-code-16` :doc:`Fast compilation <benchmarks_compile_time>`
+         :heading-level: 3
 
-.. raw:: html
+      Log sites need only ``Logger.h`` and ``LogMacros.h``. Calls with the same
+      argument types share their generated code.
 
-   </section></div>
+   .. container:: quill-card
+      :name: extend-types-and-destinations
+
+      .. rubric:: :si-icon:`octicons/package-16` :ref:`Custom C++ types <recipes:Logging User Defined Types>`
+         :heading-level: 3
+
+      Include a ``quill/std`` header to log STL containers. Supply a formatter
+      and a ``Codec`` specialization for a type of your own.
+
+   .. container:: quill-card
+      :name: add-context-and-control
+
+      .. rubric:: :si-icon:`octicons/stack-16` :doc:`Context and diagnostics <mdc>`
+         :heading-level: 3
+
+      Attach thread-local fields such as a request ID to subsequent records. Keep
+      recent events in a :doc:`backtrace buffer <backtrace_logging>` to flush on demand.
+
+   .. container:: quill-card
+      :name: highly-customizable
+
+      .. rubric:: :si-icon:`octicons/sliders-16` :doc:`Queue and backend options <frontend_options>`
+         :heading-level: 3
+
+      Choose blocking or dropping queues, tune :doc:`worker affinity and flushing <backend_options>`,
+      and apply :doc:`per-sink filters <filters>`.
+
+   .. container:: quill-card
+      :name: tested-for-production
+
+      .. rubric:: :si-icon:`octicons/shield-check-16` :doc:`Cross-platform builds <installing>`
+         :heading-level: 3
+
+      Quill runs CI on Linux, macOS, Windows and BSD, with sanitizers and fuzzing.
+
+.. _logs-metrics-and-data-through-one-backend:
+
+One backend thread for every output
+-----------------------------------
+
+A trading system can log decisions, publish order latencies, write fills to CSV and capture exchange traffic
+on one worker.
+
+.. container:: quill-card-grid
+
+   .. container:: quill-card
+      :name: emit-structured-data
+
+      .. rubric:: :si-icon:`octicons/log-16` :doc:`Text and JSON logs <sink_types>`
+         :heading-level: 3
+
+      Send the same event to a rotating text file and a :doc:`JSON sink <json_logging>`
+      with named fields. Add a :doc:`custom sink <sinks>` for another destination.
+
+   .. container:: quill-card
+
+      .. rubric:: :si-icon:`octicons/graph-16` :doc:`Metrics <metrics>`
+         :heading-level: 3
+
+      Register counters, gauges or histograms once, then publish samples to the
+      built-in Prometheus sink or your own metrics collector.
+
+   .. container:: quill-card
+
+      .. rubric:: :si-icon:`octicons/table-16` :doc:`CSV files <csv_writing>`
+         :heading-level: 3
+
+      Give a CSV writer a header such as ``city,temperature,humidity`` and
+      append rows such as ``Athens,21.4,40`` from your application.
+
+   .. container:: quill-card
+
+      .. rubric:: :si-icon:`octicons/file-binary-16` :doc:`Binary data and pcap <binary_protocols>`
+         :heading-level: 3
+
+      Record raw bytes, decode protocol fields on the backend, or save
+      :ref:`packet captures <binary_protocols:Writing pcap Files>` for Wireshark and tcpdump.
 
 Start Here
 ----------
 
-- :doc:`Get Started <quick_start>` for the shortest path to working logs
-- :doc:`Installing <installing>` for package manager and source setup
-- :doc:`Guides <guides>` for sinks, metrics, formatters, JSON, filters, and more
-- :doc:`Recipes <recipes>` for common tasks and examples
-- :doc:`FAQ <faq>` for integration guidance and common pitfalls
+.. rst-class:: quill-start-links
+
+- :si-icon:`octicons/download-16` :doc:`Install Quill <installing>` *Add Quill to your build with CMake or a package manager.*
+- :si-icon:`octicons/rocket-16` :doc:`Write your first logger <quick_start>` *Create a logger, write to the console or a file and log your first message.*
+- :si-icon:`octicons/book-16` :doc:`Browse the guides <guides>` *Sinks, formatting, filters, backend options and every other feature in depth.*
+- :si-icon:`octicons/light-bulb-16` :doc:`Find a recipe <recipes>` *Short, complete solutions to common logging tasks.*
+- :si-icon:`octicons/question-16` :doc:`Read the FAQ <faq>` *Answers to the questions users ask most.*
+- :si-icon:`octicons/graph-16` :doc:`Compare benchmarks <benchmarks>` *Latency, throughput and compile time against other C++ logging libraries.*
 
 .. toctree::
    :maxdepth: 2
@@ -239,6 +205,13 @@ Start Here
    :hidden:
 
    recipes
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Benchmarks
+   :hidden:
+
+   benchmarks
 
 .. toctree::
    :maxdepth: 2

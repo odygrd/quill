@@ -3,24 +3,18 @@
 Manual Backend Worker
 =====================
 
-``ManualBackendWorker`` is an advanced integration path for applications that need to run Quill's backend worker on a user-managed thread instead of using :cpp:func:`Backend::start()`.
-
-In most applications you should still prefer the normal backend thread created by :cpp:func:`Backend::start()`. Use ``ManualBackendWorker`` only when you need explicit control over the backend thread's lifecycle or polling loop.
-
-``ManualBackendWorker`` can also be used to run Quill without spawning any additional thread. Applications that already have an event loop or a policy against extra threads can drive the backend by calling ``poll_one()`` from their own thread at a cadence they choose. ``init()`` forces ``sleep_duration = 0``, ``enable_yield_when_idle = false`` and ``spin_wait_duration = 0``, so ``poll_one()`` never sleeps, yields or waits on the calling thread — it only does work when there is work to do and returns immediately otherwise.
-
-Note that the frontend hot path is designed for a producer and consumer on different threads. Running both on the same thread still works, but you pay for synchronization and cache-line padding you do not need. Prefer ``Backend::start()`` if it fits your threading model.
+Use :cpp:class:`ManualBackendWorker` when your framework owns the polling thread or event loop. For a
+library-managed thread, use :cpp:func:`Backend::start()`.
 
 Basic Usage
 -----------
 
-The default and recommended mode assigns the manual backend worker to one dedicated thread:
+By default, one dedicated thread owns the worker from initialization through shutdown.
 
-1. Start a dedicated thread that will own the manual backend worker.
-2. Call :cpp:func:`Backend::acquire_manual_backend_worker()` exactly once for the process.
-3. Call ``init()`` on that same thread.
-4. Periodically call ``poll()`` or ``poll(timeout)`` on that same thread.
-5. Before the thread exits, call ``shutdown()`` on that same thread. It drains pending log messages first unless ``BackendOptions::wait_for_queues_to_empty_before_exit`` is false.
+1. Start the thread and call :cpp:func:`Backend::acquire_manual_backend_worker()` once for the process.
+2. On that thread, call ``init()``, then ``poll()`` or ``poll(timeout)`` periodically.
+3. Call ``shutdown()`` on the same thread before it exits. It drains pending logs unless
+   ``BackendOptions::wait_for_queues_to_empty_before_exit`` is false.
 
 Example
 -------
@@ -32,80 +26,55 @@ Example
 Important Rules
 ---------------
 
-- Unless thread migration is explicitly enabled, use exactly one thread to own and drive the
-  ``ManualBackendWorker``.
-- In the default mode, the thread that calls ``init()`` must also call ``shutdown()`` before it
-  exits.
-- Do not rely on the destructor for shutdown ordering.
-- In the default mode, the manual backend thread may log, but it must not use paths that wait for the
-  backend to flush its own queue. In particular, avoid ``logger->flush_log()`` and
-  ``Frontend::remove_logger_blocking()`` on that same thread. If a logger has immediate flush
-  enabled, the implicit flush is skipped for log calls from the manual backend thread.
-- ``Backend::acquire_manual_backend_worker()`` is mutually exclusive with :cpp:func:`Backend::start()`. You can only choose one model per process.
-- The built-in signal handler setup is not performed for ``ManualBackendWorker``.
-- ``BackendOptions::cpu_affinity`` and ``BackendOptions::thread_name`` are ignored, since Quill does
-  not create the thread.
+- Choose either manual acquisition or ``Backend::start()`` for the process. Shut down explicitly to control
+  ordering. Only :ref:`manual_backend_worker:thread migration` permits a change of owner thread.
+- In the default mode the owner may log, but cannot wait on itself with ``logger->flush_log()`` or
+  ``Frontend::remove_logger_blocking()``. Backend log calls skip implicit immediate flush.
+- Quill leaves thread creation, affinity and naming to the application. ``BackendOptions::cpu_affinity``
+  and ``BackendOptions::thread_name`` have no effect. Manual workers do not install the built-in signal handler.
 
 Thread Migration
 ----------------
 
-Applications built around an executor or task pool can allow successive manual backend operations
-to run on different threads:
+Enable migration to run successive operations on different threads in an executor or task pool.
 
 .. code-block:: cpp
 
    manual_backend_worker->init(backend_options, true);
 
-The executor may use any number of worker threads. A single long-lived coroutine that completes
-each polling call before suspending can safely resume on a different thread, provided the executor
-synchronizes the continuation handoff. When polling is submitted as separate tasks, bind every task
-to the same strand or serial executor; posting independent polling tasks directly to a
-multi-threaded executor is unsafe because they can overlap.
+Migration relaxes Quill's thread checks. The application must serialize operations and keep a thread available for polling.
 
-This is an advanced mode with reduced safety checks. The caller must satisfy all of the following
-requirements:
+- Serialize ``poll_one()``, ``poll()`` and ``shutdown()``. Completion of ``init()`` and each subsequent operation
+  must *happen-before* the next operation starts. Use a mutex, strand, serial executor or explicit task
+  dependency. Timing calls apart is insufficient. Shut down after all scheduled polls finish.
+- A long-lived coroutine may resume on any executor thread if it completes each poll before suspension and
+  the executor synchronizes the handoff. For separate polling tasks, bind all to the same strand or serial
+  executor. Independent tasks on a multi-threaded executor can overlap.
+- Hooks, sinks and error notifiers must tolerate changing threads. They must avoid waiting on the backend
+  (including ``flush_log()`` and ``remove_logger_blocking()``) or filling a blocking frontend queue. Quill
+  cannot detect these self-deadlocks in migration mode.
+- Producers may call either blocking API if another task can continue polling. On a shared executor, keep
+  at least one thread available to resume the poller.
 
-- Calls to ``poll_one()``, ``poll()``, and ``shutdown()`` must be externally serialized and must
-  never overlap.
-- Completion of ``init()`` and each worker operation must *happen-before* the next operation starts.
-  A mutex, serial executor or strand, or an explicit task dependency normally provides this
-  synchronization. Timing alone is not sufficient.
-- ``shutdown()`` must run only after every scheduled polling task has completed.
-- Hooks, sinks, error notifiers, and other code executed synchronously by the backend must not call
-  ``logger->flush_log()``, ``Frontend::remove_logger_blocking()``, or otherwise wait for the backend.
-  They must also avoid filling a blocking frontend queue. Quill cannot detect these self-deadlocks
-  in thread-migration mode.
-- Hooks and custom sinks must tolerate being invoked from different threads over time.
-- Quill's signal handler cannot log or flush in thread-migration mode because there is no stable
-  backend thread to exclude. The built-in signal handler is not installed for any
-  ``ManualBackendWorker`` mode.
-
-Normal producer threads can still call ``flush_log()`` and ``Frontend::remove_logger_blocking()``
-provided another task can continue polling the backend. If such a blocking call runs on the same
-executor, at least one executor thread must remain available to resume the polling coroutine;
-blocking its last available thread will deadlock. ``Backend::get_thread_id()`` returns ``0`` in
-thread-migration mode because there is no persistent backend thread identity.
+``Backend::get_thread_id()`` returns ``0``. Without a stable backend thread to exclude, Quill's signal handler
+cannot log or flush in this mode.
 
 When To Use It
 --------------
 
-Good fits:
-
-- integrating Quill into an existing event loop
-- running backend polling from a thread already managed by a larger framework
-- applications that need strict ownership of backend thread startup and shutdown
-- applications with a no-extra-threads policy, where Quill must run without spawning its own backend thread
-
-Avoid it when:
-
-- ``Backend::start()`` already fits your threading model
-- you only want a simpler setup path
+Manual polling suits a framework-owned thread, an existing event loop, strict startup and shutdown
+requirements, or a policy against extra threads. ``Backend::start()`` is simpler when those constraints
+do not apply.
 
 Driving The Backend From Your Own Thread
 ----------------------------------------
 
-Call ``poll_one()`` at a natural quiet point of the event loop, often enough to keep frontend queues from filling up.
+Call ``poll_one()`` at a quiet point in your loop, often enough to keep queues from filling. ``init()`` forces
+``sleep_duration = 0``, ``enable_yield_when_idle = false`` and ``spin_wait_duration = 0``, so an idle poll
+returns without sleeping, yielding or spinning.
 
-``poll_one()`` performs formatting and sink I/O on the calling thread. For latency-sensitive threads, a custom sink that forwards records to another process or thread (for example via a shared-memory ring) can keep the polling thread free of heavy I/O. See :doc:`sinks`.
+Formatting and sink I/O run on the polling thread. A :doc:`custom sink <sinks>` can forward records to
+another thread or process, for example through a shared-memory ring. A single thread can produce and
+consume, though the frontend still pays for synchronization and cache-line padding designed for separate threads.
 
-See also :cpp:class:`ManualBackendWorker` and :cpp:func:`Backend::acquire_manual_backend_worker`.
+See :cpp:func:`Backend::acquire_manual_backend_worker` for acquisition.
