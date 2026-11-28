@@ -87,6 +87,10 @@ The option selects dispatch, and the argument supplies the instance and state.
   applies the grace period as for the built-in TSC.
 - ``TimestampType::WallClockNanoseconds`` returns real Unix-epoch nanoseconds, for example from PTP, a NIC,
   ``CLOCK_REALTIME`` or a custom TSC conversion. Ordering and grace match the system clock.
+  Keep the clock aligned with system time. With a nonzero grace period, a clock that runs ahead can
+  make each new queue head wait a full grace period from its first observation, allowing a backlog to
+  build. A PTP hardware clock on TAI is 37 s ahead of UTC. Subtract the offset in ``now()`` or return
+  ``TimestampType::EpochNanoseconds``.
 - ``TimestampType::EpochNanoseconds`` is the default for compatibility with existing clocks. Use it for
   simulations or a replay of recorded data. Marking replay data as wall time can trigger reordering
   diagnostics or advance its timestamps to other loggers' wall times under monotonic correction.
