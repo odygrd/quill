@@ -104,38 +104,9 @@ facility per process. Separate instances cannot configure these independently.
 Other files can then use short ``LOG_*`` names. For logging in the same translation unit, define
 ``QUILL_DISABLE_NON_PREFIXED_MACROS`` and use ``QUILL_LOG_*``. The two approaches can be combined.
 
-.. code:: cpp
-
-    #define QUILL_DISABLE_NON_PREFIXED_MACROS
-
-    #include "quill/Backend.h"
-    #include "quill/Frontend.h"
-    #include "quill/LogMacros.h"
-    #include "quill/Logger.h"
-    #include "quill/sinks/SyslogSink.h"
-
-    #include <string>
-    #include <utility>
-
-    int main()
-    {
-      quill::BackendOptions backend_options;
-      quill::Backend::start(backend_options);
-
-      // Frontend
-      auto sink = quill::Frontend::create_or_get_sink<quill::SyslogSink>(
-        "app", []()
-        {
-          quill::SyslogSinkConfig config;
-          config.set_identifier("app");
-          return config;
-        }());
-
-      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(sink));
-
-      QUILL_LOG_INFO(logger, "A {} message with number {}", "log", 1);
-      QUILL_LOG_WARNING(logger, "test message {}", 123);
-    }
+.. literalinclude:: snippets/quill_docs_syslog_sink.cpp
+   :language: cpp
+   :linenos:
 
 StreamSink
 ~~~~~~~~~~
@@ -189,35 +160,6 @@ SystemdSink
 
 The journal headers share the :ref:`syslog macro names <sink_types:syslogsink>`. This example uses prefixed macros.
 
-.. code:: cpp
-
-    #define QUILL_DISABLE_NON_PREFIXED_MACROS
-
-    #include "quill/Backend.h"
-    #include "quill/Frontend.h"
-    #include "quill/LogMacros.h"
-    #include "quill/Logger.h"
-    #include "quill/sinks/SystemdSink.h"
-
-    #include <string>
-    #include <utility>
-
-    int main()
-    {
-      quill::BackendOptions backend_options;
-      quill::Backend::start(backend_options);
-
-      // Frontend
-      auto sink = quill::Frontend::create_or_get_sink<quill::SystemdSink>(
-        "app", []()
-        {
-          quill::SystemdSinkConfig config;
-          config.set_identifier("app");
-          return config;
-        }());
-
-      quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(sink));
-
-      QUILL_LOG_INFO(logger, "A {} message with number {}", "log", 1);
-      QUILL_LOG_WARNING(logger, "test message {}", 123);
-    }
+.. literalinclude:: snippets/quill_docs_systemd_sink.cpp
+   :language: cpp
+   :linenos:

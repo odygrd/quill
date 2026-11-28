@@ -504,48 +504,9 @@ DeferredFormatCodec
 Basic Example
 ^^^^^^^^^^^^^
 
-.. code:: cpp
-
-    #include "quill/DeferredFormatCodec.h"
-
-    class User
-    {
-    public:
-      User(std::string name, std::string surname, uint32_t age)
-        : name(std::move(name)), surname(std::move(surname)), age(age)
-      {
-        favorite_colors.push_back("red");
-        favorite_colors.push_back("blue");
-        favorite_colors.push_back("green");
-      };
-
-      std::string name;
-      std::string surname;
-      uint32_t age{};
-      std::vector<std::string> favorite_colors;
-    };
-
-    /***/
-    template <>
-    struct fmtquill::formatter<User>
-    {
-      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-      auto format(::User const& user, format_context& ctx) const
-      {
-        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
-                                   user.name, user.surname, user.age, user.favorite_colors);
-      }
-    };
-
-    /***/
-    template <>
-    struct quill::Codec<User> : quill::DeferredFormatCodec<User>
-    {
-    };
-
-    User user{"Super", "User", 1};
-    LOG_INFO(logger, "User is [{}]", user);
+.. literalinclude:: snippets/quill_docs_deferred_format_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -556,46 +517,9 @@ Outputs:
 Serialising Trivially Copyable Types With Non-Default Constructor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: cpp
-
-    #include "quill/DeferredFormatCodec.h"
-
-    class Order
-    {
-    public:
-      Order(double price, int quantity)
-        : timestamp(std::chrono::system_clock::now().time_since_epoch().count()), price(price), quantity(quantity)
-      {
-      }
-
-    private:
-      uint64_t timestamp;
-      double price;
-      int quantity;
-
-      friend struct quill::DeferredFormatCodec<Order>;
-
-      Order() = default;
-
-      friend std::ostream& operator<<(std::ostream& os, Order const& order)
-      {
-        os << "timestamp=" << order.timestamp << " price=" << order.price << " quantity=" << order.quantity;
-        return os;
-      }
-    };
-
-    template <>
-    struct fmtquill::formatter<Order> : fmtquill::ostream_formatter
-    {
-    };
-
-    template <>
-    struct quill::Codec<Order> : quill::DeferredFormatCodec<Order>
-    {
-    };
-
-    Order order {220.10, 100};
-    LOG_INFO(logger, "Order is {}", order);
+.. literalinclude:: snippets/quill_docs_trivially_copyable_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -609,48 +533,9 @@ DirectFormatCodec
 The caller caches the formatted bytes until it copies them to the queue. Long values can allocate.
 Capacity lasts until the thread context is destroyed, so one large record can increase a thread's retained memory.
 
-.. code:: cpp
-
-    #include "quill/DirectFormatCodec.h"
-
-    class User
-    {
-    public:
-      User(std::string name, std::string surname, uint32_t age)
-        : name(std::move(name)), surname(std::move(surname)), age(age)
-      {
-        favorite_colors.push_back("red");
-        favorite_colors.push_back("blue");
-        favorite_colors.push_back("green");
-      };
-
-      std::string name;
-      std::string surname;
-      uint32_t age{};
-      std::vector<std::string> favorite_colors;
-    };
-
-    /***/
-    template <>
-    struct fmtquill::formatter<User>
-    {
-      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-      auto format(::User const& user, format_context& ctx) const
-      {
-        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
-                                   user.name, user.surname, user.age, user.favorite_colors);
-      }
-    };
-
-    /***/
-    template <>
-    struct quill::Codec<User> : quill::DirectFormatCodec<User>
-    {
-    };
-
-    User user{"Super", "User", 1};
-    LOG_INFO(logger, "User is [{}]", user);
+.. literalinclude:: snippets/quill_docs_direct_format_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -760,77 +645,9 @@ For private non-trivial members, declare ``quill::Codec<T>`` a friend and provid
 constructor if necessary. This example includes ``quill/std/Chrono.h`` for its
 ``std::chrono::system_clock::time_point`` member.
 
-.. code:: cpp
-
-    #include "quill/bundled/fmt/ostream.h"
-    #include "quill/bundled/fmt/format.h"
-
-    #include "quill/core/Codec.h"
-    #include "quill/core/DynamicFormatArgStore.h"
-    #include "quill/std/Chrono.h"
-
-    class Order
-    {
-    public:
-      Order(std::string symbol, double price, int quantity)
-        : timestamp(std::chrono::system_clock::now().time_since_epoch().count()), symbol(std::move(symbol)), price(price), quantity(quantity)
-      {
-      }
-
-    private:
-      std::chrono::system_clock::time_point timestamp;
-      std::string symbol;
-      double price;
-      int quantity;
-
-      template <typename T, typename U>
-      friend struct quill::Codec;
-
-      Order() = default;
-
-      friend std::ostream& operator<<(std::ostream& os, Order const& order)
-      {
-        os << "timestamp=" << order.timestamp.time_since_epoch().count() << " symbol=" << order.symbol << " price=" << order.price << " quantity=" << order.quantity;
-        return os;
-      }
-    };
-
-    template <>
-    struct fmtquill::formatter<Order> : fmtquill::ostream_formatter
-    {
-    };
-
-    template <>
-    struct quill::Codec<Order>
-    {
-      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
-      {
-        return compute_total_encoded_size(conditional_arg_size_cache, order.timestamp, order.symbol, order.price, order.quantity);
-      }
-
-      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
-                         uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
-      {
-        encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.timestamp, order.symbol,
-                       order.price, order.quantity);
-      }
-
-      static ::Order decode_arg(std::byte*& buffer)
-      {
-        ::Order order;
-        decode_members(buffer, order, order.timestamp, order.symbol, order.price, order.quantity);
-        return order;
-      }
-
-      static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-      {
-        args_store->push_back(decode_arg(buffer));
-      }
-    };
-
-    Order order {"AAPL", 220.10, 100};
-    LOG_INFO(logger, "Order is {}", order);
-    LOGV_INFO(logger, "Order", order);
+.. literalinclude:: snippets/quill_docs_custom_codec_private_members.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 

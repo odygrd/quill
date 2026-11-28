@@ -264,26 +264,9 @@ Can I use Quill with fork()?
 Call ``Backend::start()`` after ``fork()`` in each process that logs. The child does not inherit the running
 backend thread. Give parent and child separate files.
 
-.. code-block:: cpp
-
-   int main()
-   {
-     // DO NOT call Backend::start() before fork
-     if (fork() == 0)
-     {
-       quill::Backend::start();
-       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("child.log");
-       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       LOG_INFO(logger, "Hello from Child {}", 123);
-     }
-     else
-     {
-       quill::Backend::start();
-       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("parent.log");
-       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       LOG_INFO(logger, "Hello from Parent {}", 123);
-     }
-   }
+.. literalinclude:: snippets/quill_docs_fork.cpp
+   :language: cpp
+   :linenos:
 
 Troubleshooting
 ----------------

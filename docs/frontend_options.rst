@@ -80,25 +80,12 @@ With exceptions enabled, a malformed format string still writes ``[Could not for
 the sink. Exception-free builds abort. See :ref:`faq:what happens if my format string is invalid?`.
 
 **Hot and cold threads.** Choose a large initial capacity for latency-critical threads, then shrink queues
-on threads that log less often.
+on threads that log less often. Call ``shrink_thread_local_queue()`` through the ``FrontendImpl`` of your
+options, as every other frontend call.
 
-.. code-block:: cpp
-
-    // Configure large initial capacity to avoid hot path allocations
-    struct MyFrontendOptions : quill::FrontendOptions
-    {
-        static constexpr size_t initial_queue_capacity = 64 * 1024 * 1024;  // 64MB
-        // Other FrontendOptions values are inherited unchanged
-    };
-    
-    // Hot path threads: Use the large queue (no shrinking needed)
-    // LOG_INFO(hot_path_logger, "High frequency logging...");
-    
-    // Cold path threads: Shrink to smaller size after initialization
-    void cold_path_thread_init() {
-        quill::Frontend::shrink_thread_local_queue(128 * 1024);  // Shrink to 128KB
-        // LOG_INFO(cold_path_logger, "Infrequent logging...");
-    }
+.. literalinclude:: snippets/quill_docs_hot_cold_threads.cpp
+   :language: cpp
+   :linenos:
 
 This reserves space for expected bursts while limiting memory use on quieter threads.
 

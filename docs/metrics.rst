@@ -50,7 +50,7 @@ at publish time to avoid per-sample label lookup and string work.
    }
 
    // Hot path: pick the right pre-registered metadata pointer, then publish.
-   METRIC(metrics_logger, by_method_status[{method, status}], 1.0);
+   METRIC(metrics_logger, by_method_status.at({method, status}), 1.0);
 
 Registration takes the global manager's lock and retains metadata for the program's lifetime. Avoid registering
 per request. For runtime labels, see `Dynamic Labels`_.
