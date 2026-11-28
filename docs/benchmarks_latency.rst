@@ -15,7 +15,8 @@ thread; formatting and writing happen later on the backend thread and are measur
 
 Pick a payload, a platform and a thread count in the tabs. Every table has a **Timer only** row, the dashed line
 in its chart: the same harness with a call that logs nothing, so the cost of measuring (see
-:ref:`Timer Resolution <benchmarks_latency:timer resolution>`). The chart controls and the method shared with the
+:ref:`Timer Resolution <benchmarks_latency:timer resolution>`). The expensive argument table has an **Argument
+only** row in its place, the cost of the argument alone. The chart controls and the method shared with the
 other benchmarks are on the :ref:`benchmarks page <benchmarks:reading the results>`, each library's settings in the
 :doc:`library notes <benchmarks_library_notes>`.
 

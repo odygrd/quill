@@ -12,7 +12,7 @@ Open-source C++ logging libraries compared on Linux with Intel and AMD CPUs (GCC
 
 .. rst-class:: quill-meta
 
-*Benchmarks last updated: December 2026*
+*Benchmarks last updated: November 2026*
 
 .. toctree::
    :hidden:
@@ -54,10 +54,10 @@ Reading the Results
 - Differences of a few nanoseconds at the top of the latency tables are within run-to-run noise.
 - Compare libraries within one platform, not one platform with another: the Windows machine is not tuned for
   benchmarking.
-- Each chart is drawn from the table below it, and each table is sorted by the 90th percentile. Hover over a
-  library for all its numbers, click it to highlight it in every chart, and use the buttons to change the
-  percentile, the view or the scale of all charts at once. Tabs with the same name switch together across the
-  page.
+- Each chart is drawn from the table below it. Latency tables are sorted by the 90th percentile and throughput
+  tables by messages per second. Hover over a library for all its numbers, click it to highlight it in every
+  chart, and use the buttons to change the percentile, the view or the scale of all charts at once. Tabs with
+  the same name switch together across the page.
 
 How the Benchmarks Are Run
 --------------------------
