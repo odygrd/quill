@@ -59,13 +59,14 @@ html_theme_options = {
         "search.highlight",
         "search.share",
         "content.code.copy",
+        "content.tabs.link",
     ],
     "palette": [
         {
             "media": "(prefers-color-scheme: light)",
             "scheme": "default",
             "primary": "white",
-            "accent": "blue",
+            "accent": "teal",
             "toggle": {
                 "icon": "material/weather-night",
                 "name": "Switch to dark mode",
@@ -75,7 +76,7 @@ html_theme_options = {
             "media": "(prefers-color-scheme: dark)",
             "scheme": "slate",
             "primary": "black",
-            "accent": "blue",
+            "accent": "teal",
             "toggle": {
                 "icon": "material/weather-sunny",
                 "name": "Switch to light mode",
@@ -86,7 +87,8 @@ html_theme_options = {
 html_logo = "quill_logo.png"
 html_favicon = "quill_logo.png"
 html_static_path = ['_static']
-html_css_files = ["theme_extra.css"]
+html_css_files = ["theme_extra.css", "benchmark_charts.css"]
+html_js_files = ["benchmark_charts.js"]
 html_title = f"Quill {release} - C++ Logging Library"
 
 

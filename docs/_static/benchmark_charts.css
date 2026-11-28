@@ -1,0 +1,1066 @@
+/* Interactive benchmark charts, drawn by benchmark_charts.js */
+
+.bench-chart {
+  /* Set by the script: 1 at the theme's normal text size, larger where the theme enlarges its text */
+  --bench-u: 1;
+
+  /*
+   * A library is one of three things: Quill, another library, or the one the reader highlighted.
+   * Each has a colour for its mark and four steps, strongest first, for the bands of the
+   * distribution view. The steps are single-hue ramps that stay visible on the chart surface.
+   */
+  --bench-other: #808995;
+  --bench-other-1: #535c69;
+  --bench-other-2: #707987;
+  --bench-other-3: #8d96a2;
+  --bench-other-4: #aab1bc;
+  --bench-quill: #0f8a80;
+  --bench-quill-1: #0b6b63;
+  --bench-quill-2: #0f8a80;
+  --bench-quill-3: #2bb0a3;
+  --bench-quill-4: #6fd0c5;
+  --bench-pinned: #f47230;
+  --bench-pinned-1: #a8470f;
+  --bench-pinned-2: #d15a15;
+  --bench-pinned-3: #f47230;
+  --bench-pinned-4: #f79d6c;
+  --bench-pinned-wash: rgba(244, 114, 48, 0.1);
+  /* The timer-only measurement floor: darker than the Quill blue, so the two never look alike */
+  --bench-floor: #5a32c8;
+
+  --bench-ink: var(--md-default-fg-color, #1c1f24);
+  --bench-ink-2: var(--md-default-fg-color--light, #626975);
+  --bench-surface: var(--md-default-bg-color, #ffffff);
+  --bench-grid: rgba(0, 0, 0, 0.075);
+  --bench-grid-strong: rgba(0, 0, 0, 0.16);
+  --bench-grid-faint: rgba(0, 0, 0, 0.04);
+  --bench-axis: rgba(0, 0, 0, 0.32);
+  --bench-hover: rgba(0, 0, 0, 0.045);
+  --bench-border: rgba(0, 0, 0, 0.1);
+  --bench-track: rgba(0, 0, 0, 0.055);
+  --bench-thumb: #ffffff;
+  --bench-thumb-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  --bench-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px -18px rgba(15, 23, 42, 0.18);
+  --bench-tip: #ffffff;
+  --bench-tip-shadow: 0 12px 32px -10px rgba(15, 23, 42, 0.3), 0 2px 6px rgba(15, 23, 42, 0.08);
+  --bench-focus: var(--md-accent-fg-color, #2563eb);
+
+  position: relative;
+  margin: 1.2em 0 2em;
+  font-size: calc(13px * var(--bench-u));
+  line-height: 1.4;
+  color: var(--bench-ink);
+}
+
+/* Without the script there is no chart, only the table */
+.bench-chart:empty {
+  display: none;
+}
+
+.bench-chart.is-ready {
+  padding: 18px 20px 14px;
+  border: 1px solid var(--bench-border);
+  border-radius: 14px;
+  background: var(--bench-surface);
+  box-shadow: var(--bench-card-shadow);
+}
+
+[data-md-color-scheme="slate"] .bench-chart,
+.bench-chart[data-bench-theme="dark"] {
+  --bench-other: #8b93a1;
+  --bench-other-1: #bcc2cb;
+  --bench-other-2: #9aa1ae;
+  --bench-other-3: #7a8290;
+  --bench-other-4: #5d6473;
+  --bench-quill: #2dd4bf;
+  --bench-quill-1: #99f6e4;
+  --bench-quill-2: #5eead4;
+  --bench-quill-3: #2dd4bf;
+  --bench-quill-4: #0f766e;
+  --bench-pinned: #e76624;
+  --bench-pinned-1: #f9bd9e;
+  --bench-pinned-2: #f1905c;
+  --bench-pinned-3: #e76624;
+  --bench-pinned-4: #b04a16;
+  --bench-pinned-wash: rgba(231, 102, 36, 0.16);
+  --bench-floor: #c0b2ff;
+  --bench-grid: rgba(255, 255, 255, 0.08);
+  --bench-grid-strong: rgba(255, 255, 255, 0.17);
+  --bench-grid-faint: rgba(255, 255, 255, 0.04);
+  --bench-axis: rgba(255, 255, 255, 0.36);
+  --bench-hover: rgba(255, 255, 255, 0.06);
+  --bench-border: rgba(255, 255, 255, 0.11);
+  --bench-track: rgba(255, 255, 255, 0.075);
+  --bench-thumb: rgba(255, 255, 255, 0.17);
+  --bench-thumb-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+  --bench-card-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 14px 30px -20px rgba(0, 0, 0, 0.6);
+  --bench-tip: #3b3e50;
+  --bench-tip-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- heading ---------- */
+
+.bench-chart__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "title rest badge" "subtitle subtitle badge";
+  align-items: baseline;
+  column-gap: 10px;
+}
+
+.bench-chart__title {
+  grid-area: title;
+  font-size: 1.24em;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--bench-ink);
+}
+
+.bench-chart__title-rest {
+  grid-area: rest;
+  font-size: 1.06em;
+  font-weight: 500;
+  color: var(--bench-ink-2);
+}
+
+.bench-chart__subtitle {
+  grid-area: subtitle;
+  margin-top: 3px;
+  color: var(--bench-ink-2);
+}
+
+.bench-chart__badge {
+  grid-area: badge;
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+  padding: 3px 10px 3px 7px;
+  border-radius: 999px;
+  background: var(--bench-track);
+  color: var(--bench-ink-2);
+  font-size: 0.86em;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.bench-chart__icon {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- controls ---------- */
+
+.bench-chart__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin: 14px 0 10px;
+}
+
+.bench-chart__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bench-chart__group-label {
+  color: var(--bench-ink-2);
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bench-chart__segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--bench-track);
+}
+
+.bench-chart .bench-chart__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bench-ink-2);
+  font: inherit;
+  font-size: 0.93em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+/* The checked label is heavier; this keeps the button the same width either way */
+.bench-chart__toggle-text {
+  display: inline-grid;
+}
+
+.bench-chart__toggle-text::after {
+  content: attr(data-wide);
+  grid-area: 1 / 1;
+  height: 0;
+  overflow: hidden;
+  font-weight: 600;
+  visibility: hidden;
+}
+
+.bench-chart .bench-chart__toggle:hover {
+  color: var(--bench-ink);
+}
+
+.bench-chart .bench-chart__toggle[aria-checked="true"] {
+  background: var(--bench-thumb);
+  box-shadow: var(--bench-thumb-shadow);
+  color: var(--bench-ink);
+  font-weight: 600;
+}
+
+.bench-chart .bench-chart__toggle:focus-visible,
+.bench-chart .bench-chart__pin:focus-visible {
+  outline: 2px solid var(--bench-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- plot ---------- */
+
+.bench-chart__plot {
+  width: 100%;
+}
+
+.bench-chart__svg {
+  display: block;
+  max-width: none;
+  overflow: visible;
+  font-family: inherit;
+}
+
+.bench-chart__plot.is-moving .bench-chart__svg {
+  transition: height 0.44s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.bench-chart__ruler {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.bench-chart__gridline {
+  fill: none;
+  stroke: var(--bench-grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.bench-chart__gridline.is-level-0 { stroke: var(--bench-grid-strong); }
+.bench-chart__gridline.is-level-2 { stroke: var(--bench-grid-faint); }
+.bench-chart__gridline.is-zero { stroke: var(--bench-axis); }
+
+.bench-chart__tick,
+.bench-chart__axis-title,
+.bench-chart__caption,
+.bench-chart__floor-label {
+  fill: var(--bench-ink-2);
+  font-size: calc(11px * var(--bench-u));
+  font-variant-numeric: tabular-nums;
+}
+
+.bench-chart__tick.is-major {
+  fill: var(--bench-ink);
+}
+
+.bench-chart__axis.is-entering {
+  animation: bench-chart-appear 0.36s ease both;
+}
+
+.bench-chart__axis.is-leaving {
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+@keyframes bench-chart-appear {
+  from { opacity: 0; }
+}
+
+/* The timer-only measurement floor, a dashed reference line */
+.bench-chart__floor-line {
+  fill: none;
+  stroke: var(--bench-floor);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.bench-chart__floor-band {
+  fill: var(--bench-floor);
+  fill-opacity: 0.08;
+}
+
+.bench-chart__floor-name {
+  fill: var(--bench-floor);
+  font-weight: 600;
+}
+
+.bench-chart__floor-value {
+  fill: var(--bench-ink);
+  font-weight: 600;
+}
+
+/* ---------- rows ---------- */
+
+.bench-chart__row {
+  --mark: var(--bench-other);
+  --step-1: var(--bench-other-1);
+  --step-2: var(--bench-other-2);
+  --step-3: var(--bench-other-3);
+  --step-4: var(--bench-other-4);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.bench-chart__row.is-quill {
+  --mark: var(--bench-quill);
+  --step-1: var(--bench-quill-1);
+  --step-2: var(--bench-quill-2);
+  --step-3: var(--bench-quill-3);
+  --step-4: var(--bench-quill-4);
+}
+
+.bench-chart__row.is-pinned {
+  --mark: var(--bench-pinned);
+  --step-1: var(--bench-pinned-1);
+  --step-2: var(--bench-pinned-2);
+  --step-3: var(--bench-pinned-3);
+  --step-4: var(--bench-pinned-4);
+}
+
+.bench-chart__hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 2;
+  transition: fill 0.14s ease;
+}
+
+/* The script marks the row under a mouse or a pen, so a finger leaves no hover behind */
+.bench-chart__row.is-hover .bench-chart__hit,
+.bench-chart__row:focus-visible .bench-chart__hit {
+  fill: var(--bench-hover);
+}
+
+.bench-chart__row:focus-visible .bench-chart__hit {
+  stroke: var(--bench-focus);
+}
+
+.bench-chart__row.is-pinned .bench-chart__hit {
+  fill: var(--bench-pinned-wash);
+}
+
+/* Browsers without :focus-visible still show where the keyboard is */
+@supports not selector(:focus-visible) {
+  .bench-chart__row:focus .bench-chart__hit {
+    fill: var(--bench-hover);
+    stroke: var(--bench-focus);
+  }
+
+  .bench-chart .bench-chart__toggle:focus,
+  .bench-chart .bench-chart__pin:focus {
+    outline: 2px solid var(--bench-focus);
+    outline-offset: 2px;
+  }
+}
+
+.bench-chart__label {
+  fill: var(--bench-ink);
+  font-size: calc(13px * var(--bench-u));
+}
+
+.bench-chart__row.is-quill .bench-chart__label {
+  font-weight: 600;
+}
+
+/* A reference row, such as the cost of an argument alone, is in the floor colour and in italics */
+.bench-chart__row.is-reference { --mark: var(--bench-floor); }
+.bench-chart__row.is-reference .bench-chart__label { font-style: italic; }
+
+.bench-chart__label.is-strong,
+.bench-chart__row.is-pinned .bench-chart__label {
+  font-weight: 700;
+}
+
+.bench-chart__label-note {
+  fill: var(--bench-ink-2);
+  font-weight: 400;
+}
+
+.bench-chart__value {
+  fill: var(--bench-ink);
+  font-size: calc(12.5px * var(--bench-u));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  /* A value stays legible where it sits over a grid line */
+  paint-order: stroke;
+  stroke: var(--bench-surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.bench-chart__row.is-hover .bench-chart__value,
+.bench-chart__row:focus-visible .bench-chart__value,
+.bench-chart__row.is-pinned .bench-chart__value,
+.bench-chart__ruler .bench-chart__value {
+  stroke: transparent;
+}
+
+.bench-chart__bar,
+.bench-chart__dot {
+  fill: var(--mark);
+}
+
+.bench-chart__bar {
+  transition: fill 0.2s ease;
+}
+
+.bench-chart__stem {
+  fill: var(--step-4);
+  transition: fill 0.2s ease;
+}
+
+.bench-chart__dot {
+  stroke: var(--bench-surface);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill 0.2s ease, stroke 0.2s ease, transform 0.16s ease;
+}
+
+/* The mark under the pointer answers */
+.bench-chart__row.is-hover .bench-chart__dot,
+.bench-chart__row:focus-visible .bench-chart__dot {
+  transform: scale(1.2);
+}
+
+/* On the bands of the distribution view the dot is a ring, so it shows on every step */
+.bench-chart.is-distribution .bench-chart__dot {
+  fill: var(--bench-surface);
+  stroke: var(--step-1);
+  stroke-width: 2.5;
+}
+
+.bench-chart__seg {
+  transition: fill 0.2s ease;
+}
+
+.bench-chart__seg--1 { fill: var(--step-1); }
+.bench-chart__seg--2 { fill: var(--step-2); }
+.bench-chart__seg--3 { fill: var(--step-3); }
+.bench-chart__seg--4 { fill: var(--step-4); }
+
+.bench-chart__whisker,
+.bench-chart__cap {
+  stroke: var(--step-2);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke 0.2s ease;
+}
+
+.bench-chart__marks,
+.bench-chart__label,
+.bench-chart__value {
+  transition: opacity 0.2s ease, fill 0.2s ease;
+}
+
+/* With a library highlighted the others step back, and come forward again under the pointer */
+.bench-chart__row.is-dimmed .bench-chart__marks { opacity: 0.38; }
+.bench-chart__row.is-dimmed .bench-chart__label,
+.bench-chart__row.is-dimmed .bench-chart__value { opacity: 0.6; }
+.bench-chart__row.is-dimmed.is-hover .bench-chart__marks,
+.bench-chart__row.is-dimmed.is-hover .bench-chart__label,
+.bench-chart__row.is-dimmed.is-hover .bench-chart__value,
+.bench-chart__row.is-dimmed:focus-visible .bench-chart__marks,
+.bench-chart__row.is-dimmed:focus-visible .bench-chart__label,
+.bench-chart__row.is-dimmed:focus-visible .bench-chart__value { opacity: 1; }
+
+/* Binary logs are hatched, so they never read as comparable with text output */
+.bench-chart__hatch { --hatch: var(--bench-other); }
+.bench-chart__hatch--quill { --hatch: var(--bench-quill); }
+.bench-chart__hatch--pinned { --hatch: var(--bench-pinned); }
+.bench-chart__hatch-ground { fill: var(--hatch); fill-opacity: 0.2; }
+.bench-chart__hatch-line { fill: var(--hatch); }
+
+/* ---------- legend ---------- */
+
+.bench-chart__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 20px;
+  margin-top: 6px;
+  padding-top: 11px;
+  border-top: 1px solid var(--bench-grid);
+  color: var(--bench-ink-2);
+  font-size: 0.93em;
+}
+
+.bench-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+}
+
+.bench-chart__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bench-chart__key {
+  display: inline-block;
+  flex: none;
+  --key: var(--bench-other);
+}
+
+.bench-chart__key--quill { --key: var(--bench-quill); }
+.bench-chart__key--dot { width: 10px; height: 10px; border-radius: 50%; background: var(--key); }
+.bench-chart__key--bar { width: 14px; height: 9px; border-radius: 0 3px 3px 0; background: var(--key); }
+.bench-chart__key--floor { width: 0; height: 13px; border-left: 2px dashed var(--bench-floor); }
+.bench-chart__key--binary {
+  width: 14px;
+  height: 9px;
+  border-radius: 0 3px 3px 0;
+  background: repeating-linear-gradient(135deg, var(--bench-other) 0 1.6px, transparent 1.6px 4.2px);
+}
+
+/* The key of the distribution view: the mark itself, with a percentile under every step */
+.bench-chart__legend-item--strip {
+  gap: 4px;
+}
+
+.bench-chart__strip-block {
+  display: inline-block;
+  width: 150px;
+  margin: 0 12px;
+}
+
+.bench-chart__strip {
+  display: flex;
+  align-items: center;
+  height: 0.7em;
+}
+
+.bench-chart__strip-seg { flex: 1; height: 100%; }
+.bench-chart__strip-seg--1 { background: var(--bench-other-1); border-radius: 3px 0 0 3px; }
+.bench-chart__strip-seg--2 { background: var(--bench-other-2); }
+.bench-chart__strip-seg--3 { background: var(--bench-other-3); }
+.bench-chart__strip-seg--4 { background: var(--bench-other-4); border-radius: 0 3px 3px 0; }
+.bench-chart__strip-line {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  background: var(--bench-other-2);
+}
+
+.bench-chart__strip-line::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -0.3em;
+  width: 2px;
+  height: calc(0.6em + 2px);
+  border-radius: 1px;
+  background: var(--bench-other-2);
+}
+
+.bench-chart__strip-names {
+  position: relative;
+  display: block;
+  height: 1.25em;
+  margin-top: 2px;
+  font-size: 0.88em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bench-chart__strip-names b {
+  position: absolute;
+  left: calc(var(--i) * 20%);
+  transform: translateX(-50%);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.bench-chart__strip-names b.is-current {
+  color: var(--bench-ink);
+  font-weight: 700;
+}
+
+.bench-chart__hint {
+  margin-left: auto;
+  text-align: right;
+}
+
+.bench-chart .bench-chart__pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 2px 6px 2px 9px;
+  border: 1px solid var(--bench-border);
+  border-radius: 999px;
+  background: var(--bench-pinned-wash);
+  color: var(--bench-ink);
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.bench-chart .bench-chart__pin:hover {
+  border-color: var(--bench-pinned);
+}
+
+.bench-chart__pin-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bench-pinned);
+}
+
+.bench-chart .bench-chart__pin.is-absent {
+  background: transparent;
+  color: var(--bench-ink-2);
+  font-weight: 400;
+}
+
+.bench-chart__pin.is-absent .bench-chart__pin-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--bench-pinned);
+}
+
+/* ---------- tooltip ---------- */
+
+.bench-chart__tooltip {
+  --tip-mark: var(--bench-other);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 5;
+  box-sizing: border-box;
+  min-width: 15em;
+  max-width: min(24em, calc(100% - 16px));
+  padding: 10px 12px 10px;
+  border: 1px solid var(--bench-border);
+  border-radius: 10px;
+  background: var(--bench-tip);
+  box-shadow: var(--bench-tip-shadow);
+  color: var(--bench-ink);
+  font-size: 0.93em;
+  line-height: 1.4;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease, transform 0.11s ease-out, visibility 0s linear 0.12s;
+}
+
+.bench-chart__tooltip.is-quill { --tip-mark: var(--bench-quill); }
+.bench-chart__tooltip.is-pinned { --tip-mark: var(--bench-pinned); }
+
+.bench-chart__tooltip.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.12s ease, transform 0.11s ease-out;
+}
+
+.bench-chart__tooltip.is-jumping {
+  transition: none;
+}
+
+.bench-chart__tooltip-head {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.bench-chart__tooltip-swatch {
+  flex: none;
+  align-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tip-mark);
+}
+
+.bench-chart--throughput .bench-chart__tooltip-swatch {
+  width: 13px;
+  border-radius: 0 3px 3px 0;
+}
+
+.bench-chart__tooltip.is-binary .bench-chart__tooltip-swatch {
+  background: repeating-linear-gradient(135deg, var(--tip-mark) 0 1.6px, transparent 1.6px 4.2px);
+}
+
+.bench-chart__tooltip-title {
+  flex: 1;
+  font-size: 1.08em;
+  font-weight: 700;
+}
+
+.bench-chart__tooltip-note {
+  margin: 1px 0 8px;
+  color: var(--bench-ink-2);
+}
+
+.bench-chart__tooltip-list {
+  display: grid;
+  grid-template-columns: auto minmax(3.5em, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+}
+
+.bench-chart--throughput .bench-chart__tooltip-list {
+  grid-template-columns: auto 0 auto;
+  gap: 2px 14px;
+}
+
+.bench-chart__tooltip-row {
+  display: contents;
+}
+
+.bench-chart__tooltip-label {
+  color: var(--bench-ink-2);
+}
+
+.bench-chart__tooltip-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bench-track);
+}
+
+.bench-chart--throughput .bench-chart__tooltip-track {
+  visibility: hidden;
+}
+
+.bench-chart__tooltip-fill {
+  display: block;
+  min-width: 2px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--tip-mark);
+  opacity: 0.55;
+}
+
+.bench-chart__tooltip-value {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bench-chart__tooltip-unit {
+  color: var(--bench-ink-2);
+  font-weight: 400;
+}
+
+.bench-chart__tooltip-row.is-current .bench-chart__tooltip-label {
+  color: var(--bench-ink);
+  font-weight: 700;
+}
+
+.bench-chart__tooltip-row.is-current .bench-chart__tooltip-value {
+  font-weight: 700;
+}
+
+.bench-chart__tooltip-row.is-current .bench-chart__tooltip-fill {
+  opacity: 1;
+}
+
+.bench-chart__tooltip-foot {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--bench-grid);
+  color: var(--bench-ink-2);
+}
+
+/* ---------- narrow charts: a library's name sits above its mark ---------- */
+
+.bench-chart.is-ready.is-narrow {
+  padding: 15px 14px 12px;
+  border-radius: 12px;
+}
+
+.bench-chart.is-narrow .bench-chart__header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title badge" "rest rest" "subtitle subtitle";
+}
+
+.bench-chart.is-narrow .bench-chart__controls {
+  gap: 10px 12px;
+  margin: 12px 0 8px;
+}
+
+.bench-chart.is-narrow .bench-chart__group {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+
+.bench-chart.is-narrow .bench-chart__group--percentile {
+  flex: 1 1 100%;
+  order: 3;
+}
+
+.bench-chart.is-narrow .bench-chart__group--view,
+.bench-chart.is-narrow .bench-chart__group--binary {
+  flex: 1 1 auto;
+}
+
+.bench-chart.is-narrow .bench-chart__segmented {
+  display: flex;
+}
+
+.bench-chart.is-narrow .bench-chart__toggle {
+  flex: 1 1 auto;
+  padding: 5px 6px;
+}
+
+.bench-chart.is-narrow .bench-chart__th {
+  display: none;
+}
+
+.bench-chart.is-narrow .bench-chart__hint {
+  margin-left: 0;
+  text-align: left;
+}
+
+.bench-chart.is-compact .bench-chart__toggle .bench-chart__icon {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bench-chart *,
+  .bench-chart *::before,
+  .bench-chart *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .bench-chart__bar,
+  .bench-chart__dot,
+  .bench-chart__seg { fill: CanvasText; }
+  .bench-chart__stem { fill: GrayText; }
+  .bench-chart__whisker,
+  .bench-chart__cap { stroke: CanvasText; }
+  .bench-chart__row.is-quill .bench-chart__bar,
+  .bench-chart__row.is-quill .bench-chart__dot,
+  .bench-chart__row.is-quill .bench-chart__seg { fill: Highlight; }
+  .bench-chart__row:focus-visible .bench-chart__hit { stroke: Highlight; }
+  .bench-chart .bench-chart__toggle[aria-checked="true"] { outline: 2px solid Highlight; outline-offset: -2px; }
+}
+
+@media print {
+  .bench-chart__controls,
+  .bench-chart__hint,
+  .bench-chart__tooltip { display: none; }
+  .bench-chart.is-ready { box-shadow: none; break-inside: avoid; }
+}
+
+/* The benchmark tables: numbers centred (latency, throughput) or right-aligned (compile time) */
+table.bench-table.bench-center td:not(:first-child),
+table.bench-table.bench-center th:not(:first-child) { text-align: center; }
+table.bench-table.bench-right td:not(:first-child),
+table.bench-table.bench-right th:not(:first-child) { text-align: right; }
+
+/* Speedscope compile-time profiles, embedded on the compile time page */
+.speedscope-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 160px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--md-code-bg-color);
+}
+.speedscope-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.speedscope-open { margin: 0.4rem 0 0; text-align: right; font-size: 0.75rem; }
+
+
+/* ---------- Benchmark pages: tabs and tables ---------- */
+
+/* Nested tabs (platform, then threads) are pill switches, so each level reads differently */
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > .tabbed-labels {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  gap: 2px;
+  padding: 3px;
+  margin: 0.4rem 0 0.2rem;
+  border-radius: 999px;
+  background: var(--md-default-fg-color--lightest);
+  box-shadow: none;
+  overflow: visible;
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > .tabbed-labels::before { display: none; }
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > .tabbed-labels > label {
+  padding: 0.35rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > .tabbed-labels > label:hover {
+  color: var(--md-default-fg-color);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set .tabbed-set > .tabbed-labels > label {
+  padding: 0.25rem 0.8rem;
+  font-size: 0.64rem;
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > .tabbed-content { margin-top: 0.4rem; }
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(1):checked ~ .tabbed-labels > :nth-child(1) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(5):checked ~ .tabbed-labels > :nth-child(5) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+:is(body:has(.bench-chart), body.bench-page) .md-typeset .tabbed-set .tabbed-set > input:nth-child(6):checked ~ .tabbed-labels > :nth-child(6) {
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--md-default-fg-color--lightest);
+}
+
+/* The first choice of a section, the payload or the platform, is a row of large cards under a caption, so it is
+   the first thing a reader sees and reads as the level above the pill switches */
+.md-typeset .tabbed-set.bench-tabs { margin: 1.4em 0; }
+.md-typeset .tabbed-set.bench-tabs::before {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .tabbed-set.bench-tabs-payload::before { content: "Payload"; }
+.md-typeset .tabbed-set.bench-tabs-platform::before { content: "Platform"; }
+.md-typeset .tabbed-set.bench-tabs > .tabbed-labels {
+  display: flex;
+  gap: 0.5rem;
+  padding: 2px 0 4px;
+  box-shadow: none;
+}
+.md-typeset .tabbed-set.bench-tabs > .tabbed-labels::before { display: none; }
+.md-typeset .tabbed-set.bench-tabs > .tabbed-labels > label {
+  flex: 1 1 0;
+  min-width: max-content;
+  max-width: 16rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  background: var(--md-default-bg-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--md-default-fg-color--light);
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+.md-typeset .tabbed-set.bench-tabs > .tabbed-labels > label:hover {
+  border-color: var(--md-accent-fg-color);
+  color: var(--md-default-fg-color);
+}
+.md-typeset .tabbed-set.bench-tabs > .tabbed-content { margin-top: 0.9rem; }
+.md-typeset .tabbed-set.bench-tabs > input:nth-child(1):checked ~ .tabbed-labels > :nth-child(1),
+.md-typeset .tabbed-set.bench-tabs > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2),
+.md-typeset .tabbed-set.bench-tabs > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3),
+.md-typeset .tabbed-set.bench-tabs > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4) {
+  border-color: var(--md-accent-fg-color);
+  background: color-mix(in srgb, var(--md-accent-fg-color) 9%, var(--md-default-bg-color));
+  box-shadow: inset 0 -3px 0 var(--md-accent-fg-color);
+  color: var(--md-accent-fg-color);
+}
+
+/* Compact result tables, with Quill's rows marked as in the charts */
+.md-typeset table.bench-table { font-size: 0.68rem; }
+.md-typeset table.bench-table th,
+.md-typeset table.bench-table td { padding: 0.45em 0.9em; }
+.md-typeset table.bench-table tr.bench-row--quill td:first-child { box-shadow: inset 3px 0 0 #0f8a80; font-weight: 600; }
+.md-typeset table.bench-table td:not(:first-child) { font-variant-numeric: tabular-nums; }
+
+/* The library comparison table on the notes page */
+.md-typeset table.bench-glance { font-size: 0.62rem; }
+.md-typeset table.bench-glance th,
+.md-typeset table.bench-glance td { padding: 0.45em 0.7em; vertical-align: top; }
+.md-typeset table.bench-glance td:first-child { font-weight: 600; }
+
+/* The timer-only measurement floor, marked in the table as in the charts */
+.md-typeset table.bench-table tr.bench-row--floor td { font-style: italic; color: var(--md-default-fg-color--light); }
+.md-typeset table.bench-table tr.bench-row--floor td:first-child { box-shadow: inset 3px 0 0 #7048e8; }
+/* The library highlighted in the charts is marked in the tables too */
+.md-typeset table.bench-table tr.bench-row--pinned td:first-child { box-shadow: inset 3px 0 0 #f47230; }
+.speedscope-frame.is-loaded { display: block; height: 560px; }
+.speedscope-load {
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--md-accent-fg-color);
+  border-radius: 999px;
+  background: var(--md-default-bg-color);
+  color: var(--md-accent-fg-color);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.speedscope-load:hover { background: var(--md-accent-fg-color); color: var(--md-accent-bg-color); }
+

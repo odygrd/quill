@@ -1,0 +1,2451 @@
+{
+ "stat": "best",
+ "percentiles": [
+  "p50",
+  "p75",
+  "p90",
+  "p95",
+  "p99",
+  "p999"
+ ],
+ "latency": [
+  {
+   "scenario": "single",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      13.6,
+      13.6,
+      14.1,
+      14.1,
+      14.6,
+      18.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      26.0,
+      27.1,
+      36.3,
+      51.0,
+      118.8,
+      274.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      26.6,
+      27.7,
+      38.5,
+      41.2,
+      105.3,
+      244.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      27.1,
+      28.2,
+      39.6,
+      54.8,
+      110.1,
+      309.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      30.9,
+      32.0,
+      48.8,
+      69.4,
+      147.6,
+      362.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      27.1,
+      47.2,
+      55.3,
+      64.0,
+      129.1,
+      438.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      106.3,
+      114.5,
+      131.8,
+      167.1,
+      295.7,
+      1558.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1335.7,
+      1386.2,
+      1503.4,
+      1684.6,
+      2712.7,
+      11423.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      3532.5,
+      3610.0,
+      3819.5,
+      4241.6,
+      7319.9,
+      29656.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      3742.4,
+      3843.3,
+      4067.9,
+      4544.3,
+      7771.3,
+      30607.2
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "single",
+   "payload": "int_int_double",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      14.6,
+      14.6,
+      15.2,
+      15.2,
+      15.2,
+      19.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      28.2,
+      28.8,
+      40.1,
+      43.4,
+      114.5,
+      260.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      27.1,
+      27.7,
+      41.2,
+      54.8,
+      126.4,
+      271.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      28.2,
+      28.8,
+      43.9,
+      58.6,
+      127.5,
+      302.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      30.9,
+      32.6,
+      55.3,
+      70.0,
+      135.6,
+      291.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      49.9,
+      56.4,
+      65.6,
+      71.6,
+      123.7,
+      280.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      146.5,
+      160.6,
+      186.6,
+      211.0,
+      340.7,
+      1292.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1369.4,
+      1851.1,
+      2260.8,
+      2679.6,
+      10645.7,
+      20968.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      6616.8,
+      7142.5,
+      7800.6,
+      8262.8,
+      9242.7,
+      26297.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      7258.1,
+      7722.5,
+      8265.0,
+      8670.8,
+      9696.2,
+      27845.8
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "single",
+   "payload": "int_int_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      13.6,
+      13.6,
+      14.1,
+      14.1,
+      14.6,
+      19.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      28.8,
+      30.9,
+      53.7,
+      71.6,
+      143.8,
+      375.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      29.3,
+      41.2,
+      54.3,
+      70.0,
+      182.3,
+      465.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      28.2,
+      43.4,
+      54.8,
+      66.7,
+      141.6,
+      314.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      35.8,
+      53.2,
+      61.3,
+      78.1,
+      173.1,
+      477.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      39.6,
+      56.4,
+      72.2,
+      87.3,
+      215.9,
+      942.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      102.0,
+      122.1,
+      167.6,
+      187.7,
+      408.5,
+      1450.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1356.9,
+      1407.9,
+      1559.3,
+      1766.0,
+      3016.0,
+      13432.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      3159.2,
+      3255.2,
+      3433.2,
+      3727.2,
+      6183.3,
+      23143.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      3424.5,
+      3492.9,
+      3681.7,
+      4058.7,
+      6983.0,
+      36095.0
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "single",
+   "payload": "int_int_largestr",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      14.1,
+      14.6,
+      14.6,
+      15.2,
+      15.2,
+      67.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      29.8,
+      36.4,
+      52.6,
+      72.2,
+      149.2,
+      316.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      29.3,
+      37.4,
+      55.3,
+      70.0,
+      136.7,
+      265.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      30.4,
+      33.1,
+      58.1,
+      80.8,
+      154.1,
+      317.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      36.9,
+      48.3,
+      66.2,
+      95.5,
+      176.9,
+      367.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      55.9,
+      63.5,
+      78.7,
+      93.3,
+      183.4,
+      462.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      148.7,
+      167.6,
+      198.6,
+      230.6,
+      409.6,
+      1760.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1385.6,
+      1914.1,
+      2322.6,
+      2835.8,
+      11481.2,
+      23445.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      5001.1,
+      5477.5,
+      5962.5,
+      6290.7,
+      7232.6,
+      21796.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      6010.2,
+      6425.3,
+      6871.8,
+      7206.0,
+      8265.0,
+      25442.8
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "single",
+   "payload": "vector_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      13.6,
+      14.1,
+      14.1,
+      14.1,
+      14.6,
+      19.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      92.8,
+      112.8,
+      135.6,
+      157.3,
+      273.4,
+      641.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      88.4,
+      113.4,
+      139.4,
+      167.1,
+      341.8,
+      645.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      98.2,
+      123.7,
+      148.1,
+      175.8,
+      338.5,
+      1005.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      174.2,
+      208.3,
+      243.1,
+      272.9,
+      482.3,
+      1398.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      759.0,
+      794.8,
+      838.2,
+      878.4,
+      1091.6,
+      3427.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      6770.9,
+      7006.9,
+      7455.0,
+      8069.7,
+      12297.7,
+      39652.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      10688.0,
+      11007.0,
+      11318.4,
+      11734.6,
+      14383.2,
+      41867.1
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "single",
+   "payload": "vector_largestr",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      14.6,
+      14.6,
+      15.2,
+      15.2,
+      15.2,
+      17.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      92.8,
+      122.1,
+      142.7,
+      163.8,
+      268.0,
+      499.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      99.3,
+      126.4,
+      147.0,
+      166.6,
+      275.6,
+      512.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      104.2,
+      129.7,
+      155.2,
+      180.7,
+      310.9,
+      595.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      204.0,
+      234.9,
+      271.3,
+      301.1,
+      436.7,
+      1213.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      806.8,
+      846.9,
+      890.8,
+      925.0,
+      1069.9,
+      3060.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      10219.8,
+      10784.0,
+      11400.3,
+      11951.6,
+      14509.1,
+      33850.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      11180.6,
+      11634.2,
+      12144.7,
+      12600.4,
+      20940.3,
+      36542.1
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      0.9,
+      0.9,
+      1.0,
+      1.9,
+      2.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      10.9,
+      12.1,
+      14.2,
+      16.7,
+      24.7,
+      67.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      12.2,
+      13.3,
+      15.2,
+      17.3,
+      25.7,
+      42.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      12.4,
+      14.1,
+      17.4,
+      21.0,
+      30.8,
+      44.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      13.1,
+      14.7,
+      17.7,
+      21.1,
+      35.0,
+      109.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      16.8,
+      18.5,
+      20.7,
+      23.8,
+      33.1,
+      55.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      57.5,
+      63.2,
+      69.7,
+      77.9,
+      105.3,
+      384.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      246.0,
+      260.8,
+      321.3,
+      353.8,
+      458.4,
+      1322.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      1470.2,
+      1601.8,
+      1811.7,
+      1926.6,
+      2633.7,
+      5981.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      1547.5,
+      1622.4,
+      2001.4,
+      2281.3,
+      3022.3,
+      6702.6
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "int_int_double",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      0.9,
+      1.0,
+      1.0,
+      1.7,
+      3.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      12.0,
+      13.1,
+      14.8,
+      16.6,
+      23.6,
+      37.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      13.0,
+      14.3,
+      16.1,
+      17.9,
+      25.1,
+      37.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      13.0,
+      14.9,
+      17.2,
+      19.7,
+      28.2,
+      109.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      14.5,
+      16.1,
+      18.3,
+      20.6,
+      29.7,
+      126.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      19.6,
+      21.3,
+      23.5,
+      26.0,
+      33.5,
+      252.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      79.3,
+      87.2,
+      97.0,
+      105.6,
+      127.0,
+      826.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1175.9,
+      1343.4,
+      1507.6,
+      1635.8,
+      2206.2,
+      3512.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      6788.9,
+      7095.1,
+      7285.6,
+      7399.5,
+      7746.2,
+      11943.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      6913.9,
+      7421.4,
+      7970.7,
+      8235.5,
+      8694.8,
+      11176.4
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "int_int_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      0.9,
+      0.9,
+      0.9,
+      1.4,
+      2.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      16.2,
+      18.6,
+      23.4,
+      29.1,
+      38.3,
+      74.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      17.0,
+      19.7,
+      25.2,
+      31.4,
+      48.8,
+      362.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      17.1,
+      19.9,
+      25.3,
+      30.9,
+      42.6,
+      111.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      20.2,
+      23.2,
+      30.1,
+      38.6,
+      53.7,
+      137.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      22.4,
+      24.6,
+      31.3,
+      38.1,
+      51.1,
+      504.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      66.5,
+      71.6,
+      78.3,
+      86.9,
+      135.3,
+      524.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      221.0,
+      234.4,
+      285.4,
+      319.6,
+      423.5,
+      1610.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      1200.4,
+      1331.0,
+      1572.5,
+      1672.4,
+      2205.7,
+      6040.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      1311.1,
+      1570.0,
+      1867.3,
+      1991.3,
+      2604.4,
+      6730.7
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "int_int_largestr",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      1.0,
+      1.0,
+      1.0,
+      1.4,
+      4.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      17.0,
+      19.0,
+      22.4,
+      26.1,
+      35.9,
+      56.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      17.7,
+      19.7,
+      23.7,
+      27.8,
+      36.2,
+      70.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      17.3,
+      19.7,
+      24.3,
+      28.8,
+      40.6,
+      139.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      20.0,
+      23.1,
+      27.7,
+      33.5,
+      44.5,
+      145.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      23.7,
+      25.7,
+      30.0,
+      34.2,
+      42.6,
+      150.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      75.7,
+      88.4,
+      105.0,
+      116.3,
+      150.1,
+      894.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      1085.8,
+      1265.4,
+      1441.4,
+      1586.4,
+      2278.7,
+      3442.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      4020.8,
+      4170.0,
+      4341.4,
+      4486.8,
+      5144.4,
+      7077.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      4320.1,
+      4486.7,
+      4844.5,
+      4996.2,
+      5262.7,
+      8642.6
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "vector_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      0.9,
+      0.9,
+      1.5,
+      1.9,
+      2.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      72.0,
+      77.3,
+      86.7,
+      101.6,
+      130.7,
+      179.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      73.6,
+      79.1,
+      87.0,
+      98.4,
+      132.2,
+      247.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      72.2,
+      77.9,
+      88.3,
+      100.2,
+      131.6,
+      197.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      108.3,
+      116.5,
+      131.1,
+      153.1,
+      199.0,
+      782.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      587.3,
+      611.0,
+      625.9,
+      643.3,
+      716.0,
+      2007.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      4515.6,
+      4924.6,
+      5217.8,
+      5381.7,
+      6554.0,
+      14491.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      10309.8,
+      10676.2,
+      10884.1,
+      11112.0,
+      13595.9,
+      26483.5
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "burst",
+   "payload": "vector_largestr",
+   "threads": 4,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.9,
+      0.9,
+      0.9,
+      1.0,
+      1.8,
+      2.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      75.0,
+      79.1,
+      86.6,
+      95.3,
+      128.3,
+      185.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      76.5,
+      81.8,
+      91.3,
+      100.8,
+      134.0,
+      396.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      78.2,
+      84.0,
+      91.5,
+      98.4,
+      134.1,
+      356.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      115.5,
+      123.1,
+      132.9,
+      140.9,
+      170.7,
+      773.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      656.3,
+      697.7,
+      741.3,
+      900.1,
+      1346.9,
+      2021.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      6786.7,
+      7147.2,
+      7540.5,
+      7817.2,
+      8872.2,
+      12131.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      10442.6,
+      10550.0,
+      10692.6,
+      11089.8,
+      12423.3,
+      15187.2
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "cold",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      21.2,
+      21.7,
+      22.2,
+      22.2,
+      22.8,
+      25.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      76.0,
+      85.2,
+      93.3,
+      98.7,
+      110.1,
+      159.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      81.9,
+      92.2,
+      104.2,
+      114.5,
+      129.7,
+      196.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      87.9,
+      96.6,
+      105.8,
+      113.9,
+      128.6,
+      198.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      90.1,
+      102.0,
+      110.7,
+      121.0,
+      179.6,
+      311.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      92.2,
+      105.3,
+      119.4,
+      130.2,
+      170.4,
+      1714.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      149.7,
+      176.3,
+      256.6,
+      411.8,
+      647.8,
+      2518.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      2873.8,
+      3016.5,
+      3189.0,
+      3352.3,
+      4435.8,
+      15611.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      6172.4,
+      6389.5,
+      6741.0,
+      7035.6,
+      10238.8,
+      22207.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      6725.8,
+      6898.9,
+      7305.8,
+      7681.2,
+      11388.9,
+      36990.2
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "cold",
+   "payload": "int_int_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      21.2,
+      22.2,
+      22.2,
+      22.8,
+      23.9,
+      26.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      94.4,
+      106.3,
+      122.6,
+      150.3,
+      208.9,
+      417.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      97.7,
+      111.2,
+      131.8,
+      180.7,
+      283.7,
+      486.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      102.0,
+      115.6,
+      135.6,
+      161.1,
+      220.8,
+      412.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      115.6,
+      128.6,
+      147.0,
+      178.0,
+      253.4,
+      469.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      113.4,
+      128.6,
+      149.7,
+      203.5,
+      309.8,
+      1161.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      163.8,
+      182.8,
+      263.7,
+      453.6,
+      718.9,
+      3286.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      2938.9,
+      3046.3,
+      3180.4,
+      3366.4,
+      4359.3,
+      10561.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      5960.9,
+      6103.0,
+      6353.6,
+      6725.3,
+      9649.0,
+      31892.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "g3log",
+     "url": "https://github.com/KjellKod/g3log",
+     "values": [
+      5897.4,
+      6104.1,
+      6388.4,
+      6705.8,
+      9300.2,
+      19267.7
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "cold",
+   "payload": "vector_largestr",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      21.7,
+      22.2,
+      22.8,
+      23.3,
+      24.4,
+      26.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Bounded Dropping Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      148.1,
+      162.2,
+      192.1,
+      249.6,
+      428.1,
+      691.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      170.9,
+      188.8,
+      213.8,
+      249.6,
+      372.7,
+      678.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      159.0,
+      177.4,
+      218.6,
+      293.0,
+      415.0,
+      660.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      293.0,
+      358.1,
+      446.5,
+      608.7,
+      835.0,
+      2176.7
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      785.1,
+      829.5,
+      901.2,
+      973.9,
+      1276.0,
+      5319.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      9204.7,
+      9515.0,
+      9878.0,
+      10217.6,
+      13379.0,
+      27391.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      12877.1,
+      13092.5,
+      13392.0,
+      13765.3,
+      16594.6,
+      35149.4
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "disabled_hot",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      0.2,
+      0.2,
+      0.2,
+      0.2,
+      0.2,
+      0.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.4,
+      0.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      0.3,
+      0.4,
+      0.4,
+      0.4,
+      0.5,
+      0.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      0.9,
+      0.9,
+      0.9,
+      0.9,
+      0.9,
+      2.0
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      2.2,
+      2.2,
+      2.2,
+      2.2,
+      2.3,
+      3.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      5.5,
+      5.6,
+      5.7,
+      5.8,
+      7.6,
+      13.8
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      6.8,
+      6.8,
+      6.9,
+      6.9,
+      7.9,
+      12.2
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      80.5,
+      80.8,
+      81.7,
+      83.3,
+      96.4,
+      138.5
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "disabled_cold",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "Timer only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      21.2,
+      21.7,
+      22.2,
+      22.2,
+      22.8,
+      26.6
+     ],
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      32.6,
+      33.1,
+      33.6,
+      34.7,
+      36.4,
+      63.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      51.5,
+      64.6,
+      69.4,
+      72.2,
+      93.9,
+      183.4
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      53.7,
+      62.9,
+      71.6,
+      76.5,
+      145.9,
+      214.3
+     ],
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      71.6,
+      74.3,
+      77.0,
+      79.2,
+      86.3,
+      144.9
+     ],
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      66.2,
+      74.3,
+      86.3,
+      95.5,
+      111.2,
+      167.1
+     ],
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      61.8,
+      84.1,
+      88.4,
+      93.9,
+      148.1,
+      299.5
+     ],
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      453.6,
+      505.1,
+      631.0,
+      747.6,
+      980.9,
+      2120.8
+     ],
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "scenario": "disabled_argument",
+   "payload": "int_int_double",
+   "threads": 1,
+   "rows": [
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "values": [
+      0.2,
+      0.2,
+      0.2,
+      0.2,
+      0.3,
+      0.3
+     ],
+     "runs": 3,
+     "argument_evaluated": false
+    },
+    {
+     "name": "Quill Unbounded Queue",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      2.1
+     ],
+     "runs": 3,
+     "argument_evaluated": false
+    },
+    {
+     "name": "MS BinLog",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "values": [
+      3.5,
+      3.5,
+      3.5,
+      3.5,
+      5.7,
+      6.5
+     ],
+     "runs": 3,
+     "argument_evaluated": false
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "values": [
+      77.5,
+      77.8,
+      78.7,
+      80.3,
+      94.4,
+      154.2
+     ],
+     "runs": 3,
+     "argument_evaluated": false
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "values": [
+      79.8,
+      79.9,
+      81.3,
+      82.9,
+      101.4,
+      231.4
+     ],
+     "runs": 3,
+     "argument_evaluated": true
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "values": [
+      83.2,
+      83.2,
+      83.2,
+      85.6,
+      98.1,
+      197.2
+     ],
+     "runs": 3,
+     "argument_evaluated": true
+    },
+    {
+     "name": "Argument only (no logging)",
+     "url": "https://github.com/odygrd/logger_benchmarks/blob/master/benchmarks/call_site_latency/benchmark_timer_only_call_site_latency.cpp",
+     "values": [
+      83.5,
+      83.5,
+      83.6,
+      86.1,
+      103.9,
+      260.3
+     ],
+     "runs": 3,
+     "argument_evaluated": true
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "values": [
+      86.9,
+      86.9,
+      86.9,
+      87.0,
+      90.8,
+      118.7
+     ],
+     "runs": 3,
+     "argument_evaluated": true
+    }
+   ]
+  }
+ ],
+ "throughput": [
+  {
+   "threads": 1,
+   "rows": [
+    {
+     "name": "BqLog (binary log)",
+     "url": "https://github.com/Tencent/BqLog",
+     "logger": "BqLog (binary log)",
+     "threads": 1,
+     "throughput": 14.82,
+     "elapsed_ms": 269.0,
+     "producers_ms": 269.0,
+     "runs": 3
+    },
+    {
+     "name": "MS BinLog (binary log)",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "logger": "MS BinLog (binary log)",
+     "threads": 1,
+     "throughput": 14.43,
+     "elapsed_ms": 277.0,
+     "producers_ms": 272.0,
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "logger": "BqLog",
+     "threads": 1,
+     "throughput": 6.35,
+     "elapsed_ms": 629.0,
+     "producers_ms": 629.0,
+     "runs": 3
+    },
+    {
+     "name": "Quill",
+     "url": "https://github.com/odygrd/quill",
+     "logger": "Quill",
+     "threads": 1,
+     "throughput": 4.36,
+     "elapsed_ms": 918.0,
+     "producers_ms": 149.0,
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "logger": "Quill - Macro Free Mode",
+     "threads": 1,
+     "throughput": 3.64,
+     "elapsed_ms": 1099.0,
+     "producers_ms": 179.0,
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "logger": "spdlog",
+     "threads": 1,
+     "throughput": 2.28,
+     "elapsed_ms": 1755.0,
+     "producers_ms": 1752.0,
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "logger": "fmtlog",
+     "threads": 1,
+     "throughput": 1.53,
+     "elapsed_ms": 2613.0,
+     "producers_ms": 2597.0,
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "logger": "Boost.Log",
+     "threads": 1,
+     "throughput": 0.51,
+     "elapsed_ms": 7859.0,
+     "producers_ms": 7859.0,
+     "runs": 3
+    }
+   ]
+  },
+  {
+   "threads": 4,
+   "rows": [
+    {
+     "name": "MS BinLog (binary log)",
+     "url": "https://github.com/Morgan-Stanley/binlog",
+     "logger": "MS BinLog (binary log)",
+     "threads": 4,
+     "throughput": 71.3,
+     "elapsed_ms": 56.0,
+     "producers_ms": 55.0,
+     "runs": 3
+    },
+    {
+     "name": "BqLog (binary log)",
+     "url": "https://github.com/Tencent/BqLog",
+     "logger": "BqLog (binary log)",
+     "threads": 4,
+     "throughput": 14.51,
+     "elapsed_ms": 275.0,
+     "producers_ms": 274.0,
+     "runs": 3
+    },
+    {
+     "name": "BqLog",
+     "url": "https://github.com/Tencent/BqLog",
+     "logger": "BqLog",
+     "threads": 4,
+     "throughput": 6.02,
+     "elapsed_ms": 664.0,
+     "producers_ms": 664.0,
+     "runs": 3
+    },
+    {
+     "name": "Quill",
+     "url": "https://github.com/odygrd/quill",
+     "logger": "Quill",
+     "threads": 4,
+     "throughput": 4.32,
+     "elapsed_ms": 926.0,
+     "producers_ms": 41.0,
+     "runs": 3
+    },
+    {
+     "name": "Quill - Macro Free Mode",
+     "url": "https://github.com/odygrd/quill",
+     "logger": "Quill - Macro Free Mode",
+     "threads": 4,
+     "throughput": 3.21,
+     "elapsed_ms": 1247.0,
+     "producers_ms": 50.0,
+     "runs": 3
+    },
+    {
+     "name": "fmtlog",
+     "url": "https://github.com/MengRao/fmtlog",
+     "logger": "fmtlog",
+     "threads": 4,
+     "throughput": 1.46,
+     "elapsed_ms": 2739.0,
+     "producers_ms": 2675.0,
+     "runs": 3
+    },
+    {
+     "name": "spdlog",
+     "url": "https://github.com/gabime/spdlog",
+     "logger": "spdlog",
+     "threads": 4,
+     "throughput": 0.82,
+     "elapsed_ms": 4892.0,
+     "producers_ms": 4889.0,
+     "runs": 3
+    },
+    {
+     "name": "Boost.Log",
+     "url": "https://www.boost.org",
+     "logger": "Boost.Log",
+     "threads": 4,
+     "throughput": 0.52,
+     "elapsed_ms": 7624.0,
+     "producers_ms": 4786.0,
+     "runs": 3
+    }
+   ]
+  }
+ ]
+}
