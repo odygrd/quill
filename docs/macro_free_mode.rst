@@ -28,7 +28,7 @@ after the call returns.
 
 The macro-free approach also differs from the macros in these ways:
 
-1. **Always-Evaluated Arguments**: Unlike macros which skip evaluation for disabled log levels, arguments to these functions are always evaluated. The call also builds its format string object before it checks the log level, so a statement whose level is disabled costs a few more instructions than a disabled macro
+1. **Always-Evaluated Arguments**: Unlike macros which skip evaluation for disabled log levels, arguments to these functions are always evaluated. A disabled call still pays for an argument that is expensive to compute, as the expensive argument table of the :ref:`disabled statement benchmark <benchmarks_latency:disabled statement>` shows. The call also checks the logger for null and, with some compilers, builds its format string object before it checks the log level, so with cheap arguments a statement whose level is disabled costs a few more instructions than a disabled macro
 
 2. **No Compile-Time Removal**: Cannot be completely compiled out with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL_<LEVEL>`` as macros can
 

@@ -1,6 +1,13 @@
-:root {
-    --md-accent-fg-color: #2563eb;
-    --md-typeset-a-color: #2563eb;
+/* Links and accents in a colour that goes with the red logo, in both schemes. The attribute pair outranks the
+   theme's per-primary link colours. */
+[data-md-color-scheme="default"][data-md-color-primary] {
+    --md-accent-fg-color: #0f8a80;
+    --md-typeset-a-color: #0f766e;
+}
+
+[data-md-color-scheme="slate"][data-md-color-primary] {
+    --md-accent-fg-color: #2dd4bf;
+    --md-typeset-a-color: #5eead4;
 }
 
 .md-header__button.md-logo img,

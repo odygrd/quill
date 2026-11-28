@@ -22,6 +22,15 @@ For example, to pin the backend worker thread to specific CPUs, you can use the 
 
 .. note::
 
+   When there is nothing to process, the backend sleeps for ``sleep_duration`` (500 µs by default) before it
+   checks the queues again, and a log call does not wake it. To have records written sooner without a shorter
+   ``sleep_duration``, call ``quill::Backend::notify()`` after logging. It wakes the backend at once, can be called
+   from any thread, and can be called after every log statement, at the cost of a condition variable notify on the
+   calling thread. A long ``sleep_duration`` combined with ``notify()`` keeps an idle backend asleep until there
+   is work.
+
+.. note::
+
    On Windows, CPU IDs are relative to the backend thread's current processor group. If your application needs group-aware affinity on machines with more than 64 logical processors, leave ``cpu_affinity`` empty and apply affinity yourself from a backend-thread hook.
 
 .. note::

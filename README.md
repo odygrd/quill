@@ -58,7 +58,7 @@
   <h4>
     <a href="https://godbolt.org/z/n68asK7bY" title="Try Quill live on Compiler Explorer">🔬 Try It Online</a>
     <span> · </span>
-    <a href="#-performance" title="Benchmark methodology and results">🚀 Benchmarks</a>
+    <a href="https://quillcpp.readthedocs.io/en/latest/benchmarks.html" title="Benchmark methodology and results">🚀 Benchmarks</a>
     <span> · </span>
     <a href="https://quillcpp.readthedocs.io" title="Explore the full documentation">📚 Documentation</a>
     <span> · </span>
@@ -98,13 +98,13 @@ backend worker. A log call costs a few nanoseconds on the calling thread, the ba
 second, and the code that logs stays quick to compile, so detailed logging can stay in your fastest code paths.
 
 - **Low Frontend Latency**: Log arguments are encoded and queued for asynchronous processing, minimizing work on the
-  calling thread. See the [latency benchmarks](#latency) for measured results and methodology.
+  calling thread. See the [latency benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_latency.html) for measured results and methodology.
 - **Deferred Formatting**: Expensive formatting is performed by the backend worker instead of the calling thread.
 - **High Backend Throughput**: A single backend thread formats and writes millions of messages per second to files,
-  the console and custom sinks. See the [throughput benchmarks](#throughput).
+  the console and custom sinks. See the [throughput benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks_throughput.html).
 - **Fast to Compile**: Files that log include only `Logger.h` and `LogMacros.h`, log statements with the same argument
   types share their code, and the backend is compiled in a single file of your own. See the
-  [compilation time benchmark](#compilation-time).
+  [compilation time benchmark](https://quillcpp.readthedocs.io/en/latest/benchmarks_compile_time.html).
 - **Logs, Metrics and Data Files**: The same asynchronous backend that writes your logs also publishes pre-registered
   [metrics](https://quillcpp.readthedocs.io/en/latest/metrics.html), through the bundled Prometheus sink or a sink of
   your own. It also writes [CSV files](https://quillcpp.readthedocs.io/en/latest/csv_writing.html), records
@@ -326,250 +326,11 @@ Prometheus integration.
 
 ## 🚀 Performance
 
-### System Configuration
-
-- **Quill Version:** v13.0.0
-- **OS:** Linux RHEL 9.4
-- **CPU:** Intel Core i5-12600 (12th Gen) @ 4.8 GHz
-- **Compiler:** GCC 14.2
-- **Build:** Release with `-march=x86-64-v3`
-- **Benchmark-Tuned System:** The system is specifically tuned for benchmarking.
-
-- **Command Line Parameters:**
-  ```shell
-  $ cat /proc/cmdline
-  BOOT_IMAGE=(hd0,gpt2)/vmlinuz-5.14.0-427.13.1.el9_4.x86_64 root=/dev/mapper/rhel-root ro crashkernel=1G-4G:192M,4G-64G:256M,64G-:512M resume=/dev/mapper/rhel-swap rd.lvm.lv=rhel/root rd.lvm.lv=rhel/swap rhgb quiet nohz=on nohz_full=1-5 rcu_nocbs=1-5 isolcpus=1-5 mitigations=off transparent_hugepage=never intel_pstate=disable nosoftlockup irqaffinity=0 processor.max_cstate=1 nosoftirqd sched_tick_offload=0 spec_store_bypass_disable=off spectre_v2=off iommu=pt
-  ```
+The results are on the [C++ logging library benchmarks](https://quillcpp.readthedocs.io/en/latest/benchmarks.html) page of the documentation. They
+compare Quill with other C++ logging libraries on Linux (GCC) and Windows (MSVC): frontend latency when logging numbers,
+large strings and complex types, backend throughput, and compile time.
 
 You can find the benchmark code on the [logger_benchmarks](https://github.com/odygrd/logger_benchmarks) repository.
-
-### Latency
-
-The results presented in the tables below are measured in nanoseconds (ns).
-
-The tables are sorted by the 90th percentile (lower is better).
-
-#### Logging Numbers
-
-`LOG_INFO(logger, "Logging int: {}, int: {}, double: {}", i, j, d)`.
-
-##### 1 Thread Logging
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |   6    |   6    |   6    |   6    |   7    |   10   |
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   6    |   6    |   6    |   6    |   8    |   9    |
-| [XTR](https://github.com/choll/xtr)                                       |   6    |   6    |   6    |   6    |   9    |   10   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   6    |   6    |   6    |   7    |   8    |   10   |
-| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   8    |   8    |   9    |   10   |   10   |   11   |
-| [Quill - Macro Free Mode](https://github.com/odygrd/quill)                |   11   |   12   |   14   |   15   |   16   |   18   |
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   18   |   18   |   18   |   19   |   73   |  119   |
-| [Reckless](https://github.com/mattiasflodin/reckless)                     |   26   |   28   |   31   |   33   |   35   |   41   |
-| [BqLog](https://github.com/Tencent/BqLog)                                 |  125   |  133   |  138   |  141   |  151   |  190   |
-| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |  106   |  116   |  155   |  163   |  392   |  491   |
-| [spdlog](https://github.com/gabime/spdlog)                                |  271   |  280   |  296   |  309   |  337   |  360   |
-| [g3log](https://github.com/KjellKod/g3log)                                |  1066  |  1081  |  1095  |  1103  |  1120  |  1143  |
-| [Boost.Log](https://www.boost.org)                                        |  3093  |  3149  |  3259  |  3297  |  3464  |  3621  |
-
-![Logging numbers 1-thread latency chart](docs/charts/numbers_1_thread_logging.svg)
-
-##### 4 Threads Logging Simultaneously
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |   8    |   8    |   8    |   8    |   10   |   14   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   8    |   8    |   8    |   8    |   11   |   17   |
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   8    |   8    |   8    |   8    |   17   |   18   |
-| [XTR](https://github.com/choll/xtr)                                       |   8    |   8    |   8    |   9    |   17   |   18   |
-| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   14   |   14   |   14   |   14   |   16   |   21   |
-| [Quill - Macro Free Mode](https://github.com/odygrd/quill)                |   13   |   14   |   17   |   21   |   25   |   32   |
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   29   |   29   |   29   |   31   |  243   |  445   |
-| [Reckless](https://github.com/mattiasflodin/reckless)                     |   27   |   37   |   44   |   47   |   59   |   96   |
-| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |   73   |   78   |  267   |  280   |  396   |  1419  |
-| [BqLog](https://github.com/Tencent/BqLog)                                 |  109   |  395   |  410   |  419   |  447   |  621   |
-| [spdlog](https://github.com/gabime/spdlog)                                |  557   |  585   |  614   |  640   |  741   |  1106  |
-| [g3log](https://github.com/KjellKod/g3log)                                |  1188  |  1300  |  1402  |  1484  |  1631  |  1936  |
-| [Boost.Log](https://www.boost.org)                                        |  1582  |  2644  |  3148  |  3177  |  3878  |  5050  |
-
-![Logging numbers 4-thread latency chart](docs/charts/numbers_4_thread_logging.svg)
-
-#### Logging Large Strings
-
-Logging `std::string` over 35 characters to prevent the short string optimization.
-
-`LOG_INFO(logger, "Logging int: {}, int: {}, string: {}", i, j, large_string)`.
-
-##### 1 Thread Logging
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |   8    |   8    |   9    |   10   |   12   |   13   |
-| [XTR](https://github.com/choll/xtr)                                       |   7    |   8    |   9    |   10   |   12   |   15   |
-| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   11   |   11   |   12   |   13   |   14   |   16   |
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   9    |   10   |   12   |   13   |   15   |   19   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   11   |   12   |   14   |   16   |   18   |   21   |
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   20   |   20   |   21   |   22   |   77   |  122   |
-| [Quill - Macro Free Mode](https://github.com/odygrd/quill)                |   17   |   19   |   21   |   23   |   25   |   28   |
-| [Reckless](https://github.com/mattiasflodin/reckless)                     |   88   |  104   |  111   |  114   |  120   |  135   |
-| [BqLog](https://github.com/Tencent/BqLog)                                 |  125   |  132   |  137   |  141   |  156   |  191   |
-| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |  104   |  113   |  153   |  161   |  381   |  469   |
-| [spdlog](https://github.com/gabime/spdlog)                                |  247   |  253   |  260   |  266   |  278   |  290   |
-| [g3log](https://github.com/KjellKod/g3log)                                |  838   |  848   |  856   |  861   |  870   |  892   |
-| [Boost.Log](https://www.boost.org)                                        |  2844  |  2992  |  3019  |  3050  |  3140  |  3263  |
-
-![Logging large strings 1-thread latency chart](docs/charts/large_strings_1_thread_logging.svg)
-
-##### 4 Threads Logging Simultaneously
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |   8    |   9    |   10   |   13   |   16   |   23   |
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   8    |   9    |   14   |   16   |   21   |   26   |
-| [XTR](https://github.com/choll/xtr)                                       |   8    |   9    |   16   |   17   |   21   |   27   |
-| [PlatformLab NanoLog](https://github.com/PlatformLab/NanoLog)             |   15   |   15   |   17   |   20   |   22   |   27   |
-| [Quill - Macro Free Mode](https://github.com/odygrd/quill)                |   10   |   11   |   18   |   24   |   28   |   35   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   17   |   18   |   19   |   22   |   27   |   29   |
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   30   |   31   |   35   |   37   |  250   |  450   |
-| [Reckless](https://github.com/mattiasflodin/reckless)                     |   44   |   85   |  132   |  144   |  165   |  183   |
-| [Iyengar NanoLog](https://github.com/Iyengar111/NanoLog)                  |   74   |   86   |  279   |  292   |  471   |  1457  |
-| [BqLog](https://github.com/Tencent/BqLog)                                 |  137   |  396   |  412   |  424   |  463   |  647   |
-| [spdlog](https://github.com/gabime/spdlog)                                |  529   |  558   |  588   |  613   |  695   |  1074  |
-| [g3log](https://github.com/KjellKod/g3log)                                |  950   |  1029  |  1085  |  1202  |  1356  |  1577  |
-| [Boost.Log](https://www.boost.org)                                        |  1322  |  2512  |  2923  |  3096  |  3737  |  4761  |
-
-![Logging large strings 4-thread latency chart](docs/charts/large_strings_4_thread_logging.svg)
-
-#### Logging Complex Types
-
-Logging `std::vector<std::string>` containing 16 large strings, each ranging from 50 to 60 characters.
-
-Note: some of the previous loggers do not support passing a `std::vector` as an argument.
-
-`LOG_INFO(logger, "Logging int: {}, int: {}, vector: {}", i, j, v)`.
-
-##### 1 Thread Logging
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   53   |   58   |   63   |   69   |   99   |  120   |
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   60   |   62   |   64   |   67   |   72   |  369   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |  113   |  123   |  132   |  138   |  147   |  157   |
-| [XTR](https://github.com/choll/xtr)                                       |  752   |  788   |  826   |  849   |  895   |  959   |
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |  774   |  812   |  849   |  869   |  911   |  958   |
-| [Boost.Log](https://www.boost.org)                                        |  4009  |  4083  |  4145  |  4250  |  4411  |  4705  |
-| [spdlog](https://github.com/gabime/spdlog)                                |  6906  |  7013  |  7120  |  7189  |  7447  |  8140  |
-
-![Logging complex types 1-thread latency chart](docs/charts/vector_1_thread_logging.svg)
-
-##### 4 Threads Logging Simultaneously
-
-| Library                                                                   |  50th  |  75th  |  90th  |  95th  |  99th  | 99.9th |
-|---------------------------------------------------------------------------|:------:|:------:|:------:|:------:|:------:|:------:|
-| [MS BinLog](https://github.com/Morgan-Stanley/binlog)                     |   74   |   80   |   90   |   99   |  304   |  531   |
-| [Quill Bounded Dropping Queue](https://github.com/odygrd/quill)           |   67   |   75   |   93   |  104   |  117   |  130   |
-| [Quill Unbounded Queue](https://github.com/odygrd/quill)                  |   78   |   89   |  103   |  112   |  129   |  147   |
-| [fmtlog](https://github.com/MengRao/fmtlog)                               |  674   |  701   |  726   |  740   |  770   |  808   |
-| [XTR](https://github.com/choll/xtr)                                       |  674   |  713   |  752   |  776   |  816   |  849   |
-| [Boost.Log](https://www.boost.org)                                        |  2624  |  3590  |  4342  |  4439  |  5457  |  7219  |
-| [spdlog](https://github.com/gabime/spdlog)                                |  7047  |  7284  |  7581  |  7943  |  8669  |  9711  |
-
-![Logging complex types 4-thread latency chart](docs/charts/vector_4_thread_logging.svg)
-
-Each latency observation is the average of 20 log calls made in a tight loop. The benchmark waits approximately 2
-milliseconds between observations and repeats this process for the configured number of iterations.
-
-_For `Quill Bounded Dropping Queue`, the queue size is `262,144` bytes, twice the default size of `131,072` bytes._
-
-### Throughput
-
-Throughput measures how many log messages the backend logging thread can write to a log file per second (higher is
-better). These tests use the same system configuration as the latency benchmarks.
-
-The comparison is limited to asynchronous libraries with a flush-and-wait mechanism, ensuring that elapsed time covers
-processing every message. Binary-output modes are labelled and included in the table for reference, but are not directly
-comparable with human-readable text output, so the chart omits them.
-
-Each benchmark logs 4 million instances of `"Iteration: {} int: {} double: {}"`.
-
-| Library                                                            | million msg/second | elapsed time |
-|--------------------------------------------------------------------|:------------------:|:------------:|
-| [MS BinLog (binary log)](https://github.com/Morgan-Stanley/binlog) |              61.79 |    64 ms     |
-| [BqLog (binary log)](https://github.com/Tencent/BqLog)             |              12.86 |    311 ms    |
-| [XTR](https://github.com/choll/xtr)                                |               7.73 |    517 ms    |
-| [Quill](https://github.com/odygrd/quill)                           |               6.44 |    620 ms    |
-| [BqLog](https://github.com/Tencent/BqLog)                          |               5.49 |    728 ms    |
-| [Quill - Macro Free Mode](https://github.com/odygrd/quill)         |               5.13 |    779 ms    |
-| [fmtlog](https://github.com/MengRao/fmtlog)                        |               2.69 |   1485 ms    |
-| [Reckless](https://github.com/mattiasflodin/reckless)              |               2.58 |   1548 ms    |
-| [spdlog](https://github.com/gabime/spdlog)                         |               2.57 |   1557 ms    |
-| [Boost.Log](https://www.boost.org)                                 |               0.33 |   12164 ms   |
-
-![Throughput comparison chart](docs/charts/throughput.svg)
-
-### Compilation Time
-
-Compile times are measured on the system above using clean `Release` builds of
-[`BENCHMARK_quill_compile_time`](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp),
-which compiles `2000` auto-generated log statements with varied argument types.
-
-The measurements below were taken with `-march=x86-64-v3` for `Release`, running one clean build
-at a time with `-j4`.
-Clang builds additionally enable `-ftime-trace`.
-
-Quill intentionally keeps call-site metadata such as file, line, format string, and tags out of the
-frontend template identity. In the common macro-based path, that information is stored in a
-`MacroMetadata` object and passed as a regular function argument. As a result, multiple log statements
-with the same argument type pack can reuse the same `log_statement` instantiation; changing only the
-call-site metadata does not create a new frontend template instantiation.
-
-| Compiler       | Clean Build Time | Benchmark Binary | Main TU Object |
-|:---------------|-----------------:|-----------------:|---------------:|
-| `clang 17.0.6` |        `30.64 s` |        `5.87 MB` |     `10.10 MB` |
-| `gcc 13.3.1`   |        `61.20 s` |        `6.22 MB` |      `9.28 MB` |
-
-**Header include profile** — shows the additional headers pulled in when logging, following
-the [recommended_usage](https://github.com/odygrd/quill/blob/master/examples/recommended_usage/recommended_usage.cpp)
-example:
-
-> [**Open in Speedscope ↗**](https://www.speedscope.app/#profileURL=https://raw.githubusercontent.com/odygrd/quill/master/docs/traces/recommended_usage.cpp.json)
-
-**Compile-time benchmark** — measures compilation
-of [2000 auto-generated log statements](https://github.com/odygrd/quill/blob/master/benchmarks/compile_time/compile_time_bench.cpp)
-with various arguments:
-
-> [**Open in Speedscope ↗**](https://www.speedscope.app/#profileURL=https://raw.githubusercontent.com/odygrd/quill/master/docs/traces/compile_time_bench.cpp.json)
-
-To generate these profiles yourself:
-
-```bash
-cmake -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Release \
-  -DQUILL_BUILD_BENCHMARKS=ON -DQUILL_ENABLE_TIME_TRACE=ON \
-  -DCMAKE_CXX_FLAGS='-march=x86-64-v3' ..
-cmake --build . --target BENCHMARK_quill_compile_time -j 4
-# Load the resulting .cpp.json files into https://www.speedscope.app
-```
-
-### Verdict
-
-Quill combines very low frontend latency with competitive text-output throughput while retaining a broad feature set.
-
-The human-readable log files facilitate easier debugging and analysis. While initially larger, they compress
-efficiently, with the size difference between human-readable and binary logs becoming minimal once zipped.
-
-For example, for the same number of messages:
-
-```
-ms_binlog_backend_total_time.blog (binary log): 177 MB
-ms_binlog_backend_total_time.zip (zipped binary log): 35 MB
-```
-
-```
-quill_backend_total_time.log (human-readable log): 448 MB
-quill_backend_total_time.zip (zipped human-readable log): 47 MB
-```
-
-If you prefer a binary-log workflow, MS BinLog is a strong alternative. It delivers excellent hot-path latency and
-smaller raw files, but it trades away immediate readability and requires offline processing tools.
 
 ---
 
