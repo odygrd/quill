@@ -3,16 +3,55 @@
 Guides
 ======
 
-Task-focused guides for configuring Quill beyond the initial setup.
+Choose a guide when you need to configure Quill beyond the initial setup, add an output or integrate logging with your application.
 
-Use these pages when you want to tune backend/frontend behavior, add structured output,
-customize sinks and formatting, publish metrics, or integrate more advanced asynchronous
-flows into a larger codebase.
+.. rubric:: Core behavior
+   :heading-level: 2
+   :class: quill-group
 
-- **Core behavior:** :doc:`Backend Options <backend_options>`, :doc:`Frontend Options <frontend_options>`, :doc:`Loggers <loggers>`, :doc:`Log Levels <log_levels>`, :doc:`Logging Macros <logging_macros>`
-- **Output, sinks, and metrics:** :doc:`Sinks <sinks>`, :doc:`Metrics <metrics>`, :doc:`Sink Types <sink_types>`, :doc:`Formatters <formatters>`, :doc:`Timestamp Types <timestamp_types>`, :doc:`Wide Strings <wide_strings>`
-- **Structured and filtered logging:** :doc:`JSON Logging <json_logging>`, :doc:`CSV Writing <csv_writing>`, :doc:`Filters <filters>`, :doc:`Log Tagging <log_tagging>`, :doc:`Mapped Diagnostic Context (MDC) <mdc>`
-- **Specialized flows:** :doc:`Binary Protocols <binary_protocols>`, :doc:`Backtrace Logging <backtrace_logging>`, :doc:`Manual Backend Worker <manual_backend_worker>`, :doc:`Macro Free Mode <macro_free_mode>`
+.. rst-class:: quill-doc-cards
+
+- :si-icon:`octicons/server-16` :doc:`Backend Options <backend_options>` *Tune the worker at runtime.*
+- :si-icon:`octicons/sliders-16` :doc:`Frontend Options <frontend_options>` *Choose queue and memory policies at compile time.*
+- :si-icon:`octicons/log-16` :doc:`Loggers <loggers>` *Create, retrieve, configure, and remove loggers.*
+- :si-icon:`octicons/meter-16` :doc:`Log Levels <log_levels>` *Set runtime and compile-time thresholds.*
+- :si-icon:`octicons/code-16` :doc:`Logging Macros <logging_macros>` *Look up LOG\_, LOGV\_, LOGJ\_ and dynamic calls.*
+
+.. rubric:: Output, sinks, and metrics
+   :heading-level: 2
+   :class: quill-group
+
+.. rst-class:: quill-doc-cards
+
+- :si-icon:`octicons/plug-16` :doc:`Sinks <sinks>` *Create, share or implement a sink.*
+- :si-icon:`octicons/graph-16` :doc:`Metrics <metrics>` *Publish to Prometheus or a custom collector.*
+- :si-icon:`octicons/apps-16` :doc:`Sink Types <sink_types>` *Choose a built-in destination.*
+- :si-icon:`octicons/typography-16` :doc:`Formatters <formatters>` *Set the layout of lines, times and source locations.*
+- :si-icon:`octicons/clock-16` :doc:`Timestamp Types <timestamp_types>` *Choose TSC, system or custom clocks.*
+- :si-icon:`octicons/globe-16` :doc:`Wide Strings <wide_strings>` *Log wchar_t strings on Windows.*
+
+.. rubric:: Structured and filtered logging
+   :heading-level: 2
+   :class: quill-group
+
+.. rst-class:: quill-doc-cards
+
+- :si-icon:`octicons/code-square-16` :doc:`JSON Logging <json_logging>` *Write structured fields to a file or console alongside text logs.*
+- :si-icon:`octicons/table-16` :doc:`CSV Writing <csv_writing>` *Write CSV files asynchronously on the backend thread, alongside your logs.*
+- :si-icon:`octicons/filter-16` :doc:`Filters <filters>` *Route records by level, content or custom criteria.*
+- :si-icon:`octicons/tag-16` :doc:`Log Tagging <log_tagging>` *Classify, filter or monitor records by tag.*
+- :si-icon:`octicons/id-badge-16` :doc:`Mapped Diagnostic Context (MDC) <mdc>` *Carry request or session fields across log calls.*
+
+.. rubric:: Specialized flows
+   :heading-level: 2
+   :class: quill-group
+
+.. rst-class:: quill-doc-cards
+
+- :si-icon:`octicons/file-binary-16` :doc:`Binary Protocols <binary_protocols>` *Decode protocol fields, record raw bytes or write pcap captures.*
+- :si-icon:`octicons/history-16` :doc:`Backtrace Logging <backtrace_logging>` *Keep recent events for an error or on-demand dump.*
+- :si-icon:`octicons/tools-16` :doc:`Manual Backend Worker <manual_backend_worker>` *Drive the worker from your own thread or event loop.*
+- :si-icon:`octicons/file-code-16` :doc:`Macro-Free Mode <macro_free_mode>` *Use function-call syntax and check its costs.*
 
 .. toctree::
    :maxdepth: 2

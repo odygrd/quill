@@ -3,18 +3,18 @@
 User's API
 ==========
 
-Reference for the main public Quill API surface.
-
-Use :doc:`Guides <guides>` and :doc:`Recipes <recipes>` for usage patterns and
-examples. Use this page when you want the main public options, aliases, classes,
-and sink types.
-
-If you generate Doxygen for a downstream project, you can link ``quill::`` API
-types through the published tag file:
+Look up public options, aliases, classes and sinks here. For usage examples, see the :doc:`guides` and
+:doc:`recipes`. To link ``quill::`` types from downstream Doxygen documentation, use the published tag file.
 
 .. code-block:: ini
 
    TAGFILES = https://quillcpp.readthedocs.io/en/latest/quill.tag=https://quillcpp.readthedocs.io/en/latest/
+
+.. contents:: On this page
+   :local:
+   :depth: 1
+   :backlinks: none
+   :class: quill-page-index
 
 Backend Options
 ---------------

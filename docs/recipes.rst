@@ -6,36 +6,43 @@
 Recipes
 =======
 
+Find an example for the type you want to log, a custom formatter or codec, or a compile-time setting.
+
+.. contents:: On this page
+   :local:
+   :depth: 1
+   :backlinks: none
+   :class: quill-page-index
+
 Introduction
 ------------
-- **Hot path:** the ``LOG_`` macro copies each argument into contiguous pre-allocated memory. On the invoking thread, only a binary copy of the arguments is taken.
-- **Formatting:** string conversions and I/O are handled by the backend logging thread.
-- **Example:** when logging a ``std::vector``, no vector copy constructor is invoked. Its elements are serialized into pre-allocated memory instead.
-- **Formatting syntax:** Quill uses ``libfmt`` and the ``{}`` placeholder syntax. See https://fmt.dev/latest/syntax.
-- **STL support:** to log STL types, explicitly include the relevant headers from ``quill/std/``.
+``LOG_*`` accepts `{fmt} format strings <https://fmt.dev/latest/syntax>`_ with ``{}`` placeholders. The
+:doc:`overview` describes how arguments reach the backend. For example, a vector's elements are encoded
+into contiguous queue storage without calling the vector's copy constructor.
 
 Preprocessor Configuration Flags
 --------------------------------
-The library provides several preprocessor flags to customize its behavior at compile time.
+Set the flags you need in the build system.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_NO_EXCEPTIONS)
 
-Disables exception handling support, allowing the library to be built without exceptions.
+Build Quill without exception support.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
 
-Disables features that require thread name retrieval. This is useful for compatibility with older Windows versions (e.g., Windows Server 2012/2016) and Android.
+Disable thread-name retrieval on toolchains that lack it, such as older Windows Server (2012/2016) or Android.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_USE_SEQUENTIAL_THREAD_ID)
 
-Uses a sequential counter for thread IDs instead of OS-assigned thread IDs. Each thread is assigned a sequential ID on first use and then keeps that ID for the lifetime of the thread. Determinism depends on threads reaching Quill's thread-id initialization points in a consistent order.
-When enabled, you must define the sequential thread-id storage in exactly one translation unit so there is a single counter for the whole process (avoids per-translation-unit or per-shared-library counters). Place the definition in a ``.cpp`` file, not a header.
+Assign each thread a sequential ID on first use and retain it for the thread's lifetime. Reproducible IDs
+require threads to initialize in the same order. Define the counter below in exactly one ``.cpp`` file so the
+process, including shared libraries, uses a single counter.
 
 .. code:: c++
 
@@ -47,38 +54,38 @@ When enabled, you must define the sequential thread-id storage in exactly one tr
 
     add_compile_definitions(-DQUILL_ENABLE_ASSERTIONS)
 
-Enables internal assertions in release builds. By default, assertions are active only in debug builds ``(!defined(NDEBUG))``. Defining this flag forces them on even in release mode, which can help catch issues at runtime.
+Enable internal assertions in release builds. By default they run only when ``NDEBUG`` is undefined.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_DISABLE_NON_PREFIXED_MACROS)
 
-Disables the non-prefixed `LOG_<LEVEL>` macros, keeping only the `QUILL_LOG_<LEVEL>` macros. This helps prevent conflicts with other logging libraries.
+Keep only ``QUILL_LOG_<LEVEL>`` macros to avoid name collisions.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_DISABLE_FUNCTION_NAME)
 
-Disables ``__FUNCTION__`` information in log statements at compile time when the function-related pattern (``%(caller_function)``) is not needed in the ``PatternFormatter``. This can also be used to eliminate Clang-Tidy warnings when using log statements inside lambda expressions.
+Omit ``__FUNCTION__`` if the output pattern omits ``%(caller_function)``. This also avoids Clang-Tidy warnings
+for log calls in lambdas.
 
 .. code:: cmake
 
     add_compile_definitions(-DQUILL_DISABLE_FILE_INFO)
 
-Disables ``__FILE__`` and ``__LINE__`` information in log statements at compile time when location-related patterns (``%(file_name)``, ``%(line_number)``, ``%(short_source_location)``, ``%(source_location)``) are not needed in the ``PatternFormatter``. This removes embedded source path strings from built binaries from the security viewpoint.
+Omit ``__FILE__`` and ``__LINE__`` if you do not use ``%(file_name)``, ``%(line_number)``, ``%(short_source_location)``
+or ``%(source_location)``.
 
 .. code:: cmake
 
     option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTION__ or __FUNCSIG__) instead of __FUNCTION__ in LOG_* macros" OFF)
 
-Enables the use of compiler-specific detailed function signatures (such as ``__PRETTY_FUNCTION__`` on GCC/Clang or ``__FUNCSIG__`` on MSVC) instead of the standard ``__FUNCTION__`` in log macros. This option is only relevant when ``%(caller_function)`` is used in the pattern formatter. When enabled, you can further customize the function name display by providing a processing function via ``PatternFormatterOptions::process_function_name``.
+Use ``__PRETTY_FUNCTION__`` (GCC/Clang) or ``__FUNCSIG__`` (MSVC) for ``%(caller_function)``. See
+:ref:`formatters:advanced pattern formatter configuration` for ``PatternFormatterOptions::process_function_name``.
 
-Immediate flushing blocks the calling thread until a log message has been written to its destination.
-With the default frontend options, call ``logger->set_immediate_flush(1)`` to enable it at runtime.
-Set ``FrontendOptions::enable_immediate_flush`` to ``false`` to compile out this support and its
-hot-path check for both logging APIs. Runtime ``set_immediate_flush()`` calls then have no effect;
-explicit ``flush_log()`` calls still work. CSV and signal-handler messages follow the logger's
-flush policy; internal control events never trigger automatic flushing.
+**Immediate flush.** CSV and signal-handler messages follow their logger's flush policy. Internal control
+events never trigger it. The following example compiles out the check, making runtime ``set_immediate_flush()``
+calls ineffective. See :ref:`overview:synchronized logs for debugging` for runtime and explicit flushing.
 
 .. literalinclude:: snippets/quill_docs_immediate_flush.cpp
    :language: cpp
@@ -88,8 +95,7 @@ flush policy; internal control events never trigger automatic flushing.
 
     add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
 
-Compiles only the specified log level and higher, excluding lower levels at compile time. This helps reduce branching in optimized builds.
-For example, to keep only warning level and above:
+Set the lowest compiled severity. For example, keep Warning and above.
 
 .. code:: cmake
 
@@ -97,19 +103,13 @@ For example, to keep only warning level and above:
 
 Hiding File Names and Functions From Build Binaries
 ---------------------------------------------------
-From a security standpoint, embedded source file paths and function signatures in binaries can leak sensitive information about your codebase structure.
-To protect use both the `-DQUILL_DISABLE_FUNCTION_NAME` and `-DQUILL_DISABLE_FILE_INFO` compile definitions described above.
-When both options are enabled, neither function names nor file paths will be embedded in your binary, significantly reducing the information available to anyone examining the compiled code.
+Use both ``-DQUILL_DISABLE_FUNCTION_NAME`` and ``-DQUILL_DISABLE_FILE_INFO`` to keep Quill call sites from
+embedding function signatures and source paths that reveal your codebase layout.
 
 LOGV Macros
 -----------
-In addition to the ``LOG_`` macros, the ``LOGV_`` macros provide a convenient alternative.
-
-However, it's important to note that these macros do not support the ``libfmt`` syntax. Instead, they use a hardcoded format string and support up to 26 arguments.
-
-Please avoid using ``{}`` placeholders with these macros, such as brace initialization, as they are primarily intended for logging l-values.
-
-**Recommended Usage:**
+``LOGV_*`` logs l-values with their names. It builds a fixed format for up to 26 arguments. Use ``LOG_*`` for
+{fmt} placeholders. Avoid brace initialization inside a ``LOGV_*`` argument, as shown below.
 
 .. code:: cpp
 
@@ -118,15 +118,17 @@ Please avoid using ``{}`` placeholders with these macros, such as brace initiali
 
 Outputs:
 
+.. code-block:: text
+
     Answer [s: test]
 
-**This will NOT work:**
+**Brace initialization in a macro argument fails**
 
 .. code:: cpp
 
     LOGV_INFO(logger, "The answer is", std::string{"test"});
 
-**But this is fine:**
+**Parenthesized construction works**
 
 .. code:: cpp
 
@@ -134,7 +136,8 @@ Outputs:
 
 Logging Built-in Types and Strings
 ----------------------------------
-Logging ``arithmetic types``, ``strings``, ``string_view``, ``C strings``, ``C char arrays``, or ``void const*`` is supported out of the box.
+Log arithmetic types, ``std::string``, ``std::string_view``, C strings, C character arrays and ``void const*``
+without extra codec headers.
 
 .. code:: cpp
 
@@ -144,13 +147,14 @@ Logging ``arithmetic types``, ``strings``, ``string_view``, ``C strings``, ``C c
 
 Outputs:
 
-    number 123.46
+.. code-block:: text
 
+    number 123.46
     number [a: 123.4567]
 
 Logging Arithmetic C-style Arrays
 ---------------------------------
-This functionality is supported by including ``quill/std/Array.h``
+Include ``quill/std/Array.h`` for arithmetic C arrays.
 
 .. code:: cpp
 
@@ -162,15 +166,17 @@ This functionality is supported by including ``quill/std/Array.h``
 
 Outputs:
 
-    array [1, 2, 3]
+.. code-block:: text
 
+    array [1, 2, 3]
     array [a: [1, 2, 3]]
 
 Logging Enums
 -------------
-For enums, the simplest approach is to provide a ``format_as`` function that maps the enum to a string or its underlying type. Alternatively, you can provide a full ``fmtquill::formatter`` specialization or cast to the underlying type.
+Define ``format_as`` to map an enum to a string or its underlying type. You can also specialize
+``fmtquill::formatter`` or cast the value to its underlying type.
 
-**Recommended: Using format_as**
+**Using format_as**
 
 .. code:: cpp
 
@@ -203,8 +209,9 @@ For enums, the simplest approach is to provide a ``format_as`` function that map
 
 Outputs:
 
-    Colour Green
+.. code-block:: text
 
+    Colour Green
     Colour [c: Green]
 
 **Alternative: Using ostream_formatter**
@@ -249,13 +256,15 @@ Outputs:
 
 Outputs:
 
-    Colour Green
+.. code-block:: text
 
+    Colour Green
     Colour [c: Green]
 
 Logging Strings Without Additional Copy
 ---------------------------------------
-By default, the logger takes a deep copy of any string for thread safety. To log an immutable string with a valid lifetime without copying (e.g., string literals, static strings), use ``quill::utility::StringRef``.
+Use ``quill::utility::StringRef`` to skip the default deep copy for an immutable string that stays valid
+until the backend reads it, such as a literal or static string.
 
 .. code:: cpp
 
@@ -269,21 +278,21 @@ By default, the logger takes a deep copy of any string for thread safety. To log
 
 Outputs:
 
-    The answer is Test String
+.. code-block:: text
 
+    The answer is Test String
     The answer is [sref: Test String]
 
 Logging STL Library Types
 -------------------------
-To log STL types, include the relevant header from ``quill/std/``. There is support for most ``STL`` types.
+Include the matching ``quill/std/`` header. Quill supplies codecs for most standard containers.
 
 .. note::
 
-    Quill creates a temporary container on the backend when it formats the log message. Custom allocators,
-    comparators, hash functions, and equality functions must work when default constructed; any settings stored in
-    the original objects are not copied. They must also accept the decoded element type. ``std::less<Key>`` and
-    ``std::greater<Key>`` work, as they are rebound to the decoded key type, but a custom comparator must accept the
-    decoded key, e.g. ``std::string_view`` for ``std::string`` keys.
+   The backend builds a temporary container with default-constructed allocators, comparators, hash and
+   equality functions. Their original state is discarded. They must accept decoded elements, e.g.
+   ``std::string_view`` for ``std::string`` keys. Quill rebinds ``std::less<Key>`` and ``std::greater<Key>``
+   to the decoded key type.
 
 .. code:: cpp
 
@@ -298,15 +307,15 @@ To log STL types, include the relevant header from ``quill/std/``. There is supp
 
 Outputs:
 
-    Two vectors ["One", "Two", "Three"] ["Four", "Five", "Six"] and a vector of vectors [["One", "Two", "Three"], ["Four", "Five", "Six"]]
+.. code-block:: text
 
+    Two vectors ["One", "Two", "Three"] ["Four", "Five", "Six"] and a vector of vectors [["One", "Two", "Three"], ["Four", "Five", "Six"]]
     Two vectors and a vector of vectors [v1: ["One", "Two", "Three"], v2: ["Four", "Five", "Six"], vv: [["One", "Two", "Three"], ["Four", "Five", "Six"]]]
 
 Logging Atomic Values
 ---------------------
-Include ``quill/std/Atomic.h`` to log ``std::atomic<T>`` values where ``T`` is an arithmetic type,
-including ``bool``, integer types, and floating-point types. Each atomic argument is captured with a
-relaxed load on the calling thread and formatted as its underlying value.
+Include ``quill/std/Atomic.h`` for ``std::atomic<T>`` with arithmetic ``T`` (bool, integer or floating point).
+The caller takes a relaxed load and the formatter prints the underlying value.
 
 .. code:: cpp
 
@@ -319,9 +328,7 @@ Arrays of atomics are currently unsupported.
 
 Logging Nested STL Library Types
 --------------------------------
-Logging nested STL types is supported. Include all relevant files from ``quill/std/``.
-
-For example, to log a ``std::vector`` of ``std::pair``, include both ``quill/std/Vector.h`` and ``quill/std/Pair.h``.
+Include each nested type's codec. A vector of pairs needs both ``quill/std/Vector.h`` and ``quill/std/Pair.h``.
 
 .. code:: cpp
 
@@ -334,11 +341,12 @@ For example, to log a ``std::vector`` of ``std::pair``, include both ``quill/std
 
 Outputs:
 
-    Vector [(1, "One"), (2, "Two"), (3, "Three")]
+.. code-block:: text
 
+    Vector [(1, "One"), (2, "Two"), (3, "Three")]
     Vector [v1: [(1, "One"), (2, "Two"), (3, "Three")]]
 
-You can have multiple levels of nested types without limitation. As long as all relevant headers are included, the serialization will work seamlessly.
+The same rule applies at any nesting depth.
 
 .. code:: cpp
 
@@ -355,13 +363,14 @@ You can have multiple levels of nested types without limitation. As long as all 
 
 Outputs:
 
-    Vector [(2024-07-27 10:14:32.851648339, optional("One")), (2024-07-27 10:14:32.851648405, optional("Two"))]
+.. code-block:: text
 
+    Vector [(2024-07-27 10:14:32.851648339, optional("One")), (2024-07-27 10:14:32.851648405, optional("Two"))]
     Vector [v1: [(2024-07-27 10:14:32.851648339, optional("One")), (2024-07-27 10:14:32.851648405, optional("Two"))]]
 
 Logging Wide Strings
 --------------------
-On Windows, wide strings are supported by including ``quill/std/WideString.h``. For more information see the Wide Strings tutorial section
+On Windows, include ``quill/std/WideString.h``. See :doc:`wide_strings` for output and container support.
 
 .. code:: cpp
 
@@ -375,14 +384,14 @@ On Windows, wide strings are supported by including ``quill/std/WideString.h``. 
 
 Outputs:
 
-    string wide and vector ["wide", "string"]
+.. code-block:: text
 
+    string wide and vector ["wide", "string"]
     string and vector [w: wide, wv: ["wide", "string"]]
 
 Logging std::variant, std::bitset, std::complex, std::error_code
 ----------------------------------------------------------------
-Quill ships codecs for a wide range of standard library types beyond containers.
-Include the matching header from ``quill/std/`` to log each type directly.
+Include the matching ``quill/std/`` header for these non-container types.
 
 .. code:: cpp
 
@@ -398,20 +407,17 @@ Include the matching header from ``quill/std/`` to log each type directly.
 
     LOG_INFO(logger, "variant {} bitset {} complex {} error {}", v, flags, z, ec);
 
-These codecs follow the same rules as the container codecs — they can be freely nested inside
-other ``quill/std`` containers (e.g. ``std::vector<std::variant<...>>``).
+Their codecs also work inside supported containers, e.g. ``std::vector<std::variant<...>>``.
 
 Logging std::chrono Types
 -------------------------
-Include ``quill/std/Chrono.h`` to log ``std::chrono::system_clock::time_point``,
-``std::chrono::duration`` and ``std::tm``. With a C++20 standard library that defines
-``__cpp_lib_chrono >= 201907L``, it also covers ``std::chrono::year``, ``month``, ``day``,
-``weekday`` and ``year_month_day``. Some standard libraries report an older value even in C++20
-mode, e.g. libstdc++ in GCC 13, and the bundled ``fmt`` has no formatter for these calendar types
-there, so they cannot be logged directly. Time points of other clocks, such as
-``std::chrono::steady_clock``, and other ``<chrono>`` types are not covered. Formatting matches
-``fmt``'s chrono specifiers, so format specs like ``{:%Y-%m-%d %H:%M:%S}`` or ``{:%Q %q}`` work as
-expected.
+``quill/std/Chrono.h`` supports ``std::chrono::system_clock::time_point``, ``std::chrono::duration`` and
+``std::tm``. Use {fmt} chrono specifiers such as ``{:%Y-%m-%d %H:%M:%S}`` and ``{:%Q %q}``.
+
+C++20 libraries defining ``__cpp_lib_chrono >= 201907L`` also support ``std::chrono::year``, ``month``, ``day``,
+``weekday`` and ``year_month_day``. Libraries reporting an older value, including GCC 13's libstdc++, lack
+the bundled {fmt} formatters for those calendar types. Other chrono types, including
+``std::chrono::steady_clock`` time points, need their own support.
 
 .. code:: cpp
 
@@ -422,51 +428,39 @@ expected.
 
 Logging User Defined Types
 --------------------------
-To log user-defined types, you need to define how they should be serialized or converted to a string before passing them to the logger. There are several ways to achieve this:
-
-    1. **Use DeferredFormatCodec**
-       If the object is safe to copy across threads (e.g., does not contain `std::shared_ptr` members being modified), this approach takes a copy of the object and formats it later on the backend logging thread.
-
-       - Works for both trivially and non-trivially copyable types.
-       - If the type is **not trivially copyable**, it requires either a **move constructor** or a **copy constructor** (or both).
-       - **Move-only types** (with deleted copy constructors) are supported. Pass them using rvalue references (``std::move()`` or temporaries).
-       - **Copy-only types** (with deleted move constructors) are also supported.
-
-    2. **Use DirectFormatCodec**
-       Suitable for objects that are not safe to copy across threads (e.g., contain raw pointers, references, or non-copyable resources). This method converts the object to a string immediately in the hot path using `fmt::format`, which increases hot-path latency. The object is formatted exactly once, so the logged text is a consistent snapshot even if the formatter reads state that other threads change.
-
-    3. **Implement a Custom Codec**
-       For maximum flexibility, you can define a custom codec to specify exactly how the object should be serialized and deserialized.
+Choose how to format the type and how to carry it to the backend. The formatter describes its text.
+The codec determines which data the originating thread must copy or format.
 
 Quick Decision Guide
 ~~~~~~~~~~~~~~~~~~~~
 
-- Use ``format_as(T)`` when you want to share formatting customization between Quill's bundled ``fmtquill`` and standalone ``fmt``.
-- Use ``DeferredFormatCodec<T>`` when copying the whole object to the backend thread is acceptable.
-- Use ``DirectFormatCodec<T>`` when the object is not safe to copy across threads and you can afford formatting on the hot path.
-- Use a custom ``quill::Codec<T>`` when you want to encode only selected fields or need a custom binary layout.
+- **Deferred.** Use ``DeferredFormatCodec<T>`` for objects safe to transfer across threads. This includes
+  trivial types, copy-only types and move-only types passed as temporaries or with ``std::move()``.
+  Non-trivial types need a copy or move constructor. Copied members must stay safe to read, including
+  state reached through a ``std::shared_ptr``.
+- **Direct.** Use ``DirectFormatCodec<T>`` to format once on the caller with {fmt}, for example when raw
+  pointers, references or non-copyable resources make deferred access unsafe. This costs caller time but
+  captures the text even if the source state later changes.
+- **Custom.** Specialize ``quill::Codec<T>`` to encode selected fields or choose a binary layout.
+- **Shared formatting.** Use ``format_as(T)`` to share formatting with standalone ``fmt``.
 
 Logging Requirements
 ~~~~~~~~~~~~~~~~~~~~
 
-To ensure a user-defined type can be logged, you must:
-
-    - Specialize ``quill::Codec<T>`` for your type.
-    - Specialize ``fmtquill::formatter<T>`` under the ``fmtquill`` namespace.
+Provide a ``quill::Codec<T>`` specialization (directly or through a helper) and either a
+``fmtquill::formatter<T>`` specialization in ``fmtquill`` or a discoverable ``format_as(T)``.
 
 Codec Exception Contract
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-``compute_encoded_size()`` may throw safely because it runs before queue reservation. Once
-``encode()`` begins, it must not throw.
-
-In simple terms, consider a statement with two deferred arguments:
+``compute_encoded_size()`` may throw before queue reservation. ``encode()`` must complete without throwing.
+Consider two deferred arguments.
 
 .. code-block:: cpp
 
     LOG_INFO(logger, "{} {}", first, second);
 
-If copying ``first`` into the queue succeeds and then copying ``second`` throws, the state is:
+If the first copy succeeds and the second throws, the record is incomplete.
 
 .. code-block:: text
 
@@ -474,40 +468,31 @@ If copying ``first`` into the queue succeeds and then copying ``second`` throws,
     second: construction failed
     record: never committed
 
-The backend never sees the uncommitted record, so the queue remains usable. Only cleanup is lost:
-resources owned by the queue copy of ``first`` may be retained because its destructor is not called.
-Therefore, ``DeferredFormatCodec`` constructors/destructors must not throw. ``DirectFormatCodec``
-formats once while computing the size, so its formatter may throw; the log call then fails before
-anything is queued.
+The unpublished record never reaches the backend and the queue stays usable. The first copy's destructor
+does not run, so it can retain resources. Constructors and destructors used by ``DeferredFormatCodec`` must
+return normally. ``DirectFormatCodec`` formats during size calculation, so a throwing formatter fails the
+call before anything is queued.
 
-Custom backend decoders must also consume their complete payload without throwing. Records have no
-byte length, so the backend cannot skip a decoder-poisoned record; catch recoverable errors and
-store a fallback value when possible.
+A custom decoder must consume its entire payload without throwing. Records carry no byte length for
+skipping a failed decoder. Catch recoverable errors and supply a fallback value where possible.
 
-When a backend decoder does throw, e.g. the decoder of a ``std::vector`` argument that cannot
-allocate memory, the record stays in the queue and is decoded again. An object of a
-``DeferredFormatCodec`` type that is an argument of the log statement is intact by then: the
-backend formats it where it is in the queue and destroys it once the record is formatted. One that
-is inside another argument, such as an element of a ``std::vector`` or the value of a
-``std::optional``, ``std::pair``, ``std::tuple`` or ``std::variant``, was already moved out of the
-queue and destroyed, so the record is decoded again from a destroyed object.
+If a decoder throws (e.g. allocating a ``std::vector`` fails), the backend retries the same record. A top-level
+deferred argument is formatted in place and survives until formatting completes. A deferred element already
+moved out of a ``std::vector``, ``std::optional``, ``std::pair``, ``std::tuple`` or ``std::variant`` has been
+destroyed in the queue. A retry would read that destroyed object.
 
 No Logging Inside a Codec
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``compute_encoded_size()`` and ``encode()`` run on the calling thread while the log statement
-writes its record, and so do the formatter of a type that uses ``DirectFormatCodec`` and the copy
-or move constructor of one that uses ``DeferredFormatCodec``. None of them may log through Quill,
-even through a different logger: the loggers of a thread share its queue and the sizes that the
-statement has cached, so a nested log statement corrupts the record that is being written.
+Never log through Quill inside ``compute_encoded_size()``, ``encode()``, a ``DirectFormatCodec`` formatter,
+or a ``DeferredFormatCodec`` copy/move constructor. Even a different logger uses the same thread's queue
+and cached sizes. A nested call can corrupt the record being written.
 
 Logging User-Defined Types in STL Containers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-User-defined types nested within STL containers, such as ``std::vector<UserType>``, can also be logged. To ensure proper serialization, you must:
-
-    1. Follow one of the three approaches above.
-    2. Include the relevant STL type header from the ``quill/std/`` directory.
+For ``std::vector<UserType>`` or another supported container, provide the element codec and formatter, then
+include the matching container header from ``quill/std/``.
 
 DeferredFormatCodec
 ~~~~~~~~~~~~~~~~~~~
@@ -560,6 +545,8 @@ Basic Example
 
 Outputs:
 
+.. code-block:: text
+
     User is [Name: Super, Surname: User, Age: 1, Favorite Colors: ["red", "blue", "green"]]
 
 Serialising Trivially Copyable Types With Non-Default Constructor
@@ -608,15 +595,15 @@ Serialising Trivially Copyable Types With Non-Default Constructor
 
 Outputs:
 
+.. code-block:: text
+
     Order is timestamp=17395040124686356 price=220.1 quantity=100
 
 DirectFormatCodec
 ~~~~~~~~~~~~~~~~~
 
-The calling thread formats the value once and keeps those bytes in its size cache until it copies
-them into the queue. Long values can allocate on the calling thread. Each thread retains its cache
-capacity for reuse until its thread context is destroyed, so a single unusually large record can
-increase the memory retained by a long-lived logging thread.
+The caller caches the formatted bytes until it copies them to the queue. Long values can allocate.
+Capacity lasts until the thread context is destroyed, so one large record can increase a thread's retained memory.
 
 .. code:: cpp
 
@@ -663,6 +650,8 @@ increase the memory retained by a long-lived logging thread.
 
 Outputs:
 
+.. code-block:: text
+
     User is [Name: Super, Surname: User, Age: 1, Favorite Colors: ["red", "blue", "green"]]
 
 Writing Custom Codec
@@ -671,8 +660,8 @@ Writing Custom Codec
 Serialising Non Trivially Copyable User Defined Types With Public Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When the members needed to format a type are accessible and the type is default constructible,
-``MemberwiseCodec`` from ``quill/MemberwiseCodec.h`` lists them once and generates the codec:
+For accessible members of a default-constructible type, list the fields once with ``MemberwiseCodec`` from
+``quill/MemberwiseCodec.h``.
 
 .. code:: cpp
 
@@ -681,16 +670,12 @@ When the members needed to format a type are accessible and the type is default 
     {
     };
 
-The hand-written equivalent below shows what it does, and is the starting point when a type needs
-a custom layout.
+The hand-written equivalent below is a starting point for a custom layout. Include each member type's
+``quill/std/`` header before calling ``compute_total_encoded_size``, ``encode_members`` or ``decode_members``.
 
-Note that STL types can be used in custom codecs by passing them to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members``, provided you include the relevant header from ``quill/std/`` for each STL type used.
-
-``decode_members`` assigns each decoded value to its member. Some codecs decode to a lighter type
-than the one encoded, e.g. ``std::vector<std::string>`` decodes as
-``std::vector<std::string_view>`` and ``std::variant<int, std::string>`` as
-``std::variant<int, std::string_view>``, which cannot be assigned to the member. Decode such a
-member yourself, in the order it was encoded:
+``decode_members`` assigns decoded values to members. When the decoded type cannot be assigned, decode
+it explicitly in encoding order. For example, ``std::vector<std::string>`` decodes to
+``std::vector<std::string_view>``, and ``std::variant<int, std::string>`` to ``std::variant<int, std::string_view>``.
 
 .. code:: cpp
 
@@ -760,15 +745,16 @@ member yourself, in the order it was encoded:
 
 Outputs:
 
-    Order is symbol=AAPL price=220.1 quantity=100
+.. code-block:: text
 
+    Order is symbol=AAPL price=220.1 quantity=100
     Order [order: symbol=AAPL price=220.1 quantity=100]
 
 Serialising Non Trivially Copyable User Defined Types With Private Members
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For user-defined types with non-trivially copyable types as private members, the easiest workaround is the same as in the trivially copyable case above: make ``quill::Codec<T>`` a friend and also have a private default constructor if the default one is not publicly available.
-
-Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``encode_members``, and ``decode_members`` as long as the relevant header file from ``quill/std/`` for that type is included. In this example, ``quill/std/Chrono.h`` is included to ``encode`` and ``decode`` the ``std::chrono::system_clock::time_point``.
+For private non-trivial members, declare ``quill::Codec<T>`` a friend and provide a private default
+constructor if necessary. This example includes ``quill/std/Chrono.h`` for its
+``std::chrono::system_clock::time_point`` member.
 
 .. code:: cpp
 
@@ -844,23 +830,19 @@ Note that it is possible to pass STL types to ``compute_total_encoded_size``, ``
 
 Outputs:
 
-    Order is timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100
+.. code-block:: text
 
+    Order is timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100
     Order [order: timestamp=17220432928367021 symbol=AAPL price=220.1 quantity=100]
 
 Sharing Formatting With External fmt
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill bundles ``libfmt`` under the ``fmtquill`` namespace. If your project also uses standalone ``fmt``, prefer sharing formatting customization through a free ``format_as(T)`` function in the same namespace as ``T``.
-
-.. note::
-
-   ``format_as()`` is found via ADL, so both ``fmtquill`` and standalone ``fmt`` can use the same function without namespace duplication or formatter inheritance between the two libraries.
+Quill bundles {fmt} in ``fmtquill``. Put a free ``format_as(T)`` in the same namespace as ``T`` so both
+``fmtquill`` and standalone ``fmt`` find it by argument-dependent lookup (ADL).
 
 Preferred: Use ``format_as``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This is the simplest way to share formatting logic across both libraries.
 
 .. code:: cpp
 
@@ -892,7 +874,8 @@ This is the simplest way to share formatting logic across both libraries.
 If you need a real formatter specialization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use two thin specializations with one shared body instead of deriving one formatter from the other.
+If customization requires a formatter, provide separate ``fmtquill::formatter<T>`` and ``fmt::formatter<T>``
+specializations with one shared body. Cross-library formatter inheritance can couple incompatible types.
 
 .. code:: cpp
 
@@ -928,7 +911,7 @@ Use two thin specializations with one shared body instead of deriving one format
     {
     };
 
-If the formatter is based on ``ostream_formatter``, keep two separate specializations, one for each namespace:
+For ``ostream_formatter``, keep one specialization per namespace.
 
 .. code:: cpp
 
@@ -949,7 +932,7 @@ If the formatter is based on ``ostream_formatter``, keep two separate specializa
 
 Helper Macros for Logging User Defined Types
 --------------------------------------------
-The library provides helper macros to simplify logging of user-defined types, available by including ``quill/HelperMacros.h``.
+Include ``quill/HelperMacros.h`` to generate a codec specialization for a streamable type.
 
 .. code:: cpp
 
@@ -961,17 +944,8 @@ The library provides helper macros to simplify logging of user-defined types, av
     // For types that only contain value types and are safe to copy
     QUILL_LOGGABLE_DEFERRED_FORMAT(Type);
 
-These macros automatically generate the necessary codec specializations for your user-defined types, making it easier to log custom classes:
-
-**1. QUILL_LOGGABLE_DIRECT_FORMAT**
-   Use for types that contain pointer members or have lifetime dependencies that make them unsafe to copy across threads.
-   This macro sets up a DirectFormatCodec that formats the object immediately when the log statement is called.
-
-**2. QUILL_LOGGABLE_DEFERRED_FORMAT**
-   Use for types that only contain value types (no pointers) and are safe to copy.
-   This macro sets up a DeferredFormatCodec that allows the object to be copied and formatted later by the backend thread.
-
-Example:
+- ``QUILL_LOGGABLE_DIRECT_FORMAT`` formats immediately for pointer members or other lifetime dependencies.
+- ``QUILL_LOGGABLE_DEFERRED_FORMAT`` copies a value-only type for backend formatting.
 
 .. code:: cpp
 
@@ -1009,4 +983,4 @@ Example:
     // Mark as safe type - can be formatted asynchronously
     QUILL_LOGGABLE_DEFERRED_FORMAT(Product)
 
-Note that using these macros requires you to provide an ``operator<<`` for your type.
+Both helpers require an ``operator<<`` for the type.

@@ -3,7 +3,14 @@
 Frequently Asked Questions (FAQ)
 ================================
 
-Use this page for setup decisions, common behavior questions, and integration pitfalls.
+Find answers to setup, performance and integration questions, including missing output, shutdown hangs and
+platform-specific issues.
+
+.. contents:: Questions
+   :local:
+   :depth: 2
+   :backlinks: none
+   :class: quill-page-index quill-page-index-grouped
 
 Getting Started
 ---------------
@@ -11,23 +18,24 @@ Getting Started
 Where to look next?
 ~~~~~~~~~~~~~~~~~~~
 
-Start with :ref:`recipes` for the fastest path to examples and common tasks.
+See :ref:`recipes` for examples organized by task.
 
 What is the best way to setup Quill?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For non-trivial applications, the recommended setup is to put Quill initialization and setup code in your own small static library that you build once, as shown in the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
+For a larger application, build initialization once in a small static library. Follow the
+`recommended usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
 
-It is also recommended to define your own ``CustomFrontendOptions`` as demonstrated in `custom_frontend_options.cpp <https://github.com/odygrd/quill/blob/master/examples/custom_frontend_options.cpp>`_ and provide the using declarations. Derive from ``quill::FrontendOptions`` and override only the values you want to change. This gives you flexibility to later tune the frontend without copying every field, and you must then consistently use those declarations everywhere else (for example ``CustomFrontend`` and ``CustomLogger``) instead of the library defaults.
+Define ``CustomFrontendOptions`` early so you can tune it later. Derive from ``quill::FrontendOptions``,
+override only the settings you need and use the same ``CustomFrontend`` and ``CustomLogger`` aliases everywhere.
+See `custom_frontend_options.cpp <https://github.com/odygrd/quill/blob/master/examples/custom_frontend_options.cpp>`_.
 
 Can I mix multiple ``FrontendOptions`` specializations in one binary?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is not a supported configuration.
-
-In normal usage, choose one ``FrontendOptions`` specialization for the application and use the corresponding ``FrontendImpl<T>`` and ``LoggerImpl<T>`` types consistently.
-
-In particular, Quill maintains a single thread-local frontend context per thread, so mixing different frontend specializations on the same thread is unsupported. The built-in signal-handler path also assumes a single frontend specialization for the process.
+No. Choose one ``FrontendOptions`` specialization per application and use its ``FrontendImpl<T>`` and
+``LoggerImpl<T>`` types consistently. Each thread has one frontend context, and the built-in signal handler
+assumes one frontend type. See :ref:`frontend_options` for type and configuration checks.
 
 Core Concepts & Behavior
 -------------------------
@@ -35,73 +43,41 @@ Core Concepts & Behavior
 Does Quill offer synchronous/sync mode?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill does not offer a native synchronous logging mode, as it is designed as an asynchronous logging library where formatting and I/O happen on a dedicated backend thread.
-
-However, you can simulate synchronous behavior using the **immediate flush** feature. By calling ``logger->set_immediate_flush(1)``, the calling thread will block until the log message has been processed and written to its destination by the backend thread. Higher values such as ``logger->set_immediate_flush(N)`` provide periodic flushing every ``N`` messages while preserving some batching.
-
-.. note::
-
-   Using immediate flush impacts performance as it blocks the caller thread. It's primarily intended for debugging scenarios.
-
-See :ref:`overview` for more details.
+Not natively: formatting and I/O always happen on the backend thread. For debugging,
+``logger->set_immediate_flush(1)`` makes the caller wait for each backend write.
+``set_immediate_flush(N)`` waits every N messages, preserving some batching. See
+:ref:`overview:synchronized logs for debugging` for the cost and compile-time switch.
 
 Does Quill drop log messages?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No, Quill does not intentionally drop log messages in the default configuration. It uses an **unbounded blocking queue** by default.
-
-The unbounded queue starts with a small initial size and automatically expands when needed (up to ``FrontendOptions::unbounded_queue_max_capacity``). If the maximum capacity is reached, the caller thread will block instead of dropping messages.
-
-You can configure the queue behavior through :cpp:class:`FrontendOptions` to use different queue modes (bounded/unbounded, blocking/dropping) based on your requirements.
-
-See :ref:`frontend_options` for more information on the reliable logging mechanism.
+The default queue grows during bursts and blocks at its limit for records that fit. For dropping modes,
+allocation failures and oversized records, see :ref:`frontend_options` and :cpp:class:`FrontendOptions`.
 
 Does Quill support multiple backend threads?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No, Quill uses a **single backend thread** to process all log messages. This design choice prioritizes low latency over high throughput.
-
-The single backend thread consumes messages from all frontend queues, orders them by timestamp, formats them, and writes them to the configured sinks. This ensures that log messages from multiple threads appear in chronological order in the output.
-
-See :ref:`overview` for details on the backend design.
+No. Quill uses one worker per process to keep caller latency low; it merges the records of all threads in
+timestamp order. See the :ref:`overview` for how it does so and where throughput is limited.
 
 What's the difference between macro and macro-free mode?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill offers two logging interfaces:
-
-1. **Macro-based logging** (recommended): ``LOG_INFO(logger, "message {}", arg)``
-2. **Macro-free logging**: ``quill::info(logger, "message {}", arg)``
-
-The **macro-based approach** is the recommended and default method because it offers lower latency and function arguments are only evaluated when the log level is active.
-
-The **macro-free mode** offers cleaner syntax. With C++20 and a string literal format string it is
-close to the macros in speed. In C++17, or with a runtime format string or tags, it copies the format
-string on every call, which costs more.
-
-For performance-critical code paths, use the macro-based interface. For less critical paths where
-code clarity is preferred, macro-free mode is acceptable.
+``LOG_INFO(logger, "message {}", arg)``, the recommended default, has the lowest latency and skips the arguments
+of disabled levels. ``quill::info(logger, "message {}", arg)`` uses function syntax and always evaluates them; use
+it where clarity matters more than speed. See :ref:`macro_free_mode:performance trade-offs` for C++17,
+C++20, runtime formats and tags.
 
 What happens if my format string is invalid?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill does not perform ``fmt`` format-string validation at compile time on the logging path. This helps keep compile times and template instantiation overhead lower.
+To limit template instantiations and compile time, the backend checks {fmt} strings when it formats them.
+In an exception-enabled build, a bad format produces a ``[Could not format log statement ...]`` sink entry
+and notifies :cpp:member:`BackendOptions::error_notifier`. The application and backend continue. An empty
+notifier (``{}``) suppresses the callback only.
 
-Instead, format strings are validated at runtime when the backend formats the log message.
-
-If the format string is malformed:
-
-- Quill does not crash the backend thread or the application
-- Quill writes a fallback ``[Could not format log statement ...]`` entry to the sink output
-- if :cpp:member:`BackendOptions::error_notifier` is configured, it is notified too
-
-If ``BackendOptions::error_notifier`` is set to ``{}``, those callback notifications are disabled, but the fallback log entry is still written to the sink output.
-
-This fallback relies on C++ exceptions. In a build with exceptions disabled (``-fno-exceptions``
-with ``QUILL_NO_EXCEPTIONS``), ``fmt`` cannot report the error and the backend calls ``abort()``
-on a format string that is malformed or does not match its arguments, including a string literal.
-Check the format strings of such builds before deploying them, and do not log format strings
-supplied at runtime.
+With ``-fno-exceptions`` and ``QUILL_NO_EXCEPTIONS``, a malformed format or argument mismatch calls ``abort()``,
+even for string literals. Validate formats before deploying these builds and avoid runtime-supplied formats.
 
 Logging Different Types
 ------------------------
@@ -109,31 +85,22 @@ Logging Different Types
 How do I log my custom types?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To log user-defined types, you need to define their formatting and serialization. For formatting, you can either specialize ``fmtquill::formatter<T>`` or provide a free ``format_as(T)`` function. For serialization, provide ``quill::Codec<T>`` or use one of Quill's helper macros/codecs.
-
-Quill provides helper macros and multiple approaches (DeferredFormatCodec, DirectFormatCodec, or custom codecs) to simplify this.
-
-See :ref:`recipes` section on "Logging User Defined Types" for comprehensive examples.
+Provide formatting (``fmtquill::formatter<T>`` or ``format_as(T)``) and a ``quill::Codec<T>`` specialization.
+The :ref:`user-type recipes <recipes:logging user defined types>` cover deferred, direct, custom and
+helper-generated codecs.
 
 Can I log STL containers with my custom types?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes, you can log STL containers containing user-defined types or any type.
-
-Simply define the formatter and codec for your custom type, then include the relevant STL container header from ``quill/std/``.
-
-See :ref:`recipes` for examples of logging nested STL types.
+Yes. Provide the element formatter and codec and include the ``quill/std/`` header for each container type.
+See :ref:`recipes:logging nested stl library types`.
 
 Can I use my own libfmt version with Quill?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill bundles ``libfmt`` under a **custom namespace** (``fmtquill``) to avoid conflicts with external ``libfmt`` installations.
-
-If you're using standalone ``fmt`` in your project too, the preferred way to share formatting customization is a free ``format_as(T)`` function in the same namespace as ``T``. Both ``fmtquill`` and ``fmt`` can find it via ADL, so you avoid duplicate formatter specializations.
-
-If you need a real formatter specialization, provide one ``fmtquill::formatter<T>`` and one ``fmt::formatter<T>`` with a shared helper/base body instead of deriving one from the other.
-
-See :ref:`recipes` section on sharing formatting with external ``fmt`` and the ``examples/user_defined_types_logging_deferred_format_as.cpp`` example for more details.
+Quill's bundled {fmt} uses ``fmtquill`` so standalone ``fmt`` can coexist. Share ``format_as(T)`` through
+argument-dependent lookup (ADL), or share a helper between separate formatter specializations. See
+:ref:`recipes:sharing formatting with external fmt` and ``examples/user_defined_types_logging_deferred_format_as.cpp``.
 
 Performance & Optimization
 ---------------------------
@@ -141,24 +108,50 @@ Performance & Optimization
 How can I reduce compile time?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For better compilation time in larger codebases, follow the `recommended_usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
-
-Build your Quill setup code into a small static library once. Then, after the backend is initialized, most application code only needs the lightweight ``Logger.h`` and ``LogMacros.h`` headers.
+Keep backend and sink headers in the :ref:`setup library <faq:what is the best way to setup quill?>`.
+Once initialized, files that log need only ``Logger.h`` and ``LogMacros.h``.
 
 How can I make the binary smaller and use less memory?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For embedded Linux and other size-constrained deployments, each of these helps on its own:
+For embedded Linux and other size-constrained deployments, apply any of these independently.
 
-- **Compile the setup code with** ``-Os``. The backend, sinks and formatting are most of the code. In the layout of the previous question only the setup library compiles them, so give its files ``-Os`` and keep your own flags for the files that log, e.g. ``set_source_files_properties(quill_setup.cpp PROPERTIES COMPILE_OPTIONS -Os)``. Inline functions that both kinds of files use, such as the queue growth, are kept once and may come from either. If other files include ``quill/bundled/fmt/format.h``, e.g. for the formatter of a user-defined type, define ``FMTQUILL_USE_FULL_CACHE_DRAGONBOX`` to the same value for every file, because fmt otherwise picks it from ``-Os``.
-- **Define** ``FMTQUILL_USE_LOCALE=0``. The bundled fmt then formats numbers without ``std::locale``, so ``{:L}`` on a number ignores the application's locale. When libstdc++ is linked statically this can save hundreds of KB, but only if nothing else in the program uses ``std::locale`` or iostreams, such as the formatting of ``std::chrono`` types or of types with an ``operator<<``. Define it for every file that includes Quill, in the build system, e.g. with ``target_compile_definitions``.
-- **Define** ``QUILL_NO_EXCEPTIONS`` **and compile with** ``-fno-exceptions`` (``/EHs-c- /D_HAS_EXCEPTIONS=0`` with MSVC). An error that would throw ``QuillError`` then prints a message and aborts. I/O failures of the file, stream and systemd sinks on the backend thread are still reported to ``BackendOptions::error_notifier`` (see :doc:`sinks`).
-- **Let the linker remove unused code** with ``-ffunction-sections -fdata-sections`` and ``-Wl,--gc-sections`` (ELF linkers; ``-Wl,-dead_strip`` on Apple platforms).
-- **Compile out the levels you do not need** with ``QUILL_COMPILE_ACTIVE_LOG_LEVEL`` (see :ref:`recipes`). It removes the level-specific macros such as ``LOG_INFO``, not ``LOG_DYNAMIC`` or the macro-free functions.
-- **Shorten the strings of each statement.** Each statement of a level-specific macro such as ``LOG_INFO`` stores its own ``"path:line"`` string and its function name. ``QUILL_DISABLE_FILE_INFO`` and ``QUILL_DISABLE_FUNCTION_NAME`` remove them, or ``-fmacro-prefix-map=<source dir>/=`` shortens the paths.
-- **Try** ``-O2`` **or** ``-Os`` **with GCC for code with many log statements.** At ``-O3`` GCC inlines the logging fast path into many statements, several hundred bytes each. At ``-O2`` or ``-Os`` it does so less often, and more statements become a log level check and a call of a function that all statements with the same argument types share.
-- **With MSVC**, compile the setup code with ``/O1`` instead of ``/O2`` and add ``/GL`` with ``/LTCG``. A link with ``/DEBUG``, e.g. of ``RelWithDebInfo``, turns off ``/OPT:REF,ICF`` unless you pass them.
-- **Bound the memory.** By default each logging thread has an unbounded queue that starts at ``FrontendOptions::initial_queue_capacity`` (128 KiB) and grows during bursts, and the backend buffers up to ``BackendOptions::transit_events_hard_limit`` events per logging thread. A bounded queue type with a smaller ``initial_queue_capacity``, and smaller ``BackendOptions`` transit event capacity and limits, reduce this memory, as below. A bounded queue allocates twice its capacity, and the transit limits count events, not the size of their formatted messages. The trade-offs: during a burst, a full bounded queue drops log messages (``BoundedDropping``) or blocks the logging thread (``BoundedBlocking``, except on the backend thread, e.g. in a callback, which cannot wait for itself and drops), and a log message whose encoded record is larger than the queue capacity is dropped by ``BoundedDropping``, even when the queue is empty, and makes ``BoundedBlocking`` throw ``QuillError``. Size the queue for your largest encoded record: its header plus its encoded arguments, e.g. the full length of a logged ``std::string``.
+**Build settings**
+
+- Compile backend, sink and formatting setup with ``-Os``. Other files can keep their own flags, e.g.
+  ``set_source_files_properties(quill_setup.cpp PROPERTIES COMPILE_OPTIONS -Os)``. Shared inline functions
+  such as queue growth are kept once and can come from either build. If other files also include
+  ``quill/bundled/fmt/format.h`` (e.g. custom formatters), set ``FMTQUILL_USE_FULL_CACHE_DRAGONBOX``
+  consistently across files. Its default depends on ``-Os``.
+- Define ``FMTQUILL_USE_LOCALE=0`` for every Quill translation unit, e.g. with ``target_compile_definitions``.
+  Numeric ``{:L}`` then ignores the application's locale. With static libstdc++, this can save hundreds of KB
+  if nothing else uses ``std::locale`` or iostreams, including chrono or ``operator<<`` formatting.
+- Define ``QUILL_NO_EXCEPTIONS`` with ``-fno-exceptions`` (MSVC ``/EHs-c- /D_HAS_EXCEPTIONS=0``). An error that
+  would throw ``QuillError`` then prints a message and aborts. I/O failures of the file, stream and systemd sinks
+  are still reported to ``BackendOptions::error_notifier`` (see :doc:`sinks`).
+- Let ELF linkers discard unused code with ``-ffunction-sections -fdata-sections`` and ``-Wl,--gc-sections``.
+  On Apple platforms use ``-Wl,-dead_strip``.
+- For MSVC, compile setup with ``/O1`` and use ``/GL`` with ``/LTCG``. With ``/DEBUG`` (e.g. ``RelWithDebInfo``),
+  pass ``/OPT:REF,ICF`` explicitly to enable those link optimizations.
+
+**Call-site size**
+
+- Set ``QUILL_COMPILE_ACTIVE_LOG_LEVEL`` to remove unused level-specific macros such as ``LOG_INFO``; it does not
+  remove ``LOG_DYNAMIC`` or the macro-free functions. See :doc:`log_levels`.
+- Each fixed-level statement stores a ``"path:line"`` string and function name. ``QUILL_DISABLE_FILE_INFO`` and
+  ``QUILL_DISABLE_FUNCTION_NAME`` omit them. ``-fmacro-prefix-map=<source dir>/=`` shortens paths.
+- With many logging sites, try GCC ``-O2`` or ``-Os``. At ``-O3`` GCC can inline hundreds of bytes at each site.
+  The other settings more often leave a level check and a shared call for a given pack of argument types.
+
+**Queue and buffer size**
+
+Reduce ``FrontendOptions::initial_queue_capacity`` (default 128 KiB) and use a bounded queue to limit
+per-thread memory. It allocates twice its configured capacity. Size it for the largest record, including
+its header and arguments such as the full contents of a ``std::string``. See :ref:`frontend_options` for
+oversized records, full queues and the backend-thread exception to blocking.
+
+Reduce the backend's transit-event capacity and limits too. ``BackendOptions::transit_events_hard_limit``
+counts events per producer, regardless of formatted message size.
 
 .. literalinclude:: snippets/quill_docs_small_footprint.cpp
    :language: cpp
@@ -167,45 +160,36 @@ For embedded Linux and other size-constrained deployments, each of these helps o
 Is logging from a shared library slower?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On Linux, code compiled with ``-fPIC``, such as a shared library, can read Quill's ``thread_local`` state through a dynamic TLS lookup in every enabled log statement, e.g. a call to ``__tls_get_addr`` on x86-64. Compiling the library with ``-ftls-model=initial-exec`` avoids the lookup, but only for a library that the executable links at startup: a library loaded with ``dlopen()`` can then fail to load.
+On Linux, ``-fPIC`` can add a dynamic TLS lookup to every enabled call (e.g. ``__tls_get_addr`` on x86-64).
+``-ftls-model=initial-exec`` avoids it for libraries linked at startup. A library built this way can fail to
+load with ``dlopen()``.
 
-With MSVC on Windows, logging from a DLL is not slower. A DLL reads Quill's ``thread_local`` state with the same instructions as an executable, without a function call, whether it is linked at startup or loaded with ``LoadLibrary()``, and needs no special compiler option. Code built with ``QUILL_DLL_IMPORT`` to use Quill from another DLL also compiles its log statements to the same code as a static build: it calls into that DLL only on slow paths, such as the first log statement of a thread or a flush.
+With MSVC, startup-linked and ``LoadLibrary()`` DLLs read ``thread_local`` state using the same instructions as
+an executable, without a special flag or function call. ``QUILL_DLL_IMPORT`` also preserves static-build
+call-site code, entering the other DLL only for slow paths such as first use and flushing.
 
 I am using Quill in tests and each test starts and stops the backend making it very slow
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can try the following to reduce the initialization time in tests:
-
-**Skip starting the backend for most tests**
-
-If a test doesn't actually need logs, avoid calling ``Backend::start()`` and ``Backend::stop()``.
-The library is designed to handle this case — your code can still push logs to the queue, but they'll simply never be processed. This avoids the startup cost entirely.
-
-**Use the system clock instead of rdtsc**
-
-If you still need logs in some tests, you can reduce the backend thread initialization time by avoiding ``rdtsc``.
-Internally, Quill calibrates ``rdtsc`` lazily on the first ``rdtsc`` timestamp the backend thread sees, which takes a few milliseconds.
-Switching all your loggers to use the system clock eliminates that calibration overhead.
+If a test needs no output, skip ``Backend::start()`` and ``Backend::stop()``. Records can still queue, subject
+to the :doc:`queue's capacity and policy <frontend_options>`. If a test needs output, choose the system clock
+for all its loggers to avoid the backend's lazy first-use :ref:`TSC calibration <timestamp_types:timestamp methods>`,
+which takes a few milliseconds.
 
 The backend thread consumes too much CPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By default, the backend thread sleeps for :cpp:member:`BackendOptions::sleep_duration` (500 μs, or 10 ms on Android) whenever it has nothing to write, then checks the queues again, which costs little CPU while the application does not log. It busy-waits, using a full core, only when ``sleep_duration`` is 0. Between two reads of empty queues it then executes the CPU pause instruction for :cpp:member:`BackendOptions::spin_wait_duration`, 10 μs by default, so that it does not keep taking the cache lines of the queues from the threads that log.
-
-**Solution 1: Increase the sleep duration**
-
-You can increase the backend sleep duration via :cpp:class:`BackendOptions`. The backend thread will sleep for the specified duration between polling cycles, reducing CPU usage at the cost of slightly increased latency when processing log messages.
-
-**Solution 2: Manual notification**
-
-For applications with infrequent logging, use a very high sleep duration and manually wake up the backend thread when you have messages to process by calling ``quill::Backend::notify()``.
+Check :cpp:member:`BackendOptions::sleep_duration`. Zero with the default idle policy busy-waits on a core.
+Increase the sleep duration to reduce CPU use at the cost of write latency. See :ref:`backend_options:idle waits`
+for :cpp:member:`BackendOptions::spin_wait_duration` and explicit wake-ups.
 
 Logging drains the battery of a mobile device
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On a phone or another battery-powered device, how often the backend thread wakes up matters more than the CPU time it uses: each wake-up keeps the processor out of its deeper sleep states. Logging calls never wake the backend; it only wakes up after :cpp:member:`BackendOptions::sleep_duration`, which is 10 ms on Android and 500 μs on other platforms.
-
-Use a ``sleep_duration`` of tens of milliseconds or more, at the cost of records reaching the sinks, e.g. logcat, that much later. Alternatively, use a very long ``sleep_duration`` and call ``quill::Backend::notify()`` after logging, so that the backend only wakes up when there is something to write.
+Frequent wake-ups keep a processor out of deep sleep even when average CPU use is low. Log calls never wake the
+backend; it wakes after each ``sleep_duration`` (10 ms by default on Android). On mobile, try a sleep
+of tens of milliseconds or more if logcat and other sinks can wait that long. For infrequent events, combine
+a long sleep with :ref:`explicit notification <backend_options:idle waits>`.
 
 Advanced Configuration
 -----------------------
@@ -213,125 +197,72 @@ Advanced Configuration
 How do I ensure logs aren't lost on application crash?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-During normal program termination, Quill automatically flushes all pending log messages. However, when an application crashes (e.g., segmentation fault, abort), some log messages may be lost if they haven't been processed yet.
-
-Quill provides a built-in signal handler that can preserve pending logs in many common crash and termination scenarios (SIGTERM, SIGINT, SIGABRT, SIGFPE, SIGILL, SIGSEGV and, where available, SIGBUS). To enable it, pass ``SignalHandlerOptions`` when starting the backend with ``quill::Backend::start()``.
-
-On POSIX systems, any thread that may run the built-in handler should either have already logged once, called ``Frontend::preallocate()``, or have the handled signals blocked on that thread.
-
-On Windows, ``Backend::start()`` installs structured exception handling and a console control handler. CRT signal handlers are thread-specific; call ``quill::init_signal_handler<FrontendOptions>()`` on each frontend/user thread that needs CRT signal handling. Do not install the CRT signal handler on the backend worker thread.
-
-**Custom Signal Handler**
-
-If you need to use your own custom signal handler, keep it minimal and avoid calling the general logging or flush APIs from an arbitrary POSIX signal context unless you have validated that approach for your platform and process state.
-
-.. note::
-
-   The built-in signal handler is the practical default when its constraints fit your application, but it should still be treated as a best-effort crash-preservation facility rather than a universal crash-safe logging API.
-
-See :ref:`overview` section on "Handling Application Crashes" for more details.
+Enable the built-in handler with ``SignalHandlerOptions`` at startup. Preservation is best effort. Follow
+:ref:`overview:handling application crashes` for POSIX per-thread preparation, Windows CRT setup, supported
+signals and custom-handler constraints.
 
 How can I use different queue behaviors for production vs simulation/debug?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In production, you may want a dropping queue for performance, but in simulation or debug builds, you need to ensure all log messages are captured without drops.
-
-**Solution 1: Use CustomFrontendOptions**
-
-You can switch your build to use ``CustomFrontendOptions`` to configure different queue types for different builds. However, this requires maintaining separate build configurations.
-
-**Solution 2: Single build with runtime control**
-
-A simpler approach is to compile with a dropping queue and control the behavior at runtime. In simulation/debug mode, enable ``logger->set_immediate_flush(1000)``. This will make the caller thread block and wait every 1000 log messages, effectively preventing drops even with a dropping queue. In production, simply don't call ``set_immediate_flush()`` and the queue will drop messages if the backend can't keep up.
+For distinct policies, select dropping or blocking :ref:`frontend options <frontend_options>` in separate
+build configurations. For one build, use a dropping queue and enable ``logger->set_immediate_flush(1000)``
+only in simulation. Periodic waits let the backend catch up, but a burst can still overflow between waits.
+Choose blocking for records that must be retained.
 
 Can I keep logging while ``Backend::stop()`` is running?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No. By default, ``Backend::stop()`` waits for the frontend queues to empty, which assumes frontend threads have already stopped logging.
-
-This behavior is controlled by ``BackendOptions::wait_for_queues_to_empty_before_exit``:
-
-- When it is enabled, a few trailing log statements may still drain successfully, but you should not rely on that behavior. Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the queues may never become empty.
-- When it is disabled, pending records remain queued and can be processed after a later ``Backend::start()``. They are lost if the process exits without draining them.
-
-If you call ``Backend::stop()`` explicitly, prefer to stop or join your logging threads first.
-
-In the normal ``Backend::start()`` path, calling ``Backend::stop()`` explicitly is optional because Quill registers automatic shutdown on normal process exit. An explicit call is still useful when you want deterministic shutdown before process exit.
+Stop or join producers first. ``Backend::stop()`` normally waits for empty queues, which continued logging can
+prevent. :ref:`backend_options:shutdown` covers disabling the drain and restarting. The standard
+``Backend::start()`` path registers shutdown at normal process exit. Stop explicitly if you need an earlier,
+deterministic shutdown.
 
 Can I log from destructors of static/global objects?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**No. Avoid logging from the destructor of any global or static-storage-duration object.**
-
-Quill's internal managers (``LoggerManager``, ``SinkManager``, ``ThreadContextManager``) are function-local statics (Meyers singletons). C++ destroys statics in reverse construction order. If your static object's constructor triggers the first log call, the library singletons are constructed *after* your object — and therefore destroyed *before* it. When your object's destructor later attempts to log, it accesses already-destroyed singletons, resulting in undefined behaviour.
-
-Logging from constructors of static objects and calling ``Backend::start()`` before ``main()`` is safe — the singletons will be constructed and remain alive for the lifetime of the program. The problem only arises during shutdown when destruction order is reversed.
+Avoid it. ``LoggerManager``, ``SinkManager`` and ``ThreadContextManager`` are function-local statics. A global
+object initialized before those managers can outlive them in reverse destruction order. Logging then accesses
+destroyed state. Logging from static constructors and starting the backend before ``main()`` are supported.
 
 Can I log from destructors of thread-local objects?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Only when Quill's thread-local context is still alive. Thread-local objects are destroyed in the
-reverse order of their initialization. If a user ``thread_local`` object is initialized before the
-first log statement on that thread, Quill's context is initialized later and therefore destroyed
-first. Logging from the user's later destructor is then unsupported because that context may
-already have been reclaimed by the backend.
-
-If logging from such a destructor is unavoidable, initialize Quill's context before initializing
-or first accessing the user thread-local object on the same thread:
+Only while Quill's context is alive. If a ``thread_local`` object initializes before the thread's first log,
+its destructor runs after Quill's context destructor. The backend may already have reclaimed that context.
+If destructor logging is unavoidable, initialize Quill on the same thread before first accessing the object.
 
 .. code-block:: cpp
 
    quill::Frontend::preallocate();
    initialize_or_access_my_thread_local_object();
 
-This ordering makes the user object's destructor run before Quill's context destructor. The backend
-must still be running and the logger must remain valid. Prefer explicit cleanup before thread exit
-when possible rather than relying on thread-local destruction order.
+This orders the object's destruction before Quill's. Keep the backend running and the logger valid. Prefer
+explicit cleanup before thread exit.
 
 Can I unload a shared library or plugin that logs with Quill?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Yes, when the library leaves nothing behind that refers to its code. A record that waits in a
-queue refers to the log statement that made it and to the decoder of its arguments, which are in
-the library, and so does a record that a logger keeps for its backtrace.
+Pending records, including backtraces, refer to call-site metadata and decoder code in the library. Complete
+cleanup **before** ``dlclose()`` or ``FreeLibrary()``, outside ``DllMain`` and other unload callbacks.
 
-A library that creates its own loggers exports a function for the application to call before
-``dlclose()`` or ``FreeLibrary()``, which, in this order:
+**Library-owned loggers.** Export a cleanup function and call it before unloading. Order matters.
 
-- releases the sink pointers that the library holds,
-- removes the loggers that the library created, with ``Frontend::remove_logger_blocking()`` while
-  the backend is still running,
-- stops the backend with ``Backend::stop()``, when the library is the one that started it.
+1. Release the library's sink pointers. A sink still held when the logger is removed can stay registered
+   even after the library releases it.
+2. Call ``Frontend::remove_logger_blocking()`` on each logger the library created while the backend runs.
+3. If the library started the backend, call ``Backend::stop()``. Stopping alone preserves logger and sink
+   registrations for restart. See ``examples/shared_library``.
 
-The sink pointers are released first, because a sink is unregistered when a logger is removed and
-nothing holds the sink any more. One that the library still holds at that time stays registered
-after the library has released it.
-
-``Backend::stop()`` alone is not enough: it keeps the loggers and the sinks registered for the
-next ``Backend::start()``, and those of the library must not outlive its code.
-``examples/shared_library`` shows this case.
-
-A library that logs through a logger of the application has no logger to remove, and that logger
-stays. Before such a library is unloaded, what its threads logged has to be written, in this order:
-
-- each thread of the library calls ``flush_log()`` on the logger after its last log statement of
-  the library, which returns when the records of that thread are processed,
-- then the thread that unloads the library calls ``flush_backtrace()`` on the logger when it stores
-  a backtrace, and ``flush_log()``.
-
-A flush that another thread makes does not wait for a record of a library thread that has the same
-timestamp, e.g. with a clock that both threads read the same value from, so each thread flushes
-what it logged itself.
-
-In both cases unload the library only after these calls have returned, and do not make them from
-``DllMain`` or from another function that runs while the library is unloaded.
+**Application-owned logger.** Keep the logger registered. On each library thread, call ``flush_log()`` after
+its final library statement. Another thread's flush can miss a record with an equal timestamp. After those
+calls return, the unloading thread calls ``flush_backtrace()`` if the logger stores a backtrace, then
+``flush_log()``. Unload only after this final flush returns.
 
 Can I use Quill with fork()?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill may not work well with ``fork()`` because it spawns a background thread, and ``fork()`` doesn't work well with multithreading.
-
-If your application uses ``fork()`` and you want to log in the child processes as well, call ``Backend::start()`` **after** the ``fork()`` call. Additionally, write to different files in the parent and child processes to avoid conflicts.
+Call ``Backend::start()`` after ``fork()`` in each process that logs. The child does not inherit the running
+backend thread. Give parent and child separate files.
 
 .. code-block:: cpp
 
@@ -360,38 +291,34 @@ Troubleshooting
 I see MSVC warning C4275 when exporting a class from a wrapper DLL
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This can happen when a Windows wrapper DLL exports a C++ class that derives from a Quill type which is not itself exported as a DLL-interface type. Custom filters are one example, but the same DLL-boundary concern can apply to other wrapper-owned extension classes.
+C4275 can occur when a wrapper DLL exports a class derived from a Quill type without a DLL interface,
+such as a custom filter. Create and attach concrete extension classes privately in the DLL that owns setup.
+Export small functions or opaque handles. For lookup by logger or sink name, keep a private registry of
+wrapper-owned pointers or callbacks.
 
-Prefer keeping concrete extension classes private to the wrapper implementation. Create and attach them in the same DLL that owns the Quill setup, and export small wrapper functions or opaque wrapper-owned handles for operations the consumer needs.
-
-This avoids exposing C++ class layout, STL members, vtables, constructors/destructors, and allocator ownership across the DLL boundary. For dynamic objects addressed by sink or logger name, the wrapper can keep a private registry from name to a callback or internal pointer owned by the wrapper.
+This keeps C++ layout, STL members, vtables, constructors, destructors and allocator ownership within the DLL.
 
 My log messages are not appearing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The most common cause is forgetting to call ``quill::Backend::start()``. Without a running backend thread, log messages remain in the queue and are never processed. Ensure ``Backend::start()`` is called early in ``main()``.
-
-If you are using ``simple_logger()``, the backend is started automatically.
+Call ``quill::Backend::start()`` early in ``main()`` so the worker can process queued records. ``simple_logger()``
+starts it automatically.
 
 I see ``LOG_INFO`` macro conflicts with syslog.h or systemd headers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Headers like ``<syslog.h>`` and ``<systemd/sd-journal.h>`` define macros named ``LOG_INFO``, ``LOG_WARNING``, etc., which conflict with Quill's ``LOG_`` macros.
-
-**Solution 1**: Include ``SyslogSink.h`` or ``SystemdSink.h`` only in a ``.cpp`` file, not in headers. This confines the collision to a single translation unit.
-
-**Solution 2**: Define ``QUILL_DISABLE_NON_PREFIXED_MACROS`` and use the longer ``QUILL_LOG_INFO`` macros everywhere.
+``<syslog.h>`` and ``<systemd/sd-journal.h>`` define names such as ``LOG_INFO`` and ``LOG_WARNING``. See
+:ref:`sink_types:syslogsink` for header isolation and prefixed macros.
 
 Compile error when logging an STL container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Quill does not automatically include codec headers for STL types. To log a ``std::vector``, include ``quill/std/Vector.h``. To log a ``std::map``, include ``quill/std/Map.h``, and so on.
-
-For nested types like ``std::vector<std::pair<int, std::string>>``, include headers for both the outer and inner types (``quill/std/Vector.h`` and ``quill/std/Pair.h``).
+Include the matching codec header, e.g. ``quill/std/Map.h`` for ``std::map``. Nested containers need headers
+for every layer. See the :ref:`vector-of-pairs example <recipes:logging nested stl library types>`.
 
 Application hangs on shutdown
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If ``Frontend::remove_logger_blocking()`` is called while the backend is not running, it will block indefinitely waiting for the backend to process the removal. Only call this function while the backend is running, and not from backend-thread callbacks.
-
-Calling ``Backend::stop()`` will flush all pending messages and cleanly shut down the backend thread. Ensure all logging is complete before calling ``Backend::stop()``.
+Call ``Frontend::remove_logger_blocking()`` while the worker is running. It can wait indefinitely after
+shutdown and cannot run in a backend callback. Stop producers before the worker drains. See
+:ref:`loggers:logger removal` and :ref:`backend_options:shutdown`.

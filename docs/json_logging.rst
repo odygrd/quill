@@ -3,19 +3,14 @@
 JSON Logging
 ============
 
-Use this page to output structured JSON logs to files or the console, optionally alongside standard pattern-formatted output.
+Send structured JSON to a file or the console. Attach both a JSON sink and a text sink to the same logger
+to see each event in both formats.
 
-The library supports outputting structured JSON logs to either the console or a file. To utilize this feature, use named placeholders in the format string (e.g., ``{name}`` instead of ``{}``) when invoking the ``LOG_`` macros.
+Name fields with ``{name}`` in ``LOG_*``, or let ``LOGJ_*`` name up to 26 l-values automatically. See
+:ref:`logging_macros:named placeholders` for positional matching and the difference from ``fmt::arg()``.
 
-For convenience, the ``LOGJ_`` macros offer an alternative method for logging l-values, automatically including the argument names in the placeholders. These macros support up to 26 arguments.
-
-For details on how named arguments work in Quill, including important differences from ``fmtlib``'s ``fmt::arg()``, see :ref:`Named Placeholders <logging_macros:Named Placeholders>` in the Logging Macros guide.
-
-The default JSON sinks reserve the fields ``timestamp``, ``file_name``, ``line``, ``thread_id``,
-``logger``, ``log_level``, and ``message``. A named argument that uses one of these fields is
-suffixed with ``_1``, ``_2``, and so on until it is unique, leaving the built-in field unchanged.
-
-It is also possible to combine JSON output with standard log pattern display by passing multiple ``Sink`` objects to a ``Logger``. This allows you to see the same log message in different formats simultaneously.
+The default JSON sinks reserve ``timestamp``, ``file_name``, ``line``, ``thread_id``, ``logger``, ``log_level`` and
+``message``. A colliding argument name gets ``_1``, ``_2`` and so on until unique.
 
 Logging Json to Console
 -----------------------
@@ -34,11 +29,8 @@ Logging Json to File
 Customising Json Format
 -----------------------
 
-To customize the JSON format, define a custom sink that derives from one of the following classes:
-
-- :cpp:class:`JsonFileSink`
-- :cpp:class:`JsonConsoleSink`
-- :cpp:type:`RotatingJsonFileSink`
+Derive a custom sink from :cpp:class:`JsonFileSink`, :cpp:class:`JsonConsoleSink` or
+:cpp:type:`RotatingJsonFileSink` to change its output.
 
 .. literalinclude:: ../examples/json_console_logging_custom_json.cpp
    :language: cpp

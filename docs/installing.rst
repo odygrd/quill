@@ -6,9 +6,8 @@
 Installing
 ==========
 
-For most users, a package manager is the simplest path. Build from source when you
-want the latest branch, need local patches, or prefer to embed Quill directly in
-your own project.
+Install Quill with a package manager, build it from source for a newer branch or local patches, or vendor it
+inside your project. The optional C++20 module requires a source build.
 
 Package Managers
 ----------------
@@ -31,7 +30,7 @@ CMake-Integration
 Building and Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use this path when you want a normal install that can later be found with ``find_package()``.
+Install from source to make Quill available to ``find_package()``.
 
 .. code:: bash
 
@@ -42,12 +41,8 @@ Use this path when you want a normal install that can later be found with ``find
    cmake ..
    make install
 
-.. note::
-
-   To install into a custom directory, configure CMake with
-   ``-DCMAKE_INSTALL_PREFIX=/quill/install-dir/``.
-
-Then use the installed library from a CMake project, you can locate it directly with ``find_package()``
+Set ``-DCMAKE_INSTALL_PREFIX=/quill/install-dir/`` for a custom install directory. Then use
+``find_package(quill REQUIRED)`` in the consuming project.
 
 Embedded Project Directory Structure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -75,8 +70,7 @@ Embedded Project CMakeLists.txt
 Embedding in Your Project
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use this path when you vendor Quill directly into your source tree and include it with
-``add_subdirectory()``.
+For a vendored copy, add the source directory with ``add_subdirectory()``.
 
 Directory Structure
 ^^^^^^^^^^^^^^^^^^^
@@ -100,83 +94,85 @@ CMakeLists.txt
 Using the Bundled Formatter
 ---------------------------
 
-Targets that only need formatting can use the bundled formatter without inheriting
-Quill's logging compile options, definitions, or link dependencies.
+A formatting-only target can use the bundled formatter without inheriting Quill's logging compile options,
+definitions or link dependencies.
 
-With CMake, ``quill::fmtquill`` is available after ``find_package(quill REQUIRED)``
-or ``add_subdirectory(quill)``:
+.. md-tab-set::
+   :class: quill-tabs
 
-.. code:: cmake
+   .. md-tab-item:: CMake
 
-   find_package(quill REQUIRED)
-   target_link_libraries(my_project PRIVATE quill::fmtquill)
+      Link ``quill::fmtquill`` after ``find_package(quill REQUIRED)`` or ``add_subdirectory(quill)``.
 
-With Meson, use the installed ``fmtquill`` pkg-config dependency or fall back to the
-Quill subproject:
+      .. code:: cmake
 
-.. code:: meson
+         find_package(quill REQUIRED)
+         target_link_libraries(my_project PRIVATE quill::fmtquill)
 
-   fmtquill_dep = dependency('fmtquill', fallback : ['quill', 'fmtquill_dep'])
-   executable('my_project', 'main.cpp', dependencies : [fmtquill_dep])
+   .. md-tab-item:: Meson
 
-With Bazel, add ``@quill//:fmtquill`` to the target's ``deps``.
+      Use the installed ``fmtquill`` pkg-config dependency or fall back to a Quill subproject.
 
-Include ``quill/bundled/fmt/format.h`` and use ``fmtquill::format`` or specialize
-``fmtquill::formatter``. These header-only dependencies use Quill's bundled, patched fmt in the
-``fmtquill`` namespace; its version follows the Quill release.
+      .. code:: meson
+
+         fmtquill_dep = dependency('fmtquill', fallback : ['quill', 'fmtquill_dep'])
+         executable('my_project', 'main.cpp', dependencies : [fmtquill_dep])
+
+   .. md-tab-item:: Bazel
+
+      Add ``@quill//:fmtquill`` to the target's ``deps``.
+
+Include ``quill/bundled/fmt/format.h`` for ``fmtquill::format`` and ``fmtquill::formatter`` specializations.
+This header-only target uses Quill's patched {fmt} in namespace ``fmtquill``. Its version follows the Quill release.
 
 Using the C++20 Module
 ----------------------
 
-Quill provides an experimental C++20 named module interface (``src/quill.cc``).
-It is opt-in; normal header-only use continues to require only C++17.
+The experimental, opt-in named module lives in ``src/quill.cc``. Ordinary header-only use requires only C++17.
 
-With CMake 3.28 or newer and a compiler and generator supporting C++20 modules, set
-``CMAKE_CXX_STANDARD=20`` and ``QUILL_BUILD_MODULE=ON`` when adding Quill through
-``add_subdirectory`` or ``FetchContent``. Link against ``quill::quill_module``:
+.. md-tab-set::
+   :class: quill-tabs
 
-.. code:: cmake
+   .. md-tab-item:: CMake
 
-   target_link_libraries(my_project PRIVATE quill::quill_module)
+      Use CMake 3.28+ with a C++20 module-capable compiler and generator. Set ``CMAKE_CXX_STANDARD=20`` and
+      ``QUILL_BUILD_MODULE=ON`` with ``add_subdirectory`` or ``FetchContent``, then link ``quill::quill_module``:
 
-The module target is currently available from the source build, not from an installed
-``find_package(quill)`` package.
+      .. code:: cmake
 
-With CMake 4.5+, set ``QUILL_IMPORT_STD=ON`` to enable experimental ``import std`` support (OFF by default).
+         target_link_libraries(my_project PRIVATE quill::quill_module)
 
-With Bazel 9 or newer, the declared ``rules_cc`` 0.2.22 dependency, and a toolchain supporting
-C++20 modules, add ``@quill//:quill_module`` to the target's ``deps``. Enable C++20 for the
-whole build and pass ``--experimental_cpp_modules`` (for Clang, use
-``--cxxopt=-std=c++20 --experimental_cpp_modules``):
+      - The module target comes only from a source build, not from an installed ``find_package(quill)`` package.
+      - With CMake 4.5+, ``QUILL_IMPORT_STD=ON`` enables experimental ``import std`` (default OFF).
 
-.. code:: python
+   .. md-tab-item:: Bazel
 
-   cc_binary(
-       name = "my_project",
-       srcs = ["main.cpp"],
-       features = ["cpp_modules", "prefer_pic_for_opt_binaries"],
-       deps = ["@quill//:quill_module"],
-   )
+      Use Bazel 9+, the declared ``rules_cc`` 0.2.22 and a module-capable toolchain. Add ``@quill//:quill_module``
+      to ``deps`` and enable C++20 for the whole build with ``--experimental_cpp_modules`` (for Clang,
+      ``--cxxopt=-std=c++20 --experimental_cpp_modules``):
 
-To enable experimental ``import std`` support with Bazel, configure the ``--@quill//:std_module``
-flag to point to your toolchain's standard library module target (for example, in ``.bazelrc`` via
-``build --@quill//:std_module=@std_module``). When configured, Quill automatically defines
-``QUILL_IMPORT_STD`` and adds the target as a dependency. If omitted, ``@quill//:std_module``
-defaults to an empty target, falling back to standard library headers.
+      .. code:: python
 
-The selected Clang toolchain must also provide a matching ``clang-scan-deps`` beside the
-compiler executable. On Ubuntu 24.04, install ``clang-18`` and ``clang-tools-18``, and set
-``CC=/usr/lib/llvm-18/bin/clang`` and ``CXX=/usr/lib/llvm-18/bin/clang++``.
+         cc_binary(
+             name = "my_project",
+             srcs = ["main.cpp"],
+             features = ["cpp_modules", "prefer_pic_for_opt_binaries"],
+             deps = ["@quill//:quill_module"],
+         )
 
-The module target is excluded from wildcard builds. Older Bazel versions can still use
-``@quill//:quill`` and ``@quill//:fmtquill`` without enabling modules.
+      - ``prefer_pic_for_opt_binaries`` keeps module producers and consumers in PIC mode, avoiding
+        conflicting module metadata outputs in optimized builds with ``rules_cc`` 0.2.22.
+      - **import std:** point ``--@quill//:std_module`` at your toolchain's standard library module target,
+        e.g. ``build --@quill//:std_module=@std_module`` in ``.bazelrc``. Quill then defines ``QUILL_IMPORT_STD``
+        and adds the dependency. The default empty target falls back to standard library headers.
+      - **Clang:** the toolchain needs a matching ``clang-scan-deps`` beside the compiler. On Ubuntu 24.04,
+        install ``clang-18`` and ``clang-tools-18`` and set ``CC=/usr/lib/llvm-18/bin/clang`` and
+        ``CXX=/usr/lib/llvm-18/bin/clang++``.
+      - The module target is excluded from wildcard builds. Older Bazel versions can still use
+        ``@quill//:quill`` and ``@quill//:fmtquill`` without enabling modules.
 
-``prefer_pic_for_opt_binaries`` keeps module producers and consumers in PIC mode, avoiding
-conflicting module metadata outputs in optimized builds with ``rules_cc`` 0.2.22.
-
-The CMake and Bazel module targets define ``QUILL_USE_MODULE`` automatically for consumers.
-Modules do not export macros, so include ``quill/LogMacros.h`` after importing Quill when using
-logging macros. The guarded definition in this example also supports custom module builds:
+CMake and Bazel module targets define ``QUILL_USE_MODULE`` for consumers. Modules cannot export macros.
+To use logging macros, include ``quill/LogMacros.h`` after the import. The guard below also handles custom builds.
 
 .. literalinclude:: snippets/quill_docs_module.cpp
    :language: cpp
@@ -184,17 +180,16 @@ logging macros. The guarded definition in this example also supports custom modu
 Mixing Module Imports and Headers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use Quill's module or its declaration headers consistently throughout an application, including
-the libraries that use Quill. Mixing the two approaches is unsupported and can create distinct
-Quill types and separate logger registries and backend state.
+Use either module imports or declaration headers consistently across the application and its libraries.
+Mixing them is unsupported and can produce distinct Quill types, logger registries and backend state.
 
-The module target depends on the header target for build requirements. This dependency is
-expected and does not itself create separate Quill state. The macro headers ``quill/LogMacros.h``
-and ``quill/HelperMacros.h`` can be included after importing Quill when ``QUILL_USE_MODULE`` is
-defined.
+The module target depends on the header target for build requirements. That dependency is safe. With
+``QUILL_USE_MODULE`` defined, you may include ``quill/LogMacros.h`` and ``quill/HelperMacros.h`` after import.
 
 Next Steps
 ----------
+
+.. rst-class:: quill-link-list
 
 - :doc:`Quick Start <quick_start>` for a minimal working example.
 - :doc:`Guides <guides>` for sinks, formatters, and advanced configuration.

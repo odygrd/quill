@@ -3,66 +3,66 @@
 Backend Options
 ===============
 
-The backend options allow you to customize the behavior of the backend thread and are applied at runtime. To utilize these options, you need to create an object and pass it when starting the backend thread. Most options come with carefully tuned default values for general use, but they can be adjusted to meet the specific performance and latency requirements of your application. Refer to :cpp:struct:`BackendOptions` for detailed information.
+Pass :cpp:struct:`BackendOptions` to ``Backend::start()`` to tune the worker at runtime. The defaults suit
+general use; the linked reference describes each option. Adjust affinity, idle waits, shutdown or character
+handling for your workload.
 
 Example Usage
 -------------
 
-For example, to pin the backend worker thread to specific CPUs, you can use the following code:
+Pin the worker with ``cpu_affinity``.
 
 .. literalinclude:: snippets/quill_docs_example_backend_options.cpp
    :language: cpp
    :linenos:
 
-.. note::
+CPU Affinity
+------------
 
-   On macOS, only the first CPU entry is used because the platform does not provide a per-core affinity API equivalent to Linux and Windows CPU masks.
-   Apple Silicon does not support the affinity policy at all, so leave ``cpu_affinity`` empty there.
-   On all platforms, a failure to apply the affinity is reported through ``error_notifier``; in ``QUILL_NO_EXCEPTIONS`` builds it invokes Quill's fatal error path instead.
+- Intel macOS uses only the first entry because it lacks per-core affinity masks. Leave ``cpu_affinity``
+  empty on Apple Silicon, which lacks this affinity policy.
+- Windows CPU IDs are relative to the current processor group. For group-aware placement on machines with
+  more than 64 logical processors, leave ``cpu_affinity`` empty and set affinity from a backend-thread hook.
+- Affinity failures go to ``error_notifier``. In ``QUILL_NO_EXCEPTIONS`` builds they invoke the fatal error path.
 
-.. note::
+Idle Waits
+----------
 
-   When there is nothing to process, the backend sleeps for ``sleep_duration`` (500 µs by default) before it
-   checks the queues again, and a log call does not wake it. To have records written sooner without a shorter
-   ``sleep_duration``, call ``quill::Backend::notify()`` after logging. It wakes the backend at once, can be called
-   from any thread, and can be called after every log statement, at the cost of a condition variable notify on the
-   calling thread. A long ``sleep_duration`` combined with ``notify()`` keeps an idle backend asleep until there
-   is work.
+An idle worker sleeps for :cpp:member:`BackendOptions::sleep_duration` before polling (10 ms on Android,
+500 µs elsewhere). Logging leaves it asleep. Any thread may call ``quill::Backend::notify()`` after logging,
+even after every statement, at the cost of a condition-variable notification. Pair explicit notifications
+with a long sleep for infrequent logs.
 
-.. note::
+With zero sleep the default idle policy busy-waits on a core, using the CPU pause instruction between
+empty polls for :cpp:member:`BackendOptions::spin_wait_duration` (default 10 µs). This reduces contention
+for producers' queue cache lines. ``enable_yield_when_idle`` can yield instead.
 
-   On Windows, CPU IDs are relative to the backend thread's current processor group. If your application needs group-aware affinity on machines with more than 64 logical processors, leave ``cpu_affinity`` empty and apply affinity yourself from a backend-thread hook.
+Shutdown
+--------
 
-.. note::
+Stop producers before calling ``Backend::stop()`` with ``wait_for_queues_to_empty_before_exit`` enabled (the default).
+A few trailing records can drain, but continuous logging can keep shutdown waiting indefinitely. Disabling
+the option leaves queued and cached records for a later ``Backend::start()``. Process exit discards them.
 
-   When ``wait_for_queues_to_empty_before_exit`` is enabled, ``Backend::stop()`` assumes frontend threads have stopped logging.
-   A few trailing log statements may still drain successfully, but you should not rely on that behavior.
-   Sustained concurrent logging during shutdown, especially logging in a loop from another thread, can prevent shutdown from completing because the frontend queues may never become empty.
+With draining enabled, shutdown also drains diagnostics from final-flush and logger-removal close callbacks,
+then flushes the sinks again. Failures on this extra pass go directly to stderr to prevent a callback loop.
 
-   Disabling this option skips draining pending records. Queued and cached records remain available
-   for a later ``Backend::start()``; they are lost if the process exits without draining them.
+Backend Callbacks
+-----------------
 
-.. note::
+``error_notifier``, poll hooks, sink periodic tasks and ``write_log()`` run on the worker. Keep them short.
+If a sink throws, the worker reports it to ``error_notifier`` and delivers the event to later sinks.
 
-   ``error_notifier``, backend poll hooks, sink periodic tasks, and custom sink ``write_log()`` implementations all run on the backend thread.
-   An exception from one sink is reported through ``error_notifier`` without preventing later sinks from receiving the same event.
-   Avoid long-blocking work in these paths. Calling ``logger->flush_log()``, ``Backend::stop()``, or ``Frontend::remove_logger_blocking()`` from these paths throws ``QuillError`` because the backend cannot wait on itself.
-   If a logger has immediate flush enabled, backend-thread log calls still enqueue the record, but the implicit flush is silently skipped so generic logging code reused on the backend remains safe.
-
-   With ``wait_for_queues_to_empty_before_exit`` enabled, shutdown also drains diagnostics generated
-   by the final flush and logger-removal close callbacks, and flushes the sinks again. Errors during this additional pass go directly
-   to stderr instead of ``error_notifier``, so further failures cannot create a callback retry loop.
+Calling ``logger->flush_log()``, ``Backend::stop()`` or ``Frontend::remove_logger_blocking()`` from the
+worker throws ``QuillError`` because it would wait for itself. Logging is allowed. A logger with immediate
+flush still enqueues the record and skips the implicit wait.
 
 Character Sanitization
 -----------------------
 
-By default, Quill filters log messages to ensure they contain only printable characters before writing them to sinks. This safety feature converts non-printable characters (including non-ASCII characters like Chinese, Japanese, or other Unicode text) to their hexadecimal representation (e.g., ``\xE4\xB8\xAD`` for Chinese characters).
-
-The default printable character range is limited to ASCII characters from space (``' '``) to tilde (``'~'``), plus newline (``'\n'``), tab (``'\t'``), and carriage return (``'\r'``).
-
-**Disabling Character Sanitization for UTF-8 Logging**
-
-If you need to log UTF-8 or other non-ASCII text (such as Chinese, etc.), you can disable character sanitization:
+By default, sinks receive printable ASCII (space through ``~``), newline (``\n``), tab (``\t``) and carriage
+return (``\r``). Other bytes are hex-escaped, including UTF-8 (for example, ``中`` becomes ``\xE4\xB8\xAD``).
+To preserve Chinese, Japanese or other non-ASCII text, disable the check as follows.
 
 .. code-block:: cpp
 
@@ -70,13 +70,9 @@ If you need to log UTF-8 or other non-ASCII text (such as Chinese, etc.), you ca
    backend_options.check_printable_char = {};  // Disable sanitization
    quill::Backend::start(backend_options);
 
-**Custom Character Filtering**
-
-The backend evaluates ``check_printable_char`` once for each of the 256 possible byte values at
-startup and reuses the results. The predicate must depend only on the byte supplied. In an
-exception-enabled build, a byte for which the predicate throws is treated as non-printable.
-
-For example:
+**Custom character filtering.** The backend calls ``check_printable_char`` once for each of the 256 byte
+values at startup and caches the answers. The predicate must depend only on its input byte. With exceptions
+enabled, a thrown exception marks that byte non-printable.
 
 .. code-block:: cpp
 

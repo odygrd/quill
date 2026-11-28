@@ -3,60 +3,58 @@
 Timestamp Types
 ===============
 
-Use this page to choose between TSC, system, or custom clock sources and understand their trade-offs.
+Choose a clock when creating a logger. TSC minimizes caller overhead, the system clock records wall time
+directly, and a custom clock can supply hardware, simulation or replay time.
 
 Timestamp Recording
 -------------------
 
-The caller thread timestamps each record just before publishing it to its queue. Time spent waiting for queue space,
-formatting an argument on the frontend, or copying a large payload therefore falls before the timestamp.
+The caller timestamps each record just before publishing, after waiting for space, frontend formatting and
+copying the payload. Preemption between reading the clock and publishing can still delay a record.
 
-A thread can still be preempted between reading the clock and publishing the record.
-:cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` delays the backend by a short window (5 μs by default)
-to allow older records from other threads to arrive.
-A queue head that stays ahead of the wall-clock cutoff becomes eligible once one grace period of steady time has elapsed since its first backend observation. Backward clock corrections therefore do not require waiting for wall time to catch up.
-When a poll finds nothing to write because the records wait for the grace period, the backend sleeps for the grace period, or for :cpp:member:`BackendOptions::sleep_duration` if that is shorter, before its next check. With a ``sleep_duration`` of 0 it checks again without a pause.
-A poll that finds older records writes them instead, so a record can wait in one queue while the backend writes a backlog from another.
-The grace period is not applied while ``Backend::stop()`` drains the queues, nor to the records of user clocks that return ``TimestampType::EpochNanoseconds``.
-The backend assumes timestamps produced within a single frontend queue are normally non-decreasing.
-If a wall clock or user-provided clock moves backwards, :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` can be enabled to correct regular log, metric and binary record output.
-Backtrace records preserve their original capture timestamps and may still appear out of timestamp order when flushed later.
+- :cpp:member:`BackendOptions::log_timestamp_ordering_grace_period` (default 5 µs) lets earlier timestamps
+  arrive from other threads. If a queue head stays ahead of the wall-clock cutoff, one grace period of
+  steady time from its first observation makes it eligible even after a backward clock adjustment.
+- The backend writes eligible records from other queues while waiting. If none are eligible, it waits the
+  shorter of the grace period and :cpp:member:`BackendOptions::sleep_duration`. A zero sleep polls immediately.
+- ``Backend::stop()`` drains without the grace period. User clocks returning ``TimestampType::EpochNanoseconds``
+  also bypass it.
 
-If a regular log, metric or binary record has an older timestamp than one already selected for output,
-the backend can suggest a larger grace period through :cpp:member:`BackendOptions::error_notifier`:
+Timestamps in one queue should normally be non-decreasing. :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps`
+corrects sink-visible times for regular log, metric and binary records if a clock moves backward.
+Flushed backtraces keep their original capture times.
+
+If a regular log, metric or binary timestamp predates one already selected for output, the backend can
+suggest a larger grace period through :cpp:member:`BackendOptions::error_notifier`.
 
 .. code-block:: text
 
    Quill WARNING: A record is 571 us out of timestamp order. For delayed publishers, consider increasing BackendOptions::log_timestamp_ordering_grace_period to at least 600 us.
 
-The backend adds the observed timestamp difference in whole microseconds to the configured grace period and rounds up to one significant digit.
-It reports again only when the estimate exceeds the last suggestion. A larger grace period can help a delayed publisher, but cannot correct a clock that moves backwards.
-The notification is disabled when the grace period is zero or monotonic output correction is enabled.
-Timestamps of user clocks that return ``TimestampType::EpochNanoseconds`` are excluded from the comparison, so simulation loggers can use their own timeline alongside wall-clock loggers.
-For the same reason :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` keeps the records of these clocks in order among themselves, apart from those of the other loggers.
+The suggested period adds the observed difference in whole microseconds to the current period, rounded up
+to one significant digit. The worker reports only increases over its last suggestion. More time helps a
+delayed producer, but cannot repair a clock running backward.
+
+Zero grace or enabled monotonic correction disables the notification. The comparison excludes custom
+``EpochNanoseconds`` timelines. Monotonic correction orders those records among themselves, separately
+from real-time loggers.
 
 Timestamp Methods
 -----------------
 
-There are several ways to get the timestamp on the frontend:
+The default frontend uses the same ``Logger*`` type for all three choices. One binary can select live or
+simulation time at runtime.
 
-- **TSC (Time Stamp Counter)**: This is the fastest method for the frontend, as it simply calls ``__rdtsc`` and pushes the raw TSC counter value. The backend runs an ``RdtscClock`` which periodically syncs with the wall time (default every 500ms). It takes the ``rdtsc`` value from the frontend and converts it to wall time using a lock-free algorithm. \
-  Although the ``rdtsc`` clock might drift between resyncs, the difference is generally negligible. However, your processor must support invariant TSC to ensure that TSC counters between different cores remain synchronized. When this timestamp type is used, the backend takes about 10 ms for the initial calibration of the ``RdtscClock`` on first usage.
-
-  **Note**: TSC timestamps in rare cases may appear out of chronological order by a few microseconds. This occurs because: (1) frontend threads on different CPU cores capture raw TSC values with potential slight variations, (2) the backend converts these TSC values to wall time using a periodically updated calibration point, and (3) when resync occurs between message captures, different messages may be converted using different calibration points. Since the RdtscClock is not monotonic across resyncs, timestamps from different cores converted with different calibrations can appear out of order even when the actual logging occurred in sequence. This is an inherent characteristic of TSC-based timing across multi-core systems. If strict chronological timestamp ordering is required, use the System clock method instead.
-
-- **System**: This method calls ``std::chrono::system_clock::now()`` on the frontend and pushes the wall time value to the queue. It is slower than TSC but provides the most accurate and immediately usable timestamps. The backend thread does not require any additional initialization time since the ``RdtscClock`` is not used.
-
-- **User**: Pass a ``UserClockSource`` object to provide custom timestamps. Its optional virtual
-  ``timestamp_type() const noexcept`` method reports the return format: ``TimestampType::TscTicks``,
-  ``TimestampType::WallClockNanoseconds`` or ``TimestampType::EpochNanoseconds`` (the default).
-
-Pass one clock configuration when creating a logger: ``ClockSource::tsc()``,
-``ClockSource::system()``, or ``ClockSource::custom(clock)``. Omitting it selects TSC. With the
-default frontend, these choices share the same ``Logger*`` type, so one binary can choose live
-or simulation clocks through runtime configuration.
-With default frontend options, custom clocks use a virtual ``UserClockSource::now()`` call.
-The backend uses ``timestamp_type()`` to interpret custom clock values.
+- **TSC** (``ClockSource::tsc()``, the default). The caller reads raw ``__rdtsc`` ticks. The backend's
+  ``RdtscClock`` takes about 10 ms to calibrate on first use, then converts ticks to wall time with a lock-free
+  algorithm. It resynchronizes every 500 ms by default. Use an invariant TSC synchronized across cores.
+  Drift is usually small, but captures from different cores can use different calibration points across a
+  resync. Timestamps may then appear a few microseconds out of order.
+- **System** (``ClockSource::system()``). ``std::chrono::system_clock::now()`` costs more on the caller but
+  gives wall time immediately, without TSC calibration or resync drift. Use it when wall-time accuracy or strict
+  chronological order matters.
+- **User** (``ClockSource::custom(clock)``). The caller reads ``UserClockSource::now()`` virtually by default.
+  The backend interprets the result using the optional virtual ``timestamp_type() const noexcept``.
 
 Providing a Custom Timestamp
 ----------------------------
@@ -68,75 +66,53 @@ Providing a Custom Timestamp
 Frontend Clock Selection
 ------------------------
 
-``FrontendOptions::clock_type`` selects how the frontend reads timestamps. Its default,
-``quill::ClockSource``, is the runtime configuration type accepted by logger creation. A
-``ClockSource`` variable can hold any of the three selections. Options types without
-``clock_type`` retain this runtime behavior.
+``FrontendOptions::clock_type`` defaults to ``quill::ClockSource``, which holds any of the three runtime choices.
+Options without ``clock_type`` also use runtime selection.
 
-To inline a clock, set ``clock_type`` to the ``UserClockSource`` subclass implementing the
-``now() const noexcept`` function you want called, and pass ``ClockSource::custom(clock)`` through the same
-factory argument. This expression retains the clock's type for compile-time checking.
-The frontend calls that implementation directly, without virtual dispatch. The selected type may
-be abstract if it already implements ``now()``; pass an instance of a derived class in that case.
-It must not inherit ``UserClockSource`` virtually: the frontend converts the clock of the logger
-to the selected type with a ``static_cast``, and with a virtual base the first log statement does
-not compile.
-Further overrides of ``now()`` in derived classes are bypassed; the backend still calls
-``timestamp_type()`` virtually, so it must describe the selected ``now()`` implementation.
-The option selects dispatch; the argument supplies the clock object and its state.
+To make the read eligible for inlining, set ``clock_type`` to the ``UserClockSource`` subclass that implements
+``now() const noexcept``. Pass ``ClockSource::custom(clock)`` directly to the factory so it can check the type.
+The option selects dispatch, and the argument supplies the instance and state.
 
-``ClockSource`` selects a clock implementation; ``TimestampType`` describes the value returned by
-``now()``. The clock object's virtual ``timestamp_type() const noexcept`` defaults to
-``TimestampType::EpochNanoseconds`` for compatibility with existing clocks. Choose the value that
-matches the clock:
+- The selected class may be abstract if it implements ``now()`` and the instance is derived. Virtual inheritance
+  from ``UserClockSource`` prevents the frontend's ``static_cast`` and the first log call fails to compile.
+- Direct dispatch bypasses further overrides of ``now()``. The backend still calls ``timestamp_type()`` virtually.
+  Return a ``TimestampType`` matching the selected implementation.
 
-- ``TimestampType::TscTicks`` for raw TSC ticks. The backend converts them to epoch nanoseconds,
-  and the records wait for the grace period like those of ``ClockSource::tsc()``.
-- ``TimestampType::WallClockNanoseconds`` for nanoseconds since the Unix epoch from a clock that
-  follows real time, such as a PTP or NIC hardware clock, ``CLOCK_REALTIME`` or your own
-  conversion of TSC ticks. The records wait for the grace period and are ordered with the other
-  loggers, like those of ``ClockSource::system()``.
-- ``TimestampType::EpochNanoseconds`` for simulated or replayed time, such as a replay of a past
-  trading day. The value is the clock's own timeline: the records do not wait for the grace
-  period, and they are not compared with the records of the other loggers for the out-of-order
-  notification or :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps`.
+**Custom timestamp representations**
 
-Use ``WallClockNanoseconds`` only for a clock that follows real time, never for simulated or
-replayed time. With it, the backend compares the clock's timestamps with those of the other
-loggers, so a replay of a past day can be reported as out of timestamp order, and
-``ensure_monotonic_output_timestamps`` can move its timestamps forward to the time of the other
-loggers.
+- ``TimestampType::TscTicks`` returns raw counter ticks. The backend converts them to epoch nanoseconds and
+  applies the grace period as for the built-in TSC.
+- ``TimestampType::WallClockNanoseconds`` returns real Unix-epoch nanoseconds, for example from PTP, a NIC,
+  ``CLOCK_REALTIME`` or a custom TSC conversion. Ordering and grace match the system clock.
+- ``TimestampType::EpochNanoseconds`` is the default for compatibility with existing clocks. Use it for
+  simulations or a replay of a past trading day. Marking replay data as wall time can trigger reordering
+  diagnostics or advance its timestamps to other loggers' wall times under monotonic correction.
 
 .. literalinclude:: snippets/quill_docs_custom_wall_clock.cpp
    :language: cpp
    :start-at: // A clock that follows real time
 
-The clock is non-owned and must outlive its logger. Both clock methods must be thread-safe, and
-its timestamp representation must remain consistent for the logger's lifetime, including queued
-records. Different loggers may use different instances of the configured clock type. The clock
-is read once for each record that is queued, and not for a record that is dropped. Zero is a
-valid nanosecond timestamp.
+``ClockSource::custom(clock)`` borrows the clock by reference. Keep it alive through the logger's lifetime and
+pending records. Both methods must be thread-safe and the timestamp representation must stay constant.
+Loggers may use different instances. Quill reads the clock once per enqueued record and skips it for dropped
+records. Zero is a valid nanosecond timestamp.
 
-Declare custom overrides as ``uint64_t now() const noexcept override``. They must return normally and must not log through Quill,
-including through another logger. The calling thread has already encoded the record in its queue.
-A nested log could overwrite it, and an exception could leave a deferred argument in the uncommitted record.
+Declare ``uint64_t now() const noexcept override``. It must return normally and must never log through Quill,
+even via another logger. Nested logging can overwrite the caller's encoded but uncommitted record.
+An exception can strand a deferred argument in it.
 
-``ClockSource::custom(clock)`` is non-owning and accepts a clock object by reference. When
-``clock_type`` names an implementation class, this reference must refer to that class or a
-derived class. Passing a different clock type, selecting a built-in source, or omitting the
-clock argument when creating a logger is a compile-time error. Use one frontend/options type
-throughout the application and its shared libraries, including typed signal-handler setup.
+With a concrete clock type, the instance must have that type or derive from it. A different type, a built-in
+source or a missing clock argument fails at compile time. Use consistent :doc:`frontend_options` across the
+application, shared libraries and typed signal handlers.
 
-The same factory expression works with the default frontend (virtual dispatch) and a frontend
-configured with the clock's implementation type (direct dispatch):
+The same factory expression works with virtual or direct dispatch.
 
 .. literalinclude:: snippets/quill_docs_custom_clock.cpp
    :language: cpp
    :linenos:
 
-If every logger in the application uses TSC, an instance of the following clock removes runtime
-clock selection. It uses the same inline TSC read and queue encoder as the default TSC logger
-and can save a few frontend instructions, depending on the compiler and build options.
+If every logger uses TSC, this clock eliminates runtime selection. It uses the default TSC logger's inline
+read and queue encoder and can save frontend instructions, depending on compiler and build options.
 
 .. literalinclude:: snippets/quill_docs_custom_tsc_clock.cpp
    :language: cpp
@@ -145,8 +121,7 @@ and can save a few frontend instructions, depending on the compiler and build op
 Updating Existing Logger Creation Calls
 ---------------------------------------
 
-Replace the previous enum/pointer pair with one clock selection. Default TSC creation calls
-without clock arguments remain the same:
+Replace the old enum/pointer pair with one clock selection. Omitting the argument still selects TSC.
 
 .. code-block:: cpp
 
@@ -154,13 +129,12 @@ without clock arguments remain the same:
    // Current:
    Frontend::create_or_get_logger("app", sink, pattern_options, ClockSource::custom(clock));
 
-Use ``ClockSource::tsc()`` or ``ClockSource::system()`` for explicit built-in clock selections.
+For an explicit built-in selection use ``ClockSource::tsc()`` or ``ClockSource::system()``.
 
 Getting a Synchronized Timestamp with the Backend Thread TSC Clock
 ------------------------------------------------------------------
 
-In some cases, when using TSC for log statements, you might want to obtain a timestamp that is synchronized with the timestamp seen in the log statements.
-To achieve this, you can use the :cpp:class:`BackendTscClock`. See the example below:
+Use :cpp:class:`BackendTscClock` to obtain a timestamp synchronized with the backend's TSC log timestamps.
 
 .. literalinclude:: snippets/quill_docs_timestamp_types.cpp
    :language: cpp

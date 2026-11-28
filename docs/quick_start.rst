@@ -6,19 +6,19 @@
 Quick Start
 ===========
 
-Use this page for the smallest working setup, then move to the full API when you
-need more control over sinks, loggers, queues, or lifecycle.
+Start with a console or file logger. Use the full API when you need custom sinks, patterns, queues, multiple
+logger configurations or explicit control over startup and shutdown.
 
 Quickest Setup
 --------------
 
-For the quickest and simplest setup, use ``simple_logger()`` with the recommended ``LOG_*`` macros:
+For one or two default loggers, call ``simple_logger()`` and use the recommended ``LOG_*`` macros.
 
 .. literalinclude:: snippets/quill_docs_quick_start.cpp
    :language: cpp
    :linenos:
 
-Alternatively, a **macro-free interface** is available if you prefer function-call syntax:
+For function-call syntax, include ``quill/LogFunctions.h``.
 
 .. code-block:: cpp
 
@@ -31,43 +31,21 @@ Alternatively, a **macro-free interface** is available if you prefer function-ca
      quill::info(logger, "Hello from {}!", "Quill");
    }
 
-The ``LOG_*`` macros are recommended for lowest latency — they avoid evaluating arguments when the
-log level is disabled and resolve metadata at compile time. The macro-free functions
-(``quill::info()``, ``quill::warning()``, etc.) offer cleaner syntax with slightly higher overhead.
-See :doc:`Macro-Free Mode <macro_free_mode>` for the full trade-off comparison.
-
-.. note::
-
-   - **Use ``simple_logger()``** when you want the smallest setup with one or two default loggers.
-   - **Use ``Backend`` / ``Frontend``** when you need custom sinks, multiple loggers, custom formatter patterns, backend options, frontend options, or explicit lifecycle control.
-   - **See also:** a standalone version of this convenience path is available in ``examples/simple_setup.cpp``.
+See ``examples/simple_setup.cpp`` for a standalone example.
+See :doc:`macro_free_mode` for argument evaluation and performance differences.
 
 Architecture Overview
 ---------------------
 
-The library is header only and consists of two main components: the frontend and the backend.
-
-- **Frontend:** captures a copy of the log arguments and metadata from each ``LOG_*`` statement and places them in a thread-local SPSC (Single Producer Single Consumer) queue buffer. Each frontend thread has its own lock-free queue, ensuring no contention between logging threads.
-
-- **Backend:** runs in a separate thread, spawned by the library, asynchronously consuming messages from all frontend queues, formatting them, and writing them to the configured sinks.
+Quill is header-only. Application threads enqueue records and one worker writes them to sinks.
+The :doc:`overview` shows the queue and record layout.
 
 Detailed Setup
 --------------
 
-For more detailed control, start the backend thread in your application, then set up one or more output ``Sinks`` and a ``Logger``.
-
-Once the initialization is complete, you only need to include two header files to issue log statements:
-
-- ``#include "quill/LogMacros.h"``
-- ``#include "quill/Logger.h"``
-
-These headers have minimal dependencies, keeping compilation times low.
-
-For larger projects, the recommended setup is to wrap Quill initialization and setup in your own
-small static library that you build once and link into the rest of the application, as shown in:
-`Recommended Usage Example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
-
-For a quick reference on usage see :doc:`Recipes <recipes>`.
+Start the backend, create one or more sinks, then create the logger. Translation units that log need only
+``quill/LogMacros.h`` and ``quill/Logger.h``. For larger projects, compile initialization once in a small
+static library, as in the `recommended usage example <https://github.com/odygrd/quill/tree/master/examples/recommended_usage>`_.
 
 Logging to Console
 ~~~~~~~~~~~~~~~~~~
@@ -76,7 +54,7 @@ Logging to Console
    :language: cpp
    :linenos:
 
-Expected output:
+**Console output**
 
 .. code-block:: text
 
@@ -96,10 +74,10 @@ Logging to File
 Next Steps
 ----------
 
-- :doc:`Overview <overview>` for the full architecture and design rationale.
-- :doc:`Metrics <metrics>` for publishing compact metric samples through the same backend worker — including the built-in Prometheus exporter.
-- :doc:`MDC <mdc>` for attaching per-thread request/session context to subsequent log lines.
-- :doc:`JSON Logging <json_logging>` for structured machine-friendly output.
-- :doc:`Backend Options <backend_options>` and :doc:`Frontend Options <frontend_options>` for tuning queues, clocks, and backend behavior.
-- :doc:`Guides <guides>` for sinks, formatters, filters, backtrace logging, and more.
-- :doc:`Recipes <recipes>` for common tasks and code examples, including STL and user-defined type logging.
+.. rst-class:: quill-link-list
+
+- :doc:`Metrics <metrics>` for samples, exporters and the built-in Prometheus sink.
+- :doc:`MDC <mdc>` for request or session fields and :doc:`JSON logging <json_logging>` for structured output.
+- :doc:`Backend options <backend_options>` and :doc:`frontend options <frontend_options>` for worker and queue settings.
+- :doc:`Guides <guides>` for clocks, sinks, formatters, filters and backtraces.
+- :doc:`Recipes <recipes>` for common tasks, including logging STL and user-defined types.

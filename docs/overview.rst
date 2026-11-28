@@ -5,27 +5,19 @@
 Overview
 ========
 
-Quill is an asynchronous logging library built for C++ applications where **every nanosecond on
-the hot path matters** — trading systems, real-time engines, game servers, low-latency network
-stacks, and similar workloads.
+Quill is a C++17 asynchronous logging and metrics library for latency-sensitive code, including trading
+systems, real-time engines, game servers and network stacks.
 
-Quill also lets you **publish metric samples to an external metrics backend** (Prometheus,
-StatsD, OpenTelemetry, or any in-process collector) through the same asynchronous pipeline used
-for logs, so hot threads never pay for metric formatting or export either. Quill is not a
-metrics collection or exposition system itself — it is the low-latency transport that hands
-samples off to whichever metrics backend your sink targets.
+- **Frontend:** the calling thread only captures metadata and a binary copy of the log arguments, or a compact
+  metric sample, into its own lock-free queue.
+- **Backend:** one worker thread formats logs, forwards metric samples and does all the I/O, so even the slowest
+  log line never blocks a hot thread on string conversion or disk writes.
+- **Ordering:** the worker merges the events of all queues by timestamp, with a configurable grace period
+  instead of per-call locking.
+- **Sinks** handle logs, metrics or both. Files, consoles, rotation, JSON, syslog, systemd, Android and
+  Prometheus are built in, and custom sinks implement a narrow virtual interface.
 
-A dedicated backend worker handles log formatting, metric forwarding, and I/O, so even the
-slowest log line never blocks a hot thread on string conversion or disk writes. The frontend
-only captures a binary copy of the arguments (or a compact metric sample) into a thread-local
-lock-free queue; the backend does the rest.
-
-At a glance:
-
-- **Frontend:** captures metadata and a binary copy of log arguments, or a compact metric sample, on the calling thread.
-- **Backend:** formats log messages and forwards metric samples on a dedicated worker thread.
-- **Ordering:** a single worker processes cached events by timestamp across all active queues and uses a configurable grace period to reduce cross-thread timestamp reordering without per-call locking.
-- **Extensibility:** sinks can handle logs, metrics, or both — the built-in library covers files, consoles, rotation, JSON, Syslog/systemd, Android, and Prometheus, and custom sinks plug in through a narrow virtual interface.
+The diagram shows how a record travels from an application thread to its output.
 
 .. image:: design.drawio.svg
    :alt: Quill design overview
@@ -34,184 +26,131 @@ At a glance:
 Thread Safety
 -------------
 
-:cpp:type:`Logger` is thread safe by default. The same instance can be used to log by any thread.
-Any thread can safely modify the active log level of the logger.
+Threads can log through the same :cpp:type:`Logger` and change its active log level concurrently.
 
 Logging types
 -------------
 
-For primitive types, ``std::string``, and ``std::string_view``, the library will perform a deep copy, and all formatting will occur asynchronously in the backend thread.
-For standard library types you need to include the relevant file under the ``quill/std`` folder.
-For user-defined types you can provide a ``Codec`` specialization to serialize the type or alternatively convert the type to a string on the hot path for non-latency-sensitive code.
-
-See :doc:`Recipes <recipes>` for examples of logging STL types and user-defined types.
+Quill copies primitives, ``std::string`` and ``std::string_view`` for backend formatting. Include the matching
+``quill/std`` header for a standard library type. For a user type, specialize ``Codec`` or, on a less
+latency-sensitive path, convert it to a string before logging. See :doc:`recipes` for both examples.
 
 Metrics
 -------
 
-Quill can publish pre-registered metric samples through the same backend worker used for logs.
-Metric metadata is registered once and then reused by pointer on each publish call, so hot threads
-only enqueue a compact fixed-size sample record.
-
-Metric-capable sinks receive samples through :cpp:func:`Sink::write_metric`. The bundled
-``PrometheusSink`` is one option, but the metric API itself is backend-agnostic, so custom sinks
-can push metrics to any service or in-process collector you want.
+Quill transports :doc:`metrics` to a collector through :cpp:func:`Sink::write_metric`. The bundled
+``PrometheusSink`` handles Prometheus. Custom sinks can send to StatsD, OpenTelemetry or an in-process
+collector. Collection and exposition belong to the chosen metrics backend.
 
 Reliable Logging Mechanism
 --------------------------
 
-Quill utilizes a thread-local single-producer-single-consumer queue to relay log and metric events to the backend thread.
-By default, it uses an unbounded blocking queue with a small initial size to optimise performance.
-However, if the queue reaches its capacity, a new queue will be allocated, which may cause a slight performance penalty for the frontend.
-
-The default unbounded queue can expand up to a size of `FrontendOptions::unbounded_queue_max_capacity`. If this limit is reached, the caller thread will block instead of intentionally dropping events.
-It's possible to change the queue type within the :cpp:class:`FrontendOptions`.
-
-The queue size and type are configurable by providing a custom :cpp:class:`FrontendOptions` class.
-See :doc:`Frontend Options <frontend_options>` for details.
+Each producer owns a lock-free single-producer, single-consumer (SPSC) queue. Producers do not contend for
+the same queue. The default starts small and grows on the calling thread, which can add latency during a
+burst. At ``FrontendOptions::unbounded_queue_max_capacity`` it blocks for space.
+See :doc:`frontend_options` for queue modes, allocation limits and oversized records.
 
 Manual Log Flushing
 -------------------
 
-You can explicitly instruct the frontend thread to wait until all log entries up to the current timestamp are flushed
-using :cpp:func:`LoggerImpl::flush_log`. The calling thread will **block** until every log statement up to that point has been flushed.
+:cpp:func:`LoggerImpl::flush_log` blocks the caller until the backend flushes entries up to the current
+timestamp.
 
 Synchronized Logs for Debugging
 -------------------------------
 
-Sometimes, synchronized logging is necessary during application debugging. This can be achieved by calling :cpp:func:`LoggerImpl::set_immediate_flush` to enable immediate flushing for a specific logger instance.
+For debugging, :cpp:func:`LoggerImpl::set_immediate_flush` makes the caller wait for the backend to write
+after every message or every N messages. Frequent waits reduce throughput.
 
-This causes the calling thread to pause until the log is processed and written to the log file by the backend thread before proceeding, which may have a notable impact on performance.
-
-Set ``FrontendOptions::enable_immediate_flush = false`` to compile out immediate-flush support
-and its hot-path check. The default is ``true`` for both macros and the macro-free API.
-Explicit ``flush_log()`` calls remain available. See :doc:`recipes` for a compiled example.
+``FrontendOptions::enable_immediate_flush`` defaults to ``true`` for macros and functions. Set it to ``false``
+to compile out the hot-path check. Explicit ``flush_log()`` still works. See :doc:`recipes` for an example.
 
 Handling Application Crashes
 ----------------------------
 
-During normal program termination, the library ensures all messages are logged as it goes through the ``BackendWorker`` destructor.
-
-However, in the event of an application crash, some log messages may still be lost.
-
-The library provides an optional built-in signal handler that can help preserve logs in many common crash and termination scenarios. It can be enabled by passing :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
+The ``BackendWorker`` destructor drains pending messages on normal exit. A crash can lose queued records.
+For best-effort crash reporting, pass :cpp:struct:`SignalHandlerOptions` to :cpp:func:`Backend::start`.
 
 .. code-block:: cpp
 
    quill::Backend::start(quill::BackendOptions{}, quill::SignalHandlerOptions{});
 
-On POSIX systems, any thread that may run the built-in handler should either:
+**POSIX.** Before a thread can run the built-in handler, it must have logged once or called
+:cpp:func:`FrontendImpl::preallocate`. Otherwise block the handled signals on that thread. Keep a custom
+handler minimal. Use general logging or flush calls in signal context only if validated for that platform
+and process state.
 
-- have already logged at least once,
-- have called :cpp:func:`FrontendImpl::preallocate`, or
-- have the handled signals blocked so the handler does not run on that thread.
+Configure the handler with these :cpp:struct:`SignalHandlerOptions` fields.
 
-If you use your own POSIX signal handler, keep it minimal and avoid calling the general logging or flush APIs from an arbitrary signal context unless you have validated that approach for your platform and process state.
+- ``catchable_signals`` defaults to ``SIGTERM``, ``SIGINT``, ``SIGABRT``, ``SIGFPE``, ``SIGILL``, ``SIGSEGV`` and, where
+  available, ``SIGBUS``. After flushing, the handler re-raises the signal with its default disposition.
+  ``Backend::stop()`` restores the previous signal handlers.
+- ``timeout_seconds`` limits time in the POSIX handler. The default is 20 seconds. Zero disables the alarm.
+- ``logger_name`` selects the crash logger. An empty name selects the first valid logger.
+- ``excluded_logger_substrings`` skips matching names during automatic selection. The defaults,
+  ``{"__csv__", "__binary__"}``, exclude CSV, binary and pcap writers. If none qualify, the handler still
+  flushes the sinks without writing a crash message.
 
-:cpp:struct:`SignalHandlerOptions` allows you to configure:
+**Windows.** ``Backend::start()`` installs structured exception handling and a process-wide console control
+handler. CRT signal handlers are thread-specific. Call ``quill::init_signal_handler<FrontendOptions>()`` on
+each frontend thread needing CRT handling. Keep the backend worker free of CRT signal handlers.
 
-- ``catchable_signals`` — the list of signals to handle (defaults to ``SIGTERM``, ``SIGINT``, ``SIGABRT``, ``SIGFPE``, ``SIGILL``, ``SIGSEGV`` and, where available, ``SIGBUS``). After flushing, the signal is re-raised with its default disposition, so the process terminates by that signal, and ``Backend::stop()`` reinstalls the handlers that were installed before.
-- ``timeout_seconds`` — alarm timeout to prevent the process from hanging in the signal handler (POSIX only, defaults to 20 seconds; 0 disables it).
-- ``logger_name`` — the logger to use for crash reporting. If empty, the signal handler automatically selects the first valid logger.
-- ``excluded_logger_substrings`` — logger names containing these substrings are skipped during automatic selection (defaults to ``{"__csv__", "__binary__"}``, the loggers of the csv, binary and pcap writers). When every logger is skipped, the handler logs nothing and still flushes the sinks.
-
-On Windows, ``Backend::start()`` installs structured exception handling and a process-wide
-console control handler. CRT signal handlers are thread-specific; call
-``quill::init_signal_handler<FrontendOptions>()`` on each frontend/user thread that needs CRT
-signal handling. Do not install the CRT signal handler on the backend worker thread.
-When installing an application exception filter, serialize the installation with
-``Backend::start()`` and ``Backend::stop()``. If the application replaces Quill's
-filter while the backend is running, ``Backend::stop()`` keeps the replacement installed
-and later ``Backend::start()`` calls do not install Quill's filter over it. Quill's filter
-then runs only when the application's filter forwards to it, and it still forwards to the
-filter installed before Quill's.
+Serialize application exception-filter installation with ``Backend::start()`` and ``Backend::stop()``. If the
+application replaces Quill's filter while the backend runs, stopping and restarting preserves the replacement.
+Quill's filter runs if the replacement forwards to it, then forwards to the filter that preceded Quill's.
 
 Log Messages Timestamp Order
 ----------------------------
 
-The library employs a single worker backend thread that processes cached log messages from all queues by timestamp before printing them to the log file. A configurable timestamp-ordering grace period gives frontend threads a short window to publish already-timestamped events, reducing cross-thread timestamp reordering.
+The worker compares available queue heads by timestamp. A configurable grace period lets delayed producers
+publish earlier events. See :ref:`timestamp_types:timestamp recording` for ordering limits and corrections.
 
 Number of Backend Threads
 -------------------------
 
-Quill prioritizes low latency over high throughput, hence it utilizes only one backend thread to process all logs efficiently. Multiple backend threads are not supported.
-
-Starting and stopping the backend from different threads at the same time is also unsupported. Call
-``Backend::start()`` and ``Backend::stop()`` in a coordinated way rather than concurrently.
+One worker handles all loggers in the process: Quill puts low caller latency before throughput, and multiple
+backend threads are not supported. The worker's formatting and I/O rate bounds throughput. Coordinate
+``Backend::start()`` and ``Backend::stop()`` across threads. Concurrent start and stop are unsupported.
 
 Latency of the First Log Message
 --------------------------------
 
-Upon the first log message from each thread, the library allocates a queue dynamically. For minimizing latency with the initial log, consider calling :cpp:func:`FrontendImpl::preallocate`.
-
-The backend thread reads the queue of every thread, so it keeps up with a limited number of short-lived logging threads per second, which depends on the host: an application that starts many thousands of logging threads per second, e.g. one per request, should log from a thread pool.
+The first log on each thread allocates its queue. Call :cpp:func:`FrontendImpl::preallocate` beforehand to move
+this cost out of the first call. The worker polls every thread's queue. If an application starts thousands of
+short-lived logging threads per second (one per request, for example), a thread pool avoids exceeding the
+host's queue-processing rate.
 
 Configuration
 -------------
 
-Quill offers various customization options, well-documented for ease of use.
-
-- ``Frontend`` configuration is compile-time, requiring a custom :cpp:class:`FrontendOptions` class.
-- For ``Backend`` customization, refer to :cpp:class:`BackendOptions`.
+Select queue and memory policies at compile time with :cpp:class:`FrontendOptions`. Pass
+:cpp:class:`BackendOptions` at startup for runtime worker settings.
 
 Frontend (caller-thread)
 ------------------------
 
-The frontend is the calling thread on the user side which issues log statements. It includes:
+A :doc:`logger <loggers>` specifies a pattern and one or more :doc:`sinks`. A ``LOG_*`` macro takes the
+logger, format string and arguments. Its static ``constexpr`` metadata holds the format string and source
+location. Each call writes three kinds of data to the producer's queue.
 
-- **Loggers:** A Logger contains a format pattern and can include one or multiple output Sinks.
+- Timestamp, metadata pointer and logger pointer.
+- ``DecodeFunc``, a pointer to the decoder for this pack of argument types.
+- ``Args...``, a binary copy of the arguments.
 
-- **Sinks:** The Sink serves as the output destination, such as a file, console, or other sources.
-
-Log messages are written using macros that accept a logger as their first argument, followed by a format string. The backend utilizes the ``{fmt}`` library for formatting.
-
-When invoking a ``LOG_`` macro:
-
-1. Creates a static constexpr metadata object to store ``Metadata`` such as the format string and source location.
-
-2. Pushes the data to the SPSC lock-free queue. For each log message, the following variables are pushed:
-
-+------------+---------------------------------------------------------------------------------------------------------------+
-| Variable   | Description                                                                                                   |
-+============+===============================================================================================================+
-| timestamp  | Current timestamp                                                                                             |
-+------------+---------------------------------------------------------------------------------------------------------------+
-| Metadata*  | Pointer to metadata information                                                                               |
-+------------+---------------------------------------------------------------------------------------------------------------+
-| Logger*    | Pointer to the logger instance                                                                                |
-+------------+---------------------------------------------------------------------------------------------------------------+
-| DecodeFunc | A pointer to a templated function containing all the log message argument types, used for decoding the message|
-+------------+---------------------------------------------------------------------------------------------------------------+
-| Args...    | A serialized binary copy of each log message argument that was passed to the ``LOG_`` macro                   |
-+------------+---------------------------------------------------------------------------------------------------------------+
-
-When invoking ``METRIC(...)`` or :cpp:func:`LoggerImpl::publish_metric`:
-
-1. Reuses previously registered ``MetricMetadata`` instead of serializing metric names or labels on the hot path.
-
-2. Pushes a compact fixed-size sample record to the same SPSC queue.
-
-+-----------------+------------------------------------------------------+
-| Variable        | Description                                          |
-+=================+======================================================+
-| timestamp       | Current timestamp                                    |
-+-----------------+------------------------------------------------------+
-| MetricMetadata* | Pointer to the registered metric metadata            |
-+-----------------+------------------------------------------------------+
-| Logger*         | Pointer to the logger instance                       |
-+-----------------+------------------------------------------------------+
-| value           | The ``double`` metric sample                         |
-+-----------------+------------------------------------------------------+
+``METRIC(...)`` and :cpp:func:`LoggerImpl::publish_metric` write a fixed-size record to the same queue.
+It contains a timestamp, registered ``MetricMetadata*``, ``Logger*`` and a ``double`` value. Metric names and labels are
+registered once.
 
 Backend
 -------
 
-The backend consists of a single backend thread which takes care of formatting log statements, forwarding metric samples, and performing the IO writing to files.
-Consumes each event from the SPSC queue, retrieves all the necessary information, and then formats log messages or forwards metric samples to ``Sink::write_metric``.
-Subsequently, forwards the log or metric event to all ``Sinks`` associated with the Logger.
+The worker decodes log arguments, formats the message with {fmt}, applies the logger's pattern and sends
+it to each attached sink. It forwards metric samples to ``Sink::write_metric``.
 
 See Also
 --------
+
+.. rst-class:: quill-link-list
 
 - :doc:`Quick Start <quick_start>` for the shortest path to working logs.
 - :doc:`Guides <guides>` for sinks, metrics, formatters, JSON, filters, and more.

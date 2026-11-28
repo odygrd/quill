@@ -3,23 +3,14 @@
 Backtrace Logging
 =================
 
-Use this page to capture low-level log messages in a ring buffer and flush them on demand or when a high-severity event occurs.
+Keep recent low-level messages in a ring buffer to see what led up to an error.
+:cpp:func:`LoggerImpl::init_backtrace` takes a capacity and an optional severity that triggers output.
+Use ``LogLevel::Error`` to flush on errors and above, or keep the default ``LogLevel::None`` and call
+:cpp:func:`LoggerImpl::flush_backtrace` for on-demand output.
 
-Backtrace logging enables log messages to be stored in a ring buffer and can be:
-
-- Displayed later on demand
-- Automatically flushed when a high severity log message is logged
-
-To enable backtrace logging, initialize it first with an appropriate log level use :cpp:func:`LoggerImpl::init_backtrace`.
-By default, backtrace logs are automatically flushed when an error occurs.
-
-To manually flush backtrace logs, call :cpp:func:`LoggerImpl::flush_backtrace`.
-
-.. note::
-   Backtrace log messages are always pushed to the SPSC (Single Producer Single Consumer) queue from the frontend to the backend. They are stored in a ring buffer that resides in the backend and flushed as needed.
-
-.. note::
-   Backtrace log messages store the original timestamp of the message. Since they are stored and flushed later, the timestamps in the log file may appear out of order. This remains true even when :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` is enabled.
+The frontend enqueues backtrace records and the backend stores them in the ring with their original
+timestamps. Flushing later can put those timestamps out of order, even with
+:cpp:member:`BackendOptions::ensure_monotonic_output_timestamps` enabled.
 
 Store messages in the ring buffer and display them when ``LOG_ERROR`` is logged
 -------------------------------------------------------------------------------
