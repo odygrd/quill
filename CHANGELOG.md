@@ -174,10 +174,10 @@ cover rotating file sinks, signal handling, codecs and Windows.
   lowers the latency of the logging threads. Set it to 0 to read the queues again without a pause.
 - Each record in a frontend queue is padded to a multiple of 8 bytes, so a bounded queue holds a
   few fewer records with string arguments before it blocks or drops.
-- On Windows, a wait shorter than 1 ms, such as the retry of a thread blocked by a full `BoundedBlocking` or
-  `UnboundedBlocking` queue (`FrontendOptions::blocking_queue_retry_interval_ns`, 800 ns by default), yields until
-  it has passed instead of calling `Sleep()`, which waits a whole timer tick of 1 ms to 15.6 ms. A producer
-  that filled its queue waited that long on every retry, which cut its throughput by about two thirds.
+- On Windows, a blocked producer using a `BoundedBlocking` or `UnboundedBlocking` queue yields
+  between retries when `FrontendOptions::blocking_queue_retry_interval_ns` is below 1 ms
+  (800 ns by default). The previous `Sleep()` calls cut throughput by about two thirds when a
+  producer filled its queue.
 - `BackendOptions::sleep_duration` defaults to 500 μs instead of 100 μs, and to 10 ms on Android,
   so an idle backend thread wakes up less often on a shared core and on battery-powered devices. A
   record logged while the backend sleeps reaches the sinks when it wakes up, or at once after

@@ -821,10 +821,10 @@ public:
    * The backend thread will invoke the write operation on all sinks for all loggers up to the point
    * (timestamp) when this function is invoked.
    *
-   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries when the
-   * blocking queue is full, and between checks for the flush completion. Default is 100 nanoseconds.
-   * The first checks yield instead of sleeping. A sleep cannot be shorter than the OS timer
-   * granularity, about 50 us on Linux and 1 ms or more on Windows. 0 always yields.
+   * @param sleep_duration_ns The requested sleep in nanoseconds between retries when the
+   * blocking queue is full and between checks for flush completion. Default is 100 nanoseconds.
+   * The initial checks yield. On Windows a sleep is rounded up to whole milliseconds.
+   * 0 always yields.
    *
    * @warning Do not call this function from the destructor of a static object. This may lead to application crashes if the thread-local ThreadContext is destroyed before the static object invoking `flush_log`.
    * @note This function should only be called when the backend worker is running after Backend::start(...)

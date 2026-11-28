@@ -96,9 +96,9 @@ inline void yield_thread() noexcept
 
 /**
  * Waits before checking again for work the backend usually completes within microseconds.
- * Yields for the first attempts because a sleep cannot be shorter than the OS timer granularity
- * (about 50 us on Linux, 1 ms or more on Windows), then sleeps for `sleep_duration_ns`, or keeps
- * yielding when it is zero.
+ * Yields for the first attempts, then requests a sleep of `sleep_duration_ns`, or keeps yielding
+ * when it is zero. On Windows the sleep duration is rounded up to whole milliseconds before
+ * calling Sleep() so the waiting thread can give up its core.
  */
 inline void backoff_wait(uint32_t& attempt, uint64_t sleep_duration_ns) noexcept
 {
@@ -111,7 +111,12 @@ inline void backoff_wait(uint32_t& attempt, uint64_t sleep_duration_ns) noexcept
   }
   else
   {
+#if defined(_WIN32)
+    // Not sleep_for_ns(), which yields for a wait below 1 ms
+    ::Sleep(sleep_timeout_ms(sleep_duration_ns));
+#else
     sleep_for_ns(sleep_duration_ns);
+#endif
   }
 }
 } // namespace detail
