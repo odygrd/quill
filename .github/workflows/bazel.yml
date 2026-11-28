@@ -91,3 +91,19 @@ jobs:
           quill_example_console_logging_module --parallel 2
       - name: Test logging and automatic shutdown
         run: ctest --test-dir build -R '^quill_module_(logging|shutdown)_test$' --output-on-failure
+      - name: Configure the shared-library module test with sequential thread IDs
+        if: matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: >-
+          cmake -S test/module_shared_library -B build-sequential -G Ninja -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+          -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON
+      - name: Build the module example and shared-library test with sequential thread IDs
+        if: matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: >-
+          cmake --build build-sequential --target quill_docs_module
+          quill_module_shared_thread_id_test --parallel 2
+      - name: Test logging with sequential thread IDs
+        if: matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: >-
+          ctest --test-dir build-sequential -R '^quill_module_(logging|shared_thread_id)_test$'
+          --output-on-failure --timeout 30

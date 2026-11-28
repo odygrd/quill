@@ -505,6 +505,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
   redefinition errors or internal compiler errors
   ([#1012](https://github.com/odygrd/quill/issues/1012)), and a DragonFlyBSD build error with
   `QUILL_USE_SEQUENTIAL_THREAD_ID`.
+- With `QUILL_USE_SEQUENTIAL_THREAD_ID`, a program that imports the C++20 module links without
+  `QUILL_DEFINE_SEQUENTIAL_THREAD_ID`. On Linux, an executable and a startup-linked shared library
+  that both link the static module can share the counter even with hidden visibility.
 - CMake consumers using MSVCRT-based MinGW no longer link against UCRT through `quill::quill`,
   avoiding crashes when memory is allocated and freed across incompatible C runtimes.
 

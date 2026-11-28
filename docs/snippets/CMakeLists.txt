@@ -46,9 +46,15 @@ if (TARGET quill_module)
     list(APPEND EXAMPLE_TARGETS quill_docs_module)
 
     if (QUILL_BUILD_TESTS)
+        set(quill_module_logging_test_output "Logging through the Quill module: 42")
+        if (QUILL_USE_SEQUENTIAL_THREAD_ID)
+            # With sequential thread IDs, the thread that logs has a small ID
+            set(quill_module_logging_test_output "\\[[1-9]\\] .*${quill_module_logging_test_output}")
+        endif ()
+
         add_test(NAME quill_module_logging_test COMMAND quill_docs_module)
         set_tests_properties(quill_module_logging_test PROPERTIES
-                PASS_REGULAR_EXPRESSION "Logging through the Quill module: 42")
+                PASS_REGULAR_EXPRESSION "${quill_module_logging_test_output}")
     endif ()
 endif ()
 

@@ -41,14 +41,18 @@ Disable thread-name retrieval on toolchains that lack it, such as older Windows 
     add_compile_definitions(-DQUILL_USE_SEQUENTIAL_THREAD_ID)
 
 Assign each thread a sequential ID on first use and retain it for the thread's lifetime. Reproducible IDs
-require threads to initialize in the same order. Define the counter below in exactly one ``.cpp`` file so the
-process, including shared libraries, uses a single counter.
+require threads to initialize in the same order. When using the headers, place the definition below in
+exactly one ``.cpp`` file. Any shared library that references the counter or cache must resolve both to
+that definition.
 
 .. code:: c++
 
     #include "quill/Utility.h"
 
     QUILL_DEFINE_SEQUENTIAL_THREAD_ID
+
+The C++20 module supplies its own counter and cache. On Linux, an executable and a shared library linked
+at startup can share both through normal dynamic symbol resolution when each links the static module.
 
 .. code:: cmake
 
