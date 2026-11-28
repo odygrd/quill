@@ -59,7 +59,7 @@ timestamp.
 Synchronized Logs for Debugging
 -------------------------------
 
-For debugging, :cpp:func:`LoggerImpl::set_immediate_flush` makes the caller wait for the backend to write
+For debugging, ``Logger::set_immediate_flush()`` makes the caller wait for the backend to write
 after every message or every N messages. Frequent waits reduce throughput.
 
 ``FrontendOptions::enable_immediate_flush`` defaults to ``true`` for macros and functions. Set it to ``false``

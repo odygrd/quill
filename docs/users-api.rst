@@ -34,6 +34,23 @@ BackendTscClock Class
 .. doxygenclass:: BackendTscClock
    :members:
 
+ClockSource Class
+-----------------
+
+.. doxygenclass:: ClockSource
+   :members:
+
+UserClockSource Class
+---------------------
+
+.. doxygenclass:: UserClockSource
+   :members:
+
+Timestamp Types
+---------------
+
+.. doxygenenum:: TimestampType
+
 SignalHandler Options
 ---------------------
 

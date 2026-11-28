@@ -305,11 +305,11 @@ Runtime Metadata Logging Macro
 Ordinary macros store call-site metadata at compile time. To supply it at runtime, choose a variant based
 on which values can stay valid until the worker consumes the record.
 
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_DEEP` copies format string, file, function and tags. Use it to
+- ``QUILL_LOG_RUNTIME_METADATA_DEEP`` copies format string, file, function and tags. Use it to
   forward logs from another library. ``QUILL_LOG_RUNTIME_METADATA`` is the same operation without tags.
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_HYBRID` copies format and tags and references file and function.
+- ``QUILL_LOG_RUNTIME_METADATA_HYBRID`` copies format and tags and references file and function.
   Tagged macro-free calls use this path.
-- :c:macro:`QUILL_LOG_RUNTIME_METADATA_SHALLOW` references all four fields. It has the lowest overhead
+- ``QUILL_LOG_RUNTIME_METADATA_SHALLOW`` references all four fields. It has the lowest overhead
   for static metadata with a dynamic level, as in ``LOG_DYNAMIC``.
 
 ``DEEP`` and ``HYBRID`` accept dynamic null-terminated tag strings. A ``SHALLOW`` tag pointer must stay
