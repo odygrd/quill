@@ -7,7 +7,8 @@
 #include <cstdint>
 #include <memory>
 
-// A clock that follows real time, such as a PTP or NIC hardware clock. This sample reads
+// A clock that follows real time, such as a PTP or NIC hardware clock on UTC: it has to agree with
+// the system clock, which the backend compares its timestamps with. This sample reads
 // std::chrono::system_clock in its place.
 struct WallClock : quill::UserClockSource
 {

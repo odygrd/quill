@@ -16,7 +16,7 @@ whenever the benchmarks are updated.
 At a Glance
 -----------
 
-The state of each library in December 2026.
+The state of each library in November 2026.
 
 - **Status:** *active* means a real code change in the last 12 months, *low activity* in the last three years,
   and *unmaintained* none for three years or more, or an archived repository.
@@ -159,7 +159,8 @@ backend can also run on a thread of your own (:doc:`ManualBackendWorker <manual_
   encodes into the queue instead of formatting them.
 - It logs almost anything. The ``quill/std/`` headers cover STL containers, including nested ones. For your own
   types, a ``fmtquill::formatter`` sets the text and a ``quill::Codec`` sets what goes into the queue: a copy of the
-  object for deferred formatting, or just the fields the formatter needs. Formatting never runs on your thread.
+  object for deferred formatting, or just the fields the formatter needs. Formatting never runs on your thread,
+  except for types you give a :ref:`DirectFormatCodec <recipes:directformatcodec>`.
 - One backend for more than logs. :doc:`Metrics <metrics>` go to Prometheus through ``PrometheusSink`` or to a sink
   of your own, with each call passing only a pointer to the registered metric and a value. The same backend writes
   :doc:`CSV files <csv_writing>`, raw binary files and pcap captures that Wireshark and tcpdump open, and can
@@ -185,7 +186,7 @@ backend can also run on a thread of your own (:doc:`ManualBackendWorker <manual_
 - Memory is limited at both ends. The default unbounded queue grows during a burst, up to
   ``unbounded_queue_max_capacity`` (2 GiB per thread by default, configurable), then blocks, or drops with a
   dropping queue. The backend caps its own buffering with ``transit_events_soft_limit`` and
-  ``transit_events_hard_limit``. A thread gives memory back after a burst only when it calls
+  ``transit_events_hard_limit``. After a burst, a thread keeps the largest queue it grew to until it calls
   ``Frontend::shrink_thread_local_queue()``; a bounded queue keeps memory fixed from the start.
 - One backend thread, so its formatting and I/O rate is the ceiling: it keeps up with high throughput from many
   producer threads, but cannot scale past it. An application that needs more splits its logging across processes.
@@ -530,12 +531,14 @@ strongest general-purpose choice here:
   call and burst scenarios on Linux, and first in most of them on Windows; on AMD the fastest libraries tie within
   its 10 ns timer steps. :ref:`fmtlog <benchmarks_library_notes:fmtlog>` and :ref:`XTR <benchmarks_library_notes:xtr>`
   match it for plain numbers but take many times longer for a vector of strings, which real applications log all
-  the time. In the cold and disabled cold scenarios, the libraries that reach their state through a global or a
-  thread local, such as fmtlog and XTR, start ahead of it: its calls first load the logger object the application
-  holds, which is cold there too. With GCC its C++20 logging functions are within a nanosecond or two of its macros
-  for numbers and strings; with MSVC they cost several nanoseconds more. The libraries that format
-  on the calling thread pay for it on every call: :ref:`g3log <benchmarks_library_notes:g3log>` takes microseconds
-  and :ref:`Boost.Log <benchmarks_library_notes:boost.log>` is among the slowest in every table.
+  the time. In the disabled cold scenario, libraries such as fmtlog and XTR can reach their state faster
+  through a global or thread-local variable. On both Linux systems they also lead Quill's default queue in
+  the cold scenario with two integers and a double. Quill's calls first load the logger object held by the
+  application, which is cold in these scenarios. At p90, its C++20 logging functions are within two nanoseconds
+  of its macros for numbers and strings in the single-call and burst scenarios with GCC. With MSVC they cost
+  several nanoseconds more. The libraries that format on the calling thread pay for it on every call:
+  :ref:`g3log <benchmarks_library_notes:g3log>` takes microseconds and
+  :ref:`Boost.Log <benchmarks_library_notes:boost.log>` is among the slowest in every table.
 - **Throughput:** its text throughput is near the top: third on Linux, a little behind
   :ref:`XTR <benchmarks_library_notes:xtr>` and :ref:`BqLog <benchmarks_library_notes:bqlog>`, and second on
   Windows, behind :ref:`BqLog <benchmarks_library_notes:bqlog>`. Of the binary loggers,

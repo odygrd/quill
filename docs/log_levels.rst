@@ -50,9 +50,9 @@ argument evaluation and runtime level checks.
    #include <quill/LogMacros.h>
 
    // Or set via CMake
-   add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_INFO)
+   add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_INFO)
 
-The default ``QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3`` includes all levels. Rebuild to change the cutoff.
+The default value, ``-1``, includes all levels. Rebuild to change the cutoff.
 See :ref:`logging_macros:compile-time log level filtering` for compiler flags.
 
 Interaction Between Runtime and Compile-Time Controls

@@ -216,18 +216,24 @@ QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline std::string get_thread_
 #endif
 }
 
-#if defined(QUILL_USE_SEQUENTIAL_THREAD_ID)
+#if defined(QUILL_USE_SEQUENTIAL_THREAD_ID) && !defined(QUILL_MODULE)
 extern std::atomic<uint32_t> g_next_thread_id;
 extern QUILL_THREAD_LOCAL uint32_t g_cached_thread_id;
 #endif
 
 /**
- * Returns the os assigned ID of the thread
  * @return the thread ID of the calling thread
  */
 QUILL_NODISCARD QUILL_EXPORT QUILL_ATTRIBUTE_USED inline uint32_t get_thread_id() noexcept
 {
 #if defined(QUILL_USE_SEQUENTIAL_THREAD_ID)
+  #if defined(QUILL_MODULE)
+  // These statics inherit the exported function's visibility. On Linux, a startup-linked shared
+  // library can resolve both to the executable's definitions even with -fvisibility=hidden.
+  static std::atomic<uint32_t> g_next_thread_id{0};
+  static QUILL_THREAD_LOCAL uint32_t g_cached_thread_id{0};
+  #endif
+
   if (QUILL_LIKELY(g_cached_thread_id != 0u))
   {
     return g_cached_thread_id;

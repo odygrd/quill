@@ -22,7 +22,9 @@ copying the payload. Preemption between reading the clock and publishing can sti
 
 Timestamps in one queue should normally be non-decreasing. :cpp:member:`BackendOptions::ensure_monotonic_output_timestamps`
 corrects sink-visible times for regular log, metric and binary records if a clock moves backward.
-Flushed backtraces keep their original capture times.
+Flushed backtraces keep their original capture times. A thread that logs through both a TSC and a system
+clock logger reads two clocks, so its records can step back by tens to a few hundred nanoseconds; the same
+option corrects those steps.
 
 If a regular log, metric or binary timestamp predates one already selected for output, the backend can
 suggest a larger grace period through :cpp:member:`BackendOptions::error_notifier`.
@@ -46,10 +48,11 @@ The default frontend uses the same ``Logger*`` type for all three choices. One b
 simulation time at runtime.
 
 - **TSC** (``ClockSource::tsc()``, the default). The caller reads raw ``__rdtsc`` ticks. The backend's
-  ``RdtscClock`` takes about 10 ms to calibrate on first use, then converts ticks to wall time with a lock-free
-  algorithm. It resynchronizes every 500 ms by default. Use an invariant TSC synchronized across cores.
-  Drift is usually small, but captures from different cores can use different calibration points across a
-  resync. Timestamps may then appear a few microseconds out of order.
+  ``RdtscClock`` takes about 10 ms to calibrate on first use on x86 (AArch64 reads the counter frequency),
+  then converts ticks to wall time with a lock-free algorithm. It resynchronizes every 500 ms by default.
+  Use an invariant TSC synchronized across cores. Drift is usually small, but captures from different cores
+  can use different calibration points across a resync. Timestamps may then appear a few microseconds out
+  of order.
 - **System** (``ClockSource::system()``). ``std::chrono::system_clock::now()`` costs more on the caller but
   gives wall time immediately, without TSC calibration or resync drift. Use it when wall-time accuracy or strict
   chronological order matters.
@@ -84,8 +87,12 @@ The option selects dispatch, and the argument supplies the instance and state.
   applies the grace period as for the built-in TSC.
 - ``TimestampType::WallClockNanoseconds`` returns real Unix-epoch nanoseconds, for example from PTP, a NIC,
   ``CLOCK_REALTIME`` or a custom TSC conversion. Ordering and grace match the system clock.
+  Keep the clock aligned with system time. With a nonzero grace period, a clock that runs ahead can
+  make each new queue head wait a full grace period from its first observation, allowing a backlog to
+  build. A PTP hardware clock on TAI is 37 s ahead of UTC. Subtract the offset in ``now()`` or return
+  ``TimestampType::EpochNanoseconds``.
 - ``TimestampType::EpochNanoseconds`` is the default for compatibility with existing clocks. Use it for
-  simulations or a replay of a past trading day. Marking replay data as wall time can trigger reordering
+  simulations or a replay of recorded data. Marking replay data as wall time can trigger reordering
   diagnostics or advance its timestamps to other loggers' wall times under monotonic correction.
 
 .. literalinclude:: snippets/quill_docs_custom_wall_clock.cpp

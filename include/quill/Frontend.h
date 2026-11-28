@@ -497,8 +497,8 @@ public:
    * @warning After calling this function, no thread should use this logger.
    *
    * @param logger A pointer to the logger to remove.
-   * @param sleep_duration_ns The duration in nanoseconds to sleep between retries, after a few
-   * yields. A sleep cannot be shorter than the OS timer granularity. 0 always yields.
+   * @param sleep_duration_ns The requested sleep in nanoseconds between retries after the initial
+   * yields. On Windows the sleep duration is rounded up to whole milliseconds. 0 always yields.
    */
   static void remove_logger_blocking(logger_t* logger, uint32_t sleep_duration_ns = 100)
   {

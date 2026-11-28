@@ -20,16 +20,9 @@ For one or two default loggers, call ``simple_logger()`` and use the recommended
 
 For function-call syntax, include ``quill/LogFunctions.h``.
 
-.. code-block:: cpp
-
-   #include "quill/LogFunctions.h"
-   #include "quill/SimpleSetup.h"
-
-   int main()
-   {
-     auto* logger = quill::simple_logger();
-     quill::info(logger, "Hello from {}!", "Quill");
-   }
+.. literalinclude:: snippets/quill_docs_log_functions.cpp
+   :language: cpp
+   :linenos:
 
 See ``examples/simple_setup.cpp`` for a standalone example.
 See :doc:`macro_free_mode` for argument evaluation and performance differences.

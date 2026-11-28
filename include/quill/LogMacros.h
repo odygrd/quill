@@ -105,12 +105,12 @@
  * reducing branches in compiled code and the number of MacroMetadata constexpr instances.
  *
  * The default value of -1 enables all log levels.
- * Specify a logging level to disable all levels equal to or higher than the specified level.
+ * Specify a logging level to compile out the levels below it.
  *
  * For example to only log warnings and above you can use:
- *   add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+ *   add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
  * or
- *   target_compile_definitions(${TARGET} PRIVATE -DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+ *   target_compile_definitions(${TARGET} PRIVATE QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
  **/
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L3 0
 #define QUILL_COMPILE_ACTIVE_LOG_LEVEL_TRACE_L2 1

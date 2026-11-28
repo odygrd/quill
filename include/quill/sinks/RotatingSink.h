@@ -1195,7 +1195,8 @@ private:
         return true;
       }
 
-      if (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos)
+      // An extensionless base filename puts the index first, parsed above
+      if (base_extension.empty() || (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos))
       {
         return false;
       }
@@ -1246,7 +1247,8 @@ private:
         return true;
       }
 
-      if (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos)
+      // An extensionless base filename puts the index first, parsed above
+      if (base_extension.empty() || (suffix.find('.', separator_pos + 1) != NativeFilenameView::npos))
       {
         return false;
       }

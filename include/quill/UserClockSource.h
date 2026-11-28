@@ -58,9 +58,11 @@ public:
    * Reports what now() returns; keep it fixed for the logger and its queued records:
    * - TimestampType::EpochNanoseconds, the default, for simulated or replayed time. The records
    *   keep the clock's own timeline and do not wait for the grace period.
-   * - TimestampType::WallClockNanoseconds for a clock that follows real time, such as a PTP or NIC
-   *   hardware clock. The records wait for the grace period and are ordered with the other loggers,
-   *   like those of ClockSource::system(). Never use it for simulated or replayed time.
+   * - TimestampType::WallClockNanoseconds for real-time clocks, such as PTP and NIC clocks.
+   *   Ordering and grace follow the same rules as ClockSource::system().
+   *   Keep the clock aligned with system time. If it runs ahead and grace is enabled,
+   *   each new queue head can wait a full grace period from its first observation.
+   *   If the clock uses TAI, subtract the difference between TAI and UTC in now().
    * - TimestampType::TscTicks for raw TSC ticks. The backend converts them and orders the records
    *   like those of ClockSource::tsc().
    */

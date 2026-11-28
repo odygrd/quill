@@ -26,23 +26,24 @@ Set the flags you need in the build system.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_NO_EXCEPTIONS)
+    add_compile_definitions(QUILL_NO_EXCEPTIONS)
 
 Build Quill without exception support.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_NO_THREAD_NAME_SUPPORT)
+    add_compile_definitions(QUILL_NO_THREAD_NAME_SUPPORT)
 
 Disable thread-name retrieval on toolchains that lack it, such as older Windows Server (2012/2016) or Android.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_USE_SEQUENTIAL_THREAD_ID)
+    add_compile_definitions(QUILL_USE_SEQUENTIAL_THREAD_ID)
 
 Assign each thread a sequential ID on first use and retain it for the thread's lifetime. Reproducible IDs
-require threads to initialize in the same order. Define the counter below in exactly one ``.cpp`` file so the
-process, including shared libraries, uses a single counter.
+require threads to initialize in the same order. When using the headers, place the definition below in
+exactly one ``.cpp`` file. Any shared library that references the counter or cache must resolve both to
+that definition.
 
 .. code:: c++
 
@@ -50,35 +51,38 @@ process, including shared libraries, uses a single counter.
 
     QUILL_DEFINE_SEQUENTIAL_THREAD_ID
 
+The C++20 module supplies its own counter and cache. On Linux, an executable and a shared library linked
+at startup can share both through normal dynamic symbol resolution when each links the static module.
+
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_ENABLE_ASSERTIONS)
+    add_compile_definitions(QUILL_ENABLE_ASSERTIONS)
 
 Enable internal assertions in release builds. By default they run only when ``NDEBUG`` is undefined.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_NON_PREFIXED_MACROS)
+    add_compile_definitions(QUILL_DISABLE_NON_PREFIXED_MACROS)
 
 Keep only ``QUILL_LOG_<LEVEL>`` macros to avoid name collisions.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_FUNCTION_NAME)
+    add_compile_definitions(QUILL_DISABLE_FUNCTION_NAME)
 
 Omit ``__FUNCTION__`` if the output pattern omits ``%(caller_function)``. This also avoids Clang-Tidy warnings
 for log calls in lambdas.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_DISABLE_FILE_INFO)
+    add_compile_definitions(QUILL_DISABLE_FILE_INFO)
 
 Omit ``__FILE__`` and ``__LINE__`` if you do not use ``%(file_name)``, ``%(line_number)``, ``%(short_source_location)``
 or ``%(source_location)``.
 
 .. code:: cmake
 
-    option(QUILL_DETAILED_FUNCTION_NAME "Use detailed function name (__PRETTY_FUNCTION__ or __FUNCSIG__) instead of __FUNCTION__ in LOG_* macros" OFF)
+    add_compile_definitions(QUILL_DETAILED_FUNCTION_NAME)
 
 Use ``__PRETTY_FUNCTION__`` (GCC/Clang) or ``__FUNCSIG__`` (MSVC) for ``%(caller_function)``. See
 :ref:`formatters:advanced pattern formatter configuration` for ``PatternFormatterOptions::process_function_name``.
@@ -93,13 +97,13 @@ calls ineffective. See :ref:`overview:synchronized logs for debugging` for runti
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
+    add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_<ACTIVE_LEVEL>)
 
 Set the lowest compiled severity. For example, keep Warning and above.
 
 .. code:: cmake
 
-    add_compile_definitions(-DQUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
+    add_compile_definitions(QUILL_COMPILE_ACTIVE_LOG_LEVEL=QUILL_COMPILE_ACTIVE_LOG_LEVEL_WARNING)
 
 Hiding File Names and Functions From Build Binaries
 ---------------------------------------------------
@@ -500,48 +504,9 @@ DeferredFormatCodec
 Basic Example
 ^^^^^^^^^^^^^
 
-.. code:: cpp
-
-    #include "quill/DeferredFormatCodec.h"
-
-    class User
-    {
-    public:
-      User(std::string name, std::string surname, uint32_t age)
-        : name(std::move(name)), surname(std::move(surname)), age(age)
-      {
-        favorite_colors.push_back("red");
-        favorite_colors.push_back("blue");
-        favorite_colors.push_back("green");
-      };
-
-      std::string name;
-      std::string surname;
-      uint32_t age{};
-      std::vector<std::string> favorite_colors;
-    };
-
-    /***/
-    template <>
-    struct fmtquill::formatter<User>
-    {
-      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-      auto format(::User const& user, format_context& ctx) const
-      {
-        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
-                                   user.name, user.surname, user.age, user.favorite_colors);
-      }
-    };
-
-    /***/
-    template <>
-    struct quill::Codec<User> : quill::DeferredFormatCodec<User>
-    {
-    };
-
-    User user{"Super", "User", 1};
-    LOG_INFO(logger, "User is [{}]", user);
+.. literalinclude:: snippets/quill_docs_deferred_format_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -552,46 +517,9 @@ Outputs:
 Serialising Trivially Copyable Types With Non-Default Constructor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code:: cpp
-
-    #include "quill/DeferredFormatCodec.h"
-
-    class Order
-    {
-    public:
-      Order(double price, int quantity)
-        : timestamp(std::chrono::system_clock::now().time_since_epoch().count()), price(price), quantity(quantity)
-      {
-      }
-
-    private:
-      uint64_t timestamp;
-      double price;
-      int quantity;
-
-      friend struct quill::DeferredFormatCodec<Order>;
-
-      Order() = default;
-
-      friend std::ostream& operator<<(std::ostream& os, Order const& order)
-      {
-        os << "timestamp=" << order.timestamp << " price=" << order.price << " quantity=" << order.quantity;
-        return os;
-      }
-    };
-
-    template <>
-    struct fmtquill::formatter<Order> : fmtquill::ostream_formatter
-    {
-    };
-
-    template <>
-    struct quill::Codec<Order> : quill::DeferredFormatCodec<Order>
-    {
-    };
-
-    Order order {220.10, 100};
-    LOG_INFO(logger, "Order is {}", order);
+.. literalinclude:: snippets/quill_docs_trivially_copyable_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -605,48 +533,9 @@ DirectFormatCodec
 The caller caches the formatted bytes until it copies them to the queue. Long values can allocate.
 Capacity lasts until the thread context is destroyed, so one large record can increase a thread's retained memory.
 
-.. code:: cpp
-
-    #include "quill/DirectFormatCodec.h"
-
-    class User
-    {
-    public:
-      User(std::string name, std::string surname, uint32_t age)
-        : name(std::move(name)), surname(std::move(surname)), age(age)
-      {
-        favorite_colors.push_back("red");
-        favorite_colors.push_back("blue");
-        favorite_colors.push_back("green");
-      };
-
-      std::string name;
-      std::string surname;
-      uint32_t age{};
-      std::vector<std::string> favorite_colors;
-    };
-
-    /***/
-    template <>
-    struct fmtquill::formatter<User>
-    {
-      constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
-
-      auto format(::User const& user, format_context& ctx) const
-      {
-        return fmtquill::format_to(ctx.out(), "Name: {}, Surname: {}, Age: {}, Favorite Colors: {}",
-                                   user.name, user.surname, user.age, user.favorite_colors);
-      }
-    };
-
-    /***/
-    template <>
-    struct quill::Codec<User> : quill::DirectFormatCodec<User>
-    {
-    };
-
-    User user{"Super", "User", 1};
-    LOG_INFO(logger, "User is [{}]", user);
+.. literalinclude:: snippets/quill_docs_direct_format_codec.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 
@@ -756,77 +645,9 @@ For private non-trivial members, declare ``quill::Codec<T>`` a friend and provid
 constructor if necessary. This example includes ``quill/std/Chrono.h`` for its
 ``std::chrono::system_clock::time_point`` member.
 
-.. code:: cpp
-
-    #include "quill/bundled/fmt/ostream.h"
-    #include "quill/bundled/fmt/format.h"
-
-    #include "quill/core/Codec.h"
-    #include "quill/core/DynamicFormatArgStore.h"
-    #include "quill/std/Chrono.h"
-
-    class Order
-    {
-    public:
-      Order(std::string symbol, double price, int quantity)
-        : timestamp(std::chrono::system_clock::now().time_since_epoch().count()), symbol(std::move(symbol)), price(price), quantity(quantity)
-      {
-      }
-
-    private:
-      std::chrono::system_clock::time_point timestamp;
-      std::string symbol;
-      double price;
-      int quantity;
-
-      template <typename T, typename U>
-      friend struct quill::Codec;
-
-      Order() = default;
-
-      friend std::ostream& operator<<(std::ostream& os, Order const& order)
-      {
-        os << "timestamp=" << order.timestamp.time_since_epoch().count() << " symbol=" << order.symbol << " price=" << order.price << " quantity=" << order.quantity;
-        return os;
-      }
-    };
-
-    template <>
-    struct fmtquill::formatter<Order> : fmtquill::ostream_formatter
-    {
-    };
-
-    template <>
-    struct quill::Codec<Order>
-    {
-      static size_t compute_encoded_size(quill::SizeCacheVector& conditional_arg_size_cache, ::Order const& order) noexcept
-      {
-        return compute_total_encoded_size(conditional_arg_size_cache, order.timestamp, order.symbol, order.price, order.quantity);
-      }
-
-      static void encode(std::byte*& buffer, quill::SizeCacheVector const& conditional_arg_size_cache,
-                         uint32_t& conditional_arg_size_cache_index, ::Order const& order) noexcept
-      {
-        encode_members(buffer, conditional_arg_size_cache, conditional_arg_size_cache_index, order.timestamp, order.symbol,
-                       order.price, order.quantity);
-      }
-
-      static ::Order decode_arg(std::byte*& buffer)
-      {
-        ::Order order;
-        decode_members(buffer, order, order.timestamp, order.symbol, order.price, order.quantity);
-        return order;
-      }
-
-      static void decode_and_store_arg(std::byte*& buffer, DynamicFormatArgStore* args_store)
-      {
-        args_store->push_back(decode_arg(buffer));
-      }
-    };
-
-    Order order {"AAPL", 220.10, 100};
-    LOG_INFO(logger, "Order is {}", order);
-    LOGV_INFO(logger, "Order", order);
+.. literalinclude:: snippets/quill_docs_custom_codec_private_members.cpp
+   :language: cpp
+   :linenos:
 
 Outputs:
 

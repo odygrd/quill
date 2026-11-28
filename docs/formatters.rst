@@ -131,9 +131,9 @@ Advanced Pattern Formatter Configuration
    options.source_location_path_strip_prefix = "/home/user/project/";
    // "/home/user/project/src/main.cpp:42" becomes "src/main.cpp:42"
    
-   // Remove relative path components like "../"
+   // Remove everything up to and including the last "../"
    options.source_location_remove_relative_paths = true;
-   // "../../src/utils/../main.cpp:15" becomes "src/main.cpp:15"
+   // "../../src/utils/../main.cpp:15" becomes "main.cpp:15"
 
 ``%(short_source_location)`` always shows just the filename and line.
 
@@ -163,7 +163,8 @@ parameter types. Use ``process_function_name`` to shorten them.
        return name;
    };
 
-The callback is active only with ``QUILL_DETAILED_FUNCTION_NAME``.
+The callback runs whenever it is set and the pattern includes ``%(caller_function)``. It is most useful
+with ``QUILL_DETAILED_FUNCTION_NAME``, which passes it the full signature instead of the simple name.
 
 **Tags.** Set ``process_tags`` to transform the text inserted into ``%(tags)``.
 
@@ -208,4 +209,4 @@ See :doc:`log_tagging` for the tag APIs.
    
    // With add_metadata_to_multi_line_logs = false:
    // 2024-01-15 10:30:45.123 [1234] main.cpp:42 LOG_INFO     MyLogger Line 1
-   //                                                                   Line 2
+   // Line 2

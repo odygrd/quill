@@ -122,8 +122,8 @@ enum class TimestampType : uint8_t
   EpochNanoseconds,
 
   /**
-   * Nanoseconds since the Unix epoch from a clock that follows real time, such as a PTP clock. The
-   * backend orders the records like ClockSource::system()
+   * Nanoseconds since the Unix epoch from a clock that follows real time and agrees with the system
+   * clock, such as a PTP clock on UTC. The backend orders the records like ClockSource::system()
    */
   WallClockNanoseconds
 };

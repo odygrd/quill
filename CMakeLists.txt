@@ -9,7 +9,7 @@ option(QUILL_NO_EXCEPTIONS "Enable this option to build without exception handli
 
 option(QUILL_NO_THREAD_NAME_SUPPORT "Enable this option to disable features that require thread name retrieval, ensuring compatibility with older Windows versions (e.g., Windows Server 2012/2016) and Android." OFF)
 
-option(QUILL_USE_SEQUENTIAL_THREAD_ID "Enable this option to use a sequential counter for thread IDs instead of OS-assigned thread IDs. Requires defining QUILL_DEFINE_SEQUENTIAL_THREAD_ID (from quill/Utility.h) in exactly one translation unit." OFF)
+option(QUILL_USE_SEQUENTIAL_THREAD_ID "Enable this option to use a sequential counter for thread IDs instead of OS-assigned thread IDs. Requires defining QUILL_DEFINE_SEQUENTIAL_THREAD_ID (from quill/Utility.h) in exactly one translation unit, except with the C++20 module, which defines it." OFF)
 
 option(QUILL_DISABLE_NON_PREFIXED_MACROS "Enable this option to disable non-prefixed `LOG_*` macros, keeping only the `QUILL_LOG_*` macros to avoid conflicts with other logging libraries." OFF)
 

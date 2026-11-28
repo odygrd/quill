@@ -62,7 +62,9 @@ Character Sanitization
 
 By default, sinks receive printable ASCII (space through ``~``), newline (``\n``), tab (``\t``) and carriage
 return (``\r``). Other bytes are hex-escaped, including UTF-8 (for example, ``中`` becomes ``\xE4\xB8\xAD``).
-To preserve Chinese, Japanese or other non-ASCII text, disable the check as follows.
+The check runs when the statement has a string, character or custom-formatted argument. A statement with
+only integer arguments skips the check. To preserve Chinese, Japanese or other non-ASCII text, disable
+the check as follows.
 
 .. code-block:: cpp
 

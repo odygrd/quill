@@ -59,7 +59,7 @@ timestamp.
 Synchronized Logs for Debugging
 -------------------------------
 
-For debugging, :cpp:func:`LoggerImpl::set_immediate_flush` makes the caller wait for the backend to write
+For debugging, ``Logger::set_immediate_flush()`` makes the caller wait for the backend to write
 after every message or every N messages. Frequent waits reduce throughput.
 
 ``FrontendOptions::enable_immediate_flush`` defaults to ``true`` for macros and functions. Set it to ``false``
@@ -73,7 +73,8 @@ For best-effort crash reporting, pass :cpp:struct:`SignalHandlerOptions` to :cpp
 
 .. code-block:: cpp
 
-   quill::Backend::start(quill::BackendOptions{}, quill::SignalHandlerOptions{});
+   // With custom FrontendOptions, pass that type instead
+   quill::Backend::start<quill::FrontendOptions>(quill::BackendOptions{}, quill::SignalHandlerOptions{});
 
 **POSIX.** Before a thread can run the built-in handler, it must have logged once or called
 :cpp:func:`FrontendImpl::preallocate`. Otherwise block the handled signals on that thread. Keep a custom

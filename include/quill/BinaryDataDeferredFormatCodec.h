@@ -84,8 +84,8 @@ QUILL_END_EXPORT
  * 1. Copying the raw binary data to the log queue on the hot path (critical section)
  * 2. Deferring the actual formatting to the backend thread (non-critical section)
  *
- * Since the library always writes to human-readable log files, binary data must be formatted
- * appropriately in the formatter implementation :
+ * This codec writes the binary data as text, so the formatter must format it. To write the bytes
+ * themselves, use LOG_BINARY, BinaryWriter or PcapWriter instead. The formatter can:
  *
  * 1. Parse the binary data into a meaningful text representation
  *    (e.g., decode a protocol message into its fields)

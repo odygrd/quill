@@ -115,6 +115,24 @@ jobs:
         run: >-
           ctest --test-dir build-module -R '^quill_module_(logging|shutdown)_test$'
           --output-on-failure --timeout 30
+      - name: Configure the module with sequential thread IDs
+        if: matrix.build_type == 'Release' && matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: >-
+          cmake -S . -B build-module-sequential -G Ninja
+          -DCMAKE_CXX_COMPILER=cl
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_CXX_STANDARD=20
+          -DCMAKE_CXX_FLAGS_INIT=/we5244
+          -DQUILL_BUILD_MODULE=ON -DQUILL_USE_SEQUENTIAL_THREAD_ID=ON
+          -DQUILL_BUILD_TESTS=ON -DQUILL_BUILD_EXAMPLES=ON
+      - name: Build the module example with sequential thread IDs
+        if: matrix.build_type == 'Release' && matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: cmake --build build-module-sequential --target quill_docs_module --parallel 2
+      - name: Test logging with sequential thread IDs
+        if: matrix.build_type == 'Release' && matrix.no_exceptions == 'OFF' && matrix.import_std == 'OFF'
+        run: >-
+          ctest --test-dir build-module-sequential -R '^quill_module_logging_test$'
+          --output-on-failure --timeout 30
 
   mingw:
     runs-on: windows-2022

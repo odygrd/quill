@@ -21,11 +21,11 @@ Output:
 
 .. code:: shell
 
-    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:40          INFO      #random Debug with tags
-    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:41          INFO      #bar Info with tags
-    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:42          WARNING   #foo #bar Warning with tags
-    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:43          ERROR     #foo #bar #baz Info with tags
-    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:45          INFO      Without tags
+    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:41          INFO      #random Debug with tags
+    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:42          INFO      #bar Info with tags
+    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:43          WARNING   #foo #bar Warning with tags
+    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:44          ERROR     #foo #bar #baz Info with tags
+    2024-08-11 01:23:44.463 [46228] tags_logging.cpp:46          INFO      Without tags
 
 Dynamic Tags
 ------------

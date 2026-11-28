@@ -264,26 +264,9 @@ Can I use Quill with fork()?
 Call ``Backend::start()`` after ``fork()`` in each process that logs. The child does not inherit the running
 backend thread. Give parent and child separate files.
 
-.. code-block:: cpp
-
-   int main()
-   {
-     // DO NOT call Backend::start() before fork
-     if (fork() == 0)
-     {
-       quill::Backend::start();
-       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("child.log");
-       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       LOG_INFO(logger, "Hello from Child {}", 123);
-     }
-     else
-     {
-       quill::Backend::start();
-       auto file_sink = quill::Frontend::create_or_get_sink<quill::FileSink>("parent.log");
-       quill::Logger* logger = quill::Frontend::create_or_get_logger("root", std::move(file_sink));
-       LOG_INFO(logger, "Hello from Parent {}", 123);
-     }
-   }
+.. literalinclude:: snippets/quill_docs_fork.cpp
+   :language: cpp
+   :linenos:
 
 Troubleshooting
 ----------------
@@ -309,6 +292,13 @@ I see ``LOG_INFO`` macro conflicts with syslog.h or systemd headers
 
 ``<syslog.h>`` and ``<systemd/sd-journal.h>`` define names such as ``LOG_INFO`` and ``LOG_WARNING``. See
 :ref:`sink_types:syslogsink` for header isolation and prefixed macros.
+
+GCC warns about log statements without arguments in strict C++17 mode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With ``-std=c++17 -pedantic``, GCC reports ``ISO C++11 requires at least one argument for the "..." in a
+variadic macro`` for a statement such as ``LOG_INFO(logger, "text")``. Build with GNU extensions
+(``-std=gnu++17``, CMake's default), with C++20, or with the Quill headers as system headers (``-isystem``).
 
 Compile error when logging an STL container
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -7,6 +7,7 @@
 #pragma once
 
 #include "quill/core/Attributes.h"
+#include "quill/core/ChronoTimeUtils.h"
 #ifndef QUILL_MODULE
   #include <cstdint>
 #endif
@@ -34,10 +35,6 @@ extern "C"
   #include <time.h>
 #endif
 
-#if defined(_WIN32) && !defined(QUILL_MODULE)
-  #include <chrono>
-#endif
-
 QUILL_BEGIN_NAMESPACE
 
 namespace detail
@@ -54,8 +51,7 @@ QUILL_NODISCARD constexpr unsigned long sleep_timeout_ms(uint64_t ns) noexcept
 /**
  * Mirrors std::this_thread::sleep_for(std::chrono::nanoseconds{ns}).
  *
- * On Windows, Sleep() cannot wait less than the system timer tick, 1 ms to 15.6 ms, so a wait shorter
- * than 1 ms yields until it has passed instead of sleeping for a whole tick.
+ * On Windows, a positive request below 1 ms yields and checks a steady-clock deadline.
  */
 inline void sleep_for_ns(uint64_t ns) noexcept
 {
@@ -67,20 +63,11 @@ inline void sleep_for_ns(uint64_t ns) noexcept
 #if defined(_WIN32)
   if (ns < 1'000'000ull)
   {
-    // Compare nanosecond counts rather than time_points: MSVC cannot import the time_point
-    // comparison from the quill module
-    auto const now_ns = []() noexcept
-    {
-      return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                                     std::chrono::steady_clock::now().time_since_epoch())
-                                     .count());
-    };
-
-    uint64_t const deadline = now_ns() + ns;
+    uint64_t const deadline = get_steady_time_ns() + ns;
     do
     {
       ::SwitchToThread();
-    } while (now_ns() < deadline);
+    } while (get_steady_time_ns() < deadline);
     return;
   }
 
@@ -109,9 +96,9 @@ inline void yield_thread() noexcept
 
 /**
  * Waits before checking again for work the backend usually completes within microseconds.
- * Yields for the first attempts because a sleep cannot be shorter than the OS timer granularity
- * (about 50 us on Linux, 1 ms or more on Windows), then sleeps for `sleep_duration_ns`, or keeps
- * yielding when it is zero.
+ * Yields for the first attempts, then requests a sleep of `sleep_duration_ns`, or keeps yielding
+ * when it is zero. On Windows the sleep duration is rounded up to whole milliseconds before
+ * calling Sleep() so the waiting thread can give up its core.
  */
 inline void backoff_wait(uint32_t& attempt, uint64_t sleep_duration_ns) noexcept
 {
@@ -124,7 +111,12 @@ inline void backoff_wait(uint32_t& attempt, uint64_t sleep_duration_ns) noexcept
   }
   else
   {
+#if defined(_WIN32)
+    // Not sleep_for_ns(), which yields for a wait below 1 ms
+    ::Sleep(sleep_timeout_ms(sleep_duration_ns));
+#else
     sleep_for_ns(sleep_duration_ns);
+#endif
   }
 }
 } // namespace detail
