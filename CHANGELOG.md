@@ -127,10 +127,11 @@ cover rotating file sinks, signal handling, codecs and Windows.
 - GCC 8 is the oldest supported GCC. The `<experimental/filesystem>` fallback for GCC 7, which no
   longer compiled, is removed with the `QUILL_HAS_FILESYSTEM` and
   `QUILL_HAS_EXPERIMENTAL_FILESYSTEM` macros.
-- `Sink::write_log()`, `Sink::write_metric()`, `Filter::filter()` and
-  `JsonSink::generate_json_message()` take a single `LogRecord` or `MetricRecord`, and sinks
-  implement one `flush_sink(SinkFlushReason)`. Custom sinks and filters need this change once, and
-  record fields added later will not break them again.
+- `Sink::write_log()`, `Sink::write_metric()`, `Filter::filter()` and the protected
+  `StreamSink::estimate_write_size()` take a single `LogRecord` or `MetricRecord`, and a custom JSON
+  sink overrides `generate_json_message(LogRecord const& record, char const* message_format)`. Sinks
+  implement one `flush_sink(SinkFlushReason)`, and record fields added later will not break custom
+  sinks and filters again.
 - Logger creation takes its clock as `ClockSource::tsc()`, `ClockSource::system()` or
   `ClockSource::custom(clock)`, in place of the `ClockSourceType` and `UserClockSource*` arguments.
 - `loglevel_from_string()` is renamed to `log_level_from_string()`.
@@ -138,7 +139,7 @@ cover rotating file sinks, signal handling, codecs and Windows.
   Quill logging calls, since they run while a record occupies the calling thread's queue.
 - Custom frontend options must derive from `quill::FrontendOptions`; a standalone struct no longer
   compiles. Options added in later versions are then inherited.
-- `QUILL_ENABLE_IMMEDIATE_FLUSH` is no longer read. To compile out the immediate-flush check, set
+- `QUILL_ENABLE_IMMEDIATE_FLUSH` is no longer read: to compile out the immediate-flush check, set
   `enable_immediate_flush = false` in custom frontend options instead of defining
   `QUILL_ENABLE_IMMEDIATE_FLUSH=0`. `Logger::log_statement()` and `log_statement_runtime_metadata()`
   no longer take the flag as a template argument, and CSV and signal-handler messages follow the
@@ -167,13 +168,17 @@ cover rotating file sinks, signal handling, codecs and Windows.
 ### API and Behaviour Changes
 
 - Quill's own CMake, Meson and Bazel builds, e.g. of its tests and examples, use C++20 when no
-  standard is set. C++17 is still supported: set `CMAKE_CXX_STANDARD=17`, `cpp_std=c++17` or
-  `--cxxopt=-std=c++17`. Projects that add Quill keep their own standard.
+  standard is set, and projects that add Quill keep their own standard. C++17 is still supported:
+  set `CMAKE_CXX_STANDARD=17`, `cpp_std=c++17` or `--cxxopt=-std=c++17`.
 - With a `BackendOptions::sleep_duration` of 0, the backend now pauses for
-  `BackendOptions::spin_wait_duration`, 10 μs by default, each time it finds every queue empty, which
-  lowers the latency of the logging threads. Set it to 0 to read the queues again without a pause.
-- Each record in a frontend queue is padded to a multiple of 8 bytes, so a bounded queue holds a
-  few fewer records with string arguments before it blocks or drops.
+  `BackendOptions::spin_wait_duration`, 10 μs by default, each time it finds every queue empty,
+  which lowers the latency of the logging threads. Set it to 0 to read the queues again without a
+  pause.
+- Each record in a frontend queue is padded to a multiple of 8 bytes, so a bounded queue holds
+  fewer of the records whose size was not one already before it blocks or drops, e.g. about a
+  tenth fewer of a statement with one `int` or one short string argument.
+- With Clang, an untagged macro-free call that spans several lines can report the line of its
+  format string.
 - On Windows, a blocked producer using a `BoundedBlocking` or `UnboundedBlocking` queue yields
   between retries when `FrontendOptions::blocking_queue_retry_interval_ns` is below 1 ms
   (800 ns by default). The previous `Sleep()` calls cut throughput by about two thirds when a
@@ -258,8 +263,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
 ### New Features
 
 - Added `LOG_BINARY(logger, data, size)` and `Logger::log_binary()`, which write bytes to the sinks
-  of a logger as they are, e.g. to record a market data feed to a `FileSink` or `RotatingFileSink`.
-  Custom sinks receive the bytes in the new `Sink::write_binary(BinaryRecord const&)`.
+  of a logger as they are, e.g. to record a network or sensor feed to a `FileSink` or
+  `RotatingFileSink`. Custom sinks receive the bytes in the new
+  `Sink::write_binary(BinaryRecord const&)`.
 - Added `quill::BinaryWriter`, which writes binary records with `writer.write(data, size)` to a
   file, a rotating file or custom sinks, and `quill::PcapWriter`, which writes captures that
   Wireshark and tcpdump can read, each rotated file a self-contained capture. The signal handler
@@ -275,10 +281,10 @@ cover rotating file sinks, signal handling, codecs and Windows.
   name a `UserClockSource` implementation so that the frontend inlines its timestamp reads. The
   `CsvWriter` constructors take the clock as a last argument, for frontend options with a
   `clock_type`. ([#1009](https://github.com/odygrd/quill/issues/1009))
-- Added `UserClockSource::timestamp_type()`. A clock that follows real time, such as a PTP or NIC
+- Added `UserClockSource::timestamp_type()`: a clock that follows real time, such as a PTP or NIC
   clock, returns `TimestampType::WallClockNanoseconds`, so its records wait for the grace period and
-  are ordered with the other loggers like `ClockSource::system()`. One that returns raw TSC ticks
-  returns `TscTicks`, and the default `EpochNanoseconds` is for simulated or replayed time.
+  are ordered with the other loggers like `ClockSource::system()`. A clock of raw TSC ticks returns
+  `TscTicks`, and the default `EpochNanoseconds` is for simulated or replayed time.
 - Added `std::filesystem::path` overloads of `Frontend::create_sink<TSink>()`,
   `Frontend::create_or_get_sink<TSink>()` and `Frontend::get_sink()` for file sinks, and of the
   constructors of `CsvWriter`, `BinaryWriter` and `PcapWriter`, so Windows applications can log to
@@ -311,8 +317,8 @@ cover rotating file sinks, signal handling, codecs and Windows.
 - Reduced idle backend CPU use, and contention with frontend logger lookups, in applications with
   many loggers and sinks.
 - Reduced the cost of reading the system and user clocks and of checking string arguments with the
-  default `BackendOptions::check_printable_char`. The TSC clock calibrates in 10 ms instead of
-  busy-spinning for about 50 ms.
+  default `BackendOptions::check_printable_char`. On x86, the TSC clock calibrates in 10 ms instead
+  of busy-spinning for about 50 ms.
 - Reduced the cost of logging C strings, `std::vector`s of arithmetic values, `std::forward_list`
   values and `std::bitset`s of more than 64 bits, which the logging thread no longer encodes bit by
   bit.
@@ -341,8 +347,7 @@ cover rotating file sinks, signal handling, codecs and Windows.
 - With C++20, a macro-free call with a string literal format string and no tags, such as
   `quill::info(logger, "Request {} done", id)`, no longer copies the format string on every call,
   which brings it close to `LOG_INFO` on the logging thread, and the backend writes these records
-  faster. In C++17 as well, a call that spans several lines may now report the line of its format
-  string.
+  faster.
 
 ### Bug Fixes
 
@@ -413,12 +418,15 @@ cover rotating file sinks, signal handling, codecs and Windows.
   too many, so a hugetlb pool sized from the queue capacity is enough.
 - Logging more than 12 C strings in one statement, or a container of them, throws `std::bad_alloc`
   from the log call when the size cache cannot allocate, instead of calling `std::terminate()`.
-- A `MacroMetadata` that an application builds for `Logger::log_statement()` or
-  `Logger::log_binary()` can have a source location with a Windows drive and no line, such as
-  `"C:\\src\\file.cpp"`. Before, `%(file_name)` read past the end of it.
+- A `MacroMetadata` that an application builds for `Logger::log_statement()` can have a source
+  location with a Windows drive and no line, such as `"C:\\src\\file.cpp"`. Before,
+  `%(file_name)` read past the end of it.
 - With Clang and `-Wpedantic`, the log macros no longer report
   `-Wgnu-zero-variadic-macro-arguments` in an application that is built without the compile
   options of the Quill CMake, Meson or Bazel target.
+- With GCC and `-Wshadow`, a source file that includes `quill/Logger.h` no longer reports shadowed
+  members of `PatternFormatterOptions`, and the Quill headers build without warnings under
+  `-Wsign-conversion` and `-Wextra-semi` in an application that enables them for its own code.
 - A type using `DirectFormatCodec` is formatted once per log statement instead of twice, so a
   formatter that reads concurrently changing state can no longer log truncated or stale text.
 - Format strings that combine a dynamic width or precision with named arguments, such as
@@ -450,8 +458,8 @@ cover rotating file sinks, signal handling, codecs and Windows.
   a valid file path, such as `"tcp://collector:4317"`, instead of aborting.
 - `std::optional<T const>`, a `std::variant` with const alternatives, a `std::variant` passed by
   `const&` with an alternative whose copy constructor is deleted and that its codec decodes back
-  into its own type (e.g. with `MemberwiseCodec`), and on Windows a `std::tuple` or `std::variant`
-  holding a wide string can be logged; they failed to compile.
+  into its own type, and on Windows a `std::tuple` or `std::variant` holding a wide string can be
+  logged; they failed to compile.
 - A `std::map`, `std::multimap`, `std::set` or `std::multiset` of strings with `std::greater<Key>`,
   and a `std::unordered_map` or `std::unordered_set` keyed by `std::error_code` with
   `quill/std/SystemError.h`, can be logged; they failed to compile.
@@ -503,7 +511,9 @@ cover rotating file sinks, signal handling, codecs and Windows.
   buckets works.
 - Fixed MSVC named module builds with `QUILL_IMPORT_STD=ON` failing with standard library
   redefinition errors or internal compiler errors
-  ([#1012](https://github.com/odygrd/quill/issues/1012)), and a DragonFlyBSD build error with
+  ([#1012](https://github.com/odygrd/quill/issues/1012)).
+- On FreeBSD, DragonFlyBSD and OpenBSD, the Quill headers include `pthread.h` themselves instead of
+  relying on another header to, which fixes a DragonFlyBSD build error with
   `QUILL_USE_SEQUENTIAL_THREAD_ID`.
 - With `QUILL_USE_SEQUENTIAL_THREAD_ID`, a program that imports the C++20 module links without
   `QUILL_DEFINE_SEQUENTIAL_THREAD_ID`. On Linux, an executable and a startup-linked shared library
